@@ -320,21 +320,34 @@ def render_settings_page(engine):
     # ── Paese ──────────────────────────────────────────────────────────────────
     st.subheader(t("settings.country"))
     st.caption(t("settings.country_caption"))
-    from ui.onboarding_page import _COUNTRIES, _COUNTRY_LABELS, _COUNTRY_CODES, _COUNTRY_BY_NAME
-    _none_label = t("settings.country_none")
-    _country_options = [_none_label] + _COUNTRY_LABELS
-    _current_country = settings.get("country", "")
-    _country_idx = (
-        _COUNTRY_CODES.index(_current_country) + 1  # +1 per il None iniziale
-        if _current_country in _COUNTRY_CODES else 0
+    # Country names are now resolved per active UI language via the onboarding
+    # helpers; the old _COUNTRIES / _COUNTRY_LABELS / _COUNTRY_BY_NAME constants
+    # were removed in the i18n country refactor (AI-16).
+    from ui.onboarding_page import (
+        _COUNTRY_CODES,
+        _country_label,
+        _code_from_label,
+        _sorted_country_labels,
     )
+    _none_label = t("settings.country_none")
+    _country_labels = _sorted_country_labels()
+    _country_options = [_none_label] + _country_labels
+    _current_country = settings.get("country", "")
+    if _current_country in _COUNTRY_CODES:
+        _current_label = _country_label(_current_country)
+        _country_idx = (
+            _country_options.index(_current_label)
+            if _current_label in _country_options else 0
+        )
+    else:
+        _country_idx = 0
     country_sel = st.selectbox(
         t("settings.country_label"),
         _country_options,
         index=_country_idx,
         label_visibility="collapsed",
     )
-    country_code = "" if country_sel == _none_label else _COUNTRY_BY_NAME.get(country_sel, "")
+    country_code = "" if country_sel == _none_label else (_code_from_label(country_sel) or "")
 
     st.divider()
 
