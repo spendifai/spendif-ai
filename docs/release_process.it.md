@@ -18,8 +18,17 @@ Spendif.ai segue [Semantic Versioning 2.0.0](https://semver.org/) — `MAJOR.MIN
 | `MAJOR` | Breaking change: migrazione obbligatoria dello schema del database, modifica del formato del file di configurazione, rimozione di strumenti supportati. | Migrazione SQLite → DuckDB, rinomina di chiavi di configurazione |
 
 La versione autoritativa è il file `VERSION` nella root del repository.
-Tutti gli altri riferimenti di versione (pyproject.toml, Info.plist, manifest winget, cask Homebrew)
-vengono aggiornati da `packaging/release.sh` e non devono mai essere modificati a mano.
+
+`packaging/release.sh` scrive **solo** quel file: non propaga la versione altrove.
+Gli altri riferimenti vanno aggiornati nello stesso commit di release, a mano
+finché lo script non verrà esteso:
+
+| Riferimento | Perché conta |
+|---|---|
+| `pyproject.toml` | metadati del pacchetto |
+| `core/_build_info.py` | versione mostrata in sidebar; rigenerata al build dai builder macOS e Windows, ma **non** da `build-deb.sh` / `build-rpm.sh`, quindi i pacchetti Linux spediscono il valore committato |
+| `packaging/winget/SpendifAi.SpendifAi.*` | manifest winget |
+| `packaging/homebrew/spendifai.rb` | template del cask — `version`/`sha256` vengono poi resi nel tap da `packaging/homebrew/update-tap.sh` (Sezione 3) |
 
 ---
 
@@ -130,33 +139,46 @@ locale e preferiscono non caricarli come Secrets.
 
 ### Tap Homebrew (approccio attuale)
 
-Il repository del tap `drake69/homebrew-spendifai` (separato dal repo principale del codice)
-contiene un singolo file cask in `Casks/spendifai.rb`.
+Il repository del tap `drake69/homebrew-spendifai` (separato dal repo del codice)
+contiene un solo file cask in `Casks/spendifai.rb`. Il template sta qui, in
+`packaging/homebrew/spendifai.rb`.
 
-Installazione lato utente:
+Installazione utente:
 ```bash
 brew tap drake69/spendifai
-brew install --cask spendifai
+brew install --cask --no-quarantine spendifai
 ```
 
-Lo script `packaging/release.sh` aggiorna `version` e `sha256` nel file cask,
-poi committa e fa il push sul repo del tap automaticamente — a condizione che il repo del tap sia
-clonato come directory adiacente:
-```
-Spendify/
-  sw_artifacts/         ← repo principale del codice
-  homebrew-spendifai/   ← repo del tap (sibling)
-```
+`--no-quarantine` serve solo finché il DMG viene distribuito non firmato: si
+toglie quando la Sezione 4 (firma + notarization) sarà completata. Release
+successive:
 
-Per inizializzare il repo del tap la prima volta:
 ```bash
-cd /path/to/Spendify
-git clone git@github.com:drake69/homebrew-spendifai.git
-# Crea la directory Casks/ e copia il template
-mkdir -p homebrew-spendifai/Casks
-cp sw_artifacts/packaging/homebrew/spendifai.rb homebrew-spendifai/Casks/spendifai.rb
-cd homebrew-spendifai && git add . && git commit -m "feat: initial cask" && git push
+brew update && brew upgrade --cask spendifai
 ```
+
+Il cask include un blocco `livecheck` con strategia `github_latest`, quindi
+`brew upgrade` rileva le nuove release senza impianti aggiuntivi.
+
+#### Pubblicare una release sul tap
+
+Da eseguire **dopo** che la GitHub Release è pubblicata (una draft non è
+scaricabile da Homebrew):
+
+```bash
+bash packaging/homebrew/update-tap.sh                 # versione dal file VERSION
+bash packaging/homebrew/update-tap.sh --version 0.2.0 # oppure esplicita
+bash packaging/homebrew/update-tap.sh --dry-run       # per ispezionare prima
+```
+
+Lo script legge il checksum del DMG da `SHA256SUMS.txt` della release (con
+fallback: scarica il DMG e lo calcola), rende il template, crea il repository
+del tap se non esiste ancora, e pusha `Casks/spendifai.rb` più un README
+generato. È idempotente: rilanciarlo sulla stessa versione non fa nulla.
+
+Nota: `packaging/release.sh` **non** tocca il tap, contrariamente a quanto
+affermavano le revisioni precedenti di questo documento. L'aggiornamento del
+tap è lo step esplicito qui sopra.
 
 ### Homebrew Core (futuro)
 
