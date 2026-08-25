@@ -26,7 +26,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 - Dependency floors raised after a pip-audit finding: `gitpython >= 3.1.58` (GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p, CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr) and `cryptography >= 50.0.0` (PYSEC-2026-3552). Lockfile resolves to gitpython 3.1.59 and cryptography 50.0.0
-- Docker image hardening after a Trivy finding: the packaging toolchain of the system interpreter (pip, setuptools, `pkg_resources`, bundled wheels) is removed once the build is done, and `uv sync` no longer leaves its build cache in `/root/.cache/uv`. Both carried package copies unreachable from the app but flagged HIGH — setuptools 70.3.0 (CVE-2025-47273) and msgpack 1.1.2 (GHSA-6v7p-g79w-8964). The app is unaffected: uv installs everything into `/app/.venv` and the entrypoint runs through `uv run`. Smaller image as a side effect
+- Docker image slimmed down and hardened: the packaging toolchain of the system interpreter (pip, setuptools, `pkg_resources`, bundled wheels) is removed once the build is done, and `uv sync` no longer leaves its build cache in `/root/.cache/uv`. Neither is reachable from the app — uv installs everything into `/app/.venv` and the entrypoint runs through `uv run`. Note: this did **not** clear the two HIGH findings Trivy reports on the image (setuptools 70.3.0 / CVE-2025-47273 and msgpack 1.1.2 / GHSA-6v7p-g79w-8964); their location in the image is still unknown and the container security gate stays red for this release
 
 ### Known limitations
 - The macOS DMG and the Windows MSIX are **not signed**: Gatekeeper and SmartScreen will warn on first launch. Code signing and notarisation are tracked separately
