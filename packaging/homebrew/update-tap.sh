@@ -9,6 +9,7 @@
 #
 # After this runs, on any Mac:
 #   brew tap drake69/spendifai
+#   brew trust --cask drake69/spendifai/spendifai      # once per machine (Homebrew 6+)
 #   brew install --cask --no-quarantine spendifai      # first install
 #   brew update && brew upgrade --cask spendifai       # every later release
 #
@@ -151,10 +152,13 @@ Source code: https://github.com/${SOURCE_REPO}
 
 \`\`\`bash
 brew tap ${TAP_REPO%%/*}/${TAP_REPO##*-}
+brew trust --cask ${TAP_REPO%%/*}/${TAP_REPO##*-}/spendifai
 brew install --cask --no-quarantine spendifai
 \`\`\`
 
-\`--no-quarantine\` is required while the DMG ships unsigned.
+Homebrew 6 refuses to load casks from third-party taps until you trust them,
+hence the \`brew trust\` line. \`--no-quarantine\` is required while the DMG
+ships unsigned.
 
 ## Update
 
@@ -194,6 +198,7 @@ echo "============================================================"
 echo ""
 echo "  First install on a Mac:"
 echo "    brew tap ${TAP_REPO%%/*}/${TAP_REPO##*-}"
+echo "    brew trust --cask ${TAP_REPO%%/*}/${TAP_REPO##*-}/spendifai"
 echo "    brew install --cask --no-quarantine spendifai"
 echo ""
 echo "  Later releases:"

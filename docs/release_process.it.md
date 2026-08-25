@@ -146,9 +146,12 @@ contiene un solo file cask in `Casks/spendifai.rb`. Il template sta qui, in
 Installazione utente:
 ```bash
 brew tap drake69/spendifai
+brew trust --cask drake69/spendifai/spendifai
 brew install --cask --no-quarantine spendifai
 ```
 
+`brew trust` serve una volta per macchina: Homebrew 6 rifiuta di caricare i cask
+dei tap di terze parti finché l'utente non li dichiara affidabili.
 `--no-quarantine` serve solo finché il DMG viene distribuito non firmato: si
 toglie quando la Sezione 4 (firma + notarization) sarà completata. Release
 successive:
