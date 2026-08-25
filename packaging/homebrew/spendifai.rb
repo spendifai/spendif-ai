@@ -17,7 +17,7 @@
 # stable release history): see docs/release_process.md in the main repo.
 
 cask "spendifai" do
-  version "0.1.0"
+  version "0.2.0"
   sha256 "PLACEHOLDER_SHA256_DMG"
 
   url "https://github.com/drake69/spendif-ai/releases/download/v#{version}/Spendif.ai-#{version}.dmg"

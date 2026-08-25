@@ -8,7 +8,44 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-25
+
 ### Added
+- Barra privacy a semaforo nella pagina di configurazione LLM: mostra a colpo d'occhio cosa esce dalla macchina per ciascun backend, prima che l'utente ne scelga uno (#AI-229, #161)
+- Landing page: metadati SEO + GEO, `sitemap.xml`, `robots.txt` e `llms.txt` (#155)
+- Pagina di feedback alpha su gh-pages, basata su un form Tally (#162)
+- Pulsanti di download diretto degli installer (DMG / MSIX / .deb / .rpm) sulla pagina getting-started, in tutte e 9 le lingue (#163)
+- Nuovo brand mark applicato alle landing page e alle icone dell'app bundle (#159)
+
+### Changed
+- Navigazione della sidebar completamente tradotta in italiano (#158)
+- Documentazione: Python >= 3.12 dichiarato nelle istruzioni di installazione, landing di brand in inglese, link reciproco al README italiano (#164)
+- Riferimenti di versione allineati tra README e `pyproject.toml` (#160)
+
+### Fixed
+- Finestra desktop: il pulsante Deploy di Streamlit e la sua toolbar non sono più visibili nella finestra pywebview; `toolbarMode = viewer` mantiene raggiungibili Settings e Tema (#165)
+- Coupling: il layer UI non importa più direttamente `db`/`core`, ed è riparato il gate CI sul coupling che passava silenziosamente (#157)
+
+### Security
+- Alzati i floor delle dipendenze dopo una segnalazione di pip-audit: `gitpython >= 3.1.58` (GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p, CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr) e `cryptography >= 50.0.0` (PYSEC-2026-3552). Il lockfile risolve a gitpython 3.1.59 e cryptography 50.0.0
+
+### Known limitations
+- Il DMG macOS e l'MSIX Windows **non sono firmati**: Gatekeeper e SmartScreen mostreranno un avviso al primo avvio. Firma del codice e notarization sono tracciate separatamente
+- I manifest winget e il cask Homebrew in `packaging/` fanno ancora riferimento all'artefatto ZIP Windows ritirato e a un nome file `Spendif.ai-<versione>.dmg`; per questa release nessuno dei due canali viene sottomesso
+
+## [0.1.0] - 2026-07-29
+
+*Prima release pubblica, taggata e pubblicata il 2026-07-29 con gli installer per macOS, Windows e Linux. Le voci qui sotto erano prima divise tra una sezione `Unreleased` e una sezione `0.1.0` datata con l'inizio dello sviluppo (2026-04-06); sono state unite qui per corrispondere a ciò che è effettivamente uscito negli artefatti v0.1.0.*
+
+### Added
+- Prima release
+- Import di estratti conto CSV/XLSX (9 strumenti finanziari italiani)
+- Categorizzazione AI locale via llama.cpp (Qwen3.5, Gemma4, Phi4, Llama3.2)
+- Matching delle controparti con consapevolezza NSI/OSI
+- Cache storica, regole utente, personalizzazione della tassonomia
+- App bundle macOS, integrazione con Spotlight
+- Installer Windows via winget/PowerShell
+- Dashboard di analytics interattiva (in arrivo)
 - App desktop nativa: finestra pywebview che incorpora Streamlit (niente Terminal, niente browser)
 - Download automatico del modello LLM consigliato in base al rilevamento hardware (RAM/GPU)
 - Setup llama.cpp zero-config al primo avvio
@@ -54,15 +91,3 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Catena di silent crash del bundle desktop: cinque bug distinti che facevano uscire il `.app` PyInstaller senza output ad ogni launch — `console=False` che ingoiava stdout, il path di `splash.html` che collassava a `_MEIPASS` invece di `_MEIPASS/desktop/`, loop di re-exec infinito quando launcher.py invocava `subprocess.Popen([sys.executable, "-m", "streamlit", …])` (l'eseguibile è il bundle stesso, che rientrava nel launcher), Streamlit che rifiutava `--server.port` perché `global.developmentMode` di default era `true` nel bundle, e `support/logging.py` che hard-codava `os.makedirs("logs")` read-only nel bundle. Tutto sistemato in `fix(desktop): make the PyInstaller bundle actually start` (#AI-49 follow-up)
 - Albero processi non killato alla chiusura finestra. `_cleanup` ora usa `os.killpg` sui process group avviati con `start_new_session=True` così Streamlit + uvicorn + grandchildren muoiono insieme. Prima lo Streamlit residuo teneva aperta la porta e macOS Launch Services trattava il doppio-click successivo come "riapertura dell'istanza in esecuzione"
 - `packaging/linux/build-rpm.sh` entry icona in `%files` resa condizionale su `ICON_PRESENT=1` così rpmbuild riesce anche quando non c'è `spendifai_256.png` sul build host (chiude AI-56)
-
-## [0.1.0] - 2026-04-06
-
-### Added
-- Prima release
-- Import di estratti conto CSV/XLSX (9 strumenti finanziari italiani)
-- Categorizzazione AI locale via llama.cpp (Qwen3.5, Gemma4, Phi4, Llama3.2)
-- Matching delle controparti con consapevolezza NSI/OSI
-- Cache storica, regole utente, personalizzazione della tassonomia
-- App bundle macOS, integrazione con Spotlight
-- Installer Windows via winget/PowerShell
-- Dashboard di analytics interattiva (in arrivo)
