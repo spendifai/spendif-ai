@@ -37,7 +37,9 @@ cask "spendifai" do
 
   # The app runs entirely offline; nothing in it self-updates.
   auto_updates false
-  depends_on macos: ">= :monterey"
+  # A bare symbol means "this version or newer"; the ">= :monterey" string form
+  # is deprecated since Homebrew 6.
+  depends_on macos: :monterey
 
   # App bundle produced by desktop.spec (BUNDLE name="SpendifAi.app"), renamed
   # on install so Finder shows the product name.
@@ -62,7 +64,11 @@ cask "spendifai" do
   caveats <<~EOS
     The DMG is not signed or notarised yet, so macOS quarantines it. Install with
 
+      brew trust --cask drake69/spendifai/spendifai
       brew install --cask --no-quarantine spendifai
+
+    The `brew trust` step is required once per machine: Homebrew 6 refuses to
+    load casks from third-party taps until you vouch for them.
 
     or, if you already installed it and macOS refuses to open the app:
 

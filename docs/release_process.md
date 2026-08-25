@@ -145,10 +145,13 @@ holds a single cask file at `Casks/spendifai.rb`. The template lives here, in
 User installation:
 ```bash
 brew tap drake69/spendifai
+brew trust --cask drake69/spendifai/spendifai
 brew install --cask --no-quarantine spendifai
 ```
 
-`--no-quarantine` is required only while the DMG ships unsigned; drop it once
+`brew trust` is required once per machine: Homebrew 6 refuses to load casks from
+third-party taps until the user vouches for them. `--no-quarantine` is required
+only while the DMG ships unsigned; drop it once
 Section 4 (signing + notarisation) is done. Subsequent releases:
 
 ```bash
