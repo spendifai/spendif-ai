@@ -21,12 +21,6 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# The system Python in `python:3.13-slim` ships setuptools 70.3.0, which carries
-# CVE-2025-47273 (path traversal in PackageIndex). It is not part of our lockfile
-# — uv installs its own copy inside /app/.venv — but Trivy scans the whole image
-# and gates the build on it. Upgrade the interpreter-level copy in place.
-RUN python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1"
-
 # Installa uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -64,6 +58,21 @@ EXPOSE 8501
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
+
+# Drop the packaging toolchain of the SYSTEM interpreter. Nothing needs it at
+# runtime: uv resolved and installed everything into /app/.venv during the build,
+# and the entrypoint runs through `uv run`. It is however the only remaining
+# source of Trivy HIGH findings on this image — setuptools 70.3.0
+# (CVE-2025-47273) and the msgpack 1.1.2 that pip carries in its vendored tree
+# (GHSA-6v7p-g79w-8964) — neither of which is reachable from the app. Upgrading
+# site-packages was not enough: the reported copies live in pip's vendored tree
+# and in the bundled ensurepip wheels, so they are removed outright.
+RUN python -c "import glob, os, shutil, sysconfig; \
+p = sysconfig.get_paths()['purelib']; \
+targets = [x for pat in ('pip', 'pip-*', 'setuptools', 'setuptools-*', 'pkg_resources', 'pkg_resources-*', 'wheel', 'wheel-*', '_distutils_hack', 'distutils-precedence.pth') for x in glob.glob(os.path.join(p, pat))]; \
+[shutil.rmtree(t, ignore_errors=True) if os.path.isdir(t) else os.remove(t) for t in targets]" && \
+    rm -rf /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 && \
+    find /usr/local/lib/python3.13 -name "*.whl" -delete
 
 # Entrypoint — uv run attiva automaticamente la venv e risolve il symlink Python
 CMD ["uv", "run", "streamlit", "run", "app.py", \
