@@ -11,7 +11,7 @@
 # Schema reference: https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: SpendifAi.SpendifAi
-PackageVersion: 0.1.0
+PackageVersion: 0.2.0
 PackageLocale: en-US
 Publisher: SpendifAi
 PublisherUrl: https://github.com/drake69
@@ -35,6 +35,6 @@ Tags:
   - streamlit
   - personal-finance
   - italian-banks
-ReleaseNotesUrl: https://github.com/drake69/spendif-ai/releases/tag/v0.1.0
+ReleaseNotesUrl: https://github.com/drake69/spendif-ai/releases/tag/v0.2.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

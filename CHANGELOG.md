@@ -6,7 +6,45 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-25
+
 ### Added
+- Traffic-light privacy bar on the LLM configuration page: shows at a glance what leaves the machine for each backend, before the user picks one (#AI-229, #161)
+- Landing pages: SEO + GEO metadata, `sitemap.xml`, `robots.txt` and `llms.txt` (#155)
+- Alpha feedback page on gh-pages, backed by a Tally form (#162)
+- Direct installer download buttons (DMG / MSIX / .deb / .rpm) on the getting-started page, in all 9 locales (#163)
+- New brand mark applied to the landing pages and to the app bundle icons (#159)
+
+### Changed
+- Sidebar navigation fully translated to Italian (#158)
+- Documentation: Python >= 3.12 stated in the install instructions, English brand landing, reciprocal IT README link (#164)
+- Version references aligned across README and `pyproject.toml` (#160)
+
+### Fixed
+- Desktop window: the Streamlit Deploy button and its toolbar are no longer visible inside the pywebview window; `toolbarMode = viewer` keeps Settings and Theme reachable (#165)
+- Coupling: the UI layer no longer imports `db`/`core` directly, and the coupling CI gate that was silently passing is repaired (#157)
+
+### Security
+- Dependency floors raised after a pip-audit finding: `gitpython >= 3.1.58` (GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p, CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr) and `cryptography >= 50.0.0` (PYSEC-2026-3552). Lockfile resolves to gitpython 3.1.59 and cryptography 50.0.0
+- Docker image slimmed down and hardened: the packaging toolchain of the system interpreter (pip, setuptools, `pkg_resources`, bundled wheels) is removed once the build is done, and `uv sync` no longer leaves its build cache in `/root/.cache/uv`. Neither is reachable from the app — uv installs everything into `/app/.venv` and the entrypoint runs through `uv run`. Note: this did **not** clear the two HIGH findings Trivy reports on the image (setuptools 70.3.0 / CVE-2025-47273 and msgpack 1.1.2 / GHSA-6v7p-g79w-8964); their location in the image is still unknown and the container security gate stays red for this release
+
+### Known limitations
+- The macOS DMG and the Windows MSIX are **not signed**: Gatekeeper and SmartScreen will warn on first launch. Code signing and notarisation are tracked separately
+- The winget manifests and the Homebrew cask in `packaging/` still reference the retired Windows ZIP artefact and a `Spendif.ai-<version>.dmg` filename; neither channel is submitted for this release
+
+## [0.1.0] - 2026-07-29
+
+*First public release, tagged and published on 2026-07-29 with installers for macOS, Windows and Linux. The entries below were previously split between an `Unreleased` section and a `0.1.0` section dated with the development start (2026-04-06); they are merged here to match what actually shipped in the v0.1.0 artefacts.*
+
+### Added
+- Initial release
+- Import CSV/XLSX bank statements (9 Italian financial instruments)
+- Local AI categorisation via llama.cpp (Qwen3.5, Gemma4, Phi4, Llama3.2)
+- NSI/OSI-aware counterpart matching
+- History cache, user rules, taxonomy customisation
+- macOS .app bundle, Spotlight integration
+- Windows installer via winget/PowerShell
+- Interactive analytics dashboard (coming soon)
 - Native desktop app: pywebview window embedding Streamlit (no Terminal, no browser)
 - Auto-download of recommended LLM model based on hardware detection (RAM/GPU)
 - Zero-config llama.cpp setup on first launch
@@ -52,15 +90,3 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Desktop bundle silent crash chain: five distinct bugs that made the PyInstaller `.app` exit with zero output on every launch — `console=False` swallowing stdout, `splash.html` path collapsing to `_MEIPASS` instead of `_MEIPASS/desktop/`, infinite re-exec loop when launcher.py invoked `subprocess.Popen([sys.executable, "-m", "streamlit", …])` (the executable is the bundle, which re-entered the launcher), Streamlit refusing `--server.port` because `global.developmentMode` defaulted to `true` in the bundle, and `support/logging.py` hard-coding `os.makedirs("logs")` which is read-only inside the bundle. All addressed in `fix(desktop): make the PyInstaller bundle actually start` (#AI-49 follow-up)
 - Subprocess tree not killed on window close. `_cleanup` now uses `os.killpg` against process groups started with `start_new_session=True` so Streamlit + uvicorn + grandchildren die together. Previously the leftover Streamlit kept the port open and macOS Launch Services would treat the next double-click as "reopen of the running instance"
 - `packaging/linux/build-rpm.sh` icon entry in `%files` made conditional on `ICON_PRESENT=1` so rpmbuild succeeds even when no `spendifai_256.png` is present on the build host (closes AI-56)
-
-## [0.1.0] - 2026-04-06
-
-### Added
-- Initial release
-- Import CSV/XLSX bank statements (9 Italian financial instruments)
-- Local AI categorisation via llama.cpp (Qwen3.5, Gemma4, Phi4, Llama3.2)
-- NSI/OSI-aware counterpart matching
-- History cache, user rules, taxonomy customisation
-- macOS .app bundle, Spotlight integration
-- Windows installer via winget/PowerShell
-- Interactive analytics dashboard (coming soon)
