@@ -106,7 +106,7 @@
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
           <a id="dl-mac" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">Télécharger DMG</a>
-          <div class="dl-notes">macOS 12 Monterey ou supérieur. Apple Silicon + Intel.</div>
+          <div class="dl-notes">macOS 12 Monterey ou supérieur. Apple Silicon uniquement (M1 ou plus récent).</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
@@ -144,6 +144,13 @@
           <p>2. Glissez <strong>Spendif.ai.app</strong> dans le dossier <strong>Applications</strong>.</p>
           <p>3. Éjectez le DMG (Cmd+E) et lancez l'app depuis Launchpad.</p>
           <p>Si vous voyez "Impossible d'ouvrir Spendif.ai car le développeur ne peut pas être vérifié" (build pas encore signée) : clic droit sur l'app → <strong>Ouvrir</strong> → confirmer.</p>
+          <p style="margin-top:1.2rem"><strong>Ou bien, avec Homebrew :</strong></p>
+          <p>
+            <code>brew tap drake69/spendifai</code><br>
+            <code>brew trust --cask drake69/spendifai/spendifai</code><br>
+            <code>brew install --cask --no-quarantine spendifai</code>
+          </p>
+          <p>Ensuite, vous mettez à jour avec <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/macos-dmg-dragdrop.png</code><div>(glisser-déposer du DMG vers Applications)</div></div>

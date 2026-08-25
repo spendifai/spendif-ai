@@ -18,6 +18,14 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 
 > 👋 **End users — looking to install Spendif.ai?**
 > Go to the [Getting Started page](https://drake69.github.io/spendif-ai/getting-started.en.html) for the illustrated install + first-launch guide. This README is for developers and contributors.
+>
+> On macOS you can also install and stay up to date through Homebrew:
+> ```bash
+> brew tap drake69/spendifai
+> brew trust --cask drake69/spendifai/spendifai   # once per machine, Homebrew 6+
+> brew install --cask --no-quarantine spendifai
+> brew update && brew upgrade --cask spendifai     # later releases
+> ```
 
 ---
 

@@ -17,7 +17,15 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 ---
 
 > 👋 **Utente finale — vuoi installare Spendif.ai?**
-> Vai alla [pagina Primo avvio](https://drake69.github.io/spendif-ai/getting-started.it.html) per la guida illustrata all'installazione e al primo avvio. Questo README è dedicato a sviluppatori e contributor.
+> Vai alla [pagina Primo avvio](https://drake69.github.io/spendif-ai/getting-started.html) per la guida illustrata all'installazione e al primo avvio. Questo README è dedicato a sviluppatori e contributor.
+>
+> Su macOS puoi installare e restare aggiornato via Homebrew:
+> ```bash
+> brew tap drake69/spendifai
+> brew trust --cask drake69/spendifai/spendifai   # una volta per macchina, Homebrew 6+
+> brew install --cask --no-quarantine spendifai
+> brew update && brew upgrade --cask spendifai     # release successive
+> ```
 
 ---
 

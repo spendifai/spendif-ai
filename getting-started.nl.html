@@ -106,7 +106,7 @@
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
           <a id="dl-mac" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">DMG downloaden</a>
-          <div class="dl-notes">macOS 12 Monterey of nieuwer. Apple Silicon + Intel.</div>
+          <div class="dl-notes">macOS 12 Monterey of nieuwer. Alleen Apple Silicon (M1 of nieuwer).</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
@@ -144,6 +144,13 @@
           <p>2. Sleep <strong>Spendif.ai.app</strong> naar de map <strong>Programma's</strong>.</p>
           <p>3. Eject de DMG (Cmd+E) en start de app vanuit Launchpad.</p>
           <p>Als je "Kan Spendif.ai niet openen omdat de ontwikkelaar niet kan worden geverifieerd" ziet (build nog niet ondertekend): rechtermuisklik op de app → <strong>Open</strong> → bevestigen.</p>
+          <p style="margin-top:1.2rem"><strong>Of gebruik Homebrew:</strong></p>
+          <p>
+            <code>brew tap drake69/spendifai</code><br>
+            <code>brew trust --cask drake69/spendifai/spendifai</code><br>
+            <code>brew install --cask --no-quarantine spendifai</code>
+          </p>
+          <p>Daarna werk je bij met <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/macos-dmg-dragdrop.png</code><div>(slepen &amp; neerzetten van DMG naar Programma's)</div></div>
