@@ -28,6 +28,7 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 - Alzati i floor delle dipendenze dopo una segnalazione di pip-audit: `gitpython >= 3.1.58` (GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p, CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr) e `cryptography >= 50.0.0` (PYSEC-2026-3552). Il lockfile risolve a gitpython 3.1.59 e cryptography 50.0.0
+- Hardening dell'immagine Docker dopo una segnalazione di Trivy: il `setuptools` di sistema dell'immagine base `python:3.13-slim` viene aggiornato a >= 78.1.1 (CVE-2025-47273) e `uv sync` non lascia più la sua cache di build in `/root/.cache/uv` — la cache conteneva una copia di msgpack 1.1.2 (GHSA-6v7p-g79w-8964) che non arrivava mai nella venv. Immagine più leggera come effetto collaterale
 
 ### Known limitations
 - Il DMG macOS e l'MSIX Windows **non sono firmati**: Gatekeeper e SmartScreen mostreranno un avviso al primo avvio. Firma del codice e notarization sono tracciate separatamente

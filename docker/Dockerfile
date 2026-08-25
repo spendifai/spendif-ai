@@ -21,6 +21,12 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# The system Python in `python:3.13-slim` ships setuptools 70.3.0, which carries
+# CVE-2025-47273 (path traversal in PackageIndex). It is not part of our lockfile
+# — uv installs its own copy inside /app/.venv — but Trivy scans the whole image
+# and gates the build on it. Upgrade the interpreter-level copy in place.
+RUN python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1"
+
 # Installa uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -34,8 +40,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Copia solo i file di dipendenze per sfruttare la cache Docker
 COPY pyproject.toml uv.lock ./
 
-# Installa dipendenze nella venv (senza dev/test)
-RUN uv sync --frozen --no-dev --no-install-project
+# Installa dipendenze nella venv (senza dev/test).
+# `--no-cache`: without it uv leaves its download/build cache in /root/.cache/uv,
+# which bloats the image and carries package copies that never end up in the
+# venv (build-time deps of source-built wheels such as llama-cpp-python). Trivy
+# scans those copies too and was flagging msgpack 1.1.2 (GHSA-6v7p-g79w-8964)
+# from the cache even though msgpack is absent from uv.lock.
+RUN uv sync --frozen --no-dev --no-install-project --no-cache && \
+    rm -rf /root/.cache/uv
 
 # Copia il codice sorgente
 COPY . .
