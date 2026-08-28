@@ -17,7 +17,7 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 ---
 
 > 👋 **End users — looking to install Spendif.ai?**
-> Go to the [Getting Started page](https://spendifai.github.io/spendif-ai/getting-started.en.html) for the illustrated install + first-launch guide. This README is for developers and contributors.
+> Go to the [Getting Started page](https://spendif.ai/getting-started.en.html) for the illustrated install + first-launch guide. This README is for developers and contributors.
 >
 > On macOS you can also install and stay up to date through Homebrew:
 > ```bash

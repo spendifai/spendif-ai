@@ -1,0 +1,37 @@
+{
+  "delivery_id": "2026-08-28_release-v020-tap-org-move",
+  "repo": "spendifai/spendif-ai",
+  "baseline": "835c179",
+  "head": "b6f2da4",
+  "intento": "Tagliare e pubblicare la release v0.2.0, rendere installabile e aggiornabile l'app su macOS via Homebrew, e spostare il progetto nell'organizzazione GitHub spendifai riallineando tutti i riferimenti.",
+  "blocchi": {
+    "intent": [
+      "CHANGELOG.md / CHANGELOG.it.md — riorganizzazione [Unreleased] -> [0.1.0] + nuova [0.2.0]; qui si legge cosa il progetto dichiara di aver fatto e quando",
+      "docs/release_process.md / .it.md — §1 struttura versioni (corretta la falsa affermazione su release.sh), §3 pubblicazione sul tap"
+    ],
+    "contract": [
+      "packaging/homebrew/spendifai.rb — cask: url dell'asset, livecheck github_latest, depends_on macos, zap, caveats. È il contratto verso l'utente macOS",
+      "VERSION, pyproject.toml, core/_build_info.py, packaging/winget/SpendifAi.SpendifAi.* — superficie di versione"
+    ],
+    "logic": [
+      "packaging/homebrew/update-tap.sh — unico script nuovo con logica non banale: risoluzione versione, lettura sha da SHA256SUMS (match su basename), fallback download+hash, creazione repo tap, render, commit, push. Idempotente"
+    ],
+    "security": [
+      "pyproject.toml + uv.lock — floor gitpython>=3.1.58 e cryptography>=50.0.0 (6 advisory). Sblocca il gate pip-audit",
+      "docker/Dockerfile — rimozione cache uv e del toolchain di packaging di sistema. NON risolutivo sulle 2 HIGH di Trivy: vedi AI-269"
+    ],
+    "test": [],
+    "prose": [
+      "getting-started.*.html (9) e index.*.html (9) — blocco brew, correzione architettura macOS, roadmap ripulita",
+      "README.md / README.it.md — blocco brew + fix link 404",
+      "riscrittura di 530 riferimenti drake69 -> spendifai su 76 file (meccanica, verificata per pattern)"
+    ]
+  },
+  "escluso_deliberatamente": [
+    "Diagnosi delle 2 HIGH di Trivy: tre tentativi falliti, richiede Trivy in --format json per il PkgPath. Fermato per non bruciare altri giri di CI durante una release (AI-269)",
+    "Fix del segno Amex e rimozione del tracing [SIGNDBG]: vivono su feature/classification-sign-review, tenuti fuori dalla v0.2.0 su scelta di scope (AI-258)",
+    "Manifest winget legacy Drake69.SpendifAi.*: non toccati, ne è tracciata la rimozione (AI-265)",
+    "Nessun test nuovo: il lavoro è di packaging, doc e configurazione. La suite esistente (729 passed) è stata rieseguita dopo il bump delle dipendenze"
+  ],
+  "note_lettura": "Se hai poco tempo, leggi in quest'ordine: CHANGELOG [0.2.0] (cosa è uscito), update-tap.sh (unica logica nuova), spendifai.rb (contratto utente macOS). Il resto è sostituzione meccanica di stringhe."
+}

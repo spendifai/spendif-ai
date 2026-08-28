@@ -17,7 +17,7 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 ---
 
 > 👋 **Utente finale — vuoi installare Spendif.ai?**
-> Vai alla [pagina Primo avvio](https://spendifai.github.io/spendif-ai/getting-started.html) per la guida illustrata all'installazione e al primo avvio. Questo README è dedicato a sviluppatori e contributor.
+> Vai alla [pagina Primo avvio](https://spendif.ai/getting-started.html) per la guida illustrata all'installazione e al primo avvio. Questo README è dedicato a sviluppatori e contributor.
 >
 > Su macOS puoi installare e restare aggiornato via Homebrew:
 > ```bash
