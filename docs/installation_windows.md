@@ -40,7 +40,7 @@ Qwen2.5-3B (2.1 GB), not Gemma-3-12B (6.8 GB).
 Open **PowerShell** (not CMD) and paste:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/windows/install.ps1 | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex
 ```
 
 The `Set-ExecutionPolicy` prefix is required because PowerShell blocks
@@ -51,7 +51,7 @@ To inspect the script before running it:
 
 ```powershell
 # Download first
-Invoke-WebRequest https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/windows/install.ps1 -OutFile install.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 -OutFile install.ps1
 # Read it
 notepad install.ps1
 # Run it (from the same folder)

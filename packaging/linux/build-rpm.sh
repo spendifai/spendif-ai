@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  Spendif.ai — .rpm package builder
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  Produces: build/spendifai-<version>-1.<arch>.rpm
 #
@@ -125,7 +125,7 @@ Version:        ${VERSION}
 Release:        ${RELEASE}%{?dist}
 Summary:        Personal finance manager with local AI categorisation
 License:        MIT
-URL:            https://github.com/drake69/spendif-ai
+URL:            https://github.com/spendifai/spendif-ai
 Source0:        %{name}-%{version}.tar.gz
 
 # Runtime dependencies (Fedora ≥ 37 / RHEL 9 names)

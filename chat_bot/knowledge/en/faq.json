@@ -362,7 +362,7 @@
   },
   {
     "q": "Who made this program? Is it a serious company or just someone random?",
-    "a": "Spendif.AI is an independent project developed by a single founder. The source code is public on GitHub (github.com/drake69/spendif-ai). This means anyone can inspect the code, verify there are no backdoors and contribute to the project."
+    "a": "Spendif.AI is an independent project developed by a single founder. The source code is public on GitHub (github.com/spendifai/spendif-ai). This means anyone can inspect the code, verify there are no backdoors and contribute to the project."
   },
   {
     "q": "Is my banking data and spending history seen by anyone?",
@@ -512,7 +512,7 @@
   },
   {
     "q": "Is there support in English? Is it a real person or just a chatbot?",
-    "a": "The official documentation is available in English (user guide, configuration guide, classification guide). For direct support you can open an issue on GitHub (github.com/drake69/spendif-ai). A support chatbot based on this documentation is in development."
+    "a": "The official documentation is available in English (user guide, configuration guide, classification guide). For direct support you can open an issue on GitHub (github.com/spendifai/spendif-ai). A support chatbot based on this documentation is in development."
   },
   {
     "q": "Are there video tutorials or easy-to-understand guides available?",
@@ -682,7 +682,7 @@
   },
   {
     "q": "Is there a user community (forum, group) where I can ask questions?",
-    "a": "There is currently no official community (forum, Telegram or Discord group). To report issues or ask questions you can open an issue on GitHub (github.com/drake69/spendif-ai). A support community is being evaluated for the future."
+    "a": "There is currently no official community (forum, Telegram or Discord group). To report issues or ask questions you can open an issue on GitHub (github.com/spendifai/spendif-ai). A support community is being evaluated for the future."
   },
   {
     "q": "Is Spendif.ai paid? How much does it cost?",

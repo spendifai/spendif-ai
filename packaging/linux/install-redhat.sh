@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  Spendif.ai — Red Hat / Fedora / CentOS Installer
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  Tested on: Fedora 39+, RHEL 9+, Rocky Linux 9+, AlmaLinux 9+
 #
@@ -34,7 +34,7 @@ die()   { echo -e "${_RED}✖  $*${_RST}" >&2; exit 1; }
 # ── Defaults ─────────────────────────────────────────────────────────────────
 INSTALL_DIR="$HOME/.local/share/Spendif.ai"
 SPENDIFAI_HOME="$HOME/.spendifai"
-REPO_URL="https://github.com/drake69/spendif-ai.git"
+REPO_URL="https://github.com/spendifai/spendif-ai.git"
 BRANCH="main"
 DO_LAUNCH=false
 DO_UPDATE=false

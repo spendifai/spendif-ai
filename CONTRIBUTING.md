@@ -42,7 +42,7 @@ Apri un commento sull'issue con la motivazione. Il maintainer rivaluta e aggiorn
 
 ## Segnalare un bug
 
-1. Cerca nelle [issue aperte](https://github.com/drake69/spendif-ai/issues) — potrebbe esistere già
+1. Cerca nelle [issue aperte](https://github.com/spendifai/spendif-ai/issues) — potrebbe esistere già
 2. Apri una nuova issue con il template **Bug report**
 3. Includi:
    - Versione Spendif.ai (o commit hash)
@@ -55,7 +55,7 @@ Apri un commento sull'issue con la motivazione. Il maintainer rivaluta e aggiorn
 
 ## Proporre una funzionalità
 
-1. Controlla il [backlog](https://github.com/drake69/spendif-ai/issues) — potrebbe esistere già come issue P2/P3
+1. Controlla il [backlog](https://github.com/spendifai/spendif-ai/issues) — potrebbe esistere già come issue P2/P3
 2. Apri una issue con il template **Feature request**
 3. Descrivi:
    - Il problema che risolve (non solo la soluzione)
@@ -203,7 +203,7 @@ i18n(ja): correct technical term for "ledger" — 元帳 → 取引履歴
 ### Installazione
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git
+git clone https://github.com/spendifai/spendif-ai.git
 cd spendifai
 uv sync
 cp .env.example .env
@@ -285,4 +285,4 @@ uv run ruff format --check .
 
 ## Domande?
 
-Apri una [Discussion](https://github.com/drake69/spendif-ai/discussions) o scrivi nei commenti dell'issue più vicina al tuo caso.
+Apri una [Discussion](https://github.com/spendifai/spendif-ai/discussions) o scrivi nei commenti dell'issue più vicina al tuo caso.

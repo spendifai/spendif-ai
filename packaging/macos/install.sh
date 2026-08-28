@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  Spendif.ai — macOS Installer  (packaging/macos/install.sh)
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  DESIGN CHOICES (all justified below):
 #
@@ -77,7 +77,7 @@ COPY_MODELS=""
 DO_LAUNCH=false
 DO_UPDATE=false
 
-REPO_URL="https://github.com/drake69/spendif-ai.git"
+REPO_URL="https://github.com/spendifai/spendif-ai.git"
 SPENDIFAI_HOME="$HOME/.spendifai"
 APP_BUNDLE="/Applications/Spendif.ai.app"
 MIN_PYTHON_MAJOR=3

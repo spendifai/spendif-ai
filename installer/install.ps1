@@ -1,11 +1,11 @@
 # ── Spendif.ai — Installer (Windows PowerShell) ────────────────────────────────
 # Uso (PowerShell come utente normale):
-#   irm https://raw.githubusercontent.com/drake69/spendif-ai/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/install.ps1 | iex
 # ─────────────────────────────────────────────────────────────────────────────
 $ErrorActionPreference = "Stop"
 
 $InstallDir = "$env:USERPROFILE\spendifai"
-$ComposeUrl = "https://raw.githubusercontent.com/drake69/spendif-ai/main/docker/docker-compose.release.yml"
+$ComposeUrl = "https://raw.githubusercontent.com/spendifai/spendif-ai/main/docker/docker-compose.release.yml"
 $AppUrl     = "http://localhost:8501"
 
 function Info    { param($msg) Write-Host "[spendif.ai] $msg" -ForegroundColor Cyan }
@@ -103,7 +103,7 @@ $ProfileStr = if ($UseOllama) { " --profile ollama" } else { "" }
 Write-Host "  Fermare:        docker compose --project-directory $InstallDir$ProfileStr down"
 Write-Host "  Aggiornare:     docker compose --project-directory $InstallDir$ProfileStr pull; docker compose --project-directory $InstallDir$ProfileStr up -d"
 Write-Host "  Log:            docker compose --project-directory $InstallDir logs -f"
-Write-Host "  Disinstallare:  irm https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/uninstall.ps1 | iex" -ForegroundColor Cyan
+Write-Host "  Disinstallare:  irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/uninstall.ps1 | iex" -ForegroundColor Cyan
 Write-Host ""
 
 Start-Process $AppUrl

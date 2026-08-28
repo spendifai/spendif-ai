@@ -33,7 +33,7 @@ InstallModes:
   - silent
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/drake69/spendif-ai/releases/download/v0.2.0/SpendifAi-0.2.0-windows.zip
+    InstallerUrl: https://github.com/spendifai/spendif-ai/releases/download/v0.2.0/SpendifAi-0.2.0-windows.zip
     InstallerSha256: PLACEHOLDER_SHA256_ZIP
     InstallerSwitches:
       Silent: "-NonInteractive"

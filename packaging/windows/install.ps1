@@ -1,6 +1,6 @@
 # =============================================================================
 #  Spendif.ai — Windows Installer  (packaging/windows/install.ps1)
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  DESIGN CHOICES (all justified below):
 #
@@ -98,7 +98,7 @@ $ErrorActionPreference = "Stop"
 # ─────────────────────────────────────────────────────────────────────────────
 #  Constants
 # ─────────────────────────────────────────────────────────────────────────────
-$REPO_URL        = "https://github.com/drake69/spendif-ai.git"
+$REPO_URL        = "https://github.com/spendifai/spendif-ai.git"
 $APP_DATA_DIR    = Join-Path $env:APPDATA "Spendif.ai"
 $DB_PATH         = Join-Path $APP_DATA_DIR "spendifai.db"
 $UPDATE_FLAG     = Join-Path $APP_DATA_DIR ".update_available"
@@ -148,7 +148,7 @@ function Show-Help {
     Write-Host "  -Help               Show this help"
     Write-Host ""
     Write-Host "Quick-start (one-liner in PowerShell):" -ForegroundColor White
-    Write-Host "  irm https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/windows/install.ps1 | iex"
+    Write-Host "  irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex"
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor White
     Write-Host "  # Standard install"

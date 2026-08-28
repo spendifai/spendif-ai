@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ── Spendif.ai — Installer (Mac / Linux) ───────────────────────────────────────
-# Uso:  curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/install.sh | bash
+# Uso:  curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/install.sh | bash
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 INSTALL_DIR="${SPENDIFAI_INSTALL_DIR:-$HOME/spendifai}"
-COMPOSE_URL="https://raw.githubusercontent.com/drake69/spendif-ai/main/docker/docker-compose.release.yml"
+COMPOSE_URL="https://raw.githubusercontent.com/spendifai/spendif-ai/main/docker/docker-compose.release.yml"
 APP_URL="http://localhost:8501"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BOLD='\033[1m'; RESET='\033[0m'
@@ -110,7 +110,7 @@ fi
 echo -e "  Fermare:        ${BOLD}docker compose --project-directory $INSTALL_DIR $PROFILE_ARGS down${RESET}"
 echo -e "  Aggiornare:     ${BOLD}docker compose --project-directory $INSTALL_DIR $PROFILE_ARGS pull && docker compose --project-directory $INSTALL_DIR $PROFILE_ARGS up -d${RESET}"
 echo -e "  Log:            ${BOLD}docker compose --project-directory $INSTALL_DIR logs -f${RESET}"
-echo -e "  Disinstallare:  ${BOLD}curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/uninstall.sh | bash${RESET}"
+echo -e "  Disinstallare:  ${BOLD}curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/uninstall.sh | bash${RESET}"
 echo ""
 
 # Apri browser automaticamente se possibile

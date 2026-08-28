@@ -15,7 +15,7 @@ If you discover a security vulnerability in Spendif.ai, **please do not open a p
 
 Instead, report it privately:
 
-1. **GitHub Security Advisories** (preferred): go to the [Security tab](https://github.com/drake69/spendif-ai/security/advisories) and click **"Report a vulnerability"**
+1. **GitHub Security Advisories** (preferred): go to the [Security tab](https://github.com/spendifai/spendif-ai/security/advisories) and click **"Report a vulnerability"**
 2. **Email**: send details to the repository owner via the email listed on the [GitHub profile](https://github.com/drake69)
 
 ### What to include

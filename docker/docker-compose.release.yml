@@ -23,7 +23,7 @@ name: spendifai
 
 services:
   spendifai:
-    image: ghcr.io/drake69/spendif-ai:latest
+    image: ghcr.io/spendifai/spendif-ai:latest
     container_name: spendifai_app
     restart: unless-stopped
 

@@ -9,7 +9,7 @@ on:
 
 jobs:
   publish:
-    name: Build & push ghcr.io/drake69/spendif-ai
+    name: Build & push ghcr.io/spendifai/spendif-ai
     runs-on: ubuntu-latest
 
     permissions:

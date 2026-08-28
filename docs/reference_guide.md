@@ -363,10 +363,10 @@ Il layer FastAPI (`api/`) espone le stesse funzionalità del ledger via HTTP/JSO
 
 ```bash
 # Installazione Docker one-liner (Mac/Linux)
-curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.sh | bash
 
 # Installazione Docker one-liner (Windows PowerShell)
-# irm https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.ps1 | iex
+# irm https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.ps1 | iex
 
 # Avvio sviluppo (build da sorgente)
 uv run streamlit run app.py

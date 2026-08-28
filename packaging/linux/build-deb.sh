@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  Spendif.ai — .deb package builder
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  Produces: build/spendifai_<version>_amd64.deb
 #
@@ -121,7 +121,7 @@ Architecture: ${ARCH}
 Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, gcc, cmake, pkg-config, zenity
 Installed-Size: $(du -sk "${INSTALL_ROOT}" | cut -f1)
 Maintainer: Luigi Corsaro <lcorsaro69@gmail.com>
-Homepage: https://github.com/drake69/spendif-ai
+Homepage: https://github.com/spendifai/spendif-ai
 Description: Personal finance manager with local AI categorisation
  Spendif.ai aggregates bank statements (CSV/XLSX) into a unified ledger
  with automatic categorisation via local LLM (llama.cpp). Features include

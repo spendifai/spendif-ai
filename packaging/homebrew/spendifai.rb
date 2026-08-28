@@ -1,8 +1,8 @@
 # spendifai.rb — Homebrew Cask for Spendif.ai
 #
-# This file is the TEMPLATE kept in the main repository (drake69/spendif-ai).
+# This file is the TEMPLATE kept in the main repository (spendifai/spendif-ai).
 # The published copy lives in the tap repository
-#   https://github.com/drake69/homebrew-spendifai
+#   https://github.com/spendifai/homebrew-spendifai
 # under the path:  Casks/spendifai.rb
 #
 # It is rendered and pushed there by `packaging/homebrew/update-tap.sh`, which
@@ -11,7 +11,7 @@
 # revisions of docs/release_process.md claimed.
 #
 # User installation:
-#   brew tap drake69/spendifai
+#   brew tap spendifai/spendifai
 #   brew install --cask --no-quarantine spendifai
 #
 # The `--no-quarantine` flag is needed only while the DMG ships unsigned; drop
@@ -24,10 +24,10 @@ cask "spendifai" do
   version "0.2.0"
   sha256 "PLACEHOLDER_SHA256_DMG"
 
-  url "https://github.com/drake69/spendif-ai/releases/download/v#{version}/SpendifAi-#{version}.dmg"
+  url "https://github.com/spendifai/spendif-ai/releases/download/v#{version}/SpendifAi-#{version}.dmg"
   name "Spendif.ai"
   desc "Personal finance manager with local AI categorisation"
-  homepage "https://github.com/drake69/spendif-ai"
+  homepage "https://github.com/spendifai/spendif-ai"
 
   # Lets `brew upgrade --cask spendifai` notice a new GitHub Release.
   livecheck do
@@ -64,7 +64,7 @@ cask "spendifai" do
   caveats <<~EOS
     The DMG is not signed or notarised yet, so macOS quarantines it. Install with
 
-      brew trust --cask drake69/spendifai/spendifai
+      brew trust --cask spendifai/spendifai/spendifai
       brew install --cask --no-quarantine spendifai
 
     The `brew trust` step is required once per machine: Homebrew 6 refuses to

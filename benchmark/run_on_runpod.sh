@@ -21,7 +21,7 @@
 #
 # Usage:
 #   benchmark/run_on_runpod.sh \
-#       --image ghcr.io/drake69/spendif-ai-bench:latest \
+#       --image ghcr.io/spendifai/spendif-ai-bench:latest \
 #       --gpu "NVIDIA GeForce RTX 4090" \
 #       --models "qwen2.5-3b,qwen3.5-9b-q3" \
 #       --runs 1 \

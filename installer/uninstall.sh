@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ── Spendif.ai — Disinstallatore (Mac / Linux) ─────────────────────────────────
-# Uso:  curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/uninstall.sh | bash
+# Uso:  curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/uninstall.sh | bash
 #       oppure: bash ~/spendifai/uninstall.sh
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -112,9 +112,9 @@ if $DOCKER_OK; then
 
     if $REMOVE_IMAGES; then
         info "Rimuovo le immagini Docker..."
-        # Immagine Spendif.ai (tutti i tag ghcr.io/drake69/spendif-ai)
-        if docker images --format '{{.Repository}}' | grep -q "ghcr.io/drake69/spendif-ai"; then
-            docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/drake69/spendif-ai" \
+        # Immagine Spendif.ai (tutti i tag ghcr.io/spendifai/spendif-ai)
+        if docker images --format '{{.Repository}}' | grep -q "ghcr.io/spendifai/spendif-ai"; then
+            docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/spendifai/spendif-ai" \
                 | xargs docker rmi 2>/dev/null && success "Immagine Spendif.ai rimossa" || warn "Impossibile rimuovere l'immagine Spendif.ai"
         else
             warn "Immagine Spendif.ai non trovata"
@@ -178,5 +178,5 @@ $REMOVE_IMAGES  && success "Immagini Docker rimosse"           || info "Immagini
 $REMOVE_DIR     && success "Cartella $INSTALL_DIR rimossa"     || info "Cartella $INSTALL_DIR conservata"
 echo ""
 echo -e "  Per reinstallare:"
-echo -e "  ${BOLD}curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/install.sh | bash${RESET}"
+echo -e "  ${BOLD}curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/install.sh | bash${RESET}"
 echo ""

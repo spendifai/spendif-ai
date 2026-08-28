@@ -106,33 +106,33 @@
           <div class="os-icon">🍎</div>
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
-          <a id="dl-mac" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">DMG herunterladen</a>
+          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">DMG herunterladen</a>
           <div class="dl-notes">macOS 12 Monterey oder neuer. Nur Apple Silicon (M1 oder neuer).</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
           <h3>Windows</h3>
           <div class="ext">SpendifAi-*.msix</div>
-          <a id="dl-win" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">MSIX herunterladen</a>
+          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">MSIX herunterladen</a>
           <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + vertrauenswürdiges Zertifikat in der Pre-Alpha erforderlich.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🐧</div>
           <h3>Debian / Ubuntu</h3>
           <div class="ext">spendifai_*_amd64.deb</div>
-          <a id="dl-deb" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">.deb herunterladen</a>
+          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">.deb herunterladen</a>
           <div class="dl-notes">Ubuntu 22.04+, Debian 12+, Mint 21+.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🎩</div>
           <h3>Fedora / RHEL</h3>
           <div class="ext">spendifai-*.rpm</div>
-          <a id="dl-rpm" class="dl-btn" href="https://github.com/drake69/spendif-ai/releases/latest" target="_blank">.rpm herunterladen</a>
+          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">.rpm herunterladen</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
         </div>
       </div>
 
-      <p class="dl-notes" style="margin-top:1.5rem">Suchst du eine bestimmte Version? Siehe <a href="https://github.com/drake69/spendif-ai/releases" target="_blank">alle Releases</a> · Quellcode: <a href="https://github.com/drake69/spendif-ai" target="_blank">drake69/spendif-ai</a>.</p>
+      <p class="dl-notes" style="margin-top:1.5rem">Suchst du eine bestimmte Version? Siehe <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank">alle Releases</a> · Quellcode: <a href="https://github.com/spendifai/spendif-ai" target="_blank">spendifai/spendif-ai</a>.</p>
     </section>
 
     <section id="install">
@@ -147,8 +147,8 @@
           <p>Falls "Spendif.ai kann nicht geöffnet werden, da der Entwickler nicht verifiziert werden kann" erscheint (Build noch nicht signiert): Rechtsklick auf die App → <strong>Öffnen</strong> → bestätigen.</p>
           <p style="margin-top:1.2rem"><strong>Alternativ mit Homebrew:</strong></p>
           <p>
-            <code>brew tap drake69/spendifai</code><br>
-            <code>brew trust --cask drake69/spendifai/spendifai</code><br>
+            <code>brew tap spendifai/spendifai</code><br>
+            <code>brew trust --cask spendifai/spendifai/spendifai</code><br>
             <code>brew install --cask --no-quarantine spendifai</code>
           </p>
           <p>Danach aktualisierst du mit <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
@@ -164,7 +164,7 @@
           <p>1. Doppelklick auf die heruntergeladene <code>.msix</code>-Datei.</p>
           <p>2. Der in Windows integrierte App-Installer öffnet sich. Klicke <strong>Installieren</strong>.</p>
           <p>3. Die App erscheint im Startmenü und wird von dort gestartet.</p>
-          <p>Bei "Unbekannter Herausgeber": PowerShell als Administrator öffnen und das Zertifikat einmalig importieren (siehe <a href="https://github.com/drake69/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">Anleitung</a>).</p>
+          <p>Bei "Unbekannter Herausgeber": PowerShell als Administrator öffnen und das Zertifikat einmalig importieren (siehe <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">Anleitung</a>).</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Screenshot</div><code>assets/screenshots/windows-msix-install.png</code><div>(Windows App-Installer-Dialog)</div></div>
@@ -177,7 +177,7 @@
           <p>Im Terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>Das <code>postinst</code>-Skript installiert <code>uv</code>, erstellt das venv, lädt das Modell herunter und schreibt die <code>.env</code>. Vollständige Anleitung: <a href="https://github.com/drake69/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">install guide</a>.</p>
+          <p>Das <code>postinst</code>-Skript installiert <code>uv</code>, erstellt das venv, lädt das Modell herunter und schreibt die <code>.env</code>. Vollständige Anleitung: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">install guide</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Screenshot</div><code>assets/screenshots/linux-deb-install.png</code><div>(dpkg/dnf Terminal-Ausgabe)</div></div>
@@ -236,12 +236,12 @@
       <h2>Probleme?</h2>
       <p>
         Vollständige Dokumentation:
-        <a href="https://github.com/drake69/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Installationsleitfaden</a> ·
-        <a href="https://github.com/drake69/spendif-ai/blob/main/docs/guida_utente.en.md" target="_blank">Benutzerhandbuch</a> ·
-        <a href="https://github.com/drake69/spendif-ai/blob/main/docs/installation_macos.md" target="_blank">macOS Deep-Dive</a> ·
-        <a href="https://github.com/drake69/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">Windows Deep-Dive</a>.
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Installationsleitfaden</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.en.md" target="_blank">Benutzerhandbuch</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.md" target="_blank">macOS Deep-Dive</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">Windows Deep-Dive</a>.
       </p>
-      <p>Bugs, Fragen, Anregungen: <a href="https://github.com/drake69/spendif-ai/issues" target="_blank">GitHub Issue eröffnen</a>.</p>
+      <p>Bugs, Fragen, Anregungen: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">GitHub Issue eröffnen</a>.</p>
     </section>
     <!-- ── What's coming next (alpha-driven roadmap) ─────────────────── -->
     <section id="roadmap">
@@ -253,7 +253,7 @@
         <li><strong>Investment-Performance</strong> — auf einen Blick sehen, wie sich die Instrumente im Portfolio entwickeln</li>
         <li><strong>Mobile Begleit-App</strong> — Bargeld unterwegs vom Telefon erfassen und mit dem Desktop synchronisieren</li>
       </ul>
-      <p>Würde dir eines davon helfen? Sag es uns in <a href="https://github.com/drake69/spendif-ai/discussions" target="_blank">GitHub Discussions</a>. Wenn genug Anfragen für dieselbe Funktion zusammenkommen, rutscht sie an die Spitze der Warteschlange.</p>
+      <p>Würde dir eines davon helfen? Sag es uns in <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank">GitHub Discussions</a>. Wenn genug Anfragen für dieselbe Funktion zusammenkommen, rutscht sie an die Spitze der Warteschlange.</p>
     </section>
 
 
@@ -261,7 +261,7 @@
   </div>
 
   <footer>
-    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT License · <a href="https://github.com/drake69/spendif-ai" target="_blank">Quellcode auf GitHub</a></p>
+    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT License · <a href="https://github.com/spendifai/spendif-ai" target="_blank">Quellcode auf GitHub</a></p>
   </footer>
   <!-- Direct-download: resolve the latest release assets and point each OS button at its file -->
   <script>
@@ -272,7 +272,7 @@
       'dl-deb': function (n) { return /_amd64\.deb$/i.test(n); },
       'dl-rpm': function (n) { return /\.rpm$/i.test(n); }
     };
-    fetch('https://api.github.com/repos/drake69/spendif-ai/releases/latest', { headers: { 'Accept': 'application/vnd.github+json' } })
+    fetch('https://api.github.com/repos/spendifai/spendif-ai/releases/latest', { headers: { 'Accept': 'application/vnd.github+json' } })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (rel) {
         var assets = (rel && rel.assets) || [];

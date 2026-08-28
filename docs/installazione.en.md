@@ -41,7 +41,7 @@ The configuration is saved in the database (`user_settings`) and persists across
 
 **Prerequisites:** macOS 12+, Python 3.12+, internet connection
 
-1. Download `install_spendifai.command` from the [repository](https://github.com/drake69/spendif-ai)
+1. Download `install_spendifai.command` from the [repository](https://github.com/spendifai/spendif-ai)
 2. **Double-click** the file in Finder
 3. The script:
    - Checks Python and installs `uv` (package manager)
@@ -70,7 +70,7 @@ llama.cpp on Mac uses **Metal (Apple Silicon)** acceleration automatically. Insi
 ### Step 1 — Clone the repository
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 ```
 
@@ -168,7 +168,7 @@ Same procedure as Mac. llama.cpp automatically supports NVIDIA GPUs (CUDA) if dr
 ### Step 1 — Clone the repository
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 ```
 
@@ -253,7 +253,7 @@ This configuration starts two containers:
 ### Step 1 — Clone the repository
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 ```
 
@@ -338,7 +338,7 @@ On Windows we use **llama.cpp server** as the LLM backend because it works in Do
 Open PowerShell or Git Bash:
 
 ```powershell
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 ```
 
@@ -462,8 +462,8 @@ Yes. → [Moving the database](database.en.md#6--moving-the-database-to-another-
 **How do I completely uninstall Spendif.ai?**
 Use the interactive uninstall script:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/uninstall.sh | bash
 # Windows:
-# irm https://raw.githubusercontent.com/drake69/spendifai/main/installer/uninstall.ps1 | iex
+# irm https://raw.githubusercontent.com/spendifai/spendifai/main/installer/uninstall.ps1 | iex
 ```
 The script asks separately whether to remove: database, GGUF models (`~/.spendifai/models/`), Ollama models, Docker images, installation folder, and shows instructions for uninstalling Docker Desktop.

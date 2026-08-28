@@ -58,7 +58,7 @@ winget manifest generation.
 
 ### Post-release
 
-- [ ] Verify GitHub release page: https://github.com/drake69/spendif-ai/releases
+- [ ] Verify GitHub release page: https://github.com/spendifai/spendif-ai/releases
 - [ ] Download and test DMG on a clean macOS machine
 - [ ] Submit winget PR (see Section 5)
 - [ ] Update landing page version number if hardcoded
@@ -138,14 +138,14 @@ locally and prefer not to upload them as Secrets.
 
 ### Homebrew Tap (current approach)
 
-The tap repository `drake69/homebrew-spendifai` (separate from the main code repo)
+The tap repository `spendifai/homebrew-spendifai` (separate from the main code repo)
 holds a single cask file at `Casks/spendifai.rb`. The template lives here, in
 `packaging/homebrew/spendifai.rb`.
 
 User installation:
 ```bash
-brew tap drake69/spendifai
-brew trust --cask drake69/spendifai/spendifai
+brew tap spendifai/spendifai
+brew trust --cask spendifai/spendifai/spendifai
 brew install --cask --no-quarantine spendifai
 ```
 

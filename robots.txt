@@ -12,4 +12,4 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-Sitemap: https://drake69.github.io/spendif-ai/sitemap.xml
+Sitemap: https://spendifai.github.io/spendif-ai/sitemap.xml
