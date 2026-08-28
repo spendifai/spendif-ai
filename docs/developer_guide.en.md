@@ -67,7 +67,7 @@ This rule is enforced automatically in CI (see §5).
 ### Installation
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git
+git clone https://github.com/spendifai/spendif-ai.git
 cd spendifai
 uv sync
 cp .env.example .env

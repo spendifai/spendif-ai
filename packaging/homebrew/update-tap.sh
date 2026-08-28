@@ -8,8 +8,8 @@
 # Casks/spendifai.rb. Creates the tap repository on first run.
 #
 # After this runs, on any Mac:
-#   brew tap drake69/spendifai
-#   brew trust --cask drake69/spendifai/spendifai      # once per machine (Homebrew 6+)
+#   brew tap spendifai/spendifai
+#   brew trust --cask spendifai/spendifai/spendifai      # once per machine (Homebrew 6+)
 #   brew install --cask --no-quarantine spendifai      # first install
 #   brew update && brew upgrade --cask spendifai       # every later release
 #
@@ -18,7 +18,7 @@
 #                                         [--dry-run]
 #
 #   --version    Release to publish. Defaults to the VERSION file.
-#   --tap-repo   Tap repository. Defaults to drake69/homebrew-spendifai.
+#   --tap-repo   Tap repository. Defaults to spendifai/homebrew-spendifai.
 #   --dry-run    Print what would happen; touch nothing remote.
 #
 # PREREQUISITES
@@ -33,8 +33,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TEMPLATE="${SCRIPT_DIR}/spendifai.rb"
 
-TAP_REPO="drake69/homebrew-spendifai"
-SOURCE_REPO="drake69/spendif-ai"
+TAP_REPO="spendifai/homebrew-spendifai"
+SOURCE_REPO="spendifai/spendif-ai"
 VERSION=""
 DRY_RUN=false
 

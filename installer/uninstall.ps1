@@ -1,6 +1,6 @@
 # ── Spendif.ai — Disinstallatore (Windows PowerShell) ──────────────────────────
 # Uso:
-#   irm https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/uninstall.ps1 | iex
+#   irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/uninstall.ps1 | iex
 #   oppure: powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\spendifai\uninstall.ps1"
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -130,7 +130,7 @@ if ($DockerOk) {
         Info "Rimuovo le immagini Docker..."
         # Immagini Spendif.ai
         $spendifaiImages = docker images --format "{{.Repository}}:{{.Tag}}" 2>$null |
-                          Where-Object { $_ -like "ghcr.io/drake69/spendif-ai*" }
+                          Where-Object { $_ -like "ghcr.io/spendifai/spendif-ai*" }
         if ($spendifaiImages) {
             $spendifaiImages | ForEach-Object { docker rmi $_ 2>$null }
             Success "Immagine Spendif.ai rimossa"
@@ -186,5 +186,5 @@ if ($RemoveImages)  { Success "Immagini Docker rimosse" }       else { Info "Imm
 if ($RemoveDir)     { Success "Cartella $InstallDir rimossa" }  else { Info "Cartella $InstallDir conservata" }
 Write-Host ""
 Write-Host "  Per reinstallare:"
-Write-Host "  irm https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/install.ps1 | iex" -ForegroundColor Cyan
+Write-Host "  irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/install.ps1 | iex" -ForegroundColor Cyan
 Write-Host ""

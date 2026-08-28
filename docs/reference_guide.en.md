@@ -367,10 +367,10 @@ The FastAPI layer (`api/`) exposes the same ledger features over HTTP/JSON — i
 
 ```bash
 # Docker one-liner install (Mac/Linux)
-curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.sh | bash
 
 # Docker one-liner install (Windows PowerShell)
-# irm https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.ps1 | iex
+# irm https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.ps1 | iex
 
 # Development start (build from source)
 uv run streamlit run app.py

@@ -40,7 +40,7 @@ xcode-select --install
 ## Quick Start — One-liner
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/macos/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/macos/install.sh | bash
 ```
 
 Questo esegue l'installer in **modalità default** (Python di sistema + uv).
@@ -49,7 +49,7 @@ Vedi le sezioni sotto per le opzioni.
 Per ispezionare lo script prima di eseguirlo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/macos/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/macos/install.sh -o install.sh
 less install.sh
 bash install.sh
 ```
@@ -407,7 +407,7 @@ killall Dock
 Esegui il disinstaller interattivo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendif-ai/main/installer/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/installer/uninstall.sh | bash
 ```
 
 Lo script chiede separatamente se rimuovere ciascun componente:

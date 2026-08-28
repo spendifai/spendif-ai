@@ -1,13 +1,13 @@
 # Spendif.ai
 
-[![CI](https://github.com/drake69/spendif-ai/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/drake69/spendif-ai/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/drake69/spendif-ai/graph/badge.svg)](https://codecov.io/gh/drake69/spendif-ai)
+[![CI](https://github.com/spendifai/spendif-ai/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/spendifai/spendif-ai/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/spendifai/spendif-ai/graph/badge.svg)](https://codecov.io/gh/spendifai/spendif-ai)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: PolyForm NC](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange)](LICENSE)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-ff4b4b?logo=streamlit&logoColor=white)](https://streamlit.io)
-[![Issues](https://img.shields.io/github/issues/drake69/spendif-ai)](https://github.com/drake69/spendif-ai/issues)
-[![Last commit](https://img.shields.io/github/last-commit/drake69/spendif-ai)](https://github.com/drake69/spendif-ai/commits/main)
+[![Issues](https://img.shields.io/github/issues/spendifai/spendif-ai)](https://github.com/spendifai/spendif-ai/issues)
+[![Last commit](https://img.shields.io/github/last-commit/spendifai/spendif-ai)](https://github.com/spendifai/spendif-ai/commits/main)
 [![Support on Patreon](https://img.shields.io/badge/Patreon-buy%20me%20a%20coffee%20☕-F96854?logo=patreon&logoColor=white)](https://patreon.com/drake69)
 
 > 🇮🇹 [Leggi in italiano](README.it.md)
@@ -17,12 +17,12 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 ---
 
 > 👋 **End users — looking to install Spendif.ai?**
-> Go to the [Getting Started page](https://drake69.github.io/spendif-ai/getting-started.en.html) for the illustrated install + first-launch guide. This README is for developers and contributors.
+> Go to the [Getting Started page](https://spendifai.github.io/spendif-ai/getting-started.en.html) for the illustrated install + first-launch guide. This README is for developers and contributors.
 >
 > On macOS you can also install and stay up to date through Homebrew:
 > ```bash
-> brew tap drake69/spendifai
-> brew trust --cask drake69/spendifai/spendifai   # once per machine, Homebrew 6+
+> brew tap spendifai/spendifai
+> brew trust --cask spendifai/spendifai/spendifai   # once per machine, Homebrew 6+
 > brew install --cask --no-quarantine spendifai
 > brew update && brew upgrade --cask spendifai     # later releases
 > ```
@@ -56,12 +56,12 @@ Features under evaluation based on alpha-tester feedback:
 - **Investment performance** — see at a glance how the instruments in your portfolio are doing
 - **Companion mobile app** — capture cash on the fly from your phone and sync with the desktop
 
-Would one of these help you? Tell us in [GitHub Discussions](https://github.com/drake69/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.
+Would one of these help you? Tell us in [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.
 
 ## 👩‍💻 Develop locally
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git
+git clone https://github.com/spendifai/spendif-ai.git
 cd spendif-ai
 uv sync --extra desktop
 

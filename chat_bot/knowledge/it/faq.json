@@ -362,7 +362,7 @@
   },
   {
     "q": "Chi ha fatto questo programma? È un'azienda seria o una persona qualsiasi?",
-    "a": "Spendif.AI è un progetto indipendente sviluppato da un singolo fondatore italiano. Il codice sorgente è pubblico su GitHub (github.com/drake69/spendif-ai). Questo significa che chiunque può ispezionare il codice, verificare che non ci siano backdoor e contribuire al progetto."
+    "a": "Spendif.AI è un progetto indipendente sviluppato da un singolo fondatore italiano. Il codice sorgente è pubblico su GitHub (github.com/spendifai/spendif-ai). Questo significa che chiunque può ispezionare il codice, verificare che non ci siano backdoor e contribuire al progetto."
   },
   {
     "q": "I miei dati bancari e le mie spese vengono visti da qualcuno?",
@@ -512,7 +512,7 @@
   },
   {
     "q": "C'è un'assistenza in italiano? È una persona reale o solo un chatbot?",
-    "a": "La documentazione ufficiale è completamente in italiano (guida utente, guida di configurazione, guida alla classificazione). Per supporto diretto puoi aprire un issue su GitHub (github.com/drake69/spendif-ai). Un chatbot di supporto basato su questa documentazione è in sviluppo."
+    "a": "La documentazione ufficiale è completamente in italiano (guida utente, guida di configurazione, guida alla classificazione). Per supporto diretto puoi aprire un issue su GitHub (github.com/spendifai/spendif-ai). Un chatbot di supporto basato su questa documentazione è in sviluppo."
   },
   {
     "q": "Esistono video tutorial o guide in italiano facili da capire?",
@@ -682,7 +682,7 @@
   },
   {
     "q": "Esiste una comunità di utenti (forum, gruppo) dove posso fare domande in italiano?",
-    "a": "Al momento non esiste una community ufficiale (forum, gruppo Telegram o Discord). Per segnalare problemi o fare domande puoi aprire un issue su GitHub (github.com/drake69/spendif-ai). Una community di supporto è in valutazione per il futuro."
+    "a": "Al momento non esiste una community ufficiale (forum, gruppo Telegram o Discord). Per segnalare problemi o fare domande puoi aprire un issue su GitHub (github.com/spendifai/spendif-ai). Una community di supporto è in valutazione per il futuro."
   },
   {
     "q": "Spendif.ai si paga? Quanto costa?",

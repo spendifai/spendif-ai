@@ -15,11 +15,11 @@ PackageVersion: 0.1.0
 PackageLocale: en-US
 Publisher: Drake69
 PublisherUrl: https://github.com/drake69
-PublisherSupportUrl: https://github.com/drake69/spendif-ai/issues
+PublisherSupportUrl: https://github.com/spendifai/spendif-ai/issues
 PackageName: Spendif.ai
-PackageUrl: https://github.com/drake69/spendif-ai
+PackageUrl: https://github.com/spendifai/spendif-ai
 License: MIT
-LicenseUrl: https://github.com/drake69/spendif-ai/blob/main/LICENSE
+LicenseUrl: https://github.com/spendifai/spendif-ai/blob/main/LICENSE
 ShortDescription: Personal finance manager with local AI categorisation
 Description: >-
   Spendif.ai imports CSV/XLSX bank statements from Italian financial instruments,
@@ -35,6 +35,6 @@ Tags:
   - streamlit
   - personal-finance
   - italian-banks
-ReleaseNotesUrl: https://github.com/drake69/spendif-ai/releases/tag/v0.1.0
+ReleaseNotesUrl: https://github.com/spendifai/spendif-ai/releases/tag/v0.1.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

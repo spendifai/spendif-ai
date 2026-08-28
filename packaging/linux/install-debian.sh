@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  Spendif.ai — Ubuntu / Debian Installer
-#  https://github.com/drake69/spendif-ai
+#  https://github.com/spendifai/spendif-ai
 #
 #  Tested on: Ubuntu 22.04+, Debian 12+, Linux Mint 21+
 #
@@ -48,7 +48,7 @@ die()   { echo -e "${_RED}✖  $*${_RST}" >&2; exit 1; }
 # ── Defaults ─────────────────────────────────────────────────────────────────
 INSTALL_DIR="$HOME/.local/share/Spendif.ai"
 SPENDIFAI_HOME="$HOME/.spendifai"
-REPO_URL="https://github.com/drake69/spendif-ai.git"
+REPO_URL="https://github.com/spendifai/spendif-ai.git"
 BRANCH="main"
 DO_LAUNCH=false
 DO_UPDATE=false

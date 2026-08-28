@@ -604,4 +604,4 @@ Funzioni in valutazione in base ai feedback degli alpha tester:
 - **Performance degli investimenti** — vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio
 - **App mobile compagna** — registrare cash al volo dal telefono e sincronizzare col desktop
 
-Una di queste ti servirebbe? Faccelo sapere su [GitHub Discussions](https://github.com/drake69/spendif-ai/discussions). Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.
+Una di queste ti servirebbe? Faccelo sapere su [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.

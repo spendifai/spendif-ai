@@ -36,7 +36,7 @@
 Apri **PowerShell** (non CMD) e incolla:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/windows/install.ps1 | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex
 ```
 
 Il prefisso `Set-ExecutionPolicy` è necessario perché PowerShell blocca per default gli script non firmati. Si applica solo alla sessione corrente — la policy di sistema non viene modificata in modo permanente.
@@ -45,7 +45,7 @@ Per ispezionare lo script prima di eseguirlo:
 
 ```powershell
 # Scarica prima lo script
-Invoke-WebRequest https://raw.githubusercontent.com/drake69/spendif-ai/main/packaging/windows/install.ps1 -OutFile install.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 -OutFile install.ps1
 # Leggilo
 notepad install.ps1
 # Eseguilo (dalla stessa cartella)

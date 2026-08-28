@@ -602,4 +602,4 @@ Features under evaluation based on alpha-tester feedback:
 - **Investment performance** — see at a glance how the instruments in your portfolio are doing
 - **Companion mobile app** — capture cash on the fly from your phone and sync with the desktop
 
-Would one of these help you? Tell us in [GitHub Discussions](https://github.com/drake69/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.
+Would one of these help you? Tell us in [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.

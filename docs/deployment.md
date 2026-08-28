@@ -43,12 +43,12 @@ L'unico prerequisito è **[Docker Desktop](https://www.docker.com/products/docke
 
 **Mac / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/drake69/spendifai/main/installer/install.ps1 | iex
+irm https://raw.githubusercontent.com/spendifai/spendifai/main/installer/install.ps1 | iex
 ```
 
 Lo script crea la cartella `~/spendifai/`, scarica l'immagine da GitHub Container Registry, avvia il container e apre il browser su **http://localhost:8501** automaticamente.
@@ -57,7 +57,7 @@ Lo script crea la cartella `~/spendifai/`, scarica l'immagine da GitHub Containe
 
 > **Aggiornamento:** `docker compose --project-directory ~/spendifai pull && docker compose --project-directory ~/spendifai up -d`
 
-> **Disinstallazione:** `curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/uninstall.sh | bash`
+> **Disinstallazione:** `curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/uninstall.sh | bash`
 
 ---
 
@@ -68,7 +68,7 @@ Adatta a chi vuole modificare il codice o configurare profili LLM (Ollama, llama
 ### 2.1 — Clona il repository
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 ```
 
@@ -117,7 +117,7 @@ Per la configurazione completa dei backend LLM → [installazione.md](installazi
 ### Steps
 
 ```bash
-git clone https://github.com/drake69/spendif-ai.git spendifai
+git clone https://github.com/spendifai/spendif-ai.git spendifai
 cd spendifai
 uv sync
 cp .env.example .env
@@ -162,7 +162,7 @@ Spendif.ai può girare come **applicazione desktop nativa** — una finestra nat
 | Piattaforma | Comando |
 |-------------|---------|
 | **macOS** (installer) | `bash packaging/macos/install.sh` |
-| **macOS** (Homebrew) | `brew tap drake69/spendifai && brew install --cask spendifai` |
+| **macOS** (Homebrew) | `brew tap spendifai/spendifai && brew install --cask spendifai` |
 | **Windows** | Right-click `install.ps1` → "Esegui con PowerShell" |
 | **Windows** (winget) | `winget install SpendifAi.SpendifAi` |
 | **Ubuntu/Debian** (.deb) | `bash packaging/linux/build-deb.sh && sudo apt install ./build/spendifai_*.deb` |
@@ -318,12 +318,12 @@ Gli script di disinstallazione rimuovono interattivamente tutti i componenti Spe
 
 **Mac / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/drake69/spendifai/main/installer/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spendifai/spendifai/main/installer/uninstall.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/drake69/spendifai/main/installer/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/spendifai/spendifai/main/installer/uninstall.ps1 | iex
 ```
 
 Lo script chiede separatamente:
@@ -332,7 +332,7 @@ Lo script chiede separatamente:
 | Database delle transazioni | Volumi `spendifai_data` e `spendifai_logs` |
 | Modelli Ollama | Volume `ollama_models` (~8 GB) |
 | llama.cpp + cartella models/ | Immagine `llama.cpp:server` + file GGUF |
-| Immagini Docker | `ghcr.io/drake69/spendif-ai` + `ollama/ollama` (~500 MB–1 GB) |
+| Immagini Docker | `ghcr.io/spendifai/spendif-ai` + `ollama/ollama` (~500 MB–1 GB) |
 | Cartella di installazione | `~/spendifai/` (o `SPENDIFAI_INSTALL_DIR`) |
 | Istruzioni rimozione Docker Desktop | Guida testuale per macOS / Linux / Windows |
 

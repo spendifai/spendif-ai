@@ -7,7 +7,7 @@ set -euo pipefail
 
 INSTALL_DIR="$HOME/Applications/Spendif.ai"
 SPENDIFAI_HOME="$HOME/.spendifai"
-REPO_URL="https://github.com/drake69/spendif-ai.git"
+REPO_URL="https://github.com/spendifai/spendif-ai.git"
 MIN_PYTHON="3.11"
 
 echo ""

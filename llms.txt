@@ -22,7 +22,7 @@ Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion m
 
 ## Links
 
-- Website: https://drake69.github.io/spendif-ai/
-- Source code: https://github.com/drake69/spendif-ai
-- Downloads / releases: https://github.com/drake69/spendif-ai/releases
-- License: https://github.com/drake69/spendif-ai/blob/main/LICENSE
+- Website: https://spendifai.github.io/spendif-ai/
+- Source code: https://github.com/spendifai/spendif-ai
+- Downloads / releases: https://github.com/spendifai/spendif-ai/releases
+- License: https://github.com/spendifai/spendif-ai/blob/main/LICENSE

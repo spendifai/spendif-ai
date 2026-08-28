@@ -43,7 +43,7 @@ success() { echo -e "${GREEN}✅  $*${NC}"; }
 # ── Defaults ─────────────────────────────────────────────────────────────────
 INSTALL_DIR="$HOME/Applications/Spendif.ai"
 SPENDIFAI_HOME="$HOME/.spendifai"
-REPO_URL="https://github.com/drake69/spendif-ai.git"
+REPO_URL="https://github.com/spendifai/spendif-ai.git"
 BRANCH="main"
 COPY_DB=""
 COPY_MODELS=""
