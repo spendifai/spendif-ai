@@ -15,6 +15,64 @@ from support.formatting import format_amount_display, format_date_display, strft
 from support.logging import setup_logging
 from ui.i18n import t
 
+
+# ── Colonne della tabella ────────────────────────────────────────────────────
+# Chiavi INTERNE, stabili e indipendenti dalla lingua. L'etichetta visibile
+# vive solo in column_config: prima queste due cose coincidevano, e con la UI
+# in inglese il diff delle modifiche indicizzava colonne che non esistevano
+# (KeyError al salvataggio) mentre la configurazione di alcune colonne veniva
+# ignorata in silenzio.
+COL_ID = "_id"
+COL_SEL = "_sel"
+COL_DATE = "date"
+COL_DESC = "description"
+COL_RAW = "raw"
+COL_INCOME = "income"
+COL_EXPENSE = "expense"
+COL_ACCOUNT = "account"
+COL_TYPE = "type"
+COL_CATEGORY = "category"
+COL_SUBCATEGORY = "subcategory"
+COL_CONTEXT = "context"
+COL_SOURCE = "source"
+COL_FLAG_REVIEW = "flag_review"
+COL_FLAG_VALID = "flag_validated"
+COL_FLAG_TRANSFER = "flag_transfer"
+COL_VALIDATED = "validated"
+COL_TRANSFER = "transfer"
+
+_INTERNAL_TRANSFER_TYPES = ("internal_out", "internal_in")
+
+
+def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
+    """Una riga della tabella del Registro, con chiavi interne."""
+    amount = float(tx.amount)
+    is_transfer = tx.tx_type in _INTERNAL_TRANSFER_TYPES
+    row = {
+        COL_ID:          tx.id,
+        COL_SEL:         False,
+        # U-06: resta un date, non una stringa, cosi' l'ordinamento e' corretto
+        COL_DATE:        pd.to_datetime(tx.date).date() if tx.date else None,
+        COL_DESC:        (tx.description or "")[:80],
+        COL_INCOME:      amount if amount > 0 else None,
+        COL_EXPENSE:     abs(amount) if amount < 0 else None,
+        COL_ACCOUNT:     tx.account_label or "",
+        COL_TYPE:        tx.tx_type or "",
+        COL_CATEGORY:    tx.category or "",
+        COL_SUBCATEGORY: tx.subcategory or "",
+        COL_CONTEXT:     tx.context or "",
+        COL_SOURCE:      source_badge.get(tx.category_source, "—"),
+        COL_FLAG_REVIEW: "⚠️" if tx.to_review else "·",
+        COL_FLAG_VALID:  "✅" if tx.human_validated else "·",
+        COL_FLAG_TRANSFER: "🔄" if is_transfer else "·",
+        COL_VALIDATED:   bool(tx.human_validated),
+        COL_TRANSFER:    is_transfer,
+    }
+    if show_raw:
+        row[COL_RAW] = (tx.raw_description or "")[:80]
+    return row
+
+
 logger = setup_logging()
 
 EXCLUDED_FROM_BALANCE = {"internal_out", "internal_in", "card_settlement", "aggregate_debit"}
@@ -76,26 +134,26 @@ def render_registry_page(engine):
     _rel_last_prev  = _cur_from - timedelta(days=1)
     _rel_first_prev = _rel_last_prev.replace(day=1)
 
-    st.caption("**Periodo rapido**")
+    st.caption(t("ledger.quick_period"))
     pc1, pc2, pc3, pc4, pc5, pc6 = st.columns(6)
-    if pc1.button("📅 Mese corrente",  key="preset_cur",  use_container_width=True):
+    if pc1.button(t("ledger.preset.current_month"), key="preset_cur",  use_container_width=True):
         st.session_state["ledger_from"] = _first_cur
         st.session_state["ledger_to"]   = today
-    if pc2.button("⏮ Mese precedente", key="preset_prev", use_container_width=True):
+    if pc2.button(t("ledger.preset.prev_month"), key="preset_prev", use_container_width=True):
         st.session_state["ledger_from"] = _rel_first_prev
         st.session_state["ledger_to"]   = _rel_last_prev
-    if pc3.button("📆 Ultimi 3 mesi",  key="preset_3m",  use_container_width=True):
+    if pc3.button(t("ledger.preset.last_3_months"), key="preset_3m",  use_container_width=True):
         st.session_state["ledger_from"] = _three_ago
         st.session_state["ledger_to"]   = today
-    if pc4.button("🗓 Anno corrente",   key="preset_year", use_container_width=True):
+    if pc4.button(t("ledger.preset.current_year"), key="preset_year", use_container_width=True):
         st.session_state["ledger_from"] = _first_year
         st.session_state["ledger_to"]   = today
-    if pc5.button("♾ Tutte le date",    key="preset_all",  use_container_width=True):
+    if pc5.button(t("ledger.preset.all"), key="preset_all",  use_container_width=True):
         for _k in ("ledger_from", "ledger_to"):
             if _k in st.session_state:
                 del st.session_state[_k]
         st.rerun()
-    if pc6.button("🔄 Reset filtri",    key="preset_reset", use_container_width=True, type="secondary"):
+    if pc6.button(t("ledger.preset.reset"), key="preset_reset", use_container_width=True, type="secondary"):
         for _k in ("ledger_from", "ledger_to", "ledger_account", "ledger_type",
                    "ledger_cat", "ledger_ctx", "ledger_desc", "ledger_review", "ledger_hide_giro"):
             if _k in st.session_state:
@@ -220,14 +278,16 @@ def render_registry_page(engine):
 
     with _pg2:
         st.caption(
-            f"Pagina **{page_num + 1}** / **{total_pages}** "
-            f"· righe {page_start + 1}–{page_end} di {total_rows}"
+            t("ledger.pagination", page=page_num + 1, total=total_pages,
+              start=page_start + 1, end=page_end, rows=total_rows)
         )
 
     # ── Editable table ────────────────────────────────────────────────────────
     st.caption(
-        "✏️ Modifica **Categoria**, **Sottocategoria**, **Contesto** e **🔄 Giroconto** "
-        "direttamente nella tabella, poi clicca **Salva modifiche**."
+        t("ledger.edit_hint",
+          cat=t("ledger.col.category"), sub=t("ledger.col.subcategory"),
+          ctx=t("ledger.col.context"), transfer=t("ledger.col.transfer").replace("🔄 ", ""),
+          save=t("ledger.save_changes").replace("💾 ", ""))
     )
 
     _SOURCE_BADGE = {
@@ -237,59 +297,37 @@ def render_registry_page(engine):
         "history": "📚 Storico",
     }
 
-    orig_rows = [
-        {
-            "_id":           tx.id,
-            "_sel":          False,
-            t("ledger.col.date"):          pd.to_datetime(tx.date).date() if tx.date else None,  # U-06: keep as date for correct sorting
-            t("ledger.col.description"):   (tx.description or "")[:80],
-            **({t("ledger.col.raw"): (tx.raw_description or "")[:80]} if show_raw else {}),
-            t("ledger.col.income"):        float(tx.amount) if float(tx.amount) > 0 else None,
-            t("ledger.col.expense"):       abs(float(tx.amount)) if float(tx.amount) < 0 else None,
-            t("ledger.col.account"):       tx.account_label or "",
-            t("ledger.col.type"):          tx.tx_type or "",
-            t("ledger.col.category"):      tx.category or "",
-            t("ledger.col.subcategory"):   tx.subcategory or "",
-            t("ledger.col.context"):       tx.context or "",
-            t("ledger.col.source"):        _SOURCE_BADGE.get(tx.category_source, "—"),
-            "⚠️":            "⚠️" if tx.to_review else "·",
-            "✅":            "✅" if tx.human_validated else "·",
-            "🔄":            "🔄" if tx.tx_type in ("internal_out", "internal_in") else "·",
-            t("ledger.col.validated"):      bool(tx.human_validated),
-            "🔄 Giroconto":  tx.tx_type in ("internal_out", "internal_in"),
-        }
-        for tx in page_txs
-    ]
+    orig_rows = [build_ledger_row(tx, show_raw, _SOURCE_BADGE) for tx in page_txs]
     orig_df = pd.DataFrame(orig_rows)
 
     _col_cfg: dict = {
-        "_id":            None,
-        "_sel":           st.column_config.CheckboxColumn("📏", width=40),
-        t("ledger.col.date"):           st.column_config.DateColumn(t("ledger.col.date"),          format=_date_fmt_js, width="small"),
-        t("ledger.col.description"):    st.column_config.TextColumn(t("ledger.col.description"),  disabled=True),
-        t("ledger.col.income"):         st.column_config.NumberColumn(t("ledger.col.income"),     disabled=True, format="%.2f", width="small"),
-        t("ledger.col.expense"):        st.column_config.NumberColumn(t("ledger.col.expense"),    disabled=True, format="%.2f", width="small"),
-        t("ledger.col.account"):        st.column_config.TextColumn(t("ledger.col.account"),      disabled=True, width="small"),
-        t("ledger.col.type"):           st.column_config.TextColumn(t("ledger.col.type"),         disabled=True, width="small"),
-        t("ledger.col.category"):       st.column_config.SelectboxColumn(
+        COL_ID:          None,
+        COL_SEL:         st.column_config.CheckboxColumn("📏", width=40),
+        COL_DATE:        st.column_config.DateColumn(t("ledger.col.date"), format=_date_fmt_js, width="small"),
+        COL_DESC:        st.column_config.TextColumn(t("ledger.col.description"), disabled=True),
+        COL_INCOME:      st.column_config.NumberColumn(t("ledger.col.income"), disabled=True, format="%.2f", width="small"),
+        COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f", width="small"),
+        COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small"),
+        COL_TYPE:        st.column_config.TextColumn(t("ledger.col.type"), disabled=True, width="small"),
+        COL_CATEGORY:    st.column_config.SelectboxColumn(
             t("ledger.col.category"), options=[""] + _all_cats, required=False, width="medium",
         ),
-        t("ledger.col.subcategory"):    st.column_config.SelectboxColumn(
+        COL_SUBCATEGORY: st.column_config.SelectboxColumn(
             t("ledger.col.subcategory"), options=[""] + _all_sub, required=False, width="medium",
         ),
-        t("ledger.col.context"):        st.column_config.SelectboxColumn(
+        COL_CONTEXT:     st.column_config.SelectboxColumn(
             t("ledger.col.context"), options=[""] + _contexts, required=False, width="small",
         ),
-        t("ledger.col.source"):         st.column_config.TextColumn(t("ledger.col.source"), disabled=True, width=100),
-        "⚠️":             st.column_config.TextColumn("⚠️", disabled=True, width=40),
-        "✅":             st.column_config.TextColumn("✅", disabled=True, width=40),
-        "🔄":             st.column_config.TextColumn("🔄", disabled=True, width=40),
-        "Validato":       st.column_config.CheckboxColumn("Validato", width=60),
-        "🔄 Giroconto":   st.column_config.CheckboxColumn("🔄 Giroconto", width="small"),
+        COL_SOURCE:      st.column_config.TextColumn(t("ledger.col.source"), disabled=True, width=100),
+        COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=40),
+        COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=40),
+        COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=40),
+        COL_VALIDATED:   st.column_config.CheckboxColumn(t("ledger.col.validated"), width=60),
+        COL_TRANSFER:    st.column_config.CheckboxColumn(t("ledger.col.transfer"), width="small"),
     }
     if show_raw:
-        _col_cfg["Raw"] = st.column_config.TextColumn(
-            "Raw description", disabled=True, width="medium"
+        _col_cfg[COL_RAW] = st.column_config.TextColumn(
+            t("ledger.col.raw"), disabled=True, width="medium"
         )
 
     edited_df = st.data_editor(
@@ -304,13 +342,13 @@ def render_registry_page(engine):
     # ── Enforce single selection for rule creation ──────────────────────────
     _sel_indices = [i for i in range(len(edited_df)) if edited_df.iloc[i].get("_sel", False)]
     if len(_sel_indices) > 1:
-        st.error("⚠️ Si può creare ed applicare una regola alla volta — seleziona una sola riga")
+        st.error(t("ledger.one_rule_at_a_time"))
 
     # ── Auto-save Validato checkbox changes (realtime) ───────────────────────
     _n_auto_val = 0
     for i in range(len(edited_df)):
-        new_val = bool(edited_df.iloc[i].get("Validato", False))
-        old_val = bool(orig_df.iloc[i].get("Validato", False))
+        new_val = bool(edited_df.iloc[i].get(COL_VALIDATED, False))
+        old_val = bool(orig_df.iloc[i].get(COL_VALIDATED, False))
         if new_val != old_val:
             _tid = orig_df.iloc[i]["_id"]
             if new_val:
@@ -319,14 +357,14 @@ def render_registry_page(engine):
                 tx_svc.unvalidate(_tid)
             _n_auto_val += 1
     if _n_auto_val:
-        st.toast(f"✅ {_n_auto_val} validazioni aggiornate")
+        st.toast(t("ledger.validations_updated", n=_n_auto_val))
         logger.info(f"ledger_page: auto-saved {_n_auto_val} validation changes")
         st.rerun()
 
     # ── Save & Validate buttons ──────────────────────────────────────────────
     sv_col, val_col, _ = st.columns([1, 1, 4])
     with sv_col:
-        save_clicked = st.button("💾 Salva modifiche", type="primary", key="ledger_save",
+        save_clicked = st.button(t("ledger.save_changes"), type="primary", key="ledger_save",
                                  use_container_width=True)
     with val_col:
         _sel_ids = [
@@ -334,13 +372,13 @@ def render_registry_page(engine):
             for i in range(len(edited_df))
             if edited_df.iloc[i].get("_sel", False)
         ]
-        if st.button("✅ Valida selezionate", disabled=len(_sel_ids) == 0,
+        if st.button(t("ledger.validate_selected"), disabled=len(_sel_ids) == 0,
                       key="ledger_validate_bulk", use_container_width=True):
             n_ok = 0
             for _tid in _sel_ids:
                 if tx_svc.validate(_tid):
                     n_ok += 1
-            st.success(f"✅ {n_ok} transazioni validate.")
+            st.success(t("ledger.validated_n", n=n_ok))
             logger.info(f"ledger_page: validated {n_ok} transactions")
             st.rerun()
 
@@ -356,21 +394,21 @@ def render_registry_page(engine):
             edit = edited_df.iloc[idx]
             tx_id = orig["_id"]
 
-            cat_changed  = str(edit["Categoria"])      != str(orig["Categoria"])
-            sub_changed  = str(edit["Sottocategoria"]) != str(orig["Sottocategoria"])
-            ctx_changed  = str(edit["Contesto"])       != str(orig["Contesto"])
-            giro_changed = bool(edit["🔄 Giroconto"])  != bool(orig["🔄 Giroconto"])
-            val_changed  = bool(edit["Validato"])       != bool(orig["Validato"])
+            cat_changed  = str(edit[COL_CATEGORY])    != str(orig[COL_CATEGORY])
+            sub_changed  = str(edit[COL_SUBCATEGORY]) != str(orig[COL_SUBCATEGORY])
+            ctx_changed  = str(edit[COL_CONTEXT])     != str(orig[COL_CONTEXT])
+            giro_changed = bool(edit[COL_TRANSFER])   != bool(orig[COL_TRANSFER])
+            val_changed  = bool(edit[COL_VALIDATED])  != bool(orig[COL_VALIDATED])
 
             if cat_changed or sub_changed:
-                _new_cat = edit["Categoria"] or orig["Categoria"]
-                _new_sub = edit["Sottocategoria"] or orig["Sottocategoria"]
+                _new_cat = edit[COL_CATEGORY] or orig[COL_CATEGORY]
+                _new_sub = edit[COL_SUBCATEGORY] or orig[COL_SUBCATEGORY]
                 # Validate subcategory belongs to category
                 _valid_subs = taxonomy.valid_subcategories(_new_cat)
                 if _new_sub and _valid_subs and _new_sub not in _valid_subs:
                     st.error(
-                        f"⚠️ Riga {idx+1}: sottocategoria «{_new_sub}» non appartiene "
-                        f"a «{_new_cat}». Sottocategorie valide: {', '.join(_valid_subs)}"
+                        t("ledger.subcategory_mismatch", row=idx + 1, sub=_new_sub,
+                          cat=_new_cat, valid=", ".join(_valid_subs))
                     )
                     continue
                 tx_svc.update_category(tx_id, _new_cat, _new_sub, origin="ledger")
@@ -380,7 +418,7 @@ def render_registry_page(engine):
                     _fan_out_candidates.append((tx_id, _desc))
 
             if ctx_changed:
-                tx_svc.update_context(tx_id, edit["Contesto"] or None)
+                tx_svc.update_context(tx_id, edit[COL_CONTEXT] or None)
                 n_ctx += 1
 
             if giro_changed:
@@ -388,8 +426,8 @@ def render_registry_page(engine):
                 n_giro += 1
 
             if val_changed:
-                logger.info("ledger_page: tx %s val_changed: %s -> %s", tx_id, orig["Validato"], edit["Validato"])
-                if bool(edit["Validato"]):
+                logger.info("ledger_page: tx %s val_changed: %s -> %s", tx_id, orig[COL_VALIDATED], edit[COL_VALIDATED])
+                if bool(edit[COL_VALIDATED]):
                     tx_svc.validate(tx_id)
                 else:
                     tx_svc.unvalidate(tx_id)
@@ -402,7 +440,7 @@ def render_registry_page(engine):
             if n_ctx:  parts.append(f"{n_ctx} contesti")
             if n_giro: parts.append(f"{n_giro} giroconti")
             if n_val:  parts.append(f"{n_val} validate")
-            st.success(f"✅ Salvate: {' · '.join(parts)}")
+            st.success(t("ledger.saved_summary", parts=" · ".join(parts)))
             logger.info(f"ledger_page: saved cat={n_cat} ctx={n_ctx} giro={n_giro}")
 
             # ── C-06: Fan-out — check for similar uncategorized transactions ──
@@ -416,8 +454,7 @@ def render_registry_page(engine):
                     _total_similar = sum(len(v) for v in _fan_out_all.values())
                     st.session_state["_fan_out_pending"] = _fan_out_all
                     st.info(
-                        f"Trovate **{_total_similar}** transazioni simili non ancora categorizzate. "
-                        f"Vuoi applicare la stessa categoria?"
+                        t("ledger.fan_out.found", n=_total_similar)
                     )
                 else:
                     st.rerun()
@@ -433,7 +470,7 @@ def render_registry_page(engine):
         fo_col1, fo_col2, _ = st.columns([1, 1, 4])
         with fo_col1:
             if st.button(
-                f"Applica a tutte ({_total_fan})",
+                t("ledger.fan_out.apply_all", n=_total_fan),
                 key="ledger_fan_out_apply",
                 type="primary",
                 use_container_width=True,
@@ -444,12 +481,12 @@ def render_registry_page(engine):
                         _src_id, [t.id for t in _targets]
                     )
                 del st.session_state["_fan_out_pending"]
-                st.toast(f"Fan-out: {_n_applied} transazioni aggiornate")
+                st.toast(t("ledger.fan_out.applied", n=_n_applied))
                 logger.info(f"ledger_page: fan-out applied to {_n_applied} transactions")
                 st.rerun()
         with fo_col2:
             if st.button(
-                "No grazie",
+                t("ledger.fan_out.skip"),
                 key="ledger_fan_out_skip",
                 use_container_width=True,
             ):
@@ -461,24 +498,25 @@ def render_registry_page(engine):
         _rule_tx_id = _sel_ids[0]
         _rule_tx_row = orig_df[orig_df["_id"] == _rule_tx_id].iloc[0]
         _rule_tx_desc = _rule_tx_row["Descrizione"]
-        _rule_tx_cat = _rule_tx_row["Categoria"]
-        _rule_tx_sub = _rule_tx_row["Sottocategoria"]
-        _rule_tx_ctx = _rule_tx_row["Contesto"]
+        _rule_tx_cat = _rule_tx_row[COL_CATEGORY]
+        _rule_tx_sub = _rule_tx_row[COL_SUBCATEGORY]
+        _rule_tx_ctx = _rule_tx_row[COL_CONTEXT]
 
-        with st.expander("📏 Crea regola dalla selezione", expanded=True):
+        with st.expander(t("ledger.rule_from_selection"), expanded=True):
             rc1, rc2 = st.columns([3, 1])
             with rc1:
                 rule_pattern = st.text_input(
-                    "Pattern", value=_rule_tx_desc, key="rule_create_pattern"
+                    t("ledger.rule.pattern"), value=_rule_tx_desc, key="rule_create_pattern"
                 )
             with rc2:
+                # etichetta tradotta -> valore interno, che resta stabile
                 _match_labels = {
-                    "Contiene il testo": "contains",
-                    "Uguale esatto": "exact",
-                    "Espressione avanzata": "regex",
+                    t("ledger.rule.match.contains"): "contains",
+                    t("ledger.rule.match.exact"):    "exact",
+                    t("ledger.rule.match.regex"):    "regex",
                 }
                 _match_label = st.selectbox(
-                    "Tipo corrispondenza", list(_match_labels.keys()),
+                    t("ledger.rule.match_type"), list(_match_labels.keys()),
                     index=0, key="rule_create_match_type",
                 )
                 rule_match_type = _match_labels[_match_label]
@@ -488,7 +526,7 @@ def render_registry_page(engine):
                 _rc_cat_idx = (_all_cats.index(_rule_tx_cat)
                                if _rule_tx_cat in _all_cats else 0)
                 rule_category = st.selectbox(
-                    "Categoria", options=_all_cats,
+                    t("ledger.col.category"), options=_all_cats,
                     index=_rc_cat_idx, key="rule_create_category",
                 )
             with rc4:
@@ -497,20 +535,20 @@ def render_registry_page(engine):
                 _rc_sub_idx = (_rc_valid_subs.index(_rule_tx_sub)
                                if _rule_tx_sub in _rc_valid_subs else 0)
                 rule_subcategory = st.selectbox(
-                    "Sottocategoria", options=_rc_valid_subs,
+                    t("ledger.col.subcategory"), options=_rc_valid_subs,
                     index=_rc_sub_idx, key="rule_create_subcategory",
                 )
             with rc5:
-                _ctx_options = ["— nessuno —"] + _contexts
+                _ctx_options = [t("ledger.rule.no_context")] + _contexts
                 _rc_ctx_idx = (_ctx_options.index(_rule_tx_ctx)
                                if _rule_tx_ctx in _ctx_options else 0)
                 rule_context = st.selectbox(
-                    "Contesto", options=_ctx_options,
+                    t("ledger.col.context"), options=_ctx_options,
                     index=_rc_ctx_idx, key="rule_create_context",
                 )
             with rc6:
                 rule_priority = st.number_input(
-                    "Priorità", value=10, min_value=0, max_value=100,
+                    t("ledger.rule.priority"), value=10, min_value=0, max_value=100,
                     key="rule_create_priority",
                 )
 
@@ -527,13 +565,13 @@ def render_registry_page(engine):
                     rule_pattern.strip(), rule_match_type
                 )
                 if _rule_exists:
-                    st.warning(f"⚠️ Regola già esistente — verrà aggiornata. Matcherà {len(_rule_matching)} transazioni")
+                    st.warning(t("ledger.rule_exists_update", n=len(_rule_matching)))
                 else:
-                    st.info(f"Questa regola matcherà {len(_rule_matching)} transazioni")
+                    st.info(t("ledger.rule_will_match", n=len(_rule_matching)))
 
             _btn_label = "📏 Modifica regola e applica" if _rule_exists else "📏 Crea regola e applica"
             if st.button(_btn_label, key="rule_create_apply"):
-                _ctx_val = rule_context if rule_context != "— nessuno —" else None
+                _ctx_val = rule_context if rule_context != t("ledger.rule.no_context") else None
                 _, _created = rule_svc.create_rule(
                     pattern=rule_pattern.strip(),
                     match_type=rule_match_type,
@@ -543,25 +581,27 @@ def render_registry_page(engine):
                     priority=rule_priority,
                 )
                 n_matched, n_cleared = rule_svc.apply_to_all()
-                _action = "creata" if _created else "aggiornata"
-                st.toast(f"📏 Regola {_action} — {n_matched} transazioni aggiornate")
+                # chiave diversa per creata/aggiornata: in altre lingue la frase
+                # non si compone incollando un participio
+                st.toast(t("ledger.rule_created" if _created else "ledger.rule_updated",
+                           n=n_matched))
                 logger.info(
                     f"ledger_page: rule created pattern={rule_pattern!r} "
                     f"matched={n_matched} cleared={n_cleared}"
                 )
                 st.rerun()
     else:
-        st.caption("Seleziona una riga (📏) per creare una regola")
+        st.caption(t("ledger.select_row_for_rule"))
 
     # ── Page navigation ───────────────────────────────────────────────────────
     nav1, nav2, _ = st.columns([1, 1, 5])
     with nav1:
-        if st.button("◀ Precedente", disabled=(page_num == 0), key="ledger_prev",
+        if st.button(t("ledger.page_prev"), disabled=(page_num == 0), key="ledger_prev",
                      use_container_width=True):
             st.session_state["ledger_page"] = page_num - 1
             st.rerun()
     with nav2:
-        if st.button("Successiva ▶", disabled=(page_num >= total_pages - 1), key="ledger_next",
+        if st.button(t("ledger.page_next"), disabled=(page_num >= total_pages - 1), key="ledger_next",
                      use_container_width=True):
             st.session_state["ledger_page"] = page_num + 1
             st.rerun()
@@ -572,13 +612,13 @@ def render_registry_page(engine):
     with ec1:
         csv_bytes = tx_svc.export_csv(filters=filters)
         st.download_button(
-            "📥 Esporta CSV", csv_bytes, "spendifai_export.csv", "text/csv",
+            t("ledger.export_csv"), csv_bytes, "spendifai_export.csv", "text/csv",
             use_container_width=True,
         )
     with ec2:
         xlsx_bytes = tx_svc.export_xlsx(filters=filters)
         st.download_button(
-            "📥 Esporta XLSX", xlsx_bytes, "spendifai_export.xlsx",
+            t("ledger.export_xlsx"), xlsx_bytes, "spendifai_export.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
