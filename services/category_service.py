@@ -96,6 +96,23 @@ class CategoryService:
             taxonomy_map=taxonomy_map,
         )
 
+    def nsi_mapping_status(self) -> dict:
+        """Stato della mappa esercenti: quanti tag OSM sono mappati sulla
+        tassonomia dell'utente e se e' ancora allineata.
+
+        Serve alla pagina Impostazioni, che non puo' importare core/db
+        direttamente (gate di coupling).
+        """
+        from services.nsi_taxonomy_service import NsiTaxonomyService
+        from db import repository
+
+        nsi = NsiTaxonomyService(self.engine)
+        with self._session() as s:
+            taxonomy = repository.get_taxonomy_config(s)
+            mappa = repository.get_nsi_tag_mapping(s)
+            stale = nsi.needs_rebuild(s, nsi.compute_taxonomy_hash(taxonomy))
+        return {"tags": len(mappa), "stale": stale}
+
     def prewarm_nsi_taxonomy_map(self) -> bool:
         """Run the single ~5 min LLM call that maps OSM tags to the user's
         taxonomy and persists it in `nsi_tag_mapping`. Intended for the
