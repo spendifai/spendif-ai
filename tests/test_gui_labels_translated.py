@@ -8,6 +8,13 @@ davvero renderizzate con AppTest, nelle due lingue, e si guarda cosa esce.
 Regola: l'etichetta di un widget deve corrispondere a una stringa del catalogo
 della lingua attiva, oppure essere un dato (una categoria, un conto, un
 contesto: quelli vengono dal database dell'utente e non si traducono).
+
+ESCLUSA: ui/onboarding_page.py. Il wizard gira PRIMA che l'utente scelga la
+lingua, quindi la rileva dal browser e usa un proprio catalogo minimo che
+copre cinque lingue (it, en, fr, de, es) contro le due dei file i18n. Le sue
+etichette sono tradotte, ma in una seconda fonte di verita': unificarla
+significa decidere che fare di francese, tedesco e spagnolo, ed e' tracciato
+a parte invece di essere nascosto sotto un'esenzione muta.
 """
 from __future__ import annotations
 
@@ -50,10 +57,18 @@ def _render(page: str, lang: str, db_path: str):
         from ui.i18n import set_language
         import importlib
 
-        set_language(os.environ["SPENDIFAI_TEST_LANG"])
+        lingua = os.environ["SPENDIFAI_TEST_LANG"]
+        set_language(lingua)
+        engine = M.get_engine(os.environ["SPENDIFAI_DB"])
+        # alcune pagine rileggono la lingua dalle impostazioni invece che dallo
+        # stato i18n: se le due sorgenti divergono il test misura il proprio
+        # disallineamento, non un difetto del prodotto
+        sessione = M.get_session(engine)
+        sessione.merge(M.UserSettings(key="ui_language", value=lingua))
+        sessione.commit()
         modulo, funzione = os.environ["SPENDIFAI_TEST_PAGE"].split(":")
         pagina = getattr(importlib.import_module(modulo), funzione)
-        pagina(M.get_engine(os.environ["SPENDIFAI_DB"]))
+        pagina(engine)
 
     os.environ["SPENDIFAI_REPO"] = str(REPO)
     os.environ["SPENDIFAI_DB"] = f"sqlite:///{db_path}"
@@ -154,6 +169,13 @@ def valori_dati(db_demo) -> set[str]:
     "ui.budget_page:render_budget_page",
     "ui.history_page:render_history_page",
     "ui.checklist_page:render_checklist_page",
+    "ui.analysis_page:render_analysis_page",
+    "ui.budget_vs_actual_page:render_budget_vs_actual_page",
+    "ui.bulk_edit_page:render_bulk_edit_page",
+    "ui.chat_page:render_chat_page",
+    "ui.counterparts_page:render_counterparts_page",
+    "ui.llm_models_page:render_llm_models_page",
+    "ui.report_page:render_report_page",
 ])
 def test_gui_labels_come_from_the_catalogue(page, lang, db_demo, valori_dati):
     at = _render(page, lang, db_demo)
