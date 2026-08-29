@@ -295,7 +295,7 @@ class SettingsService:
         with their subcategories side-by-side.
         """
         from db.taxonomy_defaults import TAXONOMY_DEFAULTS
-        data = TAXONOMY_DEFAULTS.get(language, TAXONOMY_DEFAULTS.get("it", {}))
+        data = TAXONOMY_DEFAULTS.get(language, TAXONOMY_DEFAULTS.get("en", {}))
         return {
             "expenses": [
                 {"category": e["category"], "subcategories": list(e.get("subcategories", []))}

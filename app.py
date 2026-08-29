@@ -146,7 +146,7 @@ render_model_download_banner()
 
 # ── i18n: set UI language from user settings ─────────────────────────────────
 from ui.i18n import set_language as _set_lang
-_set_lang(_cfg_check.get_all().get("ui_language", "it"))
+_set_lang(_cfg_check.get_all().get("ui_language", "en"))
 
 # ── Sidebar navigation ────────────────────────────────────────────────────────
 # Default landing page is data-driven: with at least one transaction we go
