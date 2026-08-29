@@ -53,6 +53,13 @@
     .step-img img { max-width: 100%; max-height: 100%; border-radius: 8px; }
     .step-img .ph { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
     .step-img .ph code { background: var(--bg); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+
+    /* Finché non esistono gli screenshot reali (assets/screenshots/ è vuota), i
+       riquadri segnaposto restano nel markup ma non a schermo: comunicavano
+       "cantiere aperto" a chi visitava la pagina. Le due regole si disattivano
+       da sole nel momento in cui .ph viene sostituito da un <img>. */
+    .step:has(.ph) { grid-template-columns: 1fr; }
+    .step-img:has(.ph) { display: none; }
 .features-list { list-style: none; padding: 0; margin: 1.5rem 0 0 0; }
     .features-list li { padding: 1rem 1.2rem; background: var(--surface); border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid var(--blue); color: var(--muted); }
     .features-list li strong { color: var(--text); }
