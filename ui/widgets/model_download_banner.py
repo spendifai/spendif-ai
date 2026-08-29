@@ -29,6 +29,7 @@ import sys
 from pathlib import Path
 
 import streamlit as st
+from ui.i18n import t
 
 
 _STATUS_FILE = Path.home() / ".spendifai" / "model_download.status"
@@ -80,10 +81,7 @@ def render_model_download_banner() -> None:
     error = status.get("error")
     if error:
         st.error(
-            f"⚠ Download del modello AI fallito: `{error}`. "
-            "L'app funziona ma le funzioni AI sono disabilitate finché il "
-            "modello non viene scaricato. Riprova chiudendo e riaprendo l'app, "
-            f"o consulta `{_LAUNCHER_LOG_PATH}`."
+            t("model_banner.failed", error=error, log=_LAUNCHER_LOG_PATH)
         )
         return
 
@@ -93,10 +91,6 @@ def render_model_download_banner() -> None:
     pct_int = int(pct * 100)
 
     st.info(
-        f"📚 **Stiamo scaricando il cervello di Spendif.ai** — {pct_int}% · "
-        f"tempo rimasto: **{eta_str}** · {msg}\n\n"
-        "*Succede solo al primo avvio (~3 GB). Puoi continuare con la "
-        "configurazione: l'AI sarà pronta automaticamente al termine. "
-        "Le funzioni Import e categorizzazione saranno disponibili allora.*"
+        t("model_banner.downloading_full", pct=pct_int, eta=eta_str, msg=msg)
     )
     st.progress(pct, text=f"{pct_int}%")

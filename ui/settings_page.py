@@ -403,7 +403,7 @@ def render_settings_page(engine):
         cc1, cc2 = st.columns([5, 1])
         with cc1:
             new_val = st.text_input(
-                f"Contesto {i + 1}", value=ctx, key=f"ctx_val_{i}", label_visibility="collapsed"
+                t("settings.context_n", n=i + 1), value=ctx, key=f"ctx_val_{i}", label_visibility="collapsed"
             )
             st.session_state["settings_contexts"][i] = new_val.strip()
         with cc2:

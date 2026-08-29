@@ -363,7 +363,7 @@ def render_review_page(engine):
                         [fo_t.id for fo_t in _fo_targets],
                     )
                     del st.session_state["_review_fan_out"]
-                    st.toast(f"Fan-out: {_n_fo} transazioni aggiornate")
+                    st.toast(t("ledger.fan_out.applied", n=_n_fo))
                     logger.info(f"review_page: fan-out applied to {_n_fo} transactions")
                     st.rerun()
             with fo_c2:
@@ -463,7 +463,7 @@ def render_review_page(engine):
                                     _rule.raw_pattern, _rule.match_type, _rule.cleaned_description
                                 )
                             st.session_state["llm_in_progress"] = False
-                            st.success(f"{n_upd} aggiornate · {n_cat} ri-categorizzate.")
+                            st.success(t("review.reprocess_summary", updated=n_upd, categorised=n_cat))
                             st.rerun()
                     with _btn_col2:
                         if st.button("🗑", key=f"desc_rule_del_{_rule.id}", help=t("common.delete")):

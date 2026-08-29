@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import streamlit as st
+from ui.i18n import t
 
 
 def _sk(prefix: str, *parts: str) -> str:
@@ -109,7 +110,7 @@ def render_tree_filter(
         # ── Contexts ──────────────────────────────────────────────────────
         selected_contexts: list[str] = []
         if show_contexts and contexts:
-            st.markdown("**Contesti**")
+            st.markdown(t("tree_filter.contexts"))
             for ctx in contexts:
                 ctx_key = _sk(key_prefix, "ctx", ctx)
                 val = st.checkbox(ctx, value=st.session_state.get(ctx_key, True), key=ctx_key)
@@ -146,7 +147,7 @@ def render_tree_filter(
                 # Category-level toggle checkbox
                 _all_on = n_on == len(subs) if subs else st.session_state.get(cat_key, True)
                 st.checkbox(
-                    f"Tutte le sottocategorie di {cat_name}",
+                    t("tree_filter.all_subcategories", cat=cat_name),
                     value=_all_on,
                     key=cat_key,
                 )
@@ -179,15 +180,15 @@ def render_tree_filter(
         bc1, bc2, bc3 = st.columns(3)
         with bc1:
             submitted = st.form_submit_button(
-                "Applica filtri", use_container_width=True, type="primary",
+                t("tree_filter.apply"), use_container_width=True, type="primary",
             )
         with bc2:
             sel_all = st.form_submit_button(
-                "Seleziona tutto", use_container_width=True,
+                t("tree_filter.select_all"), use_container_width=True,
             )
         with bc3:
             desel_all = st.form_submit_button(
-                "Deseleziona tutto", use_container_width=True,
+                t("tree_filter.deselect_all"), use_container_width=True,
             )
 
     # ── Handle form actions (after form block — NO direct session_state writes

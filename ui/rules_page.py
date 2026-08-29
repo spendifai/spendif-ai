@@ -154,7 +154,7 @@ def render_rules_page(engine):
         with col_edit:
             with st.expander(t("rules.edit_expander"), expanded=False):
                 rid = sel_rule.id
-                new_pattern = st.text_input("Pattern", value=sel_rule.pattern,
+                new_pattern = st.text_input(t("ledger.rule.pattern"), value=sel_rule.pattern,
                                             key=f"rule_edit_pattern_{rid}")
                 _edit_label = label_from_type.get(sel_rule.match_type, list(match_labels.keys())[0])
                 _edit_labels = list(match_labels.keys())
