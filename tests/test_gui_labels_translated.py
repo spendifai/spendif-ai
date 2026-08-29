@@ -157,7 +157,10 @@ def valori_dati(db_demo) -> set[str]:
     return out
 
 
-@pytest.mark.parametrize("lang", ["it", "en"])
+# tutte le lingue spedite: it, en, fr, de, es
+@pytest.mark.parametrize(
+    "lang", sorted(f.stem for f in (Path(__file__).resolve().parents[1] / "ui" / "i18n").glob("*.json"))
+)
 @pytest.mark.parametrize("page", [
     "ui.home_page:render_home_page",
     "ui.registry_page:render_registry_page",
