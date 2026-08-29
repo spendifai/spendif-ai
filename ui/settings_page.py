@@ -635,6 +635,32 @@ def render_settings_page(engine):
         logger.info("settings_page: saved app-behaviour settings (LLM config is owned by the LLM Models page)")
         st.rerun()
 
+    # ── Mappa esercenti (NSI) ──────────────────────────────────────────────────
+    # La ricostruzione avviene gia' da sola quando cambia la tassonomia, ma
+    # capita durante il primo import successivo: da qui l'utente puo'
+    # anticiparla invece di subirla.
+    st.divider()
+    with st.expander(t("settings.nsi_map_title"), expanded=False):
+        st.caption(t("settings.nsi_map_caption"))
+        from services.category_service import CategoryService
+
+        _cat_svc = CategoryService(cfg_svc.engine)
+        _stato = _cat_svc.nsi_mapping_status()
+        if _stato["tags"] == 0:
+            st.info(t("settings.nsi_map_status_empty"))
+        elif _stato["stale"]:
+            st.warning(t("settings.nsi_map_status_stale", n=_stato["tags"]))
+        else:
+            st.success(t("settings.nsi_map_status_ok", n=_stato["tags"]))
+
+        if st.button(t("settings.nsi_map_rebuild"), key="nsi_map_rebuild"):
+            with st.spinner(t("settings.nsi_map_rebuilding")):
+                _ok = _cat_svc.prewarm_nsi_taxonomy_map()
+            if _ok:
+                st.success(t("settings.nsi_map_rebuilt", n=_cat_svc.nsi_mapping_status()["tags"]))
+            else:
+                st.warning(t("settings.nsi_map_failed"))
+
     # ── Reset tassonomia ───────────────────────────────────────────────────────
     st.divider()
     with st.expander(t("settings.reset_taxonomy_title"), expanded=False):
