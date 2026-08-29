@@ -95,6 +95,7 @@
   "review.validated_count": "✅ {n} transactions validated.",
   "review.updated_count": "✅ {n} transactions updated.",
   "review.context_updated": "✅ {n} contexts updated.",
+  "review.tx_meta": "Type: **{type}** · Category: **{cat}** / {sub} (confidence: {conf})",
   "review.apply_correction": "Apply correction",
   "review.select_transaction": "Select transaction",
   "review.new_category": "New category",
