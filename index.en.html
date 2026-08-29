@@ -297,6 +297,22 @@
     .problem-card p { color: var(--muted); font-size: .95rem; }
 
     /* ── STEPS ───────────────────────────────────────────── */
+    /* ── Schermate di prodotto ─────────────────────────────────────────── */
+    .shots { display: grid; gap: 1.25rem; margin-top: 2rem; }
+    .shots figure { margin: 0; }
+    .shots img {
+      width: 100%; height: auto; display: block;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+    .shots figcaption {
+      color: var(--muted); font-size: 0.9rem; margin-top: 0.6rem; text-align: center;
+    }
+    @media (min-width: 900px) {
+      .shots { grid-template-columns: 1fr 1fr; }
+      .shots figure:first-child { grid-column: 1 / -1; }
+    }
+
     .steps {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -839,6 +855,35 @@
 <hr class="divider">
 
 <!-- ── DIFFERENTIATORS ───────────────────────────────────────────────────── -->
+<hr class="divider">
+
+<!-- ── SCHERMATE DI PRODOTTO ─────────────────────────────────────────────── -->
+<section id="schermate">
+  <div class="container">
+    <div class="section-label">What it looks like</div>
+    <h2>The product, not a mockup</h2>
+    <p class="section-sub">Three screens of the running app. The data shown is sample data.</p>
+
+    <div class="shots fade-in">
+      <figure>
+        <img src="assets/screenshots/app-home.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Spendif.ai home screen: monthly income chart and income-to-expense flow diagram">
+        <figcaption>Home: monthly income and the income → expense flow</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/screenshots/app-ledger.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Spendif.ai transaction ledger: table of movements with category, subcategory, account and filters">
+        <figcaption>Ledger: every transaction categorised, with filters and in-table editing</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/screenshots/app-analytics.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Spendif.ai analytics page: bar chart of monthly income and expenses">
+        <figcaption>Analytics: income against expenses, month by month</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section id="algoritmi">
   <div class="container">
     <div class="section-label">What no one else does automatically</div>

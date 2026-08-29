@@ -297,6 +297,22 @@
     .problem-card p { color: var(--muted); font-size: .95rem; }
 
     /* ── STEPS ───────────────────────────────────────────── */
+    /* ── Schermate di prodotto ─────────────────────────────────────────── */
+    .shots { display: grid; gap: 1.25rem; margin-top: 2rem; }
+    .shots figure { margin: 0; }
+    .shots img {
+      width: 100%; height: auto; display: block;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+    .shots figcaption {
+      color: var(--muted); font-size: 0.9rem; margin-top: 0.6rem; text-align: center;
+    }
+    @media (min-width: 900px) {
+      .shots { grid-template-columns: 1fr 1fr; }
+      .shots figure:first-child { grid-column: 1 / -1; }
+    }
+
     .steps {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -839,6 +855,35 @@
 <hr class="divider">
 
 <!-- ── DIFFERENTIATORS ───────────────────────────────────────────────────── -->
+<hr class="divider">
+
+<!-- ── SCHERMATE DI PRODOTTO ─────────────────────────────────────────────── -->
+<section id="schermate">
+  <div class="container">
+    <div class="section-label">Cómo es</div>
+    <h2>El producto, no una maqueta</h2>
+    <p class="section-sub">Tres pantallas de la aplicación en funcionamiento. Los datos mostrados son de ejemplo.</p>
+
+    <div class="shots fade-in">
+      <figure>
+        <img src="assets/screenshots/app-home.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Pantalla de inicio de Spendif.ai: gráfico de ingresos mensuales y diagrama de flujo">
+        <figcaption>Inicio: ingresos por mes y el flujo ingresos → gastos</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/screenshots/app-ledger.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Registro de transacciones de Spendif.ai: tabla con categoría, subcategoría, cuenta y filtros">
+        <figcaption>Registro: cada movimiento categorizado, con filtros y edición en la tabla</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/screenshots/app-analytics.webp" width="1600" height="1111" loading="lazy" decoding="async"
+             alt="Página de análisis de Spendif.ai: gráfico de barras de ingresos y gastos mensuales">
+        <figcaption>Análisis: ingresos frente a gastos, mes a mes</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section id="algoritmi">
   <div class="container">
     <div class="section-label">Lo que nadie más hace automáticamente</div>
