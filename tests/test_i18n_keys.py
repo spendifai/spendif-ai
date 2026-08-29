@@ -16,7 +16,9 @@ PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
 
 def _load(lang: str) -> dict:
-    return json.loads((I18N_DIR / f"{lang}.json").read_text())
+    # encoding esplicito: su Windows read_text() userebbe cp1252 e i file
+    # di traduzione sono UTF-8
+    return json.loads((I18N_DIR / f"{lang}.json").read_text(encoding="utf-8"))
 
 
 def test_it_and_en_have_the_same_keys():
