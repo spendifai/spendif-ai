@@ -569,7 +569,7 @@ def render_registry_page(engine):
                 else:
                     st.info(t("ledger.rule_will_match", n=len(_rule_matching)))
 
-            _btn_label = "📏 Modifica regola e applica" if _rule_exists else "📏 Crea regola e applica"
+            _btn_label = t("ledger.rule_apply_update" if _rule_exists else "ledger.rule_apply_create")
             if st.button(_btn_label, key="rule_create_apply"):
                 _ctx_val = rule_context if rule_context != t("ledger.rule.no_context") else None
                 _, _created = rule_svc.create_rule(

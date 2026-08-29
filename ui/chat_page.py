@@ -167,20 +167,15 @@ def _render_suggestions(bot: ChatBotEngine, lang: str) -> None:
 
 
 def _get_suggestions(lang: str) -> list[str]:
-    """Return suggested questions based on language."""
-    _SUGGESTIONS = {
-        "it": [
-            "Come importo un file?",
-            "Quali formati sono supportati?",
-            "Come cambio una categoria?",
-        ],
-        "en": [
-            "How do I import a file?",
-            "What formats are supported?",
-            "How do I change a category?",
-        ],
-    }
-    return _SUGGESTIONS.get(lang, _SUGGESTIONS.get("en", []))
+    """Domande suggerite, dal catalogo i18n.
+
+    Prima vivevano in un dizionario locale: tradotte, ma in una seconda fonte
+    di verita' che nessuno teneva allineata con i file di traduzione.
+    """
+    from ui.i18n import set_language, t
+
+    set_language(lang)
+    return [t(f"chat.suggestion.{k}") for k in ("import", "formats", "category")]
 
 
 def _render_sources_caption(sources: list[str]) -> None:
