@@ -92,7 +92,7 @@ def render_chat_page(engine) -> None:
     st.header(t_fn("chat.title"))
 
     settings = SettingsService(engine)
-    lang = settings.get_all().get("ui_language", "it")
+    lang = settings.get_all().get("ui_language", "en")
 
     # initialise chatbot once per session
     if "chatbot" not in st.session_state:

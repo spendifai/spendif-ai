@@ -128,7 +128,7 @@ _LOCALE: dict[str, dict] = {
     "de": {"date_display_format": "%d.%m.%Y",  "amount_decimal_sep": ",", "amount_thousands_sep": "."},
     "es": {"date_display_format": "%d/%m/%Y",  "amount_decimal_sep": ",", "amount_thousands_sep": "."},
 }
-_DEFAULT_LOCALE = _LOCALE["it"]
+_DEFAULT_LOCALE = _LOCALE["en"]
 
 # ── UI labels (multi-language minimal set for the wizard itself) ───────────────
 _UI: dict[str, dict] = {
@@ -161,7 +161,7 @@ def _detect_browser_language(supported: list[str]) -> str:
 
 
 def _ui(lang: str) -> dict:
-    return _UI.get(lang, _UI["it"])
+    return _UI.get(lang, _UI["en"])
 
 
 def _locale(lang: str) -> dict:

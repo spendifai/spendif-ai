@@ -7,7 +7,9 @@ from typing import Any
 
 _I18N_DIR = Path(__file__).parent
 _CACHE: dict[str, dict[str, str]] = {}
-_FALLBACK_LANG = "it"
+# Inglese, non italiano: chi usa una lingua incompleta preferisce leggere
+# inglese piuttosto che una lingua che con ogni probabilita' non conosce.
+_FALLBACK_LANG = "en"
 _active_lang: str = "it"
 
 

@@ -306,7 +306,7 @@ def render_settings_page(engine):
     _ui_langs = available_languages()  # [(code, label), ...]
     _ui_lang_labels = [label for _, label in _ui_langs]
     _ui_lang_codes = [code for code, _ in _ui_langs]
-    _current_ui_lang = settings.get("ui_language", "it")
+    _current_ui_lang = settings.get("ui_language", "en")
     _ui_lang_idx = _ui_lang_codes.index(_current_ui_lang) if _current_ui_lang in _ui_lang_codes else 0
     ui_lang_label = st.selectbox(
         t("settings.ui_language_label"),
