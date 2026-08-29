@@ -21,24 +21,35 @@ def _load(lang: str) -> dict:
     return json.loads((I18N_DIR / f"{lang}.json").read_text(encoding="utf-8"))
 
 
-def test_it_and_en_have_the_same_keys():
-    it, en = _load("it"), _load("en")
-    solo_it = sorted(set(it) - set(en))
-    solo_en = sorted(set(en) - set(it))
-    assert not solo_it, f"chiavi presenti solo in it.json: {solo_it[:10]}"
-    assert not solo_en, f"chiavi presenti solo in en.json: {solo_en[:10]}"
+LINGUE = sorted(p.stem for p in I18N_DIR.glob("*.json"))
 
 
-def test_placeholders_match_across_languages():
+def test_all_shipped_languages_have_the_same_keys():
+    """Tutte le lingue spedite, non solo it/en. Il primo giro di questo test
+    confrontava solo le due principali, e le chiavi aggiunte quel giorno sono
+    rimaste fuori da fr, de ed es senza far fallire nulla: l'utente francese
+    leggeva italiano per via del fallback."""
+    riferimento = _load("it")
+    buchi = {}
+    for lang in LINGUE:
+        mancanti = sorted(set(riferimento) - set(_load(lang)))
+        se_ne_piu = sorted(set(_load(lang)) - set(riferimento))
+        if mancanti or se_ne_piu:
+            buchi[lang] = {"mancanti": mancanti[:8], "in_piu": se_ne_piu[:8]}
+    assert not buchi, f"cataloghi disallineati: {buchi}"
+
+
+@pytest.mark.parametrize("lang", [l for l in sorted(p.stem for p in I18N_DIR.glob("*.json")) if l != "it"])
+def test_placeholders_match_the_reference(lang):
     """Un {placeholder} presente in una lingua e non nell'altra fa esplodere
-    .format() a runtime, sulla lingua sbagliata."""
-    it, en = _load("it"), _load("en")
+    .format() a runtime, e solo per chi usa quella lingua."""
+    it, altra = _load("it"), _load(lang)
     disallineate = {
-        k: (sorted(PLACEHOLDER.findall(it[k])), sorted(PLACEHOLDER.findall(en[k])))
-        for k in it.keys() & en.keys()
-        if sorted(PLACEHOLDER.findall(it[k])) != sorted(PLACEHOLDER.findall(en[k]))
+        k: (sorted(PLACEHOLDER.findall(it[k])), sorted(PLACEHOLDER.findall(altra[k])))
+        for k in it.keys() & altra.keys()
+        if sorted(PLACEHOLDER.findall(it[k])) != sorted(PLACEHOLDER.findall(altra[k]))
     }
-    assert not disallineate, f"placeholder disallineati: {disallineate}"
+    assert not disallineate, f"{lang}: placeholder disallineati: {disallineate}"
 
 
 @pytest.mark.parametrize("lang", ["it", "en"])
@@ -105,7 +116,7 @@ def test_no_duplicate_keys():
     import re
     from collections import Counter
 
-    for lang in ("it", "en"):
+    for lang in sorted(p.stem for p in I18N_DIR.glob("*.json")):
         righe = (I18N_DIR / f"{lang}.json").read_text(encoding="utf-8")
         chiavi = re.findall(r'^\s*"([^"]+)":', righe, re.M)
         dup = [k for k, n in Counter(chiavi).items() if n > 1]
