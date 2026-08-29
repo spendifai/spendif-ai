@@ -219,12 +219,13 @@ def render_review_page(engine):
     is_giroconto = selected_tx.tx_type in ("internal_out", "internal_in")
 
     # Current assignment (shown as context)
-    st.caption(
-        f"Tipo: **{selected_tx.tx_type}** · "
-        f"Categoria: **{selected_tx.category or '—'}** / "
-        f"{selected_tx.subcategory or '—'} "
-        f"(confidenza: {selected_tx.category_confidence or '—'})"
-    )
+    st.caption(t(
+        "review.tx_meta",
+        type=selected_tx.tx_type,
+        cat=selected_tx.category or "—",
+        sub=selected_tx.subcategory or "—",
+        conf=selected_tx.category_confidence or "—",
+    ))
 
     # ── Segna come giroconto ───────────────────────────────────────────────────
     _similar_count = 0
