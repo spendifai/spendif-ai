@@ -311,6 +311,7 @@
     @media (min-width: 900px) {
       .shots { grid-template-columns: 1fr 1fr; }
       .shots figure:first-child { grid-column: 1 / -1; }
+      .shots.two { grid-template-columns: 1fr; }
     }
 
     .steps {
@@ -864,21 +865,16 @@
     <h2>The product, not a mockup</h2>
     <p class="section-sub">Three screens of the running app. The data shown is sample data.</p>
 
-    <div class="shots fade-in">
+    <div class="shots two fade-in">
       <figure>
-        <img src="assets/screenshots/app-home.webp" width="1600" height="1111" loading="lazy" decoding="async"
+        <img src="assets/screenshots/app-home-en.webp" width="1600" height="1548" loading="lazy" decoding="async"
              alt="Spendif.ai home screen: monthly income chart and income-to-expense flow diagram">
         <figcaption>Home: monthly income and the income → expense flow</figcaption>
       </figure>
       <figure>
-        <img src="assets/screenshots/app-ledger.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Spendif.ai transaction ledger: table of movements with category, subcategory, account and filters">
-        <figcaption>Ledger: every transaction categorised, with filters and in-table editing</figcaption>
-      </figure>
-      <figure>
-        <img src="assets/screenshots/app-analytics.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Spendif.ai analytics page: bar chart of monthly income and expenses">
-        <figcaption>Analytics: income against expenses, month by month</figcaption>
+        <img src="assets/screenshots/app-categories-en.webp" width="1600" height="939" loading="lazy" decoding="async"
+             alt="Spendif.ai analytics: expense distribution donut by category and category-subcategory treemap">
+        <figcaption>Analytics: expense distribution by category, and the category → subcategory treemap</figcaption>
       </figure>
     </div>
   </div>
