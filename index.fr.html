@@ -311,6 +311,7 @@
     @media (min-width: 900px) {
       .shots { grid-template-columns: 1fr 1fr; }
       .shots figure:first-child { grid-column: 1 / -1; }
+      .shots.two { grid-template-columns: 1fr; }
     }
 
     .steps {
@@ -818,6 +819,7 @@
         mais elles envoient vos données bancaires sur leurs serveurs et vous facturent un abonnement mensuel.</p>
       </div>
     </div>
+    <p class="section-sub" style="margin-top:1rem">L'interface est disponible en italien et en anglais.</p>
   </div>
 </section>
 
@@ -864,21 +866,16 @@
     <h2>Le produit, pas une maquette</h2>
     <p class="section-sub">Trois écrans de l'application en fonctionnement. Les données affichées sont des exemples.</p>
 
-    <div class="shots fade-in">
+    <div class="shots two fade-in">
       <figure>
-        <img src="assets/screenshots/app-home.webp" width="1600" height="1111" loading="lazy" decoding="async"
+        <img src="assets/screenshots/app-home-en.webp" width="1600" height="1548" loading="lazy" decoding="async"
              alt="Écran d'accueil de Spendif.ai : graphique des revenus mensuels et diagramme de flux">
         <figcaption>Accueil : revenus par mois et flux revenus → dépenses</figcaption>
       </figure>
       <figure>
-        <img src="assets/screenshots/app-ledger.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Registre des transactions de Spendif.ai : tableau avec catégorie, sous-catégorie, compte et filtres">
-        <figcaption>Registre : chaque opération catégorisée, avec filtres et édition directe</figcaption>
-      </figure>
-      <figure>
-        <img src="assets/screenshots/app-analytics.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Page d'analyse de Spendif.ai : graphique à barres des revenus et dépenses mensuels">
-        <figcaption>Analyse : revenus contre dépenses, mois par mois</figcaption>
+        <img src="assets/screenshots/app-categories-en.webp" width="1600" height="939" loading="lazy" decoding="async"
+             alt="Analyse de Spendif.ai : anneau des dépenses par catégorie et treemap">
+        <figcaption>Analyse : répartition des dépenses par catégorie et treemap catégorie → sous-catégorie</figcaption>
       </figure>
     </div>
   </div>

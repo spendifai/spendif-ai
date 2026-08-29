@@ -311,6 +311,7 @@
     @media (min-width: 900px) {
       .shots { grid-template-columns: 1fr 1fr; }
       .shots figure:first-child { grid-column: 1 / -1; }
+      .shots.two { grid-template-columns: 1fr; }
     }
 
     .steps {
@@ -863,21 +864,16 @@
     <h2>Il prodotto, non un mockup</h2>
     <p class="section-sub">Tre schermate dell'app in funzione. I dati mostrati sono di esempio.</p>
 
-    <div class="shots fade-in">
+    <div class="shots two fade-in">
       <figure>
-        <img src="assets/screenshots/app-home.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Schermata Home di Spendif.ai: grafico delle entrate per mese e diagramma di flusso entrate-uscite">
+        <img src="assets/screenshots/app-home.webp" width="1600" height="1548" loading="lazy" decoding="async"
+             alt="Schermata Home di Spendif.ai: grafico delle entrate mensili e diagramma di flusso entrate-uscite">
         <figcaption>Home: entrate per mese e flusso entrate → uscite</figcaption>
       </figure>
       <figure>
-        <img src="assets/screenshots/app-ledger.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Registro transazioni di Spendif.ai: tabella dei movimenti con categoria, sottocategoria, conto e filtri">
-        <figcaption>Registro: ogni movimento categorizzato, con filtri e modifica diretta in tabella</figcaption>
-      </figure>
-      <figure>
-        <img src="assets/screenshots/app-analytics.webp" width="1600" height="1111" loading="lazy" decoding="async"
-             alt="Pagina Analisi di Spendif.ai: grafico a barre di entrate e uscite mensili">
-        <figcaption>Analisi: entrate contro uscite, mese per mese</figcaption>
+        <img src="assets/screenshots/app-categories.webp" width="1600" height="939" loading="lazy" decoding="async"
+             alt="Analisi di Spendif.ai: grafico a ciambella delle uscite per categoria e treemap categoria-sottocategoria">
+        <figcaption>Analisi: distribuzione delle uscite per categoria e treemap categoria → sottocategoria</figcaption>
       </figure>
     </div>
   </div>
