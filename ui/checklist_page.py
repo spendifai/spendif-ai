@@ -140,7 +140,7 @@ def render_checklist_page(engine) -> None:
     st.divider()
 
     # ── Filtro opzionale ──────────────────────────────────────────────────────
-    with st.expander("🔍 Filtri", expanded=False):
+    with st.expander(t("checklist.filters"), expanded=False):
         filter_accounts = st.multiselect(
             t("checklist.filter_accounts"),
             options=all_accounts,
@@ -188,7 +188,7 @@ def render_checklist_page(engine) -> None:
 
     st.dataframe(styled, use_container_width=True)
 
-    with st.expander("ℹ️ Legenda colori", expanded=False):
+    with st.expander(t("checklist.color_legend"), expanded=False):
         st.markdown(
             f"""
 | Colore | Significato |

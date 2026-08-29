@@ -186,9 +186,10 @@ def _render_last_import_summary():
                 if result.doc_schema:
                     _conf_score = getattr(result.doc_schema, 'confidence_score', 0.0)
                     st.caption(
-                        f"Schema: {result.doc_schema.doc_type} | "
-                        f"Account: {result.doc_schema.account_label} | "
-                        f"Confidence: {_conf_score:.2f} ({result.doc_schema.confidence})"
+                        t_fn("upload.schema_summary",
+                             doc_type=result.doc_schema.doc_type,
+                             account=result.doc_schema.account_label,
+                             conf=f"{_conf_score:.2f} ({result.doc_schema.confidence})")
                     )
 
 
@@ -223,7 +224,8 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
         _conf_score = getattr(schema, 'confidence_score', 0.0) if schema else 0.0
         confidence_label = schema.confidence.value if schema else "unknown"
 
-        with st.expander(f"📄 {filename}  [confidence: {_conf_score:.2f} ({confidence_label})]", expanded=True):
+        with st.expander(t_fn("upload.file_with_confidence", filename=filename,
+                      conf=_conf_score, label=confidence_label), expanded=True):
             if evidence:
                 st.caption(t_fn("upload.schema.llm_reasoning") + " " + " · ".join(evidence))
 
@@ -432,8 +434,7 @@ def render_upload_page(engine):
     # upload and then watch the LLM call fail.
     if _ai_model_still_downloading():
         st.warning(
-            "⏳ Il modello AI è ancora in download (vedi il banner in alto). "
-            "L'Import sarà disponibile non appena sarà pronto — di solito 3-15 minuti al primo avvio.",
+            t_fn("upload.model_downloading"),
             icon="📚",
         )
         return

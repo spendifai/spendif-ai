@@ -403,7 +403,7 @@ def render_settings_page(engine):
         cc1, cc2 = st.columns([5, 1])
         with cc1:
             new_val = st.text_input(
-                f"Contesto {i + 1}", value=ctx, key=f"ctx_val_{i}", label_visibility="collapsed"
+                t("settings.context_n", n=i + 1), value=ctx, key=f"ctx_val_{i}", label_visibility="collapsed"
             )
             st.session_state["settings_contexts"][i] = new_val.strip()
         with cc2:
@@ -645,7 +645,7 @@ def render_settings_page(engine):
         current_lang = settings.get("description_language", "it")
         default_idx  = lang_codes.index(current_lang) if current_lang in lang_codes else 0
         reset_lang_label = st.selectbox(
-            t("settings.reset_taxonomy_lang_label"),
+            t("settings.reset_taxonomy_lang"),
             options=lang_labels,
             index=default_idx,
             key="settings_reset_tax_lang",
