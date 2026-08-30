@@ -66,3 +66,5 @@ rsvd_docs
 
 # .sestante/ — backlog locale, mai committato
 .sestante/
+
+.code_reader/
