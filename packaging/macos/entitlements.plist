@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements per app desktop interpretata (PyInstaller + Python + librerie native)
+  firmata con Developer ID e hardened runtime.
+
+  → SIGNING_BLUEPRINT.md §3.2
+
+  ATTENZIONE: ogni entitlement qui sotto RIAPRE una protezione che l'hardened
+  runtime chiude. L'insieme minimo e' quello che fa partire l'app, non quello
+  che la fa partire con margine. Per stringere: commenta una voce, ricostruisci,
+  verifica che l'app parta ancora. Se parte, quella voce non serviva.
+-->
+<plist version="1.0">
+<dict>
+    <!-- Carica .so/.dylib non firmati dal nostro team.
+         Indispensabile con PyInstaller: le wheel native sono firmate da altri
+         (o non firmate affatto). Senza questo l'app parte e muore al primo import. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+
+    <!-- Memoria eseguibile non firmata: ctypes, backend numerici, llama.cpp. -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!-- JIT esplicito: compilazione shader Metal, alcuni backend LLM. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+
+    <!-- Il launcher PyInstaller manipola DYLD_* per risolvere le librerie interne. -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+</dict>
+</plist>

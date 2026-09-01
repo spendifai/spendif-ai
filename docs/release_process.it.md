@@ -92,14 +92,33 @@ macOS, ~10-15 min per quello Windows) e produce una release **in draft**.
 Poi, sulle macchine dell'owner:
 
 ```bash
-# 2a. macOS — firma + notarizzazione del DMG
+# 2a. macOS — firma + notarizzazione
+#
+# Un DMG cattura il contenuto nel momento in cui viene creato, quindi firmare
+# il contenitore prodotto dalla CI non basta: l'app dentro e' ancora firmata
+# ad-hoc e la notarizzazione rifiuta. Si estrae l'app, si firma, si riconfeziona.
 gh release download v3.1.0 --pattern '*.dmg' --dir /tmp/release
-export APPLE_DEV_ID="Developer ID Application: Luigi Corsaro (TEAMID)"
-export APPLE_ID="lcorsaro69@gmail.com"
-export APPLE_TEAM_ID="..."
-export APPLE_APP_PASSWORD="app-specific-password"
-bash packaging/macos/sign-local.sh --dmg /tmp/release/SpendifAi-3.1.0.dmg
-gh release upload v3.1.0 /tmp/release/SpendifAi-3.1.0.dmg --clobber
+
+MP=$(hdiutil attach /tmp/release/SpendifAi-3.1.0.dmg -nobrowse -readonly \
+     | grep -o '/Volumes/.*' | head -1)
+rm -rf dist/SpendifAi.app && cp -R "$MP/SpendifAi.app" dist/
+hdiutil detach "$MP" -quiet
+
+# Credenziali: si registra il profilo notarytool una volta sola (basta una
+# App Store Connect API key con ruolo `Developer`), poi resta implicito.
+export NOTARY_PROFILE=spendifai-notary
+
+bash packaging/macos/sign-local.sh --app dist/SpendifAi.app --skip-notarize
+bash packaging/macos/build-dmg.sh --version 3.1.0 --skip-pyinstaller
+bash packaging/macos/sign-local.sh --dmg build/SpendifAi-3.1.0.dmg
+
+# Verifica su una copia con l'attributo di quarantena, mai sul file appena creato
+cp build/SpendifAi-3.1.0.dmg /tmp/downloaded.dmg
+xattr -w com.apple.quarantine "0083;00000000;Safari;" /tmp/downloaded.dmg
+spctl -a -t open --context context:primary-signature -v /tmp/downloaded.dmg
+# atteso: accepted / source=Notarized Developer ID
+
+gh release upload v3.1.0 build/SpendifAi-3.1.0.dmg --clobber
 ```
 
 ```powershell
@@ -120,6 +139,23 @@ gh release upload v3.1.0 SHA256SUMS.txt --clobber
 # 4. Pubblica la draft
 gh release edit v3.1.0 --draft=false
 ```
+
+### Credenziali di notarizzazione — configurazione una tantum
+
+La API key `.p8` di App Store Connect e' preferibile a una app-specific password:
+copre anche gli upload sugli store, non scade, e si revoca singolarmente. Si crea
+in App Store Connect → *Users and Access* → *Integrations*, come **Team Key** con
+ruolo **`Developer`** (verificato sufficiente per la notarizzazione), poi si
+registra una volta sola:
+
+```bash
+xcrun notarytool store-credentials spendifai-notary \
+    --key ~/secrets/apple/spendifai-notary.p8 \
+    --key-id <KEYID> --issuer <ISSUER-UUID>
+```
+
+La key e' scaricabile **una volta sola**. Va tenuta fuori da qualunque repository
+e messa a `chmod 600` — i browser la salvano leggibile da tutti.
 
 ### Perché ibrido
 

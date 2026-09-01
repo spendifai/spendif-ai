@@ -15,7 +15,7 @@
 # Schema reference: https://aka.ms/winget-manifest.version.1.6.0.schema.json
 
 PackageIdentifier: SpendifAi.SpendifAi
-PackageVersion: 0.2.0
+PackageVersion: 0.2.1
 DefaultLocale: en-US
 ManifestType: version
 ManifestVersion: 1.6.0

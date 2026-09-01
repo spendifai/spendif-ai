@@ -12,16 +12,16 @@
 #
 # User installation:
 #   brew tap spendifai/spendifai
-#   brew install --cask --no-quarantine spendifai
+#   brew install --cask spendifai
 #
-# The `--no-quarantine` flag is needed only while the DMG ships unsigned; drop
-# it from the instructions once code signing and notarisation are in place.
+# Since 0.2.1 the DMG is signed with a Developer ID certificate and notarised,
+# so the quarantine workaround is no longer needed.
 #
 # To submit to Homebrew Core (requires ≥75 stars, signed+notarised app,
 # stable release history): see docs/release_process.md in the main repo.
 
 cask "spendifai" do
-  version "0.2.0"
+  version "0.2.1"
   sha256 "PLACEHOLDER_SHA256_DMG"
 
   url "https://github.com/spendifai/spendif-ai/releases/download/v#{version}/SpendifAi-#{version}.dmg"
@@ -62,17 +62,16 @@ cask "spendifai" do
   ]
 
   caveats <<~EOS
-    The DMG is not signed or notarised yet, so macOS quarantines it. Install with
+    Install with
 
       brew trust --cask spendifai/spendifai/spendifai
-      brew install --cask --no-quarantine spendifai
+      brew install --cask spendifai
 
     The `brew trust` step is required once per machine: Homebrew 6 refuses to
-    load casks from third-party taps until you vouch for them.
-
-    or, if you already installed it and macOS refuses to open the app:
-
-      xattr -dr com.apple.quarantine "/Applications/Spendif.ai.app"
+    load casks from third-party taps until you vouch for them. It is unrelated
+    to code signing: since 0.2.1 the DMG is signed with a Developer ID
+    certificate and notarised by Apple, so Gatekeeper opens it with no
+    quarantine workaround.
 
     On first launch Spendif.ai downloads a local AI model (2-6 GB depending on
     your hardware) into ~/.spendifai/models. Everything stays on this machine.

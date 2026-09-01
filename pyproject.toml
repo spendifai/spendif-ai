@@ -1,6 +1,6 @@
 [project]
 name = "spendif-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = "Unified personal finance ledger with hybrid LLM pipeline"
 readme = "README.md"
 license = { file = "LICENSE" }

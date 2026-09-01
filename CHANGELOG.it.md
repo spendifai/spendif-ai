@@ -8,6 +8,16 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-01
+
+### Changed
+- La build macOS è firmata con certificato Developer ID e notarizzata da Apple. Gatekeeper accetta DMG e app senza alcun workaround: niente `--no-quarantine`, niente `xattr -dr` (#AI-243)
+- Le istruzioni di installazione del cask Homebrew non richiedono più `--no-quarantine`
+
+### Fixed
+- `packaging/macos/sign-local.sh` firmava il bundle con `codesign --deep`, sconsigliato da Apple e che lascia i Mach-O annidati senza hardened runtime. Ora firma inside-out, applica gli entitlements necessari a un bundle Python congelato, e avvisa se il DMG viene costruito prima della firma dell'app
+
+
 ## [0.2.0] - 2026-08-25
 
 ### Added
