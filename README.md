@@ -23,7 +23,7 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 > ```bash
 > brew tap spendifai/spendifai
 > brew trust --cask spendifai/spendifai/spendifai   # once per machine, Homebrew 6+
-> brew install --cask --no-quarantine spendifai
+> brew install --cask spendifai
 > brew update && brew upgrade --cask spendifai     # later releases
 > ```
 

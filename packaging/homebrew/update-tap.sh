@@ -10,7 +10,7 @@
 # After this runs, on any Mac:
 #   brew tap spendifai/spendifai
 #   brew trust --cask spendifai/spendifai/spendifai      # once per machine (Homebrew 6+)
-#   brew install --cask --no-quarantine spendifai      # first install
+#   brew install --cask spendifai                      # first install
 #   brew update && brew upgrade --cask spendifai       # every later release
 #
 # USAGE
@@ -153,12 +153,12 @@ Source code: https://github.com/${SOURCE_REPO}
 \`\`\`bash
 brew tap ${TAP_REPO%%/*}/${TAP_REPO##*-}
 brew trust --cask ${TAP_REPO%%/*}/${TAP_REPO##*-}/spendifai
-brew install --cask --no-quarantine spendifai
+brew install --cask spendifai
 \`\`\`
 
 Homebrew 6 refuses to load casks from third-party taps until you trust them,
-hence the \`brew trust\` line. \`--no-quarantine\` is required while the DMG
-ships unsigned.
+hence the \`brew trust\` line — it is unrelated to code signing. The DMG is
+signed with a Developer ID certificate and notarised by Apple.
 
 ## Update
 
@@ -199,7 +199,7 @@ echo ""
 echo "  First install on a Mac:"
 echo "    brew tap ${TAP_REPO%%/*}/${TAP_REPO##*-}"
 echo "    brew trust --cask ${TAP_REPO%%/*}/${TAP_REPO##*-}/spendifai"
-echo "    brew install --cask --no-quarantine spendifai"
+echo "    brew install --cask spendifai"
 echo ""
 echo "  Later releases:"
 echo "    brew update && brew upgrade --cask spendifai"

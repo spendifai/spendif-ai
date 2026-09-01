@@ -182,13 +182,13 @@ User installation:
 ```bash
 brew tap spendifai/spendifai
 brew trust --cask spendifai/spendifai/spendifai
-brew install --cask --no-quarantine spendifai
+brew install --cask spendifai
 ```
 
 `brew trust` is required once per machine: Homebrew 6 refuses to load casks from
-third-party taps until the user vouches for them. `--no-quarantine` is required
-only while the DMG ships unsigned; drop it once
-Section 4 (signing + notarisation) is done. Subsequent releases:
+third-party taps until the user vouches for them; it is unrelated to code
+signing. Since 0.2.1 the DMG is signed and notarised, so `--no-quarantine` is no
+longer needed. Subsequent releases:
 
 ```bash
 brew update && brew upgrade --cask spendifai

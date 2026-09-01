@@ -150,12 +150,12 @@
           <p>1. ダウンロードした <code>.dmg</code> ファイルをダブルクリックします。</p>
           <p>2. <strong>Spendif.ai.app</strong> を <strong>アプリケーション</strong> フォルダにドラッグします。</p>
           <p>3. DMG を取り出し (Cmd+E)、Launchpad からアプリを起動します。</p>
-          <p>「開発元を確認できないため、Spendif.ai を開けません」と表示された場合 (まだ署名されていないビルド): アプリを右クリック → <strong>開く</strong> → 確認。</p>
+          <p>DMG は Developer ID 証明書で署名され、Apple による公証済みです。macOS は警告なしで開きます。</p>
           <p style="margin-top:1.2rem"><strong>または Homebrew を使う場合:</strong></p>
           <p>
             <code>brew tap spendifai/spendifai</code><br>
             <code>brew trust --cask spendifai/spendifai/spendifai</code><br>
-            <code>brew install --cask --no-quarantine spendifai</code>
+            <code>brew install --cask spendifai</code>
           </p>
           <p>以降のアップデートは次のコマンドで: <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
         </div>

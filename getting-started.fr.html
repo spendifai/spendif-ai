@@ -150,12 +150,12 @@
           <p>1. Double-cliquez sur le fichier <code>.dmg</code> téléchargé.</p>
           <p>2. Glissez <strong>Spendif.ai.app</strong> dans le dossier <strong>Applications</strong>.</p>
           <p>3. Éjectez le DMG (Cmd+E) et lancez l'app depuis Launchpad.</p>
-          <p>Si vous voyez "Impossible d'ouvrir Spendif.ai car le développeur ne peut pas être vérifié" (build pas encore signée) : clic droit sur l'app → <strong>Ouvrir</strong> → confirmer.</p>
+          <p>Le DMG est signé avec un certificat Developer ID et notarisé par Apple : macOS l'ouvre sans avertissement.</p>
           <p style="margin-top:1.2rem"><strong>Ou bien, avec Homebrew :</strong></p>
           <p>
             <code>brew tap spendifai/spendifai</code><br>
             <code>brew trust --cask spendifai/spendifai/spendifai</code><br>
-            <code>brew install --cask --no-quarantine spendifai</code>
+            <code>brew install --cask spendifai</code>
           </p>
           <p>Ensuite, vous mettez à jour avec <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
         </div>

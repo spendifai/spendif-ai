@@ -23,7 +23,7 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 > ```bash
 > brew tap spendifai/spendifai
 > brew trust --cask spendifai/spendifai/spendifai   # una volta per macchina, Homebrew 6+
-> brew install --cask --no-quarantine spendifai
+> brew install --cask spendifai
 > brew update && brew upgrade --cask spendifai     # release successive
 > ```
 

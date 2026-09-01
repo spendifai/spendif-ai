@@ -183,14 +183,13 @@ Installazione utente:
 ```bash
 brew tap spendifai/spendifai
 brew trust --cask spendifai/spendifai/spendifai
-brew install --cask --no-quarantine spendifai
+brew install --cask spendifai
 ```
 
 `brew trust` serve una volta per macchina: Homebrew 6 rifiuta di caricare i cask
-dei tap di terze parti finché l'utente non li dichiara affidabili.
-`--no-quarantine` serve solo finché il DMG viene distribuito non firmato: si
-toglie quando la Sezione 4 (firma + notarization) sarà completata. Release
-successive:
+dei tap di terze parti finché l'utente non li dichiara affidabili, ed è cosa
+distinta dalla firma del codice. Dalla 0.2.1 il DMG è firmato e notarizzato,
+quindi `--no-quarantine` non serve più. Release successive:
 
 ```bash
 brew update && brew upgrade --cask spendifai
