@@ -5,7 +5,7 @@
 #  USAGE
 #    cd sw_artifacts
 #    bash packaging/macos/sign-local.sh --app dist/SpendifAi.app \
-#         [--dmg build/SpendifAi-X.Y.Z.dmg] [--skip-notarize] [--jobs N]
+#         [--dmg build/SpendifAi-X.Y.Z-arm64.dmg] [--skip-notarize] [--jobs N]
 #
 #  ORDER OF OPERATIONS — this is the part that is easy to get wrong
 #

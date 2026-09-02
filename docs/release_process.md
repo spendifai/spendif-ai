@@ -98,7 +98,7 @@ release. Then, on the owner's machines:
 # notarisation rejects the submission. Extract the app, sign it, repackage.
 gh release download v3.1.0 --pattern '*.dmg' --dir /tmp/release
 
-MP=$(hdiutil attach /tmp/release/SpendifAi-3.1.0.dmg -nobrowse -readonly \
+MP=$(hdiutil attach /tmp/release/SpendifAi-3.1.0-arm64.dmg -nobrowse -readonly \
      | grep -o '/Volumes/.*' | head -1)
 rm -rf dist/SpendifAi.app && cp -R "$MP/SpendifAi.app" dist/
 hdiutil detach "$MP" -quiet
@@ -109,15 +109,15 @@ export NOTARY_PROFILE=spendifai-notary
 
 bash packaging/macos/sign-local.sh --app dist/SpendifAi.app --skip-notarize
 bash packaging/macos/build-dmg.sh --version 3.1.0 --skip-pyinstaller
-bash packaging/macos/sign-local.sh --dmg build/SpendifAi-3.1.0.dmg
+bash packaging/macos/sign-local.sh --dmg build/SpendifAi-3.1.0-arm64.dmg
 
 # Verify on a copy carrying the quarantine flag, never on the built file
-cp build/SpendifAi-3.1.0.dmg /tmp/downloaded.dmg
+cp build/SpendifAi-3.1.0-arm64.dmg /tmp/downloaded.dmg
 xattr -w com.apple.quarantine "0083;00000000;Safari;" /tmp/downloaded.dmg
 spctl -a -t open --context context:primary-signature -v /tmp/downloaded.dmg
 # expected: accepted / source=Notarized Developer ID
 
-gh release upload v3.1.0 build/SpendifAi-3.1.0.dmg --clobber
+gh release upload v3.1.0 build/SpendifAi-3.1.0-arm64.dmg --clobber
 ```
 
 ```powershell
@@ -451,7 +451,7 @@ Jobs:
 
 | Job | Runner | Produces | Notes |
 |-----|--------|----------|-------|
-| `build-macos` | `macos-latest` | `SpendifAi-<ver>.dmg` (unsigned) | PyInstaller + `create-dmg` |
+| `build-macos` | `macos-latest` | `SpendifAi-<ver>-arm64.dmg` (unsigned, arm64 only) | PyInstaller + `create-dmg` |
 | `build-windows` | `windows-latest` | `SpendifAi-<ver>.msix` (unsigned) | PyInstaller + `makeappx.exe`. See `packaging/windows/build-msix.ps1`. |
 | `build-deb` | `ubuntu-latest` | `spendifai_<ver>_amd64.deb` | Smoke-tested in `ubuntu:24.04` container |
 | `build-rpm` | `ubuntu-latest` | `spendifai-<ver>-1.noarch.rpm` | Smoke-tested in `fedora:41` container |

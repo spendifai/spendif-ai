@@ -26,6 +26,10 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 > brew install --cask spendifai
 > brew update && brew upgrade --cask spendifai     # release successive
 > ```
+>
+> La build macOS è **solo Apple Silicon** (M1 o successivi). Hai un Mac Intel?
+> [Scrivicelo su GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions) — la build Intel non è
+> prevista, ma basta una persona che la chieda per ripensarci.
 
 ---
 

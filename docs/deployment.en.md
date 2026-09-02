@@ -170,6 +170,11 @@ Spendif.ai can run as a **native desktop application** — a native window (pywe
 | **Red Hat/Fedora** (.rpm) | `bash packaging/linux/build-rpm.sh && sudo dnf install ./build/spendifai-*.rpm` |
 | **Red Hat/Fedora** (script) | `bash packaging/linux/install-redhat.sh` |
 
+> **macOS: Apple Silicon only.** The DMG is built on an arm64 runner and is not
+> universal2, so it does not run on Intel Macs — which do meet the macOS 12
+> requirement. The cask declares `depends_on arch: :arm64`, so `brew` stops
+> before installing. On an Intel Mac? [Tell us in GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions).
+
 ### Developer launch
 
 ```bash
