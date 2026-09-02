@@ -91,7 +91,7 @@ jobs:
       - name: Build DMG
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          DMG_PATH="dist/SpendifAi-${VERSION}.dmg"
+          DMG_PATH="dist/SpendifAi-${VERSION}-arm64.dmg"
           ICNS_PATH="packaging/macos/spendifai.icns"
 
           ICON_ARGS=""
@@ -317,7 +317,7 @@ jobs:
 
           | Platform | File | Install |
           |----------|------|---------|
-          | macOS | SpendifAi-${VERSION}.dmg | Double-click, drag to Applications |
+          | macOS (Apple Silicon) | SpendifAi-${VERSION}-arm64.dmg | Double-click, drag to Applications |
           | Windows | SpendifAi-${VERSION}.msix | Double-click to install (requires trusted signature) |
           | Ubuntu/Debian (x86_64) | spendifai_${VERSION}_amd64.deb | sudo apt install ./spendifai_${VERSION}_amd64.deb |
           | Ubuntu/Debian (ARM64) | spendifai_${VERSION}_arm64.deb | sudo apt install ./spendifai_${VERSION}_arm64.deb |

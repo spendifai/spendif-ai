@@ -22,7 +22,7 @@ cd sw_artifacts
 bash packaging/macos/build-dmg.sh
 ```
 
-Output: `build/SpendifAi-<VERSION>.dmg` (≈140 MB, ad-hoc signed by
+Output: `build/SpendifAi-<VERSION>-arm64.dmg` (≈140 MB, ad-hoc signed by
 PyInstaller).
 
 To skip PyInstaller (much faster when only `packaging/macos/*` changed):
@@ -80,7 +80,7 @@ gh run download <RUN_ID> --name windows-msix --dir dist/
 
 # Available artefact names per run:
 #   windows-msix   →  SpendifAi-<ver>.msix
-#   macos-dmg      →  SpendifAi-<ver>.dmg
+#   macos-dmg      →  SpendifAi-<ver>-arm64.dmg
 #   deb-package    →  spendifai_<ver>_amd64.deb
 #   rpm-package    →  spendifai-<ver>-1.x86_64.rpm  (currently failing — see §6)
 ```

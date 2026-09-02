@@ -26,6 +26,10 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 > brew install --cask spendifai
 > brew update && brew upgrade --cask spendifai     # later releases
 > ```
+>
+> The macOS build is **Apple Silicon only** (M1 or newer). On an Intel Mac?
+> [Tell us in GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions) — an Intel build is not
+> planned, but one person asking is enough to reconsider.
 
 ---
 

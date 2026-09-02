@@ -2,7 +2,12 @@
 # =============================================================================
 #  Spendif.ai — macOS DMG builder (local + CI parity)
 #
-#  Produces: build/SpendifAi-<version>.dmg (unsigned)
+#  Produces: build/SpendifAi-<version>-arm64.dmg (unsigned)
+#
+#  The -arch suffix is not decoration: PyInstaller builds for the host
+#  architecture only (desktop.spec asks for no universal2 target), so this DMG
+#  runs on Apple Silicon and not on Intel Macs, which still satisfy the macOS 12
+#  floor. The filename is the one place every downloader looks.
 #
 #  USAGE:
 #    cd sw_artifacts
@@ -51,7 +56,7 @@ fi
 cd "${REPO_ROOT}"
 
 APP_BUNDLE="dist/SpendifAi.app"
-DMG_NAME="SpendifAi-${VERSION}.dmg"
+DMG_NAME="SpendifAi-${VERSION}-arm64.dmg"
 BUILD_DIR="build"
 DMG_PATH="${BUILD_DIR}/${DMG_NAME}"
 ICNS_PATH="packaging/macos/spendifai.icns"

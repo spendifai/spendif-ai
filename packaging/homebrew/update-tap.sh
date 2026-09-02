@@ -65,7 +65,7 @@ if [[ -z "${VERSION}" ]]; then
   VERSION="$(tr -d '[:space:]' < "${REPO_ROOT}/VERSION")"
 fi
 TAG="v${VERSION}"
-DMG="SpendifAi-${VERSION}.dmg"
+DMG="SpendifAi-${VERSION}-arm64.dmg"
 info "Release: ${TAG}  ·  asset: ${DMG}"
 
 # gh's built-in --jq keeps this script free of a jq dependency.

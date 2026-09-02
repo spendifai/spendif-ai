@@ -17,14 +17,16 @@
 # Since 0.2.1 the DMG is signed with a Developer ID certificate and notarised,
 # so the quarantine workaround is no longer needed.
 #
-# To submit to Homebrew Core (requires ≥75 stars, signed+notarised app,
-# stable release history): see docs/release_process.md in the main repo.
+# Submitting this cask to the official homebrew/cask repository is not possible
+# yet, and the blocker is audience, not software: Homebrew's Package Acceptance
+# Policy asks for 30 forks / 30 watchers / 75 stars, tripled to 90 / 90 / 225
+# when the author submits their own project. See backlog AI-305.
 
 cask "spendifai" do
   version "0.2.1"
   sha256 "PLACEHOLDER_SHA256_DMG"
 
-  url "https://github.com/spendifai/spendif-ai/releases/download/v#{version}/SpendifAi-#{version}.dmg"
+  url "https://github.com/spendifai/spendif-ai/releases/download/v#{version}/SpendifAi-#{version}-arm64.dmg"
   name "Spendif.ai"
   desc "Personal finance manager with local AI categorisation"
   homepage "https://github.com/spendifai/spendif-ai"
@@ -40,6 +42,11 @@ cask "spendifai" do
   # A bare symbol means "this version or newer"; the ">= :monterey" string form
   # is deprecated since Homebrew 6.
   depends_on macos: :monterey
+  # The DMG is built by a `macos-latest` runner, which is Apple Silicon, and
+  # desktop.spec does not ask PyInstaller for a universal2 binary: the app is
+  # arm64-only. Monterey still runs on 2015 Intel Macs, so without this line
+  # Homebrew would happily install a binary those machines cannot execute.
+  depends_on arch: :arm64
 
   # App bundle produced by desktop.spec (BUNDLE name="SpendifAi.app"), renamed
   # on install so Finder shows the product name.
