@@ -54,6 +54,7 @@ ENTITLEMENTS="packaging/macos/entitlements.plist"
 IDENTITY="${APPLE_DEV_ID:-}"
 NOTARY_PROF="${NOTARY_PROFILE:-}"
 SKIP_NOTARIZE=false
+APP_ONLY=false
 JOBS=6
 
 die()  { printf '\033[31m✖ %s\033[0m\n' "$*" >&2; exit 1; }
@@ -69,13 +70,14 @@ while [[ $# -gt 0 ]]; do
     --notary-profile) NOTARY_PROF="$2"; shift 2 ;;
     --jobs)           JOBS="$2"; shift 2 ;;
     --skip-notarize)  SKIP_NOTARIZE=true; shift ;;
+    --app-only)       APP_ONLY=true; SKIP_NOTARIZE=true; shift ;;
     -h|--help)        sed -n '2,46p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
 done
 
 [[ -z "${APP_PATH}" && -d "dist/SpendifAi.app" ]] && APP_PATH="dist/SpendifAi.app"
-if [[ -z "${DMG_PATH}" ]]; then
+if [[ -z "${DMG_PATH}" && "${APP_ONLY}" == false ]]; then
   CANDIDATE="$(ls -t build/SpendifAi-*.dmg 2>/dev/null | head -1 || true)"
   [[ -n "${CANDIDATE}" ]] && DMG_PATH="${CANDIDATE}"
 fi

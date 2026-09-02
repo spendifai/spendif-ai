@@ -64,8 +64,16 @@ jobs:
       - name: Install dependencies (with desktop extras)
         run: uv sync --extra desktop
 
-      - name: Generate app icon
-        run: uv run python packaging/macos/create_icon.py || echo "Icon generation failed — using default"
+      # Only generate when the icon is missing. create_icon.py draws a
+      # placeholder; running it unconditionally overwrote the committed brand
+      # mark and shipped the old icon in every release built by CI.
+      - name: Generate app icon (only if missing)
+        run: |
+          if [ -f packaging/macos/spendifai.icns ]; then
+            echo "Using the committed icon — not regenerating"
+          else
+            uv run python packaging/macos/create_icon.py || echo "Icon generation failed — using default"
+          fi
 
       - name: Build .app via PyInstaller
         run: |
