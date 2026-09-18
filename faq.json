@@ -1,0 +1,356 @@
+{
+  "_comment": "Source of truth for the landing-page FAQ. Edit here, then run scripts/gen_faq.py to rewrite the visible section and the FAQPage JSON-LD in every index.*.html. Never edit the generated blocks by hand.",
+  "languages": {
+    "it": {
+      "label": "Domande frequenti",
+      "heading": "Le domande che ricevo più spesso",
+      "sub": "Quello che chiede chi non l'ha ancora installato.",
+      "items": [
+        {
+          "q": "Spendif.ai si collega alla mia banca?",
+          "a": "No, mai. Niente Open Banking, niente PSD2, nessuna password bancaria. Scarichi tu il file dei movimenti dalla tua banca, in CSV o XLSX, e lo trascini nell'app."
+        },
+        {
+          "q": "I miei dati escono dal mio computer?",
+          "a": "No. Spendif.ai tiene tutto in un database SQLite locale, in ~/.spendifai/, e funziona senza connessione. Se scegli di usare un modello LLM esterno, IBAN e nomi vengono rimossi dalle descrizioni prima dell'invio."
+        },
+        {
+          "q": "Quanto costa? È gratis per sempre?",
+          "a": "Oggi Spendif.ai è gratuito per uso personale, senza abbonamenti e senza costi nascosti. Il codice è pubblico e puoi leggerlo. In futuro può arrivare una versione a pagamento con funzioni in più: la versione che hai installato continuerà a funzionare, e i tuoi dati restano in un file sul tuo computer che puoi portare via quando vuoi."
+        },
+        {
+          "q": "Devo creare un account?",
+          "a": "No. Nessuna email, nessuna registrazione, nessuna password da recuperare. Installi l'app e la usi."
+        },
+        {
+          "q": "Su quali sistemi funziona?",
+          "a": "Windows, Linux e macOS 12 Monterey o superiore su Apple Silicon (M1 o successivi). Non esiste una build per Mac Intel."
+        },
+        {
+          "q": "Quali banche sono supportate?",
+          "a": "Qualsiasi banca che permetta di esportare i movimenti in CSV o XLSX. Spendif.ai riconosce il formato da solo e puoi importare insieme file di banche diverse."
+        },
+        {
+          "q": "Cosa succede se importo due volte lo stesso file?",
+          "a": "Niente di male: le transazioni già presenti non vengono duplicate. Puoi reimportare lo stesso file quante volte vuoi."
+        },
+        {
+          "q": "C'è un'app per telefono?",
+          "a": "No, Spendif.ai è un'applicazione desktop. Un'app compagna per registrare le sole spese in contanti è nei piani, ma non ha una data."
+        }
+      ]
+    },
+    "en": {
+      "label": "FAQ",
+      "heading": "The questions I get most",
+      "sub": "What people ask before installing it.",
+      "items": [
+        {
+          "q": "Does Spendif.ai connect to my bank?",
+          "a": "No, never. No Open Banking, no PSD2, no banking password. You download the transaction file from your bank yourself, as CSV or XLSX, and drop it into the app."
+        },
+        {
+          "q": "Does my data leave my computer?",
+          "a": "No. Spendif.ai keeps everything in a local SQLite database under ~/.spendifai/, and works with no connection. If you choose to use a remote LLM, IBANs and names are stripped from the descriptions before anything is sent."
+        },
+        {
+          "q": "What does it cost? Is it free forever?",
+          "a": "Today Spendif.ai is free for personal use, with no subscription and no hidden costs. The source code is public and you can read it. A paid version with extra features may come later: the version you installed will keep working, and your data stays in a file on your computer that you can take with you whenever you want."
+        },
+        {
+          "q": "Do I need an account?",
+          "a": "No. No email, no sign-up, no password to recover. You install the app and use it."
+        },
+        {
+          "q": "Which systems does it run on?",
+          "a": "Windows, Linux, and macOS 12 Monterey or later on Apple Silicon (M1 or newer). There is no Intel Mac build."
+        },
+        {
+          "q": "Which banks are supported?",
+          "a": "Any bank that lets you export transactions as CSV or XLSX. Spendif.ai detects the format on its own, and you can import files from different banks together."
+        },
+        {
+          "q": "What happens if I import the same file twice?",
+          "a": "Nothing bad: transactions already in the ledger are not duplicated. You can re-import the same file as many times as you like."
+        },
+        {
+          "q": "Is there a phone app?",
+          "a": "No, Spendif.ai is a desktop application. A companion app for recording cash spending only is planned, but it has no date."
+        }
+      ]
+    },
+    "de": {
+      "label": "Häufige Fragen",
+      "heading": "Die Fragen, die am häufigsten kommen",
+      "sub": "Was Leute fragen, bevor sie es installieren.",
+      "items": [
+        {
+          "q": "Verbindet sich Spendif.ai mit meiner Bank?",
+          "a": "Nein, nie. Kein Open Banking, kein PSD2, kein Bankpasswort. Sie laden die Umsatzdatei selbst bei Ihrer Bank herunter, als CSV oder XLSX, und ziehen sie in die App."
+        },
+        {
+          "q": "Verlassen meine Daten meinen Computer?",
+          "a": "Nein. Spendif.ai speichert alles in einer lokalen SQLite-Datenbank unter ~/.spendifai/ und funktioniert ohne Verbindung. Wenn Sie ein externes LLM wählen, werden IBANs und Namen vor dem Senden aus den Beschreibungen entfernt."
+        },
+        {
+          "q": "Was kostet es? Ist es für immer kostenlos?",
+          "a": "Heute ist Spendif.ai für den privaten Gebrauch kostenlos, ohne Abonnement und ohne versteckte Kosten. Der Quellcode ist öffentlich und Sie können ihn lesen. Später kann eine kostenpflichtige Version mit zusätzlichen Funktionen kommen: die installierte Version läuft weiter, und Ihre Daten bleiben in einer Datei auf Ihrem Computer, die Sie jederzeit mitnehmen können."
+        },
+        {
+          "q": "Brauche ich ein Konto?",
+          "a": "Nein. Keine E-Mail, keine Registrierung, kein Passwort zum Zurücksetzen. Sie installieren die App und nutzen sie."
+        },
+        {
+          "q": "Auf welchen Systemen läuft es?",
+          "a": "Windows, Linux und macOS 12 Monterey oder neuer auf Apple Silicon (M1 oder neuer). Es gibt keinen Build für Intel-Macs."
+        },
+        {
+          "q": "Welche Banken werden unterstützt?",
+          "a": "Jede Bank, bei der Sie Umsätze als CSV oder XLSX exportieren können. Spendif.ai erkennt das Format selbst, und Sie können Dateien verschiedener Banken zusammen importieren."
+        },
+        {
+          "q": "Was passiert, wenn ich dieselbe Datei zweimal importiere?",
+          "a": "Nichts Schlimmes: bereits vorhandene Buchungen werden nicht dupliziert. Sie können dieselbe Datei beliebig oft erneut importieren."
+        },
+        {
+          "q": "Gibt es eine Handy-App?",
+          "a": "Nein, Spendif.ai ist eine Desktop-Anwendung. Eine Begleit-App nur für Bargeldausgaben ist geplant, hat aber kein Datum."
+        }
+      ]
+    },
+    "es": {
+      "label": "Preguntas frecuentes",
+      "heading": "Las preguntas que me hacen más a menudo",
+      "sub": "Lo que pregunta quien aún no lo ha instalado.",
+      "items": [
+        {
+          "q": "¿Spendif.ai se conecta a mi banco?",
+          "a": "No, nunca. Ni Open Banking, ni PSD2, ni contraseña bancaria. Usted descarga el archivo de movimientos de su banco, en CSV o XLSX, y lo arrastra a la aplicación."
+        },
+        {
+          "q": "¿Mis datos salen de mi ordenador?",
+          "a": "No. Spendif.ai guarda todo en una base de datos SQLite local, en ~/.spendifai/, y funciona sin conexión. Si elige usar un LLM remoto, los IBAN y los nombres se eliminan de las descripciones antes de enviar nada."
+        },
+        {
+          "q": "¿Cuánto cuesta? ¿Es gratis para siempre?",
+          "a": "Hoy Spendif.ai es gratuito para uso personal, sin suscripción y sin costes ocultos. El código es público y puede leerlo. Más adelante puede llegar una versión de pago con funciones adicionales: la versión que tiene instalada seguirá funcionando, y sus datos permanecen en un archivo de su ordenador que puede llevarse cuando quiera."
+        },
+        {
+          "q": "¿Necesito crear una cuenta?",
+          "a": "No. Sin correo, sin registro, sin contraseña que recuperar. Instala la aplicación y la usa."
+        },
+        {
+          "q": "¿En qué sistemas funciona?",
+          "a": "Windows, Linux y macOS 12 Monterey o superior en Apple Silicon (M1 o posterior). No hay compilación para Mac Intel."
+        },
+        {
+          "q": "¿Qué bancos son compatibles?",
+          "a": "Cualquier banco que permita exportar los movimientos en CSV o XLSX. Spendif.ai reconoce el formato por sí solo y puede importar juntos archivos de bancos distintos."
+        },
+        {
+          "q": "¿Qué pasa si importo dos veces el mismo archivo?",
+          "a": "Nada malo: las transacciones que ya están no se duplican. Puede reimportar el mismo archivo tantas veces como quiera."
+        },
+        {
+          "q": "¿Hay una aplicación para el móvil?",
+          "a": "No, Spendif.ai es una aplicación de escritorio. Está prevista una aplicación complementaria solo para registrar gastos en efectivo, pero no tiene fecha."
+        }
+      ]
+    },
+    "fr": {
+      "label": "Questions fréquentes",
+      "heading": "Les questions qui reviennent le plus",
+      "sub": "Ce que demandent ceux qui ne l'ont pas encore installé.",
+      "items": [
+        {
+          "q": "Spendif.ai se connecte-t-il à ma banque ?",
+          "a": "Non, jamais. Pas d'Open Banking, pas de DSP2, aucun mot de passe bancaire. Vous téléchargez vous-même le fichier des opérations depuis votre banque, en CSV ou XLSX, et vous le déposez dans l'application."
+        },
+        {
+          "q": "Mes données sortent-elles de mon ordinateur ?",
+          "a": "Non. Spendif.ai garde tout dans une base SQLite locale, dans ~/.spendifai/, et fonctionne sans connexion. Si vous choisissez un LLM distant, les IBAN et les noms sont retirés des libellés avant tout envoi."
+        },
+        {
+          "q": "Combien ça coûte ? Est-ce gratuit pour toujours ?",
+          "a": "Aujourd'hui Spendif.ai est gratuit pour un usage personnel, sans abonnement et sans frais cachés. Le code est public et vous pouvez le lire. Une version payante avec des fonctions supplémentaires pourra arriver plus tard : la version que vous avez installée continuera de fonctionner, et vos données restent dans un fichier sur votre ordinateur que vous pouvez emporter quand vous voulez."
+        },
+        {
+          "q": "Dois-je créer un compte ?",
+          "a": "Non. Pas d'e-mail, pas d'inscription, pas de mot de passe à récupérer. Vous installez l'application et vous l'utilisez."
+        },
+        {
+          "q": "Sur quels systèmes cela fonctionne-t-il ?",
+          "a": "Windows, Linux et macOS 12 Monterey ou plus récent sur Apple Silicon (M1 ou suivants). Il n'existe pas de version pour Mac Intel."
+        },
+        {
+          "q": "Quelles banques sont prises en charge ?",
+          "a": "Toute banque qui permet d'exporter les opérations en CSV ou XLSX. Spendif.ai reconnaît le format tout seul, et vous pouvez importer ensemble des fichiers de banques différentes."
+        },
+        {
+          "q": "Que se passe-t-il si j'importe deux fois le même fichier ?",
+          "a": "Rien de grave : les opérations déjà présentes ne sont pas dupliquées. Vous pouvez réimporter le même fichier autant de fois que vous voulez."
+        },
+        {
+          "q": "Existe-t-il une application mobile ?",
+          "a": "Non, Spendif.ai est une application de bureau. Une application compagnon pour saisir uniquement les dépenses en espèces est prévue, mais sans date."
+        }
+      ]
+    },
+    "ja": {
+      "label": "よくある質問",
+      "heading": "よく寄せられる質問",
+      "sub": "インストール前によく聞かれることをまとめました。",
+      "items": [
+        {
+          "q": "Spendif.ai は銀行に接続しますか？",
+          "a": "いいえ、接続しません。オープンバンキングも PSD2 も使わず、銀行のパスワードも不要です。取引明細ファイルはご自身で銀行から CSV または XLSX でダウンロードし、アプリにドラッグします。"
+        },
+        {
+          "q": "データはコンピュータの外に出ますか？",
+          "a": "出ません。Spendif.ai はすべてを ~/.spendifai/ のローカル SQLite データベースに保存し、インターネット接続なしで動作します。外部の LLM を選んだ場合でも、送信前に摘要から IBAN と氏名が取り除かれます。"
+        },
+        {
+          "q": "費用はかかりますか？ずっと無料ですか？",
+          "a": "現時点では個人利用は無料で、サブスクリプションも隠れた費用もありません。ソースコードは公開されており、読むことができます。将来的に機能を追加した有料版が登場する可能性はありますが、すでにインストールした版はそのまま動作し、データはご自身のコンピュータ上のファイルに残るため、いつでも持ち出せます。"
+        },
+        {
+          "q": "アカウントの作成は必要ですか？",
+          "a": "不要です。メールアドレスも登録もパスワードの再発行もありません。インストールすればすぐ使えます。"
+        },
+        {
+          "q": "対応している OS は何ですか？",
+          "a": "Windows、Linux、および Apple Silicon（M1 以降）の macOS 12 Monterey 以降です。Intel Mac 向けのビルドはありません。"
+        },
+        {
+          "q": "対応している銀行はどこですか？",
+          "a": "取引明細を CSV または XLSX で書き出せる銀行であれば、どこでも使えます。形式は自動で判別され、複数の銀行のファイルをまとめて取り込めます。"
+        },
+        {
+          "q": "同じファイルを二度取り込むとどうなりますか？",
+          "a": "問題ありません。すでに登録済みの取引は重複しません。同じファイルを何度取り込んでも大丈夫です。"
+        },
+        {
+          "q": "スマートフォン用アプリはありますか？",
+          "a": "ありません。Spendif.ai はデスクトップ用アプリです。現金支出の記録だけを行うコンパニオンアプリは計画中ですが、時期は未定です。"
+        }
+      ]
+    },
+    "nl": {
+      "label": "Veelgestelde vragen",
+      "heading": "De vragen die ik het vaakst krijg",
+      "sub": "Wat mensen vragen voordat ze het installeren.",
+      "items": [
+        {
+          "q": "Maakt Spendif.ai verbinding met mijn bank?",
+          "a": "Nee, nooit. Geen Open Banking, geen PSD2, geen bankwachtwoord. Je downloadt het transactiebestand zelf bij je bank, als CSV of XLSX, en sleept het in de app."
+        },
+        {
+          "q": "Verlaten mijn gegevens mijn computer?",
+          "a": "Nee. Spendif.ai bewaart alles in een lokale SQLite-database in ~/.spendifai/ en werkt zonder verbinding. Kies je voor een extern LLM, dan worden IBAN's en namen uit de omschrijvingen gehaald voordat er iets verstuurd wordt."
+        },
+        {
+          "q": "Wat kost het? Is het voor altijd gratis?",
+          "a": "Vandaag is Spendif.ai gratis voor persoonlijk gebruik, zonder abonnement en zonder verborgen kosten. De broncode is publiek en je kunt hem lezen. Er kan later een betaalde versie met extra functies komen: de versie die je hebt geïnstalleerd blijft werken, en je gegevens blijven in een bestand op je eigen computer dat je altijd kunt meenemen."
+        },
+        {
+          "q": "Moet ik een account aanmaken?",
+          "a": "Nee. Geen e-mail, geen registratie, geen wachtwoord om te herstellen. Je installeert de app en gebruikt hem."
+        },
+        {
+          "q": "Op welke systemen werkt het?",
+          "a": "Windows, Linux en macOS 12 Monterey of nieuwer op Apple Silicon (M1 of later). Er is geen build voor Intel-Macs."
+        },
+        {
+          "q": "Welke banken worden ondersteund?",
+          "a": "Elke bank waarbij je transacties kunt exporteren als CSV of XLSX. Spendif.ai herkent het formaat zelf en je kunt bestanden van verschillende banken samen importeren."
+        },
+        {
+          "q": "Wat gebeurt er als ik hetzelfde bestand twee keer importeer?",
+          "a": "Niets ergs: transacties die er al staan worden niet gedupliceerd. Je kunt hetzelfde bestand zo vaak opnieuw importeren als je wilt."
+        },
+        {
+          "q": "Is er een telefoon-app?",
+          "a": "Nee, Spendif.ai is een desktoptoepassing. Een companion-app om alleen contante uitgaven vast te leggen staat op de planning, maar heeft geen datum."
+        }
+      ]
+    },
+    "pl": {
+      "label": "Najczęstsze pytania",
+      "heading": "Pytania, które pojawiają się najczęściej",
+      "sub": "To, o co pytają osoby przed instalacją.",
+      "items": [
+        {
+          "q": "Czy Spendif.ai łączy się z moim bankiem?",
+          "a": "Nie, nigdy. Żadnego Open Bankingu, żadnego PSD2, żadnego hasła do banku. Plik z transakcjami pobierasz sam ze swojego banku, w formacie CSV lub XLSX, i przeciągasz go do aplikacji."
+        },
+        {
+          "q": "Czy moje dane opuszczają mój komputer?",
+          "a": "Nie. Spendif.ai trzyma wszystko w lokalnej bazie SQLite w ~/.spendifai/ i działa bez połączenia. Jeśli wybierzesz zewnętrzny model LLM, numery IBAN i nazwiska są usuwane z opisów przed wysłaniem."
+        },
+        {
+          "q": "Ile to kosztuje? Czy jest darmowe na zawsze?",
+          "a": "Dziś Spendif.ai jest darmowy do użytku osobistego, bez subskrypcji i bez ukrytych kosztów. Kod źródłowy jest publiczny i możesz go przeczytać. W przyszłości może pojawić się wersja płatna z dodatkowymi funkcjami: wersja, którą masz zainstalowaną, będzie działać dalej, a Twoje dane pozostają w pliku na Twoim komputerze, który możesz zabrać ze sobą."
+        },
+        {
+          "q": "Czy muszę zakładać konto?",
+          "a": "Nie. Bez adresu e-mail, bez rejestracji, bez hasła do odzyskiwania. Instalujesz aplikację i korzystasz."
+        },
+        {
+          "q": "Na jakich systemach działa?",
+          "a": "Windows, Linux oraz macOS 12 Monterey lub nowszy na Apple Silicon (M1 i nowsze). Nie ma wersji dla Maków z procesorem Intel."
+        },
+        {
+          "q": "Które banki są obsługiwane?",
+          "a": "Każdy bank, który pozwala wyeksportować transakcje do CSV lub XLSX. Spendif.ai sam rozpoznaje format, a pliki z różnych banków możesz zaimportować razem."
+        },
+        {
+          "q": "Co się stanie, jeśli zaimportuję ten sam plik dwa razy?",
+          "a": "Nic złego: transakcje, które już są, nie zostaną zdublowane. Ten sam plik możesz importować dowolną liczbę razy."
+        },
+        {
+          "q": "Czy jest aplikacja na telefon?",
+          "a": "Nie, Spendif.ai to aplikacja na komputer. Aplikacja towarzysząca wyłącznie do zapisywania wydatków gotówkowych jest w planach, ale nie ma daty."
+        }
+      ]
+    },
+    "pt": {
+      "label": "Perguntas frequentes",
+      "heading": "As perguntas que mais recebo",
+      "sub": "O que pergunta quem ainda não instalou.",
+      "items": [
+        {
+          "q": "O Spendif.ai se conecta ao meu banco?",
+          "a": "Não, nunca. Nada de Open Banking, nada de PSD2, nenhuma senha bancária. Você mesmo baixa o arquivo de movimentações do seu banco, em CSV ou XLSX, e arrasta para o aplicativo."
+        },
+        {
+          "q": "Meus dados saem do meu computador?",
+          "a": "Não. O Spendif.ai guarda tudo num banco SQLite local, em ~/.spendifai/, e funciona sem conexão. Se você escolher um LLM remoto, IBANs e nomes são removidos das descrições antes de qualquer envio."
+        },
+        {
+          "q": "Quanto custa? É grátis para sempre?",
+          "a": "Hoje o Spendif.ai é gratuito para uso pessoal, sem assinatura e sem custos ocultos. O código é público e você pode lê-lo. Mais adiante pode surgir uma versão paga com funções extras: a versão que você instalou continuará funcionando, e seus dados ficam num arquivo no seu computador que você pode levar quando quiser."
+        },
+        {
+          "q": "Preciso criar uma conta?",
+          "a": "Não. Sem e-mail, sem cadastro, sem senha para recuperar. Você instala o aplicativo e usa."
+        },
+        {
+          "q": "Em quais sistemas funciona?",
+          "a": "Windows, Linux e macOS 12 Monterey ou superior em Apple Silicon (M1 ou mais recente). Não há build para Mac Intel."
+        },
+        {
+          "q": "Quais bancos são suportados?",
+          "a": "Qualquer banco que permita exportar as movimentações em CSV ou XLSX. O Spendif.ai reconhece o formato sozinho e você pode importar juntos arquivos de bancos diferentes."
+        },
+        {
+          "q": "O que acontece se eu importar o mesmo arquivo duas vezes?",
+          "a": "Nada de mau: as transações que já existem não são duplicadas. Você pode reimportar o mesmo arquivo quantas vezes quiser."
+        },
+        {
+          "q": "Existe aplicativo para celular?",
+          "a": "Não, o Spendif.ai é um aplicativo de desktop. Um aplicativo complementar apenas para registrar gastos em dinheiro está planejado, mas não tem data."
+        }
+      ]
+    }
+  }
+}
