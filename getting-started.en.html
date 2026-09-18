@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spendif.ai — Install &amp; first launch</title>
+  <title>Spendif.ai: Install &amp; first launch</title>
   <meta name="description" content="Download Spendif.ai for macOS, Windows or Linux. Step-by-step install, first launch and initial setup guide." />
-  <meta property="og:title" content="Spendif.ai — Install &amp; first launch" />
+  <meta property="og:title" content="Spendif.ai: Install &amp; first launch" />
   <meta property="og:description" content="Three steps: download, install, first launch. All offline, no cloud." />
 
 <!-- SEO/GEO (managed) -->
@@ -238,12 +238,12 @@
     <section id="what-you-get">
       <h2><span class="step-num" style="background:var(--green)">✨</span>What you get</h2>
       <ul class="features-list">
-        <li><strong>Imports any bank's CSV/XLSX</strong> — auto-detects format, no manual mapping</li>
-        <li><strong>AI categorisation, fully offline</strong> — local LLM included, no cloud needed</li>
-        <li><strong>Local AI by default</strong> — data stays on your machine; remote LLM is opt-in and redacts IBAN / cards / owner names (amounts and dates still travel — see roadmap)</li>
-        <li><strong>Five languages</strong> — Italian, English, French, German, Spanish</li>
-        <li><strong>Card-account reconciliation</strong> <span class="beta-tag">(beta)</span> — pairs credit-card settlements with the underlying expenses to avoid double-counting<span class="beta-note">(edge cases still being refined)</span></li>
-        <li><strong>Internal transfer detection</strong> <span class="beta-tag">(beta)</span> — matches transfers across your own accounts so they don't inflate dashboards<span class="beta-note">(edge cases still being refined)</span></li>
+        <li><strong>Imports any bank's CSV/XLSX</strong>: auto-detects format, no manual mapping</li>
+        <li><strong>AI categorisation, fully offline</strong>: local LLM included, no cloud needed</li>
+        <li><strong>Local AI by default</strong>: data stays on your machine; remote LLM is opt-in and redacts IBAN / cards / owner names (amounts and dates still travel: see roadmap)</li>
+        <li><strong>Five languages</strong>: Italian, English, French, German, Spanish</li>
+        <li><strong>Card-account reconciliation</strong> <span class="beta-tag">(beta)</span>: pairs credit-card settlements with the underlying expenses to avoid double-counting<span class="beta-note">(edge cases still being refined)</span></li>
+        <li><strong>Internal transfer detection</strong> <span class="beta-tag">(beta)</span>: matches transfers across your own accounts so they don't inflate dashboards<span class="beta-note">(edge cases still being refined)</span></li>
       </ul>
     </section>
     <section id="download">
@@ -255,7 +255,7 @@
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
           <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Download DMG</a>
-          <div class="dl-notes">macOS 12 Monterey or later. Apple Silicon only (M1 or newer).<br>On an Intel Mac? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Tell us</a> — an Intel build is not planned, but one request is enough to reconsider.</div>
+          <div class="dl-notes">macOS 12 Monterey or later. Apple Silicon only (M1 or newer).<br>On an Intel Mac? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Tell us</a>: an Intel build is not planned, but one request is enough to reconsider.</div>
         </div>
 
         <div class="dl-card">
@@ -291,7 +291,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>macOS — DMG</h3>
+          <h3>macOS: DMG</h3>
           <p>1. Double-click the downloaded <code>.dmg</code>.</p>
           <p>2. Drag <strong>Spendif.ai.app</strong> into the <strong>Applications</strong> folder.</p>
           <p>3. Eject the DMG (Cmd+E) and launch the app from Launchpad.</p>
@@ -316,10 +316,10 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>Windows — MSIX</h3>
+          <h3>Windows: MSIX</h3>
           <p>1. Double-click the downloaded <code>.msix</code>.</p>
           <p>2. The built-in App Installer opens. Click <strong>Install</strong>.</p>
-          <p>3. The app appears in the Start Menu — launch from there.</p>
+          <p>3. The app appears in the Start Menu: launch from there.</p>
           <p>If you see "Unknown publisher": open PowerShell as admin and import the certificate once (see the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
         </div>
         <div class="step-img">
@@ -334,7 +334,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>Linux — .deb / .rpm</h3>
+          <h3>Linux: .deb / .rpm</h3>
           <p>From the terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
@@ -353,7 +353,7 @@
 
     <section id="first-launch">
       <h2><span class="step-num">3</span>First launch</h2>
-      <p>On first launch Spendif.ai sets up its environment — it's the longest step, but happens only once.</p>
+      <p>On first launch Spendif.ai sets up its environment: it's the longest step, but happens only once.</p>
 
       <div class="note">
         <strong>⏱ Time required:</strong> depends on your connection speed (usually 5-15 minutes). Free disk space required: ~5 GB. Good news: <strong>you can start filling in the wizard right away</strong>, the model downloads in parallel.
@@ -362,7 +362,7 @@
       <div class="step">
         <div class="step-text">
           <h3>3a. Splash + AI model download (in parallel)</h3>
-          <p>Double-clicking opens a native window with a <strong>splash screen</strong>. Spendif.ai detects your RAM/VRAM and kicks off a background download of the LLM best suited for your hardware (Qwen 2.5, Gemma 3 — sizes from 1 to 8 GB).</p>
+          <p>Double-clicking opens a native window with a <strong>splash screen</strong>. Spendif.ai detects your RAM/VRAM and kicks off a background download of the LLM best suited for your hardware (Qwen 2.5, Gemma 3: sizes from 1 to 8 GB).</p>
           <p>The model lives at <code>~/.spendifai/models/</code> (macOS/Linux) or <code>%USERPROFILE%\.spendifai\models\</code> (Windows) and survives reinstalls. <strong>The configuration wizard appears within seconds</strong>, without waiting for the download to finish.</p>
         </div>
         <div class="step-img">
@@ -377,21 +377,21 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>3b. Onboarding wizard — 4 steps</h3>
+          <h3>3b. Onboarding wizard: 4 steps</h3>
           <p>While the model continues downloading in the background, the <strong>configuration wizard</strong> guides you through 4 steps:</p>
-          <p>1. <strong>Language</strong> — taxonomy, date format, number separators.<br>
-             2. <strong>Holders</strong> — your name and the variants your bank uses.<br>
-             3. <strong>Accounts</strong> — current account, cards, cash.<br>
-             4. <strong>Summary + Start</strong> — everything is written only here, no partial persistence.</p>
-          <p>Every step shows a <strong>live download banner</strong> at the top (e.g. "📚 78% · ~3 min"). On the final summary, the <em>Start</em> button stays disabled until the model is 100% — so the Import page works immediately when you reach the app. Everything is changeable from <em>Settings</em> later.</p>
+          <p>1. <strong>Language</strong>: taxonomy, date format, number separators.<br>
+             2. <strong>Holders</strong>: your name and the variants your bank uses.<br>
+             3. <strong>Accounts</strong>: current account, cards, cash.<br>
+             4. <strong>Summary + Start</strong>: everything is written only here, no partial persistence.</p>
+          <p>Every step shows a <strong>live download banner</strong> at the top (e.g. "📚 78% · ~3 min"). On the final summary, the <em>Start</em> button stays disabled until the model is 100%: so the Import page works immediately when you reach the app. Everything is changeable from <em>Settings</em> later.</p>
         </div>
         <div class="step-img">
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/onboarding-step-1-language.png</code>
-            <div>(wizard step 1 — language selection)</div>
+            <div>(wizard step 1: language selection)</div>
           </div>
-          <!-- <img src="assets/screenshots/onboarding-step-1-language.png" alt="Onboarding step 1 — language"> -->
+          <!-- <img src="assets/screenshots/onboarding-step-1-language.png" alt="Onboarding step 1: language"> -->
         </div>
       </div>
 
@@ -407,7 +407,7 @@
             <code>assets/screenshots/app-ready-import-page.png</code>
             <div>(app ready, Import page)</div>
           </div>
-          <!-- <img src="assets/screenshots/app-ready-import-page.png" alt="App ready — import page"> -->
+          <!-- <img src="assets/screenshots/app-ready-import-page.png" alt="App ready: import page"> -->
         </div>
       </div>
     </section>
@@ -429,9 +429,9 @@
       <p>Spendif.ai is in alpha. The features we add next are decided together with the people using the app today: no speculative work, no roadmap dictated from above.</p>
       <p>Features under evaluation based on alpha-tester feedback:</p>
       <ul>
-        <li><strong>Cash tracking</strong> — log cash purchases manually, with no bank statement attached</li>
-        <li><strong>Investment performance</strong> — see at a glance how the instruments in your portfolio are doing</li>
-        <li><strong>Companion mobile app</strong> — capture cash on the fly from your phone and sync with the desktop</li>
+        <li><strong>Cash tracking</strong>: log cash purchases manually, with no bank statement attached</li>
+        <li><strong>Investment performance</strong>: see at a glance how the instruments in your portfolio are doing</li>
+        <li><strong>Companion mobile app</strong>: capture cash on the fly from your phone and sync with the desktop</li>
       </ul>
       <p>Would one of these help you? Tell us in <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank">GitHub Discussions</a>. When enough requests stack up on the same feature, it moves to the top of the queue.</p>
     </section>
