@@ -41,9 +41,10 @@ dependencies = [
     # Security pins (transitive deps of streamlit) — pip-audit gate.
     # pillow<12.3.0 carries PYSEC-2026-2253..2257 / 3451..3454.
     # gitpython<3.1.58 carries GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p,
-    # CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr (all fixed in 3.1.58).
+    # CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr (all fixed in 3.1.58);
+    # 3.1.59 carries PYSEC-2026-3982, PYSEC-2026-3983, PYSEC-2026-3984 (fixed in 3.1.60).
     "pillow>=12.3.0",
-    "gitpython>=3.1.58",
+    "gitpython>=3.1.60",
     # Security pin: cryptography<50.0.0 carries PYSEC-2026-3552 (pip-audit gate).
     # Transitive dep of azure-identity/msal; floor declared here so a fresh
     # `uv lock` resolves to >=50.0.0.
