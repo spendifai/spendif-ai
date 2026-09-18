@@ -1,4 +1,4 @@
-# Spendif.ai landing — robots
+# Spendif.ai landing: robots
 User-agent: *
 Allow: /
 

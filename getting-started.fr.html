@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spendif.ai — Installation et premier lancement</title>
+  <title>Spendif.ai: Installation et premier lancement</title>
   <meta name="description" content="Téléchargez Spendif.ai pour macOS, Windows ou Linux. Guide pas-à-pas pour l'installation, le premier lancement et la configuration initiale." />
-  <meta property="og:title" content="Spendif.ai — Installation et premier lancement" />
+  <meta property="og:title" content="Spendif.ai: Installation et premier lancement" />
   <meta property="og:description" content="Trois étapes : télécharger, installer, premier lancement. Tout en local, pas de cloud." />
 
 <!-- SEO/GEO (managed) -->
@@ -165,12 +165,12 @@
     <section id="what-you-get">
       <h2><span class="step-num" style="background:var(--green)">✨</span>Ce que vous obtenez</h2>
       <ul class="features-list">
-        <li><strong>Importe les CSV/XLSX de n'importe quelle banque</strong> — détecte automatiquement le format, pas de mapping manuel</li>
-        <li><strong>Catégorisation par IA, totalement hors ligne</strong> — LLM local inclus, pas besoin de cloud</li>
-        <li><strong>IA locale par défaut</strong> — les données restent sur votre machine ; le LLM distant est opt-in et masque IBAN / cartes / noms du titulaire (les montants et les dates voyagent toujours — voir feuille de route)</li>
-        <li><strong>Cinq langues</strong> — italien, anglais, français, allemand, espagnol</li>
-        <li><strong>Réconciliation carte-compte</strong> <span class="beta-tag">(bêta)</span> — apparie les débits carte avec les dépenses sous-jacentes pour éviter le double comptage<span class="beta-note">(cas limites encore en cours de raffinement)</span></li>
-        <li><strong>Détection des virements internes</strong> <span class="beta-tag">(bêta)</span> — apparie les virements entre vos propres comptes pour qu'ils ne gonflent pas les tableaux de bord<span class="beta-note">(cas limites encore en cours de raffinement)</span></li>
+        <li><strong>Importe les CSV/XLSX de n'importe quelle banque</strong>: détecte automatiquement le format, pas de mapping manuel</li>
+        <li><strong>Catégorisation par IA, totalement hors ligne</strong>: LLM local inclus, pas besoin de cloud</li>
+        <li><strong>IA locale par défaut</strong>: les données restent sur votre machine ; le LLM distant est opt-in et masque IBAN / cartes / noms du titulaire (les montants et les dates voyagent toujours: voir feuille de route)</li>
+        <li><strong>Cinq langues</strong>: italien, anglais, français, allemand, espagnol</li>
+        <li><strong>Réconciliation carte-compte</strong> <span class="beta-tag">(bêta)</span>: apparie les débits carte avec les dépenses sous-jacentes pour éviter le double comptage<span class="beta-note">(cas limites encore en cours de raffinement)</span></li>
+        <li><strong>Détection des virements internes</strong> <span class="beta-tag">(bêta)</span>: apparie les virements entre vos propres comptes pour qu'ils ne gonflent pas les tableaux de bord<span class="beta-note">(cas limites encore en cours de raffinement)</span></li>
       </ul>
     </section>
     <section id="download">
@@ -182,7 +182,7 @@
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
           <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Télécharger DMG</a>
-          <div class="dl-notes">macOS 12 Monterey ou supérieur. Apple Silicon uniquement (M1 ou plus récent).<br>Vous avez un Mac Intel ? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Dites-le-nous</a> — une version Intel n'est pas prévue, mais une seule demande suffit à y revenir.</div>
+          <div class="dl-notes">macOS 12 Monterey ou supérieur. Apple Silicon uniquement (M1 ou plus récent).<br>Vous avez un Mac Intel ? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Dites-le-nous</a>: une version Intel n'est pas prévue, mais une seule demande suffit à y revenir.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
@@ -215,7 +215,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>macOS — DMG</h3>
+          <h3>macOS: DMG</h3>
           <p>1. Double-cliquez sur le fichier <code>.dmg</code> téléchargé.</p>
           <p>2. Glissez <strong>Spendif.ai.app</strong> dans le dossier <strong>Applications</strong>.</p>
           <p>3. Éjectez le DMG (Cmd+E) et lancez l'app depuis Launchpad.</p>
@@ -235,10 +235,10 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>Windows — MSIX</h3>
+          <h3>Windows: MSIX</h3>
           <p>1. Double-cliquez sur le fichier <code>.msix</code> téléchargé.</p>
           <p>2. L'installeur d'applications intégré à Windows s'ouvre. Cliquez sur <strong>Installer</strong>.</p>
-          <p>3. L'app apparaît dans le menu Démarrer — lancez-la depuis là.</p>
+          <p>3. L'app apparaît dans le menu Démarrer: lancez-la depuis là.</p>
           <p>Si vous voyez "Éditeur inconnu" : ouvrez PowerShell en admin et importez le certificat une fois (voir le <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
         </div>
         <div class="step-img">
@@ -248,7 +248,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>Linux — .deb / .rpm</h3>
+          <h3>Linux: .deb / .rpm</h3>
           <p>Depuis le terminal :</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
@@ -262,17 +262,17 @@
 
     <section id="first-launch">
       <h2><span class="step-num">3</span>Premier lancement</h2>
-      <p>Au premier lancement, Spendif.ai prépare son environnement — c'est l'étape la plus longue, mais elle n'arrive qu'une fois.</p>
+      <p>Au premier lancement, Spendif.ai prépare son environnement: c'est l'étape la plus longue, mais elle n'arrive qu'une fois.</p>
 
       <div class="note">
-        <strong>⏱ Temps requis :</strong> 5–15 minutes sur une connexion domestique typique. Espace libre requis : ~5 Go.<br>
+        <strong>⏱ Temps requis :</strong> 5-15 minutes sur une connexion domestique typique. Espace libre requis : ~5 Go.<br>
         Gardez la fenêtre ouverte jusqu'à ce que la barre de progression disparaisse.
       </div>
 
       <div class="step">
         <div class="step-text">
           <h3>3a. Splash + téléchargement du modèle IA</h3>
-          <p>Double-cliquer ouvre une fenêtre native avec un <strong>écran de démarrage</strong> et une barre de progression. Spendif.ai détecte la RAM/VRAM disponible et télécharge le LLM le plus adapté (Qwen 2.5, Gemma 3 — tailles de 2 à 8 Go).</p>
+          <p>Double-cliquer ouvre une fenêtre native avec un <strong>écran de démarrage</strong> et une barre de progression. Spendif.ai détecte la RAM/VRAM disponible et télécharge le LLM le plus adapté (Qwen 2.5, Gemma 3: tailles de 2 à 8 Go).</p>
           <p>Le modèle est stocké dans <code>~/.spendifai/models/</code> (macOS/Linux) ou <code>%APPDATA%\Spendif.ai\models\</code> (Windows) et survit aux réinstallations.</p>
         </div>
         <div class="step-img">
@@ -282,16 +282,16 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>3b. Assistant d'onboarding — 4 étapes</h3>
+          <h3>3b. Assistant d'onboarding: 4 étapes</h3>
           <p>Une fois le modèle prêt, le splash laisse place à l'<strong>assistant de configuration</strong> :</p>
-          <p>1. <strong>Langue</strong> — taxonomie, format de date, séparateurs numériques.<br>
-             2. <strong>Titulaires</strong> — votre nom et les variantes utilisées par la banque.<br>
-             3. <strong>Comptes</strong> — compte courant, cartes, espèces.<br>
-             4. <strong>Confirmer</strong> — tout est écrit ici uniquement, pas de persistance partielle.</p>
+          <p>1. <strong>Langue</strong>: taxonomie, format de date, séparateurs numériques.<br>
+             2. <strong>Titulaires</strong>: votre nom et les variantes utilisées par la banque.<br>
+             3. <strong>Comptes</strong>: compte courant, cartes, espèces.<br>
+             4. <strong>Confirmer</strong>: tout est écrit ici uniquement, pas de persistance partielle.</p>
           <p>Aucun choix n'est définitif : tout peut être modifié plus tard depuis <em>Paramètres</em>.</p>
         </div>
         <div class="step-img">
-          <div class="ph"><div>📷 Capture</div><code>assets/screenshots/onboarding-step-1-language.png</code><div>(assistant étape 1 — choix de la langue)</div></div>
+          <div class="ph"><div>📷 Capture</div><code>assets/screenshots/onboarding-step-1-language.png</code><div>(assistant étape 1: choix de la langue)</div></div>
         </div>
       </div>
 
@@ -324,9 +324,9 @@
       <p>Spendif.ai est en alpha. Les fonctionnalités que nous ajouterons seront décidées avec les personnes qui utilisent l'app aujourd'hui : pas de travail spéculatif, pas de roadmap imposée d'en haut.</p>
       <p>Fonctionnalités à l'étude selon les retours des alpha testeurs :</p>
       <ul>
-        <li><strong>Suivi du cash</strong> — enregistrer manuellement les dépenses en espèces, sans relevé bancaire</li>
-        <li><strong>Performance des investissements</strong> — voir d'un coup d'œil comment les instruments de votre portefeuille évoluent</li>
-        <li><strong>App mobile compagne</strong> — saisir les espèces à la volée depuis le téléphone et synchroniser avec le bureau</li>
+        <li><strong>Suivi du cash</strong>: enregistrer manuellement les dépenses en espèces, sans relevé bancaire</li>
+        <li><strong>Performance des investissements</strong>: voir d'un coup d'œil comment les instruments de votre portefeuille évoluent</li>
+        <li><strong>App mobile compagne</strong>: saisir les espèces à la volée depuis le téléphone et synchroniser avec le bureau</li>
       </ul>
       <p>L'une de ces options vous serait-elle utile ? Dites-le-nous sur <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank">GitHub Discussions</a>. Quand suffisamment de demandes s'accumulent sur la même fonctionnalité, elle monte en tête de file.</p>
     </section>

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spendif.ai — Instalação e primeira execução</title>
+  <title>Spendif.ai: Instalação e primeira execução</title>
   <meta name="description" content="Baixe o Spendif.ai para macOS, Windows ou Linux. Guia passo a passo para instalação, primeira execução e configuração inicial." />
-  <meta property="og:title" content="Spendif.ai — Instalação e primeira execução" />
+  <meta property="og:title" content="Spendif.ai: Instalação e primeira execução" />
   <meta property="og:description" content="Três passos: baixar, instalar, primeira execução. Tudo offline, sem nuvem." />
 
 <!-- SEO/GEO (managed) -->
@@ -165,12 +165,12 @@
     <section id="what-you-get">
       <h2><span class="step-num" style="background:var(--green)">✨</span>O que você obtém</h2>
       <ul class="features-list">
-        <li><strong>Importa CSV/XLSX de qualquer banco</strong> — detecta o formato automaticamente, sem mapeamento manual</li>
-        <li><strong>Categorização por IA, totalmente offline</strong> — LLM local incluído, sem nuvem</li>
-        <li><strong>IA local por padrão</strong> — os dados permanecem na sua máquina; o LLM remoto é opt-in e redige IBAN / cartões / nomes do titular (os valores e datas ainda viajam — ver roadmap)</li>
-        <li><strong>Cinco idiomas</strong> — italiano, inglês, francês, alemão, espanhol</li>
-        <li><strong>Reconciliação cartão-conta</strong> <span class="beta-tag">(beta)</span> — pareia os débitos do cartão com os gastos subjacentes para evitar dupla contagem<span class="beta-note">(casos extremos ainda em refinamento)</span></li>
-        <li><strong>Detecção de transferências internas</strong> <span class="beta-tag">(beta)</span> — relaciona as transferências entre as suas contas para que não inflacionem os dashboards<span class="beta-note">(casos extremos ainda em refinamento)</span></li>
+        <li><strong>Importa CSV/XLSX de qualquer banco</strong>: detecta o formato automaticamente, sem mapeamento manual</li>
+        <li><strong>Categorização por IA, totalmente offline</strong>: LLM local incluído, sem nuvem</li>
+        <li><strong>IA local por padrão</strong>: os dados permanecem na sua máquina; o LLM remoto é opt-in e redige IBAN / cartões / nomes do titular (os valores e datas ainda viajam: ver roadmap)</li>
+        <li><strong>Cinco idiomas</strong>: italiano, inglês, francês, alemão, espanhol</li>
+        <li><strong>Reconciliação cartão-conta</strong> <span class="beta-tag">(beta)</span>: pareia os débitos do cartão com os gastos subjacentes para evitar dupla contagem<span class="beta-note">(casos extremos ainda em refinamento)</span></li>
+        <li><strong>Detecção de transferências internas</strong> <span class="beta-tag">(beta)</span>: relaciona as transferências entre as suas contas para que não inflacionem os dashboards<span class="beta-note">(casos extremos ainda em refinamento)</span></li>
       </ul>
     </section>
     <section id="download">
@@ -182,7 +182,7 @@
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
           <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Baixar DMG</a>
-          <div class="dl-notes">macOS 12 Monterey ou superior. Apenas Apple Silicon (M1 ou mais recente).<br>Tem um Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Escreva para nós</a> — uma versão Intel não está prevista, mas basta um pedido para reconsiderarmos.</div>
+          <div class="dl-notes">macOS 12 Monterey ou superior. Apenas Apple Silicon (M1 ou mais recente).<br>Tem um Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Escreva para nós</a>: uma versão Intel não está prevista, mas basta um pedido para reconsiderarmos.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
@@ -215,7 +215,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>macOS — DMG</h3>
+          <h3>macOS: DMG</h3>
           <p>1. Dê duplo clique no arquivo <code>.dmg</code> baixado.</p>
           <p>2. Arraste <strong>Spendif.ai.app</strong> para a pasta <strong>Aplicativos</strong>.</p>
           <p>3. Ejete o DMG (Cmd+E) e inicie o app pelo Launchpad.</p>
@@ -235,10 +235,10 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>Windows — MSIX</h3>
+          <h3>Windows: MSIX</h3>
           <p>1. Dê duplo clique no arquivo <code>.msix</code> baixado.</p>
           <p>2. O Instalador de Aplicativos integrado do Windows abre. Clique em <strong>Instalar</strong>.</p>
-          <p>3. O app aparece no Menu Iniciar — abra a partir dali.</p>
+          <p>3. O app aparece no Menu Iniciar: abra a partir dali.</p>
           <p>Se você vir "Editor desconhecido": abra o PowerShell como administrador e importe o certificado uma vez (veja o <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guia</a>).</p>
         </div>
         <div class="step-img">
@@ -248,7 +248,7 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>Linux — .deb / .rpm</h3>
+          <h3>Linux: .deb / .rpm</h3>
           <p>No terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
@@ -262,17 +262,17 @@
 
     <section id="first-launch">
       <h2><span class="step-num">3</span>Primeira execução</h2>
-      <p>Na primeira execução, o Spendif.ai prepara o ambiente — é o passo mais longo, mas acontece apenas uma vez.</p>
+      <p>Na primeira execução, o Spendif.ai prepara o ambiente: é o passo mais longo, mas acontece apenas uma vez.</p>
 
       <div class="note">
-        <strong>⏱ Tempo necessário:</strong> 5–15 minutos numa conexão doméstica típica. Espaço livre necessário: ~5 GB.<br>
+        <strong>⏱ Tempo necessário:</strong> 5-15 minutos numa conexão doméstica típica. Espaço livre necessário: ~5 GB.<br>
         Mantenha a janela aberta até a barra de progresso desaparecer.
       </div>
 
       <div class="step">
         <div class="step-text">
           <h3>3a. Splash + download do modelo de IA</h3>
-          <p>Ao dar duplo clique, abre-se uma janela nativa com uma <strong>tela de abertura</strong> e barra de progresso. O Spendif.ai detecta a RAM/VRAM disponível e baixa o LLM mais adequado (Qwen 2.5, Gemma 3 — tamanhos de 2 a 8 GB).</p>
+          <p>Ao dar duplo clique, abre-se uma janela nativa com uma <strong>tela de abertura</strong> e barra de progresso. O Spendif.ai detecta a RAM/VRAM disponível e baixa o LLM mais adequado (Qwen 2.5, Gemma 3: tamanhos de 2 a 8 GB).</p>
           <p>O modelo fica em <code>~/.spendifai/models/</code> (macOS/Linux) ou <code>%APPDATA%\Spendif.ai\models\</code> (Windows) e sobrevive a reinstalações.</p>
         </div>
         <div class="step-img">
@@ -282,16 +282,16 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>3b. Assistente de onboarding — 4 passos</h3>
+          <h3>3b. Assistente de onboarding: 4 passos</h3>
           <p>Quando o modelo estiver pronto, a splash dá lugar ao <strong>assistente de configuração</strong>:</p>
-          <p>1. <strong>Idioma</strong> — taxonomia, formato de data, separadores numéricos.<br>
-             2. <strong>Titulares</strong> — seu nome e as variantes usadas pelo banco.<br>
-             3. <strong>Contas</strong> — conta corrente, cartões, dinheiro.<br>
-             4. <strong>Confirmar</strong> — tudo é gravado apenas aqui, sem persistência parcial.</p>
+          <p>1. <strong>Idioma</strong>: taxonomia, formato de data, separadores numéricos.<br>
+             2. <strong>Titulares</strong>: seu nome e as variantes usadas pelo banco.<br>
+             3. <strong>Contas</strong>: conta corrente, cartões, dinheiro.<br>
+             4. <strong>Confirmar</strong>: tudo é gravado apenas aqui, sem persistência parcial.</p>
           <p>Nenhuma escolha é definitiva: você pode alterar tudo depois em <em>Configurações</em>.</p>
         </div>
         <div class="step-img">
-          <div class="ph"><div>📷 Captura</div><code>assets/screenshots/onboarding-step-1-language.png</code><div>(assistente passo 1 — seleção de idioma)</div></div>
+          <div class="ph"><div>📷 Captura</div><code>assets/screenshots/onboarding-step-1-language.png</code><div>(assistente passo 1: seleção de idioma)</div></div>
         </div>
       </div>
 
