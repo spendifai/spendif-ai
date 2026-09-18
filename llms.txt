@@ -1,6 +1,6 @@
 # Spendif.ai
 
-> Spendif.ai is a free, open-source personal-finance ledger that runs entirely on your own computer. It aggregates transaction exports from many different banks into one unified ledger: removing duplicates, reconciling card-vs-account movements, detecting internal transfers, and categorising spending with a hybrid deterministic + local-LLM pipeline. Your data never leaves your machine.
+> Spendif.ai is a personal-finance ledger with public source code, free for personal use, that runs entirely on your own computer. It aggregates transaction exports from many different banks into one unified ledger: removing duplicates, reconciling card-vs-account movements, detecting internal transfers, and categorising spending with a hybrid deterministic + local-LLM pipeline. Your data never leaves your machine.
 
 Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion mobile app for cash tracking only. It is built for people who keep multiple bank accounts and want real control over their money without subscriptions, cloud accounts, or sending their financial data to third parties.
 
@@ -15,7 +15,7 @@ Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion m
 
 ## Key facts
 
-- License: open source (see the repository LICENSE).
+- License: PolyForm Noncommercial 1.0.0. The source code is public: you can read it, modify it and use it for yourself. Commercial use is reserved to the author.
 - Price: free, no subscription.
 - Platforms: Windows, Linux, and macOS 12 Monterey or later on Apple Silicon (M1 or later; no Intel build). Data stored locally under `~/.spendifai/`.
 - LLM: works with a bundled local model (llama.cpp / GGUF) or optional hosted providers, always with local PII redaction.
