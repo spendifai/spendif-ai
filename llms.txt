@@ -34,6 +34,8 @@ Installing Spendif.ai takes three steps, described in full in the getting-starte
 
 - Website: https://spendif.ai/
 - Getting started: https://spendif.ai/getting-started.en.html
+- FAQ: https://spendif.ai/index.en.html#faq
+- FAQ, machine-readable in all nine languages: https://spendif.ai/faq.json
 - Source code: https://github.com/spendifai/spendif-ai
 - Downloads / releases: https://github.com/spendifai/spendif-ai/releases
 - License: https://github.com/spendifai/spendif-ai/blob/main/LICENSE
