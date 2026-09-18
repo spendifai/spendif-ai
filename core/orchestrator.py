@@ -1112,6 +1112,16 @@ def process_file(
     if not doc_schema.header_sha256:
         doc_schema.header_sha256 = compute_header_sha256(raw_bytes, filename)
 
+    # Store the ACTUAL header offset applied at load, so a later reuse of this
+    # schema skips exactly the same rows instead of re-detecting them. When the
+    # two diverged the reload produced Unnamed columns and zero transactions,
+    # which invalidated the schema, sent the file back through the LLM and came
+    # back with the sign flipped. skip_override is the value load_raw_dataframe
+    # actually used; _header_rows_skipped is what it detected on its own.
+    _real_skip = skip_override if skip_override is not None else _header_rows_skipped
+    if isinstance(_real_skip, int):
+        doc_schema.skip_rows = _real_skip
+
     # ── 3-Phase Footer Stripping (post-schema) ─────────────────────────────
     _progress(0.27, "footer_detection")
     _total_footer_stripped = 0
