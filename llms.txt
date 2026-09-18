@@ -1,6 +1,6 @@
 # Spendif.ai
 
-> Spendif.ai is a free, open-source personal-finance ledger that runs entirely on your own computer. It aggregates transaction exports from many different banks into one unified ledger — removing duplicates, reconciling card-vs-account movements, detecting internal transfers, and categorising spending with a hybrid deterministic + local-LLM pipeline. Your data never leaves your machine.
+> Spendif.ai is a free, open-source personal-finance ledger that runs entirely on your own computer. It aggregates transaction exports from many different banks into one unified ledger: removing duplicates, reconciling card-vs-account movements, detecting internal transfers, and categorising spending with a hybrid deterministic + local-LLM pipeline. Your data never leaves your machine.
 
 Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion mobile app for cash tracking only. It is built for people who keep multiple bank accounts and want real control over their money without subscriptions, cloud accounts, or sending their financial data to third parties.
 
@@ -8,7 +8,7 @@ Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion m
 
 - **Unified ledger**: import CSV/XLSX movement files from any bank; the format is detected automatically.
 - **Idempotent deduplication**: re-importing the same file never creates duplicate transactions.
-- **Card–account reconciliation**: a card charge and its matching current-account debit are recognised as one movement, not two.
+- **Card-account reconciliation**: a card charge and its matching current-account debit are recognised as one movement, not two.
 - **Internal transfer detection**: money moved between your own accounts does not distort spending totals.
 - **Hybrid categorisation**: a local LLM proposes categories, deterministic rules seal the result; corrections become reusable rules.
 - **Privacy by design**: offline-first, automatic PII redaction before any hosted-LLM call, a single portable local SQLite database (`~/.spendifai/ledger.db`).
@@ -17,12 +17,28 @@ Spendif.ai is desktop-first (macOS, Windows, Linux) with an optional companion m
 
 - License: open source (see the repository LICENSE).
 - Price: free, no subscription.
-- Platforms: Windows, macOS, Linux (desktop). Data stored locally under `~/.spendifai/`.
+- Platforms: Windows, Linux, and macOS 12 Monterey or later on Apple Silicon (M1 or later; no Intel build). Data stored locally under `~/.spendifai/`.
 - LLM: works with a bundled local model (llama.cpp / GGUF) or optional hosted providers, always with local PII redaction.
+
+## Getting started
+
+Installing Spendif.ai takes three steps, described in full in the getting-started guide:
+
+1. **Download for your system**: DMG for macOS, MSIX for Windows, `.deb` or `.rpm` for Linux.
+2. **Install**: the usual installer for your platform; no account and no sign-up at any point.
+3. **First launch**: the app downloads its local AI model, then a short onboarding wizard sets up accounts and categories.
+
+- Getting-started guide: https://spendif.ai/getting-started.html (English: https://spendif.ai/getting-started.en.html)
 
 ## Links
 
 - Website: https://spendif.ai/
+- Getting started: https://spendif.ai/getting-started.en.html
 - Source code: https://github.com/spendifai/spendif-ai
 - Downloads / releases: https://github.com/spendifai/spendif-ai/releases
 - License: https://github.com/spendifai/spendif-ai/blob/main/LICENSE
+- Sitemap: https://spendif.ai/sitemap.xml
+
+## Languages
+
+The website and the getting-started guide are published in Italian, English, German, Spanish, French, Japanese, Dutch, Polish and Portuguese. English is the `x-default` version. The application interface itself ships in five languages.
