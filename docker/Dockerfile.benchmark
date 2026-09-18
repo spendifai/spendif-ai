@@ -12,7 +12,7 @@
 # requires a driver only on the very newest pods (most community
 # instances still carry 12.x), and the llama-cpp-python wheel we use
 # (cu121) is fully backward-compatible with 12.6.
-FROM nvidia/cuda:13.3.0-runtime-ubuntu22.04
+FROM nvidia/cuda:13.3.1-runtime-ubuntu22.04
 
 # ── System deps ──────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
