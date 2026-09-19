@@ -199,13 +199,32 @@ The cask carries a `livecheck` block with the `github_latest` strategy, so
 
 #### Publishing a release to the tap
 
-Run this **after** the GitHub Release is published (a draft is not downloadable
-by Homebrew):
+**This is automatic.** `.github/workflows/publish-tap.yml` runs on the
+`release: published` event and pushes the cask for you. There is nothing to do
+by hand in the normal flow.
+
+The trigger is the publish event, not the version tag, and that is deliberate.
+The tag fires while the release is still a draft holding the **unsigned** CI
+DMG (Section 2bis). A tag-triggered job would write that file's sha256 into the
+cask, and every user would then get a checksum mismatch from brew on a download
+that is perfectly fine.
+
+Prerequisite, once: the secret `TAP_PUSH_TOKEN` on `spendifai/spendif-ai`.
+`GITHUB_TOKEN` cannot write to another repository, and the cask lives in
+`spendifai/homebrew-spendifai`. Create a fine-grained personal access token
+with resource owner `spendifai`, access to both `spendifai/homebrew-spendifai`
+and `spendifai/spendif-ai`, and `Contents: Read and write`. Without it the
+workflow fails loudly rather than skipping: a tap that quietly stops being
+updated is the exact failure this workflow exists to prevent.
+
+To run it by hand (a re-publish, or a release that predates the workflow), use
+`workflow_dispatch` on the Actions tab, or the script directly:
 
 ```bash
 bash packaging/homebrew/update-tap.sh                 # version from the VERSION file
 bash packaging/homebrew/update-tap.sh --version 0.2.0 # or explicit
 bash packaging/homebrew/update-tap.sh --dry-run       # inspect first
+bash packaging/homebrew/update-tap.sh --verify-hash   # what CI passes; see below
 ```
 
 The script reads the DMG checksum from the release's `SHA256SUMS.txt` (falling
@@ -214,8 +233,16 @@ tap repository if it does not exist yet, and pushes `Casks/spendifai.rb` plus a
 generated README. It is idempotent: re-running it for the same version is a
 no-op.
 
+`--verify-hash` downloads the published DMG and cross-checks it against
+`SHA256SUMS.txt`, failing if they disagree. CI always passes it, because
+`SHA256SUMS.txt` is written by the publish job from the UNSIGNED artefacts and
+only step 3 of Section 2bis regenerates it after signing. Skip that step and
+the sums file still describes the unsigned DMG: the cask would then ship a
+checksum no user can ever match. Hashing the published asset is the only source
+that cannot be stale.
+
 Note: `packaging/release.sh` does **not** touch the tap, despite what earlier
-revisions of this document claimed. The tap update is the explicit step above.
+revisions of this document claimed.
 
 ### Homebrew Core (future)
 

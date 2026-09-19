@@ -1,6 +1,6 @@
 """SQLAlchemy ORM models (RF-07).
 
-Thirteen tables:
+Tables:
   import_batch            – one record per imported file
   document_schema         – parsing template (Flow 2 → Flow 1 promotion)
   transaction             – canonical transaction with all fields
@@ -14,6 +14,7 @@ Thirteen tables:
   description_rule        – bulk description replacement rules (raw_description → cleaned)
   budget_target           – per-category % budget targets (A-02)
   nsi_tag_mapping         – OSM tag → (category, subcategory) for C-08-cascade NSI bypass
+  update_event            - one row per app version this install has run (OS + install method)
 """
 from __future__ import annotations
 
@@ -79,6 +80,12 @@ DEFAULT_USER_SETTINGS = {
     "giroconto_mode": "neutral",
     "max_transaction_amount": "1000000",
     "force_schema_import": "false",  # I-04: skip schema review, always auto-import
+    # Update check. Enabled by default: an alpha tester who never learns a new
+    # build exists is a worse outcome than one request to api.github.com at
+    # launch. The privacy notice declares it and Settings turns it off.
+    "update_check_enabled": "true",
+    "update_latest_known": "",       # newest version seen on GitHub, "" = never checked
+    "update_last_checked_at": "",    # ISO-8601 UTC of the last successful check
     # Categorizer-specific backend (legacy keys — `cat_*` is the old 2-slot
     # API kept for backward compatibility. New code reads `categorizer_*`
     # first and falls back to `cat_*` if empty. Will be removed once all
@@ -447,6 +454,39 @@ class UserSettings(Base):
 
     key = Column(String(64), primary_key=True)
     value = Column(String(255), nullable=True)
+
+
+class UpdateEvent(Base):
+    """One row per version this installation has actually run.
+
+    Written at startup by services/update_service.py, and only when the running
+    version differs from the newest row. A row per launch would grow without
+    bound and would answer nothing that a row per version does not.
+
+    WHY os_name and install_method are stored per row instead of being resolved
+    when the table is read: both can change underneath the same database. A user
+    who moves from the git checkout to the Homebrew cask, or who restores
+    ~/.spendifai onto a different machine, would otherwise see their whole
+    history relabelled with today's answer. During the 1-to-1 alpha this table
+    is also the only way to answer "which build is this tester actually on",
+    because the app sends nothing anywhere: the tester reads it off their own
+    machine and tells us.
+    """
+
+    __tablename__ = "update_event"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    version = Column(String(32), nullable=False)
+    previous_version = Column(String(32), nullable=True)
+    # install | upgrade | downgrade
+    event = Column(String(16), nullable=False)
+    # homebrew | dmg | git | deb | rpm | msix | winget | unknown
+    install_method = Column(String(16), nullable=False, default="unknown")
+    # darwin | windows | linux
+    os_name = Column(String(16), nullable=False)
+    os_version = Column(String(64), nullable=True)
+    arch = Column(String(16), nullable=True)
+    detected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class ImportJob(Base):

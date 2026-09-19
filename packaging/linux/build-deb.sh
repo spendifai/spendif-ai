@@ -109,6 +109,22 @@ fi
 find "${INSTALL_ROOT}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "${INSTALL_ROOT}" -name "*.pyc" -delete 2>/dev/null || true
 
+# ── Stamp build info ────────────────────────────────────────────────────────
+# WHY here and not in the repo: the macOS and Windows builders overwrite
+# core/_build_info.py in the working tree, which is fine for them because the
+# result gets committed at release time. The Linux packages used to ship
+# whatever value happened to be committed, so a .deb built from a tag whose
+# _build_info.py still held the previous version would report the wrong
+# version forever. That was invisible while the number was only decoration;
+# now the in-app update check compares against it, and a stale value means a
+# permanent false "update available" badge. Stamping into the staged copy gets
+# the right version into the package without dirtying the working tree.
+cat > "${INSTALL_ROOT}/core/_build_info.py" <<PYEOF
+# Generated at build time - do not edit manually.
+BUILD_TIME = "$(date '+%Y-%m-%d %H:%M')"
+BUILD_VERSION = "${VERSION}"
+PYEOF
+
 echo "✔ Application files copied"
 
 # ── DEBIAN/control ───────────────────────────────────────────────────────────
@@ -167,6 +183,12 @@ if [ -x /usr/local/bin/uv ]; then
 else
   echo "  ⚠ uv install failed — user will be prompted to install on first launch."
 fi
+
+# ── 1b. Record how this copy was installed ──────────────────────────────────
+# postinst runs as root and every user on the machine shares this install, so
+# the marker goes next to the code, not in a home directory. launch.sh mirrors
+# it into the launching user's ~/.spendifai. See services/update_service.py.
+echo "deb" > /opt/spendifai/.install_method || true
 
 # ── 2. Refresh icon + desktop caches ────────────────────────────────────────
 if command -v gtk-update-icon-cache &>/dev/null; then

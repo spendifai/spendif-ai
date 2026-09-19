@@ -114,6 +114,22 @@ find "${TARBALL_DIR}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null 
 find "${TARBALL_DIR}" -name "*.pyc" -delete 2>/dev/null || true
 
 # Create tarball
+# ── Stamp build info ────────────────────────────────────────────────────────
+# WHY here and not in the repo: the macOS and Windows builders overwrite
+# core/_build_info.py in the working tree, which is fine for them because the
+# result gets committed at release time. The Linux packages used to ship
+# whatever value happened to be committed, so a .deb built from a tag whose
+# _build_info.py still held the previous version would report the wrong
+# version forever. That was invisible while the number was only decoration;
+# now the in-app update check compares against it, and a stale value means a
+# permanent false "update available" badge. Stamping into the staged copy gets
+# the right version into the package without dirtying the working tree.
+cat > "${TARBALL_DIR}/core/_build_info.py" <<PYEOF
+# Generated at build time - do not edit manually.
+BUILD_TIME = "$(date '+%Y-%m-%d %H:%M')"
+BUILD_VERSION = "${VERSION}"
+PYEOF
+
 tar -czf "${RPM_TOPDIR}/SOURCES/${TARBALL_NAME}.tar.gz" -C "${BUILD_DIR}" "${TARBALL_NAME}"
 rm -rf "${TARBALL_DIR}"
 echo "✔ Source tarball created"
@@ -219,6 +235,12 @@ if [ -x /usr/local/bin/uv ]; then
 else
   echo "  ⚠ uv install failed — launch.sh will retry per-user on first launch."
 fi
+
+# ── Record how this copy was installed ──────────────────────────────────────
+# %post runs as root and the install is shared by every user on the machine, so
+# the marker goes next to the code, not in a home directory. launch.sh mirrors
+# it into the launching user's ~/.spendifai. See services/update_service.py.
+echo "rpm" > /opt/spendifai/.install_method || true
 
 # ── Refresh icon + desktop caches ───────────────────────────────────────────
 gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true

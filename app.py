@@ -148,6 +148,20 @@ render_model_download_banner()
 from ui.i18n import set_language as _set_lang
 _set_lang(_cfg_check.get_all().get("ui_language", "en"))
 
+# ── Update check ─────────────────────────────────────────────────────────────
+# Once per session: record which build is running (update_event table) and ask
+# GitHub in the background whether a newer release exists. The banner is built
+# from STORED state, so nothing here waits on the network. The sidebar stays
+# engine-free, so the answer travels through session_state like the default
+# page above.
+if "update_check_done" not in st.session_state:
+    st.session_state["update_check_done"] = True
+    from services.update_service import UpdateService
+    _upd_svc = UpdateService(engine)
+    _upd_svc.record_launch()
+    _upd_svc.start_background_check()
+    st.session_state["update_banner"] = _upd_svc.pending_update()
+
 # ── Sidebar navigation ────────────────────────────────────────────────────────
 # Default landing page is data-driven: with at least one transaction we go
 # straight to the Home dashboard; on an empty DB we land on Import (whose

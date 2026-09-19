@@ -225,6 +225,38 @@ il server.
 
 ## Come funziona la notifica di aggiornamento
 
+Ci sono due meccanismi, uno per famiglia di installazione, e l'app usa quello
+che si applica al modo in cui e' stata installata.
+
+### Installazioni a pacchetto (Homebrew, DMG, .deb, .rpm)
+
+All'avvio l'app chiede a GitHub qual e' l'ultima release pubblicata e la
+confronta con la propria versione. Il controllo gira in un thread di
+background: l'interfaccia non aspetta mai la rete, e il badge che vedi riflette
+il risultato del controllo precedente. Se fallisce (niente rete, firewall) non
+succede nulla e non viene mostrato alcun errore.
+
+Il comando suggerito dipende da come hai installato:
+
+| Installazione | Cosa mostra il badge |
+|---------------|----------------------|
+| Homebrew | `brew update && brew upgrade --cask spendifai` |
+| DMG | link alla pagina Releases, da riscaricare e ritrascinare |
+| .deb / .rpm | link alla pagina Releases, con il comando di installazione |
+
+L'app lo sa perche' l'installer lascia un marcatore in
+`~/.spendifai/.install_method`: il cask Homebrew e un DMG trascinato a mano
+lasciano lo stesso bundle nello stesso posto, e senza quel file non sarebbero
+distinguibili.
+
+**Cosa esce dal tuo computer:** solo la domanda "qual e' l'ultima versione".
+Nessun dato del tuo bilancio, nessuna transazione, nessun identificativo.
+GitHub vede il tuo indirizzo IP, come qualsiasi sito che apri. Il controllo si
+disattiva da **Impostazioni > Aggiornamenti**, dove sta anche lo storico delle
+versioni usate su quel computer (locale, non esce di li').
+
+### Installazione da sorgente (install.sh)
+
 Ogni volta che lanci Spendif.ai tramite il bundle `.app`, il launcher esegue in
 background un `git fetch` e confronta il branch locale con `origin/main`.
 

@@ -52,9 +52,16 @@ cask "spendifai" do
   # on install so Finder shows the product name.
   app "SpendifAi.app", target: "Spendif.ai.app"
 
-  # Post-install: create the data dir the launcher expects for GGUF models
+  # Post-install: create the data dir the launcher expects for GGUF models, and
+  # record HOW this copy was installed.
+  #
+  # The marker is the only way the app can tell a cask install from a DMG the
+  # user dragged to Applications: both leave an identical bundle in an identical
+  # place, and the two need different upgrade instructions. Nothing else knows
+  # this, so nothing else can write it. See services/update_service.py.
   postflight do
     system "mkdir", "-p", "#{Dir.home}/.spendifai/models"
+    File.write("#{Dir.home}/.spendifai/.install_method", "homebrew\n")
   end
 
   # Gracefully quit the app before uninstall (bundle id from desktop.spec)

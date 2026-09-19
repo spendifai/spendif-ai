@@ -1,0 +1,105 @@
+name: Publish Homebrew cask
+
+# WHY this is triggered by `release: published` and NOT by the version tag.
+#
+# release.yml creates the GitHub Release as a DRAFT, because the DMG it builds
+# is unsigned: the owner signs and notarises it locally, then replaces the asset
+# with `gh release upload --clobber` before publishing (docs/release_process.md,
+# Section 2bis). A job hanging off the tag would therefore run while the release
+# still holds the UNSIGNED DMG, and would write that file's sha256 into the cask.
+# Every user would then get "SHA256 mismatch" from brew, on a download that is
+# perfectly fine. `release: published` fires when the draft is published, which
+# is the first moment the signed DMG is actually in place.
+#
+# The job needs a token: GITHUB_TOKEN cannot write to another repository, and
+# the cask lives in spendifai/homebrew-spendifai. See the guard step below for
+# how to create TAP_PUSH_TOKEN.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.2.2). Must be an already published release.'
+        required: true
+
+jobs:
+  publish-tap:
+    name: Push cask to the tap
+    runs-on: ubuntu-latest
+    # A prerelease must not reach the stable tap: brew would hand it to every
+    # user on their next `brew upgrade`.
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Check that the push token is configured
+        env:
+          TAP_PUSH_TOKEN: ${{ secrets.TAP_PUSH_TOKEN }}
+        run: |
+          if [ -n "$TAP_PUSH_TOKEN" ]; then
+            echo "TAP_PUSH_TOKEN is present."
+            exit 0
+          fi
+          cat >&2 <<'MSG'
+          The secret TAP_PUSH_TOKEN is not set, so the Homebrew cask cannot be
+          published. Users who installed with brew will not see this release:
+          `brew upgrade --cask spendifai` will keep reporting they are current.
+
+          To fix, create a fine-grained personal access token:
+            Settings > Developer settings > Personal access tokens > Fine-grained
+            Resource owner:  spendifai
+            Repository access: only select repositories
+                               - spendifai/homebrew-spendifai
+                               - spendifai/spendif-ai
+            Repository permissions:
+                               - Contents: Read and write   (needed for the tap)
+                               - Metadata: Read-only        (granted automatically)
+          Then add it to spendifai/spendif-ai as the secret TAP_PUSH_TOKEN and
+          re-run this workflow with `workflow_dispatch`.
+
+          This step fails on purpose rather than skipping: a tap that silently
+          stops being updated is exactly the failure this workflow exists to
+          prevent.
+          MSG
+          exit 1
+
+      - name: Resolve version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VER="${{ github.event.inputs.version }}"
+          else
+            VER="${{ github.event.release.tag_name }}"
+          fi
+          VER="${VER#v}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Publishing cask for ${VER}"
+
+      - name: Render and push the cask
+        env:
+          GH_TOKEN: ${{ secrets.TAP_PUSH_TOKEN }}
+        run: |
+          bash packaging/homebrew/update-tap.sh \
+            --version "${{ steps.v.outputs.version }}" \
+            --verify-hash
+
+      - name: Verify the tap serves this version
+        env:
+          GH_TOKEN: ${{ secrets.TAP_PUSH_TOKEN }}
+        run: |
+          # Read back through the API rather than raw.githubusercontent.com,
+          # which serves a cached copy for a few minutes after a push and would
+          # make this check pass or fail on timing rather than on content.
+          PUBLISHED=$(gh api \
+            repos/spendifai/homebrew-spendifai/contents/Casks/spendifai.rb \
+            --jq '.content' | base64 -d | sed -n 's/^  version "\(.*\)"$/\1/p')
+          EXPECTED="${{ steps.v.outputs.version }}"
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "::error::Tap serves version '$PUBLISHED', expected '$EXPECTED'"
+            exit 1
+          fi
+          echo "Tap serves ${PUBLISHED}. Users get it with:"
+          echo "  brew update && brew upgrade --cask spendifai"
