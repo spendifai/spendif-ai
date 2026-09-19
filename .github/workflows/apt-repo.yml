@@ -1,0 +1,172 @@
+name: APT repository
+
+# Two separate concerns, deliberately in one file because they are the two
+# halves of the same promise: that `sudo apt install spendifai` works, and that
+# it keeps working after a release.
+#
+#  validate  - runs on every change to the Linux packaging. Builds the .deb,
+#              generates the archive index, signs it with a THROWAWAY key, and
+#              points a real apt client at it. Catches a malformed Packages or
+#              Release file here rather than on a user's machine.
+#
+#  verify    - runs after a release and on a schedule. The real archive is
+#              signed locally, because a leaked repository signing key lets an
+#              attacker serve packages to everyone who added the repository
+#              (docs/release_process.md, Section 2bis). Publishing is therefore
+#              a manual step, and this job is what makes forgetting it loud.
+
+on:
+  push:
+    paths:
+      - 'packaging/linux/**'
+      - '.github/workflows/apt-repo.yml'
+  pull_request:
+    paths:
+      - 'packaging/linux/**'
+      - '.github/workflows/apt-repo.yml'
+  release:
+    types: [published]
+  schedule:
+    # Weekly. A repository that silently stopped being updated is not urgent,
+    # but it must not stay unnoticed for a whole release cycle.
+    - cron: '17 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Generated archive works with a real apt
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+
+    steps:
+      - name: Install build and test tooling
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+            git python3 dpkg-dev fakeroot gnupg curl ca-certificates lintian
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Build both .deb packages
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          bash packaging/linux/build-deb.sh --version 9.9.9 --arch amd64
+          bash packaging/linux/build-deb.sh --version 9.9.9 --arch arm64
+          ls -la build/*.deb
+
+      - name: Lint the package
+        run: |
+          # Errors fail the job; tags we have consciously accepted are listed
+          # explicitly so a NEW one still shows up.
+          lintian --fail-on error --no-tag-display-limit build/spendifai_9.9.9_amd64.deb
+
+      - name: Generate a throwaway signing key
+        run: |
+          # Never the real key. This proves the signing path and the client
+          # trust path end to end without the release key existing in CI at all.
+          export GNUPGHOME=/tmp/gnupg
+          mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
+          cat > /tmp/keyparams <<'EOF'
+          %no-protection
+          Key-Type: eddsa
+          Key-Curve: ed25519
+          Key-Usage: sign
+          Name-Real: Spendifai CI Throwaway
+          Name-Email: ci@example.invalid
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key /tmp/keyparams
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+
+      - name: Build the signed archive
+        run: |
+          mkdir -p /tmp/debs && cp build/*.deb /tmp/debs/
+          python3 packaging/linux/update-apt-repo.py \
+            --local-dir /tmp/debs \
+            --output /tmp/apt \
+            --gpg-key ci@example.invalid
+          find /tmp/apt -type f | sort
+
+      - name: Serve it and point apt at it
+        run: |
+          ( cd /tmp/apt && python3 -m http.server 8000 >/tmp/http.log 2>&1 & )
+          for _ in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8000/dists/stable/InRelease >/dev/null && break
+            sleep 1
+          done
+
+          install -d -m 0755 /etc/apt/keyrings
+          cp /tmp/apt/spendifai-archive-keyring.gpg /etc/apt/keyrings/
+
+          # deb822 with Signed-By, exactly what the generated README tells
+          # users to write. If this form is wrong, it is wrong for them too.
+          # A second copy goes in a directory of its own, so the next step can
+          # run apt against THIS archive alone: Ubuntu 24.04 also keeps its own
+          # ubuntu.sources in sources.list.d, and a complaint from that one
+          # must not be mistaken for a complaint about ours.
+          install -d -m 0755 /tmp/onlyours
+          tee /etc/apt/sources.list.d/spendifai.sources /tmp/onlyours/spendifai.sources > /dev/null <<'EOF'
+          Types: deb
+          URIs: http://127.0.0.1:8000
+          Suites: stable
+          Components: main
+          Architectures: amd64 arm64
+          Signed-By: /etc/apt/keyrings/spendifai-archive-keyring.gpg
+          EOF
+
+      - name: apt update must accept the archive without complaint
+        run: |
+          apt-get update -o Dir::Etc::sourcelist=/dev/null \
+                         -o Dir::Etc::sourceparts=/tmp/onlyours 2>&1 | tee /tmp/aptupdate.log
+
+          # An unsigned or malformed archive does not always fail the command:
+          # apt reports it and carries on with the sources it does trust. The
+          # whole point of this job is the absence of these lines.
+          if grep -Ei "not signed|NO_PUBKEY|GPG error|Skipping acquire|is not valid yet|Release file.*expired|Failed to fetch" /tmp/aptupdate.log; then
+            echo "::error::apt reported a problem with the generated archive"
+            exit 1
+          fi
+
+      - name: The package must actually be installable from it
+        run: |
+          # Full update now, so the dependencies resolve from the Ubuntu
+          # archive as they would on a user's machine.
+          apt-get update -qq
+          apt-cache policy spendifai
+          apt-get install -y -qq spendifai 2>&1 | tail -5
+          test -f /opt/spendifai/app.py
+          test -f /opt/spendifai/.install_method
+          grep -qx deb /opt/spendifai/.install_method
+          echo "Installed from the generated APT archive."
+
+  verify:
+    name: Published archive serves the latest release
+    if: github.event_name == 'release' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Compare the archive against the newest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE="https://spendifai.github.io/apt"
+          LATEST=$(gh release view --repo spendifai/spendif-ai --json tagName --jq '.tagName' | sed 's/^v//')
+
+          if ! curl -fsSL -o /tmp/Packages "${BASE}/dists/stable/main/binary-amd64/Packages"; then
+            echo "::warning::No APT archive published yet at ${BASE}. Nothing to verify."
+            exit 0
+          fi
+
+          SERVED=$(grep '^Version:' /tmp/Packages | sed 's/^Version: //' | sort -V | tail -1)
+          echo "latest release: ${LATEST}"
+          echo "archive serves: ${SERVED}"
+
+          if [ "$SERVED" != "$LATEST" ]; then
+            echo "::error::The APT archive serves ${SERVED} but ${LATEST} is the newest release."
+            echo "Users who installed with apt will not see it. Publish it with:"
+            echo "  python3 packaging/linux/update-apt-repo.py --version ${LATEST}"
+            exit 1
+          fi
+          echo "APT archive is current."

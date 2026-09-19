@@ -459,6 +459,67 @@ sudo dnf install ./build/spendifai-0.1.0-1.noarch.rpm
 sudo dnf remove spendifai
 ```
 
+### Repository APT (firmato)
+
+`sudo apt install ./spendifai_*.deb` installa un file. Non e' un repository:
+niente `apt update`, niente `apt upgrade`, nessuna firma. L'archivio firmato su
+`spendifai/apt`, servito da GitHub Pages, e' quello che fa comportare il .deb
+come qualunque altro pacchetto del sistema.
+
+**Pubblicare una release.** Dopo che la GitHub Release e' pubblicata:
+
+```bash
+python3 packaging/linux/update-apt-repo.py                 # versione dal file VERSION
+python3 packaging/linux/update-apt-repo.py --version 0.2.2 # oppure esplicita
+python3 packaging/linux/update-apt-repo.py --dry-run       # costruisce l'indice, non pusha
+```
+
+Lo script scarica gli asset .deb, ricostruisce `Packages` e `Release` da tutto
+quello che c'e' nel pool (cosi' le versioni precedenti restano installabili),
+firma `InRelease` e `Release.gpg`, esporta la chiave pubblica dearmorata e
+pusha. Tiene le 5 versioni piu' recenti nel pool; la GitHub Release le conserva
+comunque tutte.
+
+**Perche' questo NON e' automatizzato in CI, a differenza del tap Homebrew.**
+Una chiave di firma del repository che trapela permette a un attaccante di
+servire pacchetti arbitrari a chiunque abbia aggiunto il repository: stesso
+danno di una chiave di code signing, e stesso motivo per cui la Sezione 2bis
+tiene le credenziali Apple fuori dalla CI. La chiave resta in
+`~/secrets/spendifai/gpg/`, e `.github/workflows/apt-repo.yml` ha un job
+`verify` che gira dopo ogni release e ogni settimana, e fallisce quando
+l'archivio pubblicato resta indietro rispetto all'ultima release. Dimenticarsene
+fa rumore invece di passare inosservato.
+
+**Setup iniziale, una volta sola.**
+
+```bash
+# 1. La chiave di firma. Fuori da qualunque repository, come ogni credenziale.
+mkdir -p ~/secrets/spendifai/gpg && chmod 700 ~/secrets/spendifai/gpg
+gpg --full-generate-key         # ed25519, solo firma, nessuna scadenza, passphrase vera
+
+# 2. Backup. Perderla significa che ogni utente deve riaggiungere a mano una chiave nuova.
+gpg --export-secret-keys --armor <KEYID> > ~/secrets/spendifai/gpg/signing-key.asc
+gpg --gen-revoke <KEYID> > ~/secrets/spendifai/gpg/revocation.asc
+chmod 600 ~/secrets/spendifai/gpg/*
+
+# 3. Prima pubblicazione, che crea anche il repository.
+python3 packaging/linux/update-apt-repo.py --gpg-key <KEYID>
+
+# 4. Abilitare Pages una volta, dalla root del branch di default:
+#    https://github.com/spendifai/apt/settings/pages
+```
+
+Sulla scadenza: genera la chiave **senza data di scadenza**. Una chiave di firma
+scaduta rompe `apt update` a tutti gli utenti insieme, in una data che nessuno
+si e' segnato. Il certificato di revoca dello step 2 e' quello che copre il caso
+della compromissione.
+
+**Limite noto.** Il pacchetto dichiara `Depends: python3 (>= 3.12)`. Ubuntu
+24.04 e Debian 13 lo soddisfano; **Debian 12 ha Python 3.11 e non puo'
+installarlo**. apt segnala la dipendenza non soddisfatta invece di installare
+qualcosa di rotto, ma il repository viene comunque offerto a macchine che non
+possono usarlo.
+
 ### Installer interattivi (senza package manager)
 
 Per gli utenti che preferiscono non usare .deb/.rpm:

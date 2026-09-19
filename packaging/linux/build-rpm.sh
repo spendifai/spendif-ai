@@ -60,6 +60,18 @@ fi
 
 echo "▸ Building spendifai-${VERSION}-${RELEASE}.${ARCH}.rpm"
 
+# ── Pinned uv ────────────────────────────────────────────────────────────────
+# %post used to run `curl -LsSf https://astral.sh/uv/install.sh | sh` as root.
+# See the long note in build-deb.sh: the checksum is committed here on purpose,
+# because a checksum fetched next to the tarball proves nothing.
+#
+# The RPM is noarch, so unlike the .deb the architecture is not known until the
+# package is installed: %post picks the triple from `uname -m` at runtime and
+# both checksums ship inside it.
+UV_VERSION="0.12.17"
+UV_SHA256_X86_64="fa82fd8dde8e8eefdecada6aa0889666556cfceb690d06e0c3bca49eb3070a63"
+UV_SHA256_AARCH64="d636d1b678e9e7f367ecb22b46bd1cabbed234d6bc3b4d96365d2b507f72f86c"
+
 # ── Check rpmbuild ───────────────────────────────────────────────────────────
 if ! command -v rpmbuild &>/dev/null; then
   echo "✖ rpmbuild not found. Install it:"
@@ -218,17 +230,45 @@ echo ""
 
 # ── System-wide uv install ──────────────────────────────────────────────────
 # Place uv in /usr/local/bin so EVERY user (not just root) has it on PATH.
+#
+# One named asset, one checksum verified BEFORE anything runs. Nothing is piped
+# into a shell: this runs as root, and a compromised or merely changed upstream
+# install script would own the machine.
 if ! [ -x /usr/local/bin/uv ]; then
-  echo "  ▸ Installing uv to /usr/local/bin..."
-  TMP_UV_DIR=\$(mktemp -d)
-  curl -LsSf https://astral.sh/uv/install.sh | \\
-    env XDG_CONFIG_HOME=/tmp UV_INSTALL_DIR=/usr/local/bin sh -s -- --no-modify-path 2>&1 | tail -3
-  # Fallback if UV_INSTALL_DIR was ignored by an older bootstrap script:
-  if ! [ -x /usr/local/bin/uv ] && [ -x /root/.local/bin/uv ]; then
-    cp /root/.local/bin/uv /usr/local/bin/uv
-    chmod 0755 /usr/local/bin/uv
+  UV_VERSION="${UV_VERSION}"
+  case "\$(uname -m)" in
+    x86_64)          UV_TRIPLE="x86_64-unknown-linux-gnu";  UV_SHA256="${UV_SHA256_X86_64}" ;;
+    aarch64|arm64)   UV_TRIPLE="aarch64-unknown-linux-gnu"; UV_SHA256="${UV_SHA256_AARCH64}" ;;
+    *)               UV_TRIPLE=""; UV_SHA256="" ;;
+  esac
+
+  if [ -z "\$UV_TRIPLE" ]; then
+    echo "  !! No pinned uv build for \$(uname -m) - skipping."
+  else
+    echo "  > Installing uv \$UV_VERSION to /usr/local/bin..."
+    TMP_UV_DIR=\$(mktemp -d)
+    UV_TARBALL="\$TMP_UV_DIR/uv.tar.gz"
+    UV_URL="https://github.com/astral-sh/uv/releases/download/\$UV_VERSION/uv-\$UV_TRIPLE.tar.gz"
+
+    if curl -fsSL -o "\$UV_TARBALL" "\$UV_URL"; then
+      ACTUAL=\$(sha256sum "\$UV_TARBALL" | awk '{print \$1}')
+      if [ "\$ACTUAL" = "\$UV_SHA256" ]; then
+        tar -xzf "\$UV_TARBALL" -C "\$TMP_UV_DIR"
+        install -m 0755 "\$TMP_UV_DIR/uv-\$UV_TRIPLE/uv" /usr/local/bin/uv
+        install -m 0755 "\$TMP_UV_DIR/uv-\$UV_TRIPLE/uvx" /usr/local/bin/uvx 2>/dev/null || true
+      else
+        # Refuse, loudly, with no fallback. launch.sh installs uv per-user on
+        # first launch, so the user is not stranded.
+        echo "  !! uv checksum mismatch - refusing to install it."
+        echo "     expected \$UV_SHA256"
+        echo "     got      \$ACTUAL"
+      fi
+    else
+      echo "  !! Could not download uv from \$UV_URL"
+    fi
+
+    rm -rf "\$TMP_UV_DIR"
   fi
-  rm -rf "\$TMP_UV_DIR"
 fi
 if [ -x /usr/local/bin/uv ]; then
   echo "  ✔ uv: \$(/usr/local/bin/uv --version 2>&1 | head -1)"
