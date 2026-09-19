@@ -57,9 +57,17 @@ jobs:
 
       - name: Lint the package
         run: |
-          # Errors fail the job; tags we have consciously accepted are listed
-          # explicitly so a NEW one still shows up.
-          lintian --fail-on error --no-tag-display-limit build/spendifai_9.9.9_amd64.deb
+          # Errors fail the job. One tag is suppressed, deliberately and by
+          # name, so that any OTHER error still stops the build.
+          #
+          # dir-or-file-in-opt enforces Debian Policy 9.1.1, which forbids
+          # packages IN THE DEBIAN ARCHIVE from shipping to /opt. This package
+          # is not in the Debian archive and is not headed there: /opt is what
+          # the FHS reserves for exactly this case, add-on software that is
+          # self-contained and does not integrate into /usr. VS Code, Signal
+          # and Chrome all install there and all trip this tag. The reasoning
+          # is in the header of packaging/linux/build-deb.sh.
+          lintian --fail-on error --no-tag-display-limit                   --suppress-tags dir-or-file-in-opt                   build/spendifai_9.9.9_amd64.deb
 
       - name: Generate a throwaway signing key
         run: |

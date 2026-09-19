@@ -141,6 +141,36 @@ fi
 find "${INSTALL_ROOT}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "${INSTALL_ROOT}" -name "*.pyc" -delete 2>/dev/null || true
 
+# ── /usr/share/doc: changelog and copyright ─────────────────────────────────
+# Both are Debian Policy requirements and lintian errors when missing. The
+# version carries no Debian revision, so this is a "native" package and the
+# file is changelog.gz, not changelog.Debian.gz.
+DOC_DIR="${PKG_ROOT}/usr/share/doc/spendifai"
+mkdir -p "${DOC_DIR}"
+
+if [[ -f "${REPO_ROOT}/CHANGELOG.md" ]]; then
+  gzip -9 -n -c "${REPO_ROOT}/CHANGELOG.md" > "${DOC_DIR}/changelog.gz"
+else
+  printf 'spendifai (%s)\n\n  * See https://github.com/spendifai/spendif-ai/releases\n' \
+    "${VERSION}" | gzip -9 -n > "${DOC_DIR}/changelog.gz"
+fi
+
+# Machine-readable copyright (DEP-5). The licence is not an OSI one, which is
+# exactly why it must be stated in the package rather than left to be guessed.
+cat > "${DOC_DIR}/copyright" <<'COPYRIGHT'
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: spendifai
+Upstream-Contact: Luigi Corsaro <lcorsaro69@gmail.com>
+Source: https://github.com/spendifai/spendif-ai
+
+Files: *
+Copyright: 2024-2026 Luigi Corsaro
+License: PolyForm-Noncommercial-1.0.0
+ Use of this software is permitted for any purpose other than a commercial
+ one. The full text is shipped in the source tree as LICENSE and published at
+ https://polyformproject.org/licenses/noncommercial/1.0.0/
+COPYRIGHT
+
 # ── Stamp build info ────────────────────────────────────────────────────────
 # WHY here and not in the repo: the macOS and Windows builders overwrite
 # core/_build_info.py in the working tree, which is fine for them because the
@@ -166,7 +196,7 @@ Version: ${VERSION}
 Section: misc
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, gcc, cmake, pkg-config, zenity
+Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, gcc, cmake, pkgconf, zenity
 Installed-Size: $(du -sk "${INSTALL_ROOT}" | cut -f1)
 Maintainer: Luigi Corsaro <lcorsaro69@gmail.com>
 Homepage: https://github.com/spendifai/spendif-ai
