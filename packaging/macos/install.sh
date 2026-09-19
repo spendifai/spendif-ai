@@ -312,6 +312,12 @@ mkdir -p "$SPENDIFAI_HOME/models"
 
 # Write install path so the app launcher can find the code directory
 echo "$INSTALL_DIR" > "$SPENDIFAI_HOME/install_path.txt"
+
+# Record how this copy was installed, so the in-app update badge prints the
+# right command. A source install updates with `install.sh --update`, which is
+# nothing like what a cask or a downloaded DMG needs. Only the installer knows
+# which of the three ran. See services/update_service.py.
+echo "git" > "$SPENDIFAI_HOME/.install_method"
 ok "Data directory ready"
 
 # ── Step 7: Copy DB if requested ──────────────────────────────────────────────

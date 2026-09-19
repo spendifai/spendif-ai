@@ -591,6 +591,55 @@ def render_settings_page(engine):
 
     st.divider()
 
+    # ── Aggiornamenti ────────────────────────────────────────────────────────
+    st.subheader(t("settings.update_title"))
+
+    update_check_enabled = st.toggle(
+        t("settings.update_check"),
+        value=settings.get("update_check_enabled", "true").lower() == "true",
+        help=t("settings.update_check_help"),
+    )
+    # The privacy line is shown whatever the toggle says. A user deciding
+    # whether to turn the check ON needs to read what it sends just as much as
+    # one deciding to turn it off, and hiding it behind the enabled state would
+    # show it only to people who already opted in.
+    st.caption(t("settings.update_check_privacy"))
+
+    _last_checked = settings.get("update_last_checked_at", "")
+    if _last_checked:
+        st.caption(t("settings.update_last_checked", when=_last_checked))
+    else:
+        st.caption(t("settings.update_never_checked"))
+
+    with st.expander(t("settings.update_history_title"), expanded=False):
+        st.caption(t("settings.update_history_caption"))
+        from services.update_service import UpdateService
+
+        _history = UpdateService(engine).history()
+        if _history:
+            st.dataframe(
+                [
+                    {
+                        t("settings.update_col.version"): _row.version,
+                        t("settings.update_col.from"): _row.previous_version or "",
+                        t("settings.update_col.event"): _row.event,
+                        t("settings.update_col.os"): f"{_row.os_name} {_row.os_version or ''}".strip(),
+                        t("settings.update_col.arch"): _row.arch or "",
+                        t("settings.update_col.method"): _row.install_method,
+                        t("settings.update_col.date"): (
+                            _row.detected_at.strftime("%Y-%m-%d %H:%M") if _row.detected_at else ""
+                        ),
+                    }
+                    for _row in _history
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            st.caption(t("settings.update_never_checked"))
+
+    st.divider()
+
     # ── Profili rapidi (sezione nascosta per power user) ─────────────────────
     with st.expander(t("settings.power_user_title"), expanded=False):
         st.caption(t("settings.power_user_caption"))
@@ -625,6 +674,7 @@ def render_settings_page(engine):
             "use_owner_names_giroconto": "true" if use_owner_giroconto else "false",
             "import_test_mode":       "true" if import_test_mode else "false",
             "force_schema_import":   "true" if force_schema_import else "false",
+            "update_check_enabled":   "true" if update_check_enabled else "false",
             "max_transaction_amount": str(int(max_tx_amount)),
             "contexts":               json.dumps(_ctx_clean, ensure_ascii=False),
         })

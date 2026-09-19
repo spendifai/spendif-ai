@@ -200,13 +200,33 @@ Il cask include un blocco `livecheck` con strategia `github_latest`, quindi
 
 #### Pubblicare una release sul tap
 
-Da eseguire **dopo** che la GitHub Release è pubblicata (una draft non è
-scaricabile da Homebrew):
+**È automatico.** `.github/workflows/publish-tap.yml` gira sull'evento
+`release: published` e pubblica il cask da solo. Nel flusso normale non c'è
+niente da fare a mano.
+
+Il trigger è l'evento di pubblicazione, non il tag di versione, ed è una scelta
+precisa. Il tag scatta quando la release è ancora una draft che contiene il DMG
+**non firmato** prodotto dalla CI (Sezione 2bis). Un job agganciato al tag
+scriverebbe nel cask lo sha256 di quel file, e ogni utente si prenderebbe un
+checksum mismatch da brew su un download perfettamente sano.
+
+Prerequisito, una volta sola: il secret `TAP_PUSH_TOKEN` su
+`spendifai/spendif-ai`. `GITHUB_TOKEN` non può scrivere su un altro repository,
+e il cask vive in `spendifai/homebrew-spendifai`. Serve un personal access
+token fine-grained con resource owner `spendifai`, accesso sia a
+`spendifai/homebrew-spendifai` sia a `spendifai/spendif-ai`, e permesso
+`Contents: Read and write`. Senza, il workflow fallisce in modo rumoroso invece
+di saltare: un tap che smette di aggiornarsi in silenzio è esattamente il guasto
+che questo workflow esiste per evitare.
+
+Per lanciarlo a mano (una ripubblicazione, o una release anteriore al workflow):
+`workflow_dispatch` dalla tab Actions, oppure lo script diretto:
 
 ```bash
 bash packaging/homebrew/update-tap.sh                 # versione dal file VERSION
 bash packaging/homebrew/update-tap.sh --version 0.2.0 # oppure esplicita
 bash packaging/homebrew/update-tap.sh --dry-run       # per ispezionare prima
+bash packaging/homebrew/update-tap.sh --verify-hash   # quello che passa la CI
 ```
 
 Lo script legge il checksum del DMG da `SHA256SUMS.txt` della release (con
@@ -214,9 +234,16 @@ fallback: scarica il DMG e lo calcola), rende il template, crea il repository
 del tap se non esiste ancora, e pusha `Casks/spendifai.rb` più un README
 generato. È idempotente: rilanciarlo sulla stessa versione non fa nulla.
 
+`--verify-hash` scarica il DMG pubblicato e lo confronta con `SHA256SUMS.txt`,
+fallendo se i due non coincidono. La CI lo passa sempre, perché `SHA256SUMS.txt`
+lo scrive il job di publish sugli artefatti NON firmati e solo lo step 3 della
+Sezione 2bis lo rigenera dopo la firma. Se quello step salta, il file dei sums
+descrive ancora il DMG non firmato: il cask uscirebbe con un checksum che
+nessun utente potrà mai far tornare. L'hash dell'asset pubblicato è l'unica
+fonte che non può essere stantia.
+
 Nota: `packaging/release.sh` **non** tocca il tap, contrariamente a quanto
-affermavano le revisioni precedenti di questo documento. L'aggiornamento del
-tap è lo step esplicito qui sopra.
+affermavano le revisioni precedenti di questo documento.
 
 ### Homebrew Core (futuro)
 
@@ -431,6 +458,67 @@ Installazione/disinstallazione:
 sudo dnf install ./build/spendifai-0.1.0-1.noarch.rpm
 sudo dnf remove spendifai
 ```
+
+### Repository APT (firmato)
+
+`sudo apt install ./spendifai_*.deb` installa un file. Non e' un repository:
+niente `apt update`, niente `apt upgrade`, nessuna firma. L'archivio firmato su
+`spendifai/apt`, servito da GitHub Pages, e' quello che fa comportare il .deb
+come qualunque altro pacchetto del sistema.
+
+**Pubblicare una release.** Dopo che la GitHub Release e' pubblicata:
+
+```bash
+python3 packaging/linux/update-apt-repo.py                 # versione dal file VERSION
+python3 packaging/linux/update-apt-repo.py --version 0.2.2 # oppure esplicita
+python3 packaging/linux/update-apt-repo.py --dry-run       # costruisce l'indice, non pusha
+```
+
+Lo script scarica gli asset .deb, ricostruisce `Packages` e `Release` da tutto
+quello che c'e' nel pool (cosi' le versioni precedenti restano installabili),
+firma `InRelease` e `Release.gpg`, esporta la chiave pubblica dearmorata e
+pusha. Tiene le 5 versioni piu' recenti nel pool; la GitHub Release le conserva
+comunque tutte.
+
+**Perche' questo NON e' automatizzato in CI, a differenza del tap Homebrew.**
+Una chiave di firma del repository che trapela permette a un attaccante di
+servire pacchetti arbitrari a chiunque abbia aggiunto il repository: stesso
+danno di una chiave di code signing, e stesso motivo per cui la Sezione 2bis
+tiene le credenziali Apple fuori dalla CI. La chiave resta in
+`~/secrets/spendifai/gpg/`, e `.github/workflows/apt-repo.yml` ha un job
+`verify` che gira dopo ogni release e ogni settimana, e fallisce quando
+l'archivio pubblicato resta indietro rispetto all'ultima release. Dimenticarsene
+fa rumore invece di passare inosservato.
+
+**Setup iniziale, una volta sola.**
+
+```bash
+# 1. La chiave di firma. Fuori da qualunque repository, come ogni credenziale.
+mkdir -p ~/secrets/spendifai/gpg && chmod 700 ~/secrets/spendifai/gpg
+gpg --full-generate-key         # ed25519, solo firma, nessuna scadenza, passphrase vera
+
+# 2. Backup. Perderla significa che ogni utente deve riaggiungere a mano una chiave nuova.
+gpg --export-secret-keys --armor <KEYID> > ~/secrets/spendifai/gpg/signing-key.asc
+gpg --gen-revoke <KEYID> > ~/secrets/spendifai/gpg/revocation.asc
+chmod 600 ~/secrets/spendifai/gpg/*
+
+# 3. Prima pubblicazione, che crea anche il repository.
+python3 packaging/linux/update-apt-repo.py --gpg-key <KEYID>
+
+# 4. Abilitare Pages una volta, dalla root del branch di default:
+#    https://github.com/spendifai/apt/settings/pages
+```
+
+Sulla scadenza: genera la chiave **senza data di scadenza**. Una chiave di firma
+scaduta rompe `apt update` a tutti gli utenti insieme, in una data che nessuno
+si e' segnato. Il certificato di revoca dello step 2 e' quello che copre il caso
+della compromissione.
+
+**Limite noto.** Il pacchetto dichiara `Depends: python3 (>= 3.12)`. Ubuntu
+24.04 e Debian 13 lo soddisfano; **Debian 12 ha Python 3.11 e non puo'
+installarlo**. apt segnala la dipendenza non soddisfatta invece di installare
+qualcosa di rotto, ma il repository viene comunque offerto a macchine che non
+possono usarlo.
 
 ### Installer interattivi (senza package manager)
 

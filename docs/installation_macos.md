@@ -217,6 +217,37 @@ server output.  Closing that Terminal window stops the server.
 
 ## How the Update Notification Works
 
+There are two mechanisms, one per install family, and the app uses whichever
+matches how it was installed.
+
+### Packaged installs (Homebrew, DMG, .deb, .rpm)
+
+At startup the app asks GitHub for the latest published release and compares it
+with its own version. The check runs on a background thread: the interface
+never waits on the network, and the badge you see reflects the previous check.
+If it fails (no network, firewall) nothing happens and no error is shown.
+
+The suggested command depends on how you installed:
+
+| Install | What the badge shows |
+|---------|----------------------|
+| Homebrew | `brew update && brew upgrade --cask spendifai` |
+| DMG | link to the Releases page, to download and drag again |
+| .deb / .rpm | link to the Releases page, with the install command |
+
+The app knows which one because the installer leaves a marker in
+`~/.spendifai/.install_method`: a Homebrew cask and a hand-dragged DMG leave an
+identical bundle in an identical place, and without that file they could not be
+told apart.
+
+**What leaves your computer:** only the question "what is the latest version".
+No budget data, no transactions, no identifier. GitHub sees your IP address, as
+any website you open does. The check can be turned off under
+**Settings > Updates**, which also holds the history of versions used on that
+computer (local, it never leaves the machine).
+
+### Source install (install.sh)
+
 Every time you launch Spendif.ai via the `.app` bundle, the launcher runs a
 background `git fetch` and compares your local branch against `origin/main`.
 

@@ -66,6 +66,38 @@ if [[ -z "$VERSION" ]]; then
   fi
 fi
 
+# ── Pinned uv ────────────────────────────────────────────────────────────────
+# The postinst used to run `curl -LsSf https://astral.sh/uv/install.sh | sh` as
+# root: remote code execution at install time, pinned to nothing, and a step no
+# Debian archive would accept. We now fetch one named asset and verify it
+# against a checksum committed HERE before anything is executed.
+#
+# The checksum must live in this file, not be downloaded next to the tarball:
+# an attacker who can serve you a tampered tarball can serve you its matching
+# .sha256 just as easily. A pin is only a pin when it is reviewed in a diff.
+#
+# To bump: change UV_VERSION, then read the new values from
+#   https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
+# and verify them against the tarball you actually downloaded.
+# A case, not an associative array: macOS still ships bash 3.2, and this script
+# is run by hand on the developer machine as well as by CI.
+UV_VERSION="0.12.17"
+case "${ARCH}" in
+  amd64)
+    UV_TRIPLE="x86_64-unknown-linux-gnu"
+    UV_SHA256="fa82fd8dde8e8eefdecada6aa0889666556cfceb690d06e0c3bca49eb3070a63"
+    ;;
+  arm64)
+    UV_TRIPLE="aarch64-unknown-linux-gnu"
+    UV_SHA256="d636d1b678e9e7f367ecb22b46bd1cabbed234d6bc3b4d96365d2b507f72f86c"
+    ;;
+  *)
+    echo "✖ No pinned uv checksum for architecture '${ARCH}'."
+    echo "  Add a branch to the case in packaging/linux/build-deb.sh before building."
+    exit 1
+    ;;
+esac
+
 echo "▸ Building spendifai_${VERSION}_${ARCH}.deb"
 
 # ── Build directory ──────────────────────────────────────────────────────────
@@ -109,13 +141,29 @@ fi
 find "${INSTALL_ROOT}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "${INSTALL_ROOT}" -name "*.pyc" -delete 2>/dev/null || true
 
+# ── Stamp build info ────────────────────────────────────────────────────────
+# WHY here and not in the repo: the macOS and Windows builders overwrite
+# core/_build_info.py in the working tree, which is fine for them because the
+# result gets committed at release time. The Linux packages used to ship
+# whatever value happened to be committed, so a .deb built from a tag whose
+# _build_info.py still held the previous version would report the wrong
+# version forever. That was invisible while the number was only decoration;
+# now the in-app update check compares against it, and a stale value means a
+# permanent false "update available" badge. Stamping into the staged copy gets
+# the right version into the package without dirtying the working tree.
+cat > "${INSTALL_ROOT}/core/_build_info.py" <<PYEOF
+# Generated at build time - do not edit manually.
+BUILD_TIME = "$(date '+%Y-%m-%d %H:%M')"
+BUILD_VERSION = "${VERSION}"
+PYEOF
+
 echo "✔ Application files copied"
 
 # ── DEBIAN/control ───────────────────────────────────────────────────────────
 cat > "${PKG_ROOT}/DEBIAN/control" <<EOF
 Package: spendifai
 Version: ${VERSION}
-Section: finance
+Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, gcc, cmake, pkg-config, zenity
@@ -135,13 +183,23 @@ EOF
 # USER LAUNCH instead — postinst here only installs uv system-wide so
 # every desktop user can use it. The .desktop Exec line spawns the
 # launch.sh wrapper which performs the per-user setup the first time.
-cat > "${PKG_ROOT}/DEBIAN/postinst" <<'POSTINST'
+{
+# The pinned values are the only part that varies per build, so they are
+# written as a prelude and the rest stays a quoted heredoc: no escaping, and
+# what you read below is exactly what ships.
+cat <<PRELUDE
 #!/bin/bash
 # =============================================================================
-#  Spendif.ai — post-installation (root context, minimal)
+#  Spendif.ai - post-installation (root context, minimal)
 #  Only system-wide setup. Per-user setup runs at first launch via launch.sh.
 # =============================================================================
 set -e
+
+UV_VERSION="${UV_VERSION}"
+UV_TRIPLE="${UV_TRIPLE}"
+UV_SHA256="${UV_SHA256}"
+PRELUDE
+cat <<'POSTINST'
 
 echo ""
 echo "  Spendif.ai — post-install"
@@ -149,17 +207,36 @@ echo ""
 
 # ── 1. System-wide uv install ───────────────────────────────────────────────
 # Place uv in /usr/local/bin so EVERY user (not just root) has it on PATH.
-# astral.sh/uv/install.sh respects UV_INSTALL_DIR.
+#
+# One named asset, one checksum verified BEFORE anything runs. Nothing is
+# piped into a shell: this runs as root, and a compromised or merely changed
+# upstream install script would own the machine.
 if ! [ -x /usr/local/bin/uv ]; then
-  echo "  ▸ Installing uv to /usr/local/bin..."
+  echo "  > Installing uv ${UV_VERSION} to /usr/local/bin..."
   TMP_UV_DIR=$(mktemp -d)
-  curl -LsSf https://astral.sh/uv/install.sh | \
-    env XDG_CONFIG_HOME=/tmp UV_INSTALL_DIR=/usr/local/bin sh -s -- --no-modify-path 2>&1 | tail -3
-  # Fallback if the env-driven install ignored UV_INSTALL_DIR (older curl?):
-  if ! [ -x /usr/local/bin/uv ] && [ -x /root/.local/bin/uv ]; then
-    cp /root/.local/bin/uv /usr/local/bin/uv
-    chmod 0755 /usr/local/bin/uv
+  UV_TARBALL="$TMP_UV_DIR/uv.tar.gz"
+  UV_URL="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_TRIPLE}.tar.gz"
+
+  if curl -fsSL -o "$UV_TARBALL" "$UV_URL"; then
+    ACTUAL=$(sha256sum "$UV_TARBALL" | awk '{print $1}')
+    if [ "$ACTUAL" = "$UV_SHA256" ]; then
+      tar -xzf "$UV_TARBALL" -C "$TMP_UV_DIR"
+      if install -m 0755 "$TMP_UV_DIR/uv-${UV_TRIPLE}/uv" /usr/local/bin/uv; then
+        install -m 0755 "$TMP_UV_DIR/uv-${UV_TRIPLE}/uvx" /usr/local/bin/uvx 2>/dev/null || true
+      fi
+    else
+      # Refuse, loudly, and do not fall back to anything. A mismatch is either
+      # a corrupted download or a substituted artefact, and we cannot tell
+      # which. launch.sh installs uv per-user on first launch, so the user is
+      # not stranded.
+      echo "  !! uv checksum mismatch - refusing to install it."
+      echo "     expected $UV_SHA256"
+      echo "     got      $ACTUAL"
+    fi
+  else
+    echo "  !! Could not download uv from $UV_URL"
   fi
+
   rm -rf "$TMP_UV_DIR"
 fi
 if [ -x /usr/local/bin/uv ]; then
@@ -167,6 +244,12 @@ if [ -x /usr/local/bin/uv ]; then
 else
   echo "  ⚠ uv install failed — user will be prompted to install on first launch."
 fi
+
+# ── 1b. Record how this copy was installed ──────────────────────────────────
+# postinst runs as root and every user on the machine shares this install, so
+# the marker goes next to the code, not in a home directory. launch.sh mirrors
+# it into the launching user's ~/.spendifai. See services/update_service.py.
+echo "deb" > /opt/spendifai/.install_method || true
 
 # ── 2. Refresh icon + desktop caches ────────────────────────────────────────
 if command -v gtk-update-icon-cache &>/dev/null; then
@@ -183,6 +266,7 @@ echo "    ~/.spendifai/.venv and download the recommended AI model (~3 GB)."
 echo "    Launch: search 'Spendif' in Activities, or run /opt/spendifai/launch.sh"
 echo ""
 POSTINST
+} > "${PKG_ROOT}/DEBIAN/postinst"
 
 chmod 0755 "${PKG_ROOT}/DEBIAN/postinst"
 
