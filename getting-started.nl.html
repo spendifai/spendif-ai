@@ -239,7 +239,7 @@
           <p>1. Dubbelklik op het gedownloade <code>.msix</code>-bestand.</p>
           <p>2. De ingebouwde App Installer van Windows opent. Klik op <strong>Installeren</strong>.</p>
           <p>3. De app verschijnt in het Startmenu: start hem daar vandaan.</p>
-          <p>Als je "Onbekende uitgever" ziet: open PowerShell als beheerder en importeer het certificaat eenmalig (zie de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">handleiding</a>).</p>
+          <p>De eerste keren kan Windows "Windows heeft uw pc beveiligd" tonen: klik op "Meer informatie" en daarna op "Toch uitvoeren". De waarschuwing verdwijnt zodra het certificaat reputatie opbouwt. Details in de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/windows-msix-install.png</code><div>(Windows App Installer dialoog)</div></div>
@@ -252,7 +252,7 @@
           <p>Vanuit de terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>De <code>postinst</code> installeert <code>uv</code>, maakt het venv aan, downloadt het model en schrijft <code>.env</code>. Volledige handleiding: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">install guide</a>.</p>
+          <p>De <code>postinst</code> installeert alleen <code>uv</code>. De venv, het downloaden van het model en <code>.env</code> gebeuren bij de <strong>eerste start</strong>, die daardoor enkele minuten duurt. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Volledige handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/linux-deb-install.png</code><div>(dpkg/dnf terminaloutput)</div></div>
@@ -305,6 +305,21 @@
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/app-ready-import-page.png</code><div>(app klaar, Import-pagina)</div></div>
         </div>
       </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Verwijderen</h2>
+      <p>Er blijft niets tegen uw wil op de computer achter. Het commando hangt af van hoe u hebt geïnstalleerd:</p>
+      <p>Weet u niet meer hoe u hebt geïnstalleerd? Als u de Terminal gebruikte was het Homebrew, anders was het de DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> sleep <code>Spendif.ai.app</code> naar de Prullenmand</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Instellingen &gt; Apps &gt; Spendif.ai &gt; Verwijderen</p>
+      <p><strong>Uw gegevens blijven staan, met opzet.</strong> In <code>~/.spendifai</code> (op Windows <code>%USERPROFILE%\.spendifai</code>) staan uw transactiedatabase, uw instellingen en de AI-modellen, samen meerdere GB. Geen van bovenstaande commando's raakt ze aan.</p>
+      <p><strong>Exporteer wat u wilt bewaren voordat u het verwijdert</strong>, via de pagina Ledger: eenmaal verwijderd is het niet terug te halen.</p>
+      <p>Om ook de gegevens te verwijderen: met Homebrew <code>brew uninstall --zap --cask spendifai</code>. Gebruik anders de uninstaller voor uw systeem (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), die apart vraagt naar de database en naar de modellen, of verwijder de map zelf.</p>
     </section>
 
     <section id="help">

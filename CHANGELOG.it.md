@@ -8,6 +8,22 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-20
+
+### Aggiunto
+- Notifica di aggiornamento in-app per le installazioni a pacchetto. Un'installazione via Homebrew, DMG, .deb o .rpm ora si accorge che esiste una versione nuova e mostra il comando giusto per il modo in cui e' stata davvero installata. Fino a ora il badge lo alimentava solo il `git fetch` del launcher dell'installazione da sorgente, quindi un pacchetto leggeva un file che nessuno avrebbe mai scritto (#AI-317)
+- Tabella `update_event`, una riga per ogni versione che questa installazione ha eseguito, con sistema operativo, architettura e metodo di installazione. Storico locale che non esce dalla macchina; Impostazioni > Aggiornamenti lo mostra e permette di disattivare il controllo (#AI-317)
+- Repository APT firmato. `packaging/linux/update-apt-repo.py` costruisce e firma l'archivio pubblicato su `spendifai/apt`, cosi' Debian e Ubuntu ottengono `apt update` e `apt upgrade` invece di un `apt install ./file.deb` una tantum (#AI-322)
+- Il cask Homebrew viene pubblicato automaticamente alla pubblicazione di una release, non piu' con un passo manuale che si poteva dimenticare (#AI-316)
+
+### Sicurezza
+- Il postinst del `.deb` e il `%post` dell'`.rpm` non passano piu' `curl` a una shell come root per installare uv. La versione e' fissata, l'asset viene scaricato per nome e il suo sha256 e' verificato prima di eseguire qualunque cosa. In caso di mancata corrispondenza il passo rifiuta senza alcun ripiego (#AI-321)
+- `anyio` aggiornato a 4.14.2 per CVE-2026-63374 e CVE-2026-64847
+
+### Corretto
+- I pacchetti Linux spedivano la versione che si trovava committata in `core/_build_info.py`, perche' solo i builder macOS e Windows la stampavano. Con il nuovo controllo aggiornamenti quel valore stantio avrebbe significato un falso "aggiornamento disponibile" permanente per ogni utente Linux (#AI-320)
+- Il `.deb` dichiarava `Section: finance`, che non e' una sezione Debian, dipendeva dall'obsoleto `pkg-config` invece che da `pkgconf`, e non spediva ne' changelog ne' file di copyright. lintian ora gira in CI (#AI-321)
+
 ## [0.2.1] - 2026-09-01
 
 ### Changed

@@ -335,7 +335,7 @@
           <p>1. Doppio click sul file <code>.msix</code> scaricato.</p>
           <p>2. Si apre l'installer App Installer integrato in Windows. Premi <strong>Installa</strong>.</p>
           <p>3. L'app appare nello Start Menu e si lancia da lì.</p>
-          <p>Se vedi "Editore sconosciuto": apri PowerShell come admin e importa una volta il certificato (vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guida</a>).</p>
+          <p>Le prime volte Windows può mostrare "Windows ha protetto il PC": clicca su "Ulteriori informazioni" e poi su "Esegui comunque". L'avviso sparisce man mano che il certificato accumula reputazione. Dettagli nella <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank">guida</a>.</p>
         </div>
         <div class="step-img">
           <!-- PLACEHOLDER: Windows App Installer dialog -->
@@ -354,7 +354,7 @@
           <p>Da terminale:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>Il <code>postinst</code> installa <code>uv</code>, crea il venv, scarica il modello e configura <code>.env</code>. Vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank">guida completa</a>.</p>
+          <p>Il <code>postinst</code> installa solo <code>uv</code>. Al <strong>primo avvio</strong> l'app crea il venv, scarica il modello e configura <code>.env</code>: la prima apertura richiede quindi qualche minuto. Vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank">guida completa</a>.</p>
         </div>
         <div class="step-img">
           <!-- PLACEHOLDER: Linux terminal install output -->
@@ -433,6 +433,21 @@
       </div>
     </section>
 
+    <!-- ── Uninstall ───────────────────────────────── -->
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Disinstallare</h2>
+      <p>Niente resta sul computer contro la tua volontà. Il comando dipende da come hai installato:</p>
+      <p>Non ricordi come hai installato? Se hai usato il Terminale è Homebrew, altrimenti è il DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> trascina <code>Spendif.ai.app</code> nel Cestino</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Impostazioni &gt; App &gt; Spendif.ai &gt; Disinstalla</p>
+      <p><strong>I tuoi dati restano, ed è voluto.</strong> In <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>) ci sono il database delle transazioni, le impostazioni e i modelli AI, diversi GB in tutto. Nessuno dei comandi qui sopra li tocca.</p>
+      <p><strong>Prima di cancellarli, esporta quello che vuoi tenere</strong> dalla pagina Registro: una volta rimossi non si recuperano.</p>
+      <p>Per rimuovere anche i dati: con Homebrew <code>brew uninstall --zap --cask spendifai</code>. Altrimenti usa il disinstallatore del tuo sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), che chiede conferma separatamente per il database e per i modelli, oppure cancella a mano la cartella.</p>
+    </section>
     <!-- ── Help ──────────────────────────────────────────────────────── -->
     <section id="help">
       <h2>Hai problemi?</h2>

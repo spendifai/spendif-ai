@@ -239,7 +239,7 @@
           <p>1. Double-cliquez sur le fichier <code>.msix</code> téléchargé.</p>
           <p>2. L'installeur d'applications intégré à Windows s'ouvre. Cliquez sur <strong>Installer</strong>.</p>
           <p>3. L'app apparaît dans le menu Démarrer: lancez-la depuis là.</p>
-          <p>Si vous voyez "Éditeur inconnu" : ouvrez PowerShell en admin et importez le certificat une fois (voir le <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
+          <p>Les premières fois, Windows peut afficher "Windows a protégé votre ordinateur" : cliquez sur "Informations complémentaires" puis sur "Exécuter quand même". L'avertissement disparaît à mesure que le certificat acquiert de la réputation. Détails dans le <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/windows-msix-install.png</code><div>(boîte de dialogue Windows App Installer)</div></div>
@@ -252,7 +252,7 @@
           <p>Depuis le terminal :</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>Le <code>postinst</code> installe <code>uv</code>, crée le venv, télécharge le modèle et configure <code>.env</code>. Guide complet : <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">documentation d'installation</a>.</p>
+          <p>Le <code>postinst</code> installe uniquement <code>uv</code>. Le venv, le téléchargement du modèle et <code>.env</code> se font au <strong>premier lancement</strong>, qui prend donc quelques minutes. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guide complet</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/linux-deb-install.png</code><div>(sortie terminal dpkg/dnf)</div></div>
@@ -305,6 +305,21 @@
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/app-ready-import-page.png</code><div>(app prête, page Importer)</div></div>
         </div>
       </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Désinstaller</h2>
+      <p>Rien ne reste sur votre ordinateur contre votre volonté. La commande dépend de la façon dont vous avez installé :</p>
+      <p>Vous ne savez plus comment vous avez installé ? Si vous avez utilisé le Terminal, c'était Homebrew, sinon c'était le DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> glissez <code>Spendif.ai.app</code> dans la Corbeille</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Paramètres &gt; Applications &gt; Spendif.ai &gt; Désinstaller</p>
+      <p><strong>Vos données restent, et c'est voulu.</strong> <code>~/.spendifai</code> (sous Windows <code>%USERPROFILE%\.spendifai</code>) contient votre base de données de transactions, vos réglages et les modèles d'IA, plusieurs Go au total. Aucune des commandes ci-dessus n'y touche.</p>
+      <p><strong>Exportez ce que vous voulez garder avant de le supprimer</strong>, depuis la page Registre : une fois supprimé, rien n'est récupérable.</p>
+      <p>Pour supprimer aussi les données : avec Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Sinon, utilisez le désinstalleur de votre système (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), qui demande séparément pour la base de données et pour les modèles, ou supprimez le dossier vous-même.</p>
     </section>
 
     <section id="help">

@@ -239,7 +239,7 @@
           <p>1. Doble clic en el archivo <code>.msix</code> descargado.</p>
           <p>2. Se abre el Instalador de Apps integrado en Windows. Pulsa <strong>Instalar</strong>.</p>
           <p>3. La app aparece en el Menú Inicio y se lanza desde allí.</p>
-          <p>Si ves "Editor desconocido": abre PowerShell como admin e importa el certificado una vez (consulta la <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guía</a>).</p>
+          <p>Las primeras veces Windows puede mostrar "Windows protegió su PC": haz clic en "Más información" y luego en "Ejecutar de todas formas". El aviso desaparece a medida que el certificado acumula reputación. Detalles en la <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guía</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/windows-msix-install.png</code><div>(diálogo Instalador de Apps de Windows)</div></div>
@@ -252,7 +252,7 @@
           <p>Desde la terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>El <code>postinst</code> instala <code>uv</code>, crea el venv, descarga el modelo y configura <code>.env</code>. Guía completa: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">guía de instalación</a>.</p>
+          <p>El <code>postinst</code> solo instala <code>uv</code>. El venv, la descarga del modelo y <code>.env</code> se hacen en el <strong>primer arranque</strong>, que por eso tarda unos minutos. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guía completa</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/linux-deb-install.png</code><div>(salida del terminal dpkg/dnf)</div></div>
@@ -305,6 +305,21 @@
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/app-ready-import-page.png</code><div>(app lista, página Importar)</div></div>
         </div>
       </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Desinstalar</h2>
+      <p>Nada se queda en tu ordenador en contra de tu voluntad. El comando depende de cómo lo instalaste:</p>
+      <p>¿No recuerdas cómo lo instalaste? Si usaste el Terminal fue Homebrew, si no fue el DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> arrastra <code>Spendif.ai.app</code> a la Papelera</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Configuración &gt; Aplicaciones &gt; Spendif.ai &gt; Desinstalar</p>
+      <p><strong>Tus datos se quedan, y es intencionado.</strong> En <code>~/.spendifai</code> (en Windows <code>%USERPROFILE%\.spendifai</code>) están tu base de datos de transacciones, tus ajustes y los modelos de IA, varios GB en total. Ninguno de los comandos anteriores los toca.</p>
+      <p><strong>Exporta lo que quieras conservar antes de borrarlo</strong>, desde la página Libro: una vez eliminado no se recupera.</p>
+      <p>Para borrar también los datos: con Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Si no, usa el desinstalador de tu sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), que pregunta por separado por la base de datos y por los modelos, o borra la carpeta a mano.</p>
     </section>
 
     <section id="help">

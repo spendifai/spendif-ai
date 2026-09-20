@@ -320,7 +320,7 @@
           <p>1. Double-click the downloaded <code>.msix</code>.</p>
           <p>2. The built-in App Installer opens. Click <strong>Install</strong>.</p>
           <p>3. The app appears in the Start Menu: launch from there.</p>
-          <p>If you see "Unknown publisher": open PowerShell as admin and import the certificate once (see the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
+          <p>The first few times, Windows may show "Windows protected your PC": click "More info", then "Run anyway". The warning fades as the certificate builds reputation. Details in the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph">
@@ -338,7 +338,7 @@
           <p>From the terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>The <code>postinst</code> installs <code>uv</code>, creates the venv, downloads the model and writes <code>.env</code>. Full guide: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">installation docs</a>.</p>
+          <p>The <code>postinst</code> only installs <code>uv</code>. The venv, the model download and <code>.env</code> happen at <strong>first launch</strong>, so the first start takes a few minutes. Full guide: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">installation docs</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph">
@@ -410,6 +410,21 @@
           <!-- <img src="assets/screenshots/app-ready-import-page.png" alt="App ready: import page"> -->
         </div>
       </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Uninstalling</h2>
+      <p>Nothing stays on your computer against your will. The command depends on how you installed:</p>
+      <p>Not sure how you installed? If you used the Terminal it was Homebrew, otherwise it was the DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> drag <code>Spendif.ai.app</code> to the Trash</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Settings &gt; Apps &gt; Spendif.ai &gt; Uninstall</p>
+      <p><strong>Your data stays, on purpose.</strong> <code>~/.spendifai</code> (<code>%USERPROFILE%\.spendifai</code> on Windows) holds your transaction database, your settings and the AI models, several GB in all. None of the commands above touch it.</p>
+      <p><strong>Export what you want to keep before deleting it</strong>, from the Ledger page: once removed it cannot be recovered.</p>
+      <p>To remove the data too: with Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Otherwise use the uninstaller for your system (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), which asks separately about the database and the models, or delete the folder yourself.</p>
     </section>
 
     <section id="help">

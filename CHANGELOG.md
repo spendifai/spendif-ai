@@ -6,6 +6,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-20
+
+### Added
+- In-app update notification for packaged installs. A Homebrew, DMG, .deb or .rpm install now learns when a newer release exists and is shown the upgrade command for the way it was actually installed. Until now the badge was fed only by the source-install launcher's `git fetch`, so a packaged build read a file nobody would ever write (#AI-317)
+- `update_event` table recording one row per version this installation has run, with the OS, architecture and install method. Local history that never leaves the machine; Settings > Updates shows it and can turn the check off (#AI-317)
+- Signed APT repository. `packaging/linux/update-apt-repo.py` builds and signs the archive published at `spendifai/apt`, so Debian and Ubuntu get `apt update` and `apt upgrade` instead of a one-shot `apt install ./file.deb` (#AI-322)
+- The Homebrew cask is now published automatically when a release is published, rather than by a manual step that could be forgotten (#AI-316)
+
+### Security
+- The `.deb` postinst and `.rpm` `%post` no longer pipe `curl` into a shell as root to install uv. The version is pinned, the asset is downloaded by name, and its sha256 is verified before anything executes. On mismatch the step refuses with no fallback (#AI-321)
+- `anyio` upgraded to 4.14.2 for CVE-2026-63374 and CVE-2026-64847
+
+### Fixed
+- Linux packages shipped whatever version happened to be committed in `core/_build_info.py`, because only the macOS and Windows builders stamped it. With the new update check that stale value would have meant a permanent false "update available" for every Linux user (#AI-320)
+- The `.deb` declared `Section: finance`, which is not a Debian section, depended on the obsolete `pkg-config` instead of `pkgconf`, and shipped neither a changelog nor a copyright file. lintian now runs in CI (#AI-321)
+
 ## [0.2.1] - 2026-09-01
 
 ### Changed

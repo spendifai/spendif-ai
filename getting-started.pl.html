@@ -239,7 +239,7 @@
           <p>1. Kliknij dwukrotnie pobrany plik <code>.msix</code>.</p>
           <p>2. Otworzy się wbudowany Instalator Aplikacji Windows. Kliknij <strong>Zainstaluj</strong>.</p>
           <p>3. Aplikacja pojawi się w Menu Start: uruchom ją stamtąd.</p>
-          <p>Jeśli widzisz "Nieznany wydawca": otwórz PowerShell jako administrator i zaimportuj certyfikat jednorazowo (zobacz <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">przewodnik</a>).</p>
+          <p>Przez pierwsze kilka razy Windows może pokazać "System Windows ochronił Twój komputer": kliknij "Więcej informacji", a następnie "Uruchom mimo to". Ostrzeżenie znika, gdy certyfikat zbuduje reputację. Szczegóły w <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">przewodniku</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Zrzut ekranu</div><code>assets/screenshots/windows-msix-install.png</code><div>(okno dialogowe Instalatora Aplikacji Windows)</div></div>
@@ -252,7 +252,7 @@
           <p>Z terminala:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p><code>postinst</code> instaluje <code>uv</code>, tworzy venv, pobiera model i konfiguruje <code>.env</code>. Pełny przewodnik: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">dokumentacja instalacji</a>.</p>
+          <p><code>postinst</code> instaluje tylko <code>uv</code>. Venv, pobranie modelu i <code>.env</code> dzieją się przy <strong>pierwszym uruchomieniu</strong>, które dlatego trwa kilka minut. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Pełny przewodnik</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Zrzut ekranu</div><code>assets/screenshots/linux-deb-install.png</code><div>(wyjście terminala dpkg/dnf)</div></div>
@@ -305,6 +305,21 @@
           <div class="ph"><div>📷 Zrzut ekranu</div><code>assets/screenshots/app-ready-import-page.png</code><div>(aplikacja gotowa, strona Import)</div></div>
         </div>
       </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Odinstalowanie</h2>
+      <p>Nic nie zostaje na komputerze wbrew Twojej woli. Polecenie zależy od sposobu instalacji:</p>
+      <p>Nie pamiętasz, jak instalowałeś? Jeśli używałeś Terminala, to był Homebrew, w przeciwnym razie DMG.</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> przeciągnij <code>Spendif.ai.app</code> do Kosza</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Ustawienia &gt; Aplikacje &gt; Spendif.ai &gt; Odinstaluj</p>
+      <p><strong>Twoje dane pozostają, i tak ma być.</strong> W <code>~/.spendifai</code> (w Windows <code>%USERPROFILE%\.spendifai</code>) znajdują się baza transakcji, ustawienia i modele AI, w sumie kilka GB. Żadne z powyższych poleceń ich nie usuwa.</p>
+      <p><strong>Przed usunięciem wyeksportuj to, co chcesz zachować</strong>, ze strony Ledger: po usunięciu nie da się tego odzyskać.</p>
+      <p>Aby usunąć także dane: w Homebrew <code>brew uninstall --zap --cask spendifai</code>. W pozostałych przypadkach użyj deinstalatora dla swojego systemu (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), który pyta osobno o bazę danych i o modele, albo usuń folder ręcznie.</p>
     </section>
 
     <section id="help">
