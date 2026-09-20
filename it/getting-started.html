@@ -270,8 +270,8 @@
           <div class="os-icon">🍎</div>
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
-          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener">Scarica DMG</a>
-          <div class="dl-notes">macOS 12 Monterey o superiore. Solo Apple Silicon (M1 o successivi).<br>Hai un Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Scrivicelo</a>: la build Intel non è prevista, ma basta una richiesta per ripensarci.</div>
+          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica DMG</a>
+          <div class="dl-notes">macOS 12 Monterey o superiore. Solo Apple Silicon (M1 o successivi).<br>Hai un Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">Scrivicelo</a>: la build Intel non è prevista, ma basta una richiesta per ripensarci.</div>
         </div>
 
         <!-- Windows -->
@@ -279,7 +279,7 @@
           <div class="os-icon">🪟</div>
           <h3>Windows</h3>
           <div class="ext">SpendifAi-*.msix</div>
-          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Scarica MSIX</a>
+          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica MSIX</a>
           <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + cert trusted richiesti per la fase pre-alpha.</div>
         </div>
 
@@ -288,7 +288,7 @@
           <div class="os-icon">🐧</div>
           <h3>Debian / Ubuntu</h3>
           <div class="ext">spendifai_*_amd64.deb</div>
-          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Scarica .deb</a>
+          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .deb</a>
           <div class="dl-notes">Ubuntu 22.04+, Debian 12+, Mint 21+.</div>
         </div>
 
@@ -297,12 +297,12 @@
           <div class="os-icon">🎩</div>
           <h3>Fedora / RHEL</h3>
           <div class="ext">spendifai-*.rpm</div>
-          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">Scarica .rpm</a>
+          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .rpm</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
         </div>
       </div>
 
-      <p class="dl-notes" style="margin-top:1.5rem">Cerchi una versione specifica? Vedi <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank">tutte le release</a> · Codice sorgente: <a href="https://github.com/spendifai/spendif-ai" target="_blank">spendifai/spendif-ai</a>.</p>
+      <p class="dl-notes" style="margin-top:1.5rem">Cerchi una versione specifica? Vedi <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank" rel="noopener noreferrer">tutte le release</a> · Codice sorgente: <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">spendifai/spendif-ai</a>.</p>
     </section>
 
     <!-- ── Step 2: Install ──────────────────────────────────────────── -->
@@ -341,7 +341,7 @@
           <p>1. Doppio click sul file <code>.msix</code> scaricato.</p>
           <p>2. Si apre l'installer App Installer integrato in Windows. Premi <strong>Installa</strong>.</p>
           <p>3. L'app appare nello Start Menu e si lancia da lì.</p>
-          <p>Le prime volte Windows può mostrare "Windows ha protetto il PC": clicca su "Ulteriori informazioni" e poi su "Esegui comunque". L'avviso sparisce man mano che il certificato accumula reputazione. Dettagli nella <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank">guida</a>.</p>
+          <p>Le prime volte Windows può mostrare "Windows ha protetto il PC": clicca su "Ulteriori informazioni" e poi su "Esegui comunque". L'avviso sparisce man mano che il certificato accumula reputazione. Dettagli nella <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank" rel="noopener noreferrer">guida</a>.</p>
         </div>
         <div class="step-img">
           <!-- PLACEHOLDER: Windows App Installer dialog -->
@@ -360,7 +360,7 @@
           <p>Da terminale:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>Il <code>postinst</code> installa solo <code>uv</code>. Al <strong>primo avvio</strong> l'app crea il venv, scarica il modello e configura <code>.env</code>: la prima apertura richiede quindi qualche minuto. Vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank">guida completa</a>.</p>
+          <p>Il <code>postinst</code> installa solo <code>uv</code>. Al <strong>primo avvio</strong> l'app crea il venv, scarica il modello e configura <code>.env</code>: la prima apertura richiede quindi qualche minuto. Vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank" rel="noopener noreferrer">guida completa</a>.</p>
         </div>
         <div class="step-img">
           <!-- PLACEHOLDER: Linux terminal install output -->
@@ -452,19 +452,19 @@
       <p><strong>Windows:</strong> Impostazioni &gt; App &gt; Spendif.ai &gt; Disinstalla</p>
       <p><strong>I tuoi dati restano, ed è voluto.</strong> In <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>) ci sono il database delle transazioni, le impostazioni e i modelli AI, diversi GB in tutto. Nessuno dei comandi qui sopra li tocca.</p>
       <p><strong>Prima di cancellarli, esporta quello che vuoi tenere</strong> dalla pagina Registro: una volta rimossi non si recuperano.</p>
-      <p>Per rimuovere anche i dati: con Homebrew <code>brew uninstall --zap --cask spendifai</code>. Altrimenti usa il disinstallatore del tuo sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), che chiede conferma separatamente per il database e per i modelli, oppure cancella a mano la cartella.</p>
+      <p>Per rimuovere anche i dati: con Homebrew <code>brew uninstall --zap --cask spendifai</code>. Altrimenti usa il disinstallatore del tuo sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank" rel="noopener noreferrer">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank" rel="noopener noreferrer">Windows</a>), che chiede conferma separatamente per il database e per i modelli, oppure cancella a mano la cartella.</p>
     </section>
     <!-- ── Help ──────────────────────────────────────────────────────── -->
     <section id="help">
       <h2>Hai problemi?</h2>
       <p>
         Documentazione completa:
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank">guida installazione</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.md" target="_blank">guida utente</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.it.md" target="_blank">macOS dettagliata</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank">Windows dettagliata</a>.
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank" rel="noopener noreferrer">guida installazione</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.md" target="_blank" rel="noopener noreferrer">guida utente</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.it.md" target="_blank" rel="noopener noreferrer">macOS dettagliata</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank" rel="noopener noreferrer">Windows dettagliata</a>.
       </p>
-      <p>Bug, domande, richieste: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">apri una issue su GitHub</a>.</p>
+      <p>Bug, domande, richieste: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank" rel="noopener noreferrer">apri una issue su GitHub</a>.</p>
     </section>
     <!-- ── What's coming next (alpha-driven roadmap) ─────────────────── -->
     <section id="roadmap">
@@ -476,7 +476,7 @@
         <li><strong>Performance degli investimenti</strong>: vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio</li>
         <li><strong>App mobile compagna</strong>: registrare cash al volo dal telefono e sincronizzare col desktop</li>
       </ul>
-      <p>Una di queste ti servirebbe? Faccelo sapere su <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank">GitHub Discussions</a>. Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.</p>
+      <p>Una di queste ti servirebbe? Faccelo sapere su <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>. Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.</p>
     </section>
 
 
@@ -484,7 +484,7 @@
   </div>
 
   <footer>
-    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT License · <a href="https://github.com/spendifai/spendif-ai" target="_blank">Source on GitHub</a></p>
+    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT License · <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
   </footer>
   <!-- Direct-download: resolve the latest release assets and point each OS button at its file -->
   <script>
