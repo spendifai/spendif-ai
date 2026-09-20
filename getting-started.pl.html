@@ -311,12 +311,15 @@
     <section id="uninstall">
       <h2>Odinstalowanie</h2>
       <p>Nic nie zostaje na komputerze wbrew Twojej woli. Polecenie zależy od sposobu instalacji:</p>
+      <p>Nie pamiętasz, jak instalowałeś? Jeśli używałeś Terminala, to był Homebrew, w przeciwnym razie DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> przeciągnij <code>Spendif.ai.app</code> do Kosza</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> Ustawienia &gt; Aplikacje &gt; Spendif.ai &gt; Odinstaluj</p>
-      <p><strong>Twoje dane pozostają.</strong> Baza danych, modele AI i ustawienia znajdują się w <code>~/.spendifai</code> (w Windows <code>%USERPROFILE%\.spendifai</code>) i żadne z tych poleceń ich nie usuwa: to kilka GB, warto o tym wiedzieć. Aby usunąć także je: <code>rm -rf ~/.spendifai</code> lub w Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+      <p><strong>Twoje dane pozostają, i tak ma być.</strong> W <code>~/.spendifai</code> (w Windows <code>%USERPROFILE%\.spendifai</code>) znajdują się baza transakcji, ustawienia i modele AI, w sumie kilka GB. Żadne z powyższych poleceń ich nie usuwa.</p>
+      <p><strong>Przed usunięciem wyeksportuj to, co chcesz zachować</strong>, ze strony Ledger: po usunięciu nie da się tego odzyskać.</p>
+      <p>Aby usunąć także dane: w Homebrew <code>brew uninstall --zap --cask spendifai</code>. W pozostałych przypadkach użyj deinstalatora dla swojego systemu (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), który pyta osobno o bazę danych i o modele, albo usuń folder ręcznie.</p>
     </section>
 
     <section id="help">

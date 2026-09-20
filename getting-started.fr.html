@@ -311,12 +311,15 @@
     <section id="uninstall">
       <h2>Désinstaller</h2>
       <p>Rien ne reste sur votre ordinateur contre votre volonté. La commande dépend de la façon dont vous avez installé :</p>
+      <p>Vous ne savez plus comment vous avez installé ? Si vous avez utilisé le Terminal, c'était Homebrew, sinon c'était le DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> glissez <code>Spendif.ai.app</code> dans la Corbeille</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> Paramètres &gt; Applications &gt; Spendif.ai &gt; Désinstaller</p>
-      <p><strong>Vos données restent.</strong> La base de données, les modèles d'IA et vos réglages se trouvent dans <code>~/.spendifai</code> (sous Windows <code>%USERPROFILE%\.spendifai</code>), et aucune de ces commandes n'y touche : cela représente plusieurs Go, autant le savoir. Pour les supprimer aussi : <code>rm -rf ~/.spendifai</code>, ou avec Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+      <p><strong>Vos données restent, et c'est voulu.</strong> <code>~/.spendifai</code> (sous Windows <code>%USERPROFILE%\.spendifai</code>) contient votre base de données de transactions, vos réglages et les modèles d'IA, plusieurs Go au total. Aucune des commandes ci-dessus n'y touche.</p>
+      <p><strong>Exportez ce que vous voulez garder avant de le supprimer</strong>, depuis la page Registre : une fois supprimé, rien n'est récupérable.</p>
+      <p>Pour supprimer aussi les données : avec Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Sinon, utilisez le désinstalleur de votre système (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), qui demande séparément pour la base de données et pour les modèles, ou supprimez le dossier vous-même.</p>
     </section>
 
     <section id="help">

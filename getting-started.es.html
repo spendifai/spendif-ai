@@ -311,12 +311,15 @@
     <section id="uninstall">
       <h2>Desinstalar</h2>
       <p>Nada se queda en tu ordenador en contra de tu voluntad. El comando depende de cómo lo instalaste:</p>
+      <p>¿No recuerdas cómo lo instalaste? Si usaste el Terminal fue Homebrew, si no fue el DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> arrastra <code>Spendif.ai.app</code> a la Papelera</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> Configuración &gt; Aplicaciones &gt; Spendif.ai &gt; Desinstalar</p>
-      <p><strong>Tus datos se quedan.</strong> La base de datos, los modelos de IA y tus ajustes viven en <code>~/.spendifai</code> (en Windows <code>%USERPROFILE%\.spendifai</code>), y ninguno de estos comandos los toca: son varios GB, conviene saberlo. Para borrarlos también: <code>rm -rf ~/.spendifai</code>, o con Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+      <p><strong>Tus datos se quedan, y es intencionado.</strong> En <code>~/.spendifai</code> (en Windows <code>%USERPROFILE%\.spendifai</code>) están tu base de datos de transacciones, tus ajustes y los modelos de IA, varios GB en total. Ninguno de los comandos anteriores los toca.</p>
+      <p><strong>Exporta lo que quieras conservar antes de borrarlo</strong>, desde la página Libro: una vez eliminado no se recupera.</p>
+      <p>Para borrar también los datos: con Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Si no, usa el desinstalador de tu sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), que pregunta por separado por la base de datos y por los modelos, o borra la carpeta a mano.</p>
     </section>
 
     <section id="help">

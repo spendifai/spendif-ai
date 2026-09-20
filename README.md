@@ -34,8 +34,13 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 > **Uninstalling**: `brew uninstall --cask spendifai` on Homebrew, drag the app to the Trash for a DMG
 > install, `sudo apt remove spendifai` or `sudo dnf remove spendifai` on Linux, Settings > Apps on
 > Windows. Your database, models and settings stay in `~/.spendifai` (`%USERPROFILE%\.spendifai` on
-> Windows) and no uninstall command touches them: that is several GB. To delete those too,
-> `rm -rf ~/.spendifai`, or `brew uninstall --zap --cask spendifai`.
+> Windows) and no uninstall command touches them: that is several GB.
+>
+> To remove the data too, export anything worth keeping from the Ledger page first, then either
+> `brew uninstall --zap --cask spendifai`, or run the uninstaller for your system
+> ([macOS](packaging/macos/uninstall.sh), [Linux](packaging/linux/uninstall.sh),
+> [Windows](packaging/windows/uninstall.ps1)), which asks separately about the database and the
+> models rather than deleting both at once.
 
 ---
 

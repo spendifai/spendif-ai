@@ -434,15 +434,19 @@
     </section>
 
     <!-- ── Uninstall ───────────────────────────────── -->
+    <!-- Uninstall -->
     <section id="uninstall">
       <h2>Disinstallare</h2>
       <p>Niente resta sul computer contro la tua volontà. Il comando dipende da come hai installato:</p>
+      <p>Non ricordi come hai installato? Se hai usato il Terminale è Homebrew, altrimenti è il DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> trascina <code>Spendif.ai.app</code> nel Cestino</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> Impostazioni &gt; App &gt; Spendif.ai &gt; Disinstalla</p>
-      <p><strong>I tuoi dati restano.</strong> Database, modelli AI e impostazioni vivono in <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>), e nessuno di questi comandi li tocca: sono diversi GB, quindi conviene saperlo. Per cancellare anche quelli: <code>rm -rf ~/.spendifai</code>, oppure con Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+      <p><strong>I tuoi dati restano, ed è voluto.</strong> In <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>) ci sono il database delle transazioni, le impostazioni e i modelli AI, diversi GB in tutto. Nessuno dei comandi qui sopra li tocca.</p>
+      <p><strong>Prima di cancellarli, esporta quello che vuoi tenere</strong> dalla pagina Registro: una volta rimossi non si recuperano.</p>
+      <p>Per rimuovere anche i dati: con Homebrew <code>brew uninstall --zap --cask spendifai</code>. Altrimenti usa il disinstallatore del tuo sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), che chiede conferma separatamente per il database e per i modelli, oppure cancella a mano la cartella.</p>
     </section>
     <!-- ── Help ──────────────────────────────────────────────────────── -->
     <section id="help">

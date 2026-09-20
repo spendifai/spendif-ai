@@ -35,8 +35,13 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 > hai installato da DMG, `sudo apt remove spendifai` o `sudo dnf remove spendifai` su Linux,
 > Impostazioni > App su Windows. Database, modelli e impostazioni restano in `~/.spendifai`
 > (`%USERPROFILE%\.spendifai` su Windows) e nessun comando di disinstallazione li tocca: sono
-> diversi GB. Per cancellare anche quelli, `rm -rf ~/.spendifai`, oppure
-> `brew uninstall --zap --cask spendifai`.
+> diversi GB.
+>
+> Per rimuovere anche i dati, esporta prima quello che vuoi tenere dalla pagina Registro, poi usa
+> `brew uninstall --zap --cask spendifai` oppure il disinstallatore del tuo sistema
+> ([macOS](packaging/macos/uninstall.sh), [Linux](packaging/linux/uninstall.sh),
+> [Windows](packaging/windows/uninstall.ps1)), che chiede conferma separatamente per il database e
+> per i modelli invece di cancellare entrambi in un colpo solo.
 
 ---
 

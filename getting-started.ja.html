@@ -311,12 +311,15 @@
     <section id="uninstall">
       <h2>アンインストール</h2>
       <p>意に反してパソコンに何かが残ることはありません。コマンドはインストール方法によって異なります。</p>
+      <p>インストール方法を覚えていない場合、ターミナルを使ったなら Homebrew、そうでなければ DMG です。</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> <code>Spendif.ai.app</code> をごみ箱にドラッグ</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> 設定 &gt; アプリ &gt; Spendif.ai &gt; アンインストール</p>
-      <p><strong>データは残ります。</strong> データベース、AI モデル、設定は <code>~/.spendifai</code>（Windows では <code>%USERPROFILE%\.spendifai</code>）にあり、上記のどのコマンドもこれを削除しません。数 GB あるため覚えておくと良いでしょう。削除するには <code>rm -rf ~/.spendifai</code>、Homebrew なら <code>brew uninstall --zap --cask spendifai</code> を使います。</p>
+      <p><strong>データは意図的に残ります。</strong> <code>~/.spendifai</code>（Windows では <code>%USERPROFILE%\.spendifai</code>）には取引データベース、設定、AI モデルが入っており、合計で数 GB あります。上記のコマンドはいずれもこれを削除しません。</p>
+      <p><strong>削除する前に、残したいものを Ledger ページからエクスポートしてください。</strong>一度削除すると復元できません。</p>
+      <p>データも削除するには、Homebrew なら <code>brew uninstall --zap --cask spendifai</code>。それ以外はお使いのシステムのアンインストーラー（<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>）を使ってください。データベースとモデルについて別々に確認します。手動でフォルダーを削除しても構いません。</p>
     </section>
 
     <section id="help">

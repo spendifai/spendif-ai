@@ -311,12 +311,15 @@
     <section id="uninstall">
       <h2>Desinstalar</h2>
       <p>Nada fica no computador contra a sua vontade. O comando depende de como instalou:</p>
+      <p>Não se lembra de como instalou? Se usou o Terminal foi o Homebrew, caso contrário foi o DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
       <p><strong>macOS, DMG:</strong> arraste <code>Spendif.ai.app</code> para o Lixo</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
       <p><strong>Windows:</strong> Definições &gt; Aplicações &gt; Spendif.ai &gt; Desinstalar</p>
-      <p><strong>Os seus dados ficam.</strong> A base de dados, os modelos de IA e as suas definições vivem em <code>~/.spendifai</code> (no Windows <code>%USERPROFILE%\.spendifai</code>), e nenhum destes comandos lhes toca: são vários GB, vale a pena saber. Para apagar também esses: <code>rm -rf ~/.spendifai</code>, ou com Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+      <p><strong>Os seus dados ficam, e é intencional.</strong> Em <code>~/.spendifai</code> (no Windows <code>%USERPROFILE%\.spendifai</code>) estão a base de dados de transações, as suas definições e os modelos de IA, vários GB no total. Nenhum dos comandos acima lhes toca.</p>
+      <p><strong>Exporte o que quiser manter antes de apagar</strong>, a partir da página Ledger: depois de removido não se recupera.</p>
+      <p>Para apagar também os dados: com Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Caso contrário use o desinstalador do seu sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), que pergunta separadamente pela base de dados e pelos modelos, ou apague a pasta manualmente.</p>
     </section>
 
     <section id="help">
