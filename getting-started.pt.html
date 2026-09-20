@@ -307,6 +307,18 @@
       </div>
     </section>
 
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Desinstalar</h2>
+      <p>Nada fica no computador contra a sua vontade. O comando depende de como instalou:</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> arraste <code>Spendif.ai.app</code> para o Lixo</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Definições &gt; Aplicações &gt; Spendif.ai &gt; Desinstalar</p>
+      <p><strong>Os seus dados ficam.</strong> A base de dados, os modelos de IA e as suas definições vivem em <code>~/.spendifai</code> (no Windows <code>%USERPROFILE%\.spendifai</code>), e nenhum destes comandos lhes toca: são vários GB, vale a pena saber. Para apagar também esses: <code>rm -rf ~/.spendifai</code>, ou com Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+    </section>
+
     <section id="help">
       <h2>Com problemas?</h2>
       <p>

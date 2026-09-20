@@ -30,6 +30,13 @@ Registro finanziario personale unificato con pipeline ibrida deterministica + LL
 > La build macOS è **solo Apple Silicon** (M1 o successivi). Hai un Mac Intel?
 > [Scrivicelo su GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions) — la build Intel non è
 > prevista, ma basta una persona che la chieda per ripensarci.
+>
+> **Disinstallare**: `brew uninstall --cask spendifai` con Homebrew, trascinare l'app nel Cestino se
+> hai installato da DMG, `sudo apt remove spendifai` o `sudo dnf remove spendifai` su Linux,
+> Impostazioni > App su Windows. Database, modelli e impostazioni restano in `~/.spendifai`
+> (`%USERPROFILE%\.spendifai` su Windows) e nessun comando di disinstallazione li tocca: sono
+> diversi GB. Per cancellare anche quelli, `rm -rf ~/.spendifai`, oppure
+> `brew uninstall --zap --cask spendifai`.
 
 ---
 

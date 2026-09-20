@@ -307,6 +307,18 @@
       </div>
     </section>
 
+    <!-- Uninstall -->
+    <section id="uninstall">
+      <h2>Verwijderen</h2>
+      <p>Er blijft niets tegen uw wil op de computer achter. Het commando hangt af van hoe u hebt geïnstalleerd:</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> sleep <code>Spendif.ai.app</code> naar de Prullenmand</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Instellingen &gt; Apps &gt; Spendif.ai &gt; Verwijderen</p>
+      <p><strong>Uw gegevens blijven staan.</strong> De database, de AI-modellen en uw instellingen staan in <code>~/.spendifai</code> (op Windows <code>%USERPROFILE%\.spendifai</code>), en geen van deze commando's raakt ze aan: dat is meerdere GB, dus goed om te weten. Om ook die te wissen: <code>rm -rf ~/.spendifai</code>, of met Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+    </section>
+
     <section id="help">
       <h2>Problemen?</h2>
       <p>

@@ -30,6 +30,12 @@ Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggr
 > The macOS build is **Apple Silicon only** (M1 or newer). On an Intel Mac?
 > [Tell us in GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions) — an Intel build is not
 > planned, but one person asking is enough to reconsider.
+>
+> **Uninstalling**: `brew uninstall --cask spendifai` on Homebrew, drag the app to the Trash for a DMG
+> install, `sudo apt remove spendifai` or `sudo dnf remove spendifai` on Linux, Settings > Apps on
+> Windows. Your database, models and settings stay in `~/.spendifai` (`%USERPROFILE%\.spendifai` on
+> Windows) and no uninstall command touches them: that is several GB. To delete those too,
+> `rm -rf ~/.spendifai`, or `brew uninstall --zap --cask spendifai`.
 
 ---
 

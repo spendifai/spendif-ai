@@ -433,6 +433,17 @@
       </div>
     </section>
 
+    <!-- ── Uninstall ───────────────────────────────── -->
+    <section id="uninstall">
+      <h2>Disinstallare</h2>
+      <p>Niente resta sul computer contro la tua volontà. Il comando dipende da come hai installato:</p>
+      <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
+      <p><strong>macOS, DMG:</strong> trascina <code>Spendif.ai.app</code> nel Cestino</p>
+      <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
+      <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
+      <p><strong>Windows:</strong> Impostazioni &gt; App &gt; Spendif.ai &gt; Disinstalla</p>
+      <p><strong>I tuoi dati restano.</strong> Database, modelli AI e impostazioni vivono in <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>), e nessuno di questi comandi li tocca: sono diversi GB, quindi conviene saperlo. Per cancellare anche quelli: <code>rm -rf ~/.spendifai</code>, oppure con Homebrew <code>brew uninstall --zap --cask spendifai</code>.</p>
+    </section>
     <!-- ── Help ──────────────────────────────────────────────────────── -->
     <section id="help">
       <h2>Hai problemi?</h2>
