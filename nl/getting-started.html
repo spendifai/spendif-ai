@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
+  <!-- Content-Security-Policy. GitHub Pages serves no custom headers, so the
+       policy has to travel in the markup (PRODUCT_BLUEPRINT 4.2, block F).
+       Note two limits of the meta form: frame-ancestors and report-uri are
+       ignored here, they exist only as real headers.
+       'unsafe-inline' is present for both script and style and is a deliberate
+       compromise, not an oversight: the pages carry inline <style> plus dozens
+       of style attributes, which no hash can cover, and two inline scripts one
+       of which differs per page. Hashes would make every later edit break the
+       page silently. On static pages with no user input the value left is
+       bounding WHERE external code, connections and frames may come from, and
+       that part is strict. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.vemetric.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://hub.vemetric.com; frame-src 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <!-- Language: English is canonical, the switch happens client-side towards a
+       published translation only. Rule and rationale: PROJECT_BLUEPRINT 3.0quinquies.
+       Loaded in <head>, before rendered content, so nobody sees a flash of the
+       wrong language. -->
+  <script src="/languages.js"></script>
+  <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spendif.ai: Installatie &amp; eerste start</title>
@@ -9,20 +27,20 @@
   <meta property="og:description" content="Drie stappen: downloaden, installeren, eerste start. Alles offline, geen account." />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/getting-started.nl.html" />
-  <link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html" />
-  <link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html" />
-  <link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html" />
-  <link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html" />
-  <link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html" />
-  <link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html" />
-  <link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html" />
-  <link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html" />
-  <link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html" />
-  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html" />
+  <link rel="canonical" href="https://spendif.ai/nl/getting-started.html" />
+  <link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html" />
+  <link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html" />
+  <link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html" />
+  <link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html" />
+  <link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html" />
+  <link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html" />
+  <link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html" />
+  <link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html" />
+  <link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html" />
+  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html" />
   <meta name="robots" content="index,follow" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://spendif.ai/getting-started.nl.html" />
+  <meta property="og:url" content="https://spendif.ai/nl/getting-started.html" />
   <meta property="og:site_name" content="Spendif.ai" />
   <meta property="og:locale" content="nl_NL" />
   <meta property="og:locale:alternate" content="it_IT" />
@@ -45,25 +63,25 @@
       "name": "Spendif.ai: Installatie & eerste start",
       "description": "Download Spendif.ai voor macOS, Windows of Linux. Stapsgewijze gids voor installatie, eerste start en initiële configuratie.",
       "inLanguage": "nl",
-      "url": "https://spendif.ai/getting-started.nl.html",
+      "url": "https://spendif.ai/nl/getting-started.html",
       "step": [
           {
               "@type": "HowToStep",
               "position": 1,
               "name": "Download voor jouw systeem",
-              "url": "https://spendif.ai/getting-started.nl.html#download"
+              "url": "https://spendif.ai/nl/getting-started.html#download"
           },
           {
               "@type": "HowToStep",
               "position": 2,
               "name": "Installeren",
-              "url": "https://spendif.ai/getting-started.nl.html#install"
+              "url": "https://spendif.ai/nl/getting-started.html#install"
           },
           {
               "@type": "HowToStep",
               "position": 3,
               "name": "Eerste start",
-              "url": "https://spendif.ai/getting-started.nl.html#first-launch"
+              "url": "https://spendif.ai/nl/getting-started.html#first-launch"
           }
       ],
       "about": {
@@ -149,7 +167,7 @@
         <a href="#download">Downloaden</a>
         <a href="#install">Installeren</a>
         <a href="#first-launch">Eerste start</a>
-        <span class="lang-switch">🌐 <a href="getting-started.en.html">EN</a> · <a href="getting-started.html">IT</a> · <a href="getting-started.de.html">DE</a> · <a href="getting-started.es.html">ES</a> · <a href="getting-started.fr.html">FR</a> · <a href="getting-started.ja.html">JA</a> · <a href="getting-started.pl.html">PL</a> · <a href="getting-started.pt.html">PT</a></span>
+        <nav data-lang-switcher aria-label="Language"></nav>
       </div>
     </div>
   </nav>
@@ -181,33 +199,33 @@
           <div class="os-icon">🍎</div>
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
-          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">DMG downloaden</a>
-          <div class="dl-notes">macOS 12 Monterey of nieuwer. Alleen Apple Silicon (M1 of nieuwer).<br>Heb je een Intel-Mac? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener">Laat het ons weten</a>: een Intel-build staat niet gepland, maar één verzoek is genoeg om dat te heroverwegen.</div>
+          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">DMG downloaden</a>
+          <div class="dl-notes">macOS 12 Monterey of nieuwer. Alleen Apple Silicon (M1 of nieuwer).<br>Heb je een Intel-Mac? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">Laat het ons weten</a>: een Intel-build staat niet gepland, maar één verzoek is genoeg om dat te heroverwegen.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🪟</div>
           <h3>Windows</h3>
           <div class="ext">SpendifAi-*.msix</div>
-          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">MSIX downloaden</a>
+          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">MSIX downloaden</a>
           <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + vertrouwd certificaat vereist in de pre-alpha-fase.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🐧</div>
           <h3>Debian / Ubuntu</h3>
           <div class="ext">spendifai_*_amd64.deb</div>
-          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">.deb downloaden</a>
+          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">.deb downloaden</a>
           <div class="dl-notes">Ubuntu 22.04+, Debian 12+, Mint 21+.</div>
         </div>
         <div class="dl-card">
           <div class="os-icon">🎩</div>
           <h3>Fedora / RHEL</h3>
           <div class="ext">spendifai-*.rpm</div>
-          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank">.rpm downloaden</a>
+          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">.rpm downloaden</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
         </div>
       </div>
 
-      <p class="dl-notes" style="margin-top:1.5rem">Op zoek naar een specifieke versie? Bekijk <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank">alle releases</a> · Broncode: <a href="https://github.com/spendifai/spendif-ai" target="_blank">spendifai/spendif-ai</a>.</p>
+      <p class="dl-notes" style="margin-top:1.5rem">Op zoek naar een specifieke versie? Bekijk <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank" rel="noopener noreferrer">alle releases</a> · Broncode: <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">spendifai/spendif-ai</a>.</p>
     </section>
 
     <section id="install">
@@ -239,7 +257,7 @@
           <p>1. Dubbelklik op het gedownloade <code>.msix</code>-bestand.</p>
           <p>2. De ingebouwde App Installer van Windows opent. Klik op <strong>Installeren</strong>.</p>
           <p>3. De app verschijnt in het Startmenu: start hem daar vandaan.</p>
-          <p>De eerste keren kan Windows "Windows heeft uw pc beveiligd" tonen: klik op "Meer informatie" en daarna op "Toch uitvoeren". De waarschuwing verdwijnt zodra het certificaat reputatie opbouwt. Details in de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">handleiding</a>.</p>
+          <p>De eerste keren kan Windows "Windows heeft uw pc beveiligd" tonen: klik op "Meer informatie" en daarna op "Toch uitvoeren". De waarschuwing verdwijnt zodra het certificaat reputatie opbouwt. Details in de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank" rel="noopener noreferrer">handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/windows-msix-install.png</code><div>(Windows App Installer dialoog)</div></div>
@@ -252,7 +270,7 @@
           <p>Vanuit de terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>De <code>postinst</code> installeert alleen <code>uv</code>. De venv, het downloaden van het model en <code>.env</code> gebeuren bij de <strong>eerste start</strong>, die daardoor enkele minuten duurt. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Volledige handleiding</a>.</p>
+          <p>De <code>postinst</code> installeert alleen <code>uv</code>. De venv, het downloaden van het model en <code>.env</code> gebeuren bij de <strong>eerste start</strong>, die daardoor enkele minuten duurt. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank" rel="noopener noreferrer">Volledige handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/linux-deb-install.png</code><div>(dpkg/dnf terminaloutput)</div></div>
@@ -319,25 +337,25 @@
       <p><strong>Windows:</strong> Instellingen &gt; Apps &gt; Spendif.ai &gt; Verwijderen</p>
       <p><strong>Uw gegevens blijven staan, met opzet.</strong> In <code>~/.spendifai</code> (op Windows <code>%USERPROFILE%\.spendifai</code>) staan uw transactiedatabase, uw instellingen en de AI-modellen, samen meerdere GB. Geen van bovenstaande commando's raakt ze aan.</p>
       <p><strong>Exporteer wat u wilt bewaren voordat u het verwijdert</strong>, via de pagina Ledger: eenmaal verwijderd is het niet terug te halen.</p>
-      <p>Om ook de gegevens te verwijderen: met Homebrew <code>brew uninstall --zap --cask spendifai</code>. Gebruik anders de uninstaller voor uw systeem (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank">Windows</a>), die apart vraagt naar de database en naar de modellen, of verwijder de map zelf.</p>
+      <p>Om ook de gegevens te verwijderen: met Homebrew <code>brew uninstall --zap --cask spendifai</code>. Gebruik anders de uninstaller voor uw systeem (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank" rel="noopener noreferrer">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank" rel="noopener noreferrer">Windows</a>), die apart vraagt naar de database en naar de modellen, of verwijder de map zelf.</p>
     </section>
 
     <section id="help">
       <h2>Problemen?</h2>
       <p>
         Volledige documentatie:
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">installatiehandleiding</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.en.md" target="_blank">gebruikershandleiding</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.md" target="_blank">macOS detail</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">Windows detail</a>.
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank" rel="noopener noreferrer">installatiehandleiding</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.en.md" target="_blank" rel="noopener noreferrer">gebruikershandleiding</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.md" target="_blank" rel="noopener noreferrer">macOS detail</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank" rel="noopener noreferrer">Windows detail</a>.
       </p>
-      <p>Bugs, vragen, verzoeken: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">open een issue op GitHub</a>.</p>
+      <p>Bugs, vragen, verzoeken: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank" rel="noopener noreferrer">open een issue op GitHub</a>.</p>
     </section>
 
   </div>
 
   <footer>
-    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT-licentie · <a href="https://github.com/spendifai/spendif-ai" target="_blank">Broncode op GitHub</a></p>
+    <p>© 2026 Luigi Corsaro · Spendif.ai · MIT-licentie · <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">Broncode op GitHub</a></p>
   </footer>
   <!-- Direct-download: resolve the latest release assets and point each OS button at its file -->
   <script>

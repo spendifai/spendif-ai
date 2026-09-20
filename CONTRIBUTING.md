@@ -168,7 +168,7 @@ Nel body della PR includi:
 
 ### Landing page (transizione)
 
-**Workflow attuale (transitorio)**: edita direttamente `sw_artifacts/index.<lang>.html`. Apri in parallelo `index.en.html` come riferimento, modifica solo i testi visibili (NON CSS, JS o `href` URL), salva, PR.
+**Workflow attuale (transitorio)**: edita direttamente `sw_artifacts/<lang>/index.html`. Apri in parallelo l'inglese canonico `sw_artifacts/index.html` come riferimento, modifica solo i testi visibili (NON CSS, JS o `href` URL), salva, PR.
 
 Suggerimenti pratici:
 

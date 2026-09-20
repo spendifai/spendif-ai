@@ -28,13 +28,13 @@ Installing Spendif.ai takes three steps, described in full in the getting-starte
 2. **Install**: the usual installer for your platform; no account and no sign-up at any point.
 3. **First launch**: the app downloads its local AI model, then a short onboarding wizard sets up accounts and categories.
 
-- Getting-started guide: https://spendif.ai/getting-started.html (English: https://spendif.ai/getting-started.en.html)
+- Getting-started guide: https://spendif.ai/it/getting-started.html (English: https://spendif.ai/it/getting-started.html)
 
 ## Links
 
 - Website: https://spendif.ai/
-- Getting started: https://spendif.ai/getting-started.en.html
-- FAQ: https://spendif.ai/index.en.html#faq
+- Getting started: https://spendif.ai/it/getting-started.html
+- FAQ: https://spendif.ai/#faq
 - FAQ, machine-readable in all nine languages: https://spendif.ai/faq.json
 - Source code: https://github.com/spendifai/spendif-ai
 - Downloads / releases: https://github.com/spendifai/spendif-ai/releases

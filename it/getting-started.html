@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
   <!-- Content-Security-Policy. GitHub Pages serves no custom headers, so the
        policy has to travel in the markup (PRODUCT_BLUEPRINT 4.2, block F).
@@ -21,13 +21,13 @@
   <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spendif.ai: Install &amp; first launch</title>
-  <meta name="description" content="Download Spendif.ai for macOS, Windows or Linux. Step-by-step install, first launch and initial setup guide." />
-  <meta property="og:title" content="Spendif.ai: Install &amp; first launch" />
-  <meta property="og:description" content="Three steps: download, install, first launch. All offline, no cloud." />
+  <title>Spendif.ai: Installazione e primo avvio</title>
+  <meta name="description" content="Scarica Spendif.ai per macOS, Windows o Linux. Guida passo-passo a installazione, primo avvio e configurazione iniziale." />
+  <meta property="og:title" content="Spendif.ai: Installazione e primo avvio" />
+  <meta property="og:description" content="Tre passi: scarica, installa, primo avvio. Tutto sul tuo computer, niente cloud." />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/getting-started.html" />
+  <link rel="canonical" href="https://spendif.ai/it/getting-started.html" />
   <link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html" />
   <link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html" />
   <link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html" />
@@ -40,10 +40,10 @@
   <link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html" />
   <meta name="robots" content="index,follow" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://spendif.ai/getting-started.html" />
+  <meta property="og:url" content="https://spendif.ai/it/getting-started.html" />
   <meta property="og:site_name" content="Spendif.ai" />
-  <meta property="og:locale" content="en_US" />
-  <meta property="og:locale:alternate" content="it_IT" />
+  <meta property="og:locale" content="it_IT" />
+  <meta property="og:locale:alternate" content="en_US" />
   <meta property="og:locale:alternate" content="de_DE" />
   <meta property="og:locale:alternate" content="es_ES" />
   <meta property="og:locale:alternate" content="fr_FR" />
@@ -51,36 +51,36 @@
   <meta property="og:locale:alternate" content="nl_NL" />
   <meta property="og:locale:alternate" content="pl_PL" />
   <meta property="og:locale:alternate" content="pt_PT" />
-  <meta property="og:image" content="https://spendif.ai/og-image.en.png" />
+  <meta property="og:image" content="https://spendif.ai/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://spendif.ai/og-image.en.png" />
+  <meta name="twitter:image" content="https://spendif.ai/og-image.png" />
   <script type="application/ld+json">
   {
       "@context": "https://schema.org",
       "@type": "HowTo",
-      "name": "Spendif.ai: Install & first launch",
-      "description": "Download Spendif.ai for macOS, Windows or Linux. Step-by-step install, first launch and initial setup guide.",
-      "inLanguage": "en",
+      "name": "Spendif.ai: Installazione e primo avvio",
+      "description": "Scarica Spendif.ai per macOS, Windows o Linux. Guida passo-passo a installazione, primo avvio e configurazione iniziale.",
+      "inLanguage": "it",
       "url": "https://spendif.ai/it/getting-started.html",
       "step": [
           {
               "@type": "HowToStep",
               "position": 1,
-              "name": "Download for your system",
+              "name": "Scarica per il tuo sistema",
               "url": "https://spendif.ai/it/getting-started.html#download"
           },
           {
               "@type": "HowToStep",
               "position": 2,
-              "name": "Install",
+              "name": "Installa",
               "url": "https://spendif.ai/it/getting-started.html#install"
           },
           {
               "@type": "HowToStep",
               "position": 3,
-              "name": "First launch",
+              "name": "Primo avvio",
               "url": "https://spendif.ai/it/getting-started.html#first-launch"
           }
       ],
@@ -132,6 +132,7 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
+    /* ── Top nav ─────────────────────────────────────────────────────── */
     .nav { position: sticky; top: 0; background: rgba(13,17,23,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 100; }
     .nav-inner { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
     .nav-brand { font-weight: 700; font-size: 1.15rem; }
@@ -141,10 +142,12 @@
     .lang-switch { color: var(--muted); font-size: 0.9rem; }
     .lang-switch a { color: var(--blue); }
 
+    /* ── Hero ─────────────────────────────────────────────────────────── */
     .hero { padding: 4rem 1.5rem 2rem; text-align: center; }
     .hero h1 { font-size: 2.4rem; line-height: 1.2; margin-bottom: 0.8rem; }
     .hero .lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 auto; }
 
+    /* ── Layout ───────────────────────────────────────────────────────── */
     .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem 4rem; }
     section { margin-top: 3.5rem; }
     h2 { font-size: 1.6rem; margin-bottom: 1rem; }
@@ -152,6 +155,7 @@
     p { color: var(--muted); margin-bottom: 0.8rem; }
     .step-num { display: inline-block; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--blue); color: white; text-align: center; line-height: 2.2rem; font-weight: 700; margin-right: 0.8rem; vertical-align: middle; }
 
+    /* ── Download grid ────────────────────────────────────────────────── */
     .dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
     .dl-card {
       background: var(--surface);
@@ -175,8 +179,10 @@
       transition: opacity 0.2s;
     }
     .dl-btn:hover { opacity: 0.9; text-decoration: none; }
+    .dl-btn.alt { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
     .dl-notes { color: var(--muted); font-size: 0.85rem; margin-top: 0.8rem; }
 
+    /* ── Steps with screenshots ───────────────────────────────────────── */
     .step {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -218,6 +224,7 @@
     .step:has(.ph) { grid-template-columns: 1fr; }
     .step-img:has(.ph) { display: none; }
 
+    /* ── Boxes ─────────────────────────────────────────────────────────── */
     .note {
       background: var(--surface);
       border-left: 4px solid var(--orange);
@@ -227,6 +234,7 @@
     }
     .note strong { color: var(--orange); }
 
+    /* ── Footer ────────────────────────────────────────────────────────── */
     footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
     footer a { color: var(--blue); }
   </style>
@@ -236,97 +244,104 @@
     <div class="nav-inner">
       <div class="nav-brand"><a href="/">Spendif.ai</a></div>
       <div class="nav-links">
-        <a href="#what-you-get">What you get</a>
-        <a href="#download">Download</a>
-        <a href="#install">Install</a>
-        <a href="#first-launch">First launch</a>
+        <a href="#what-you-get">Cosa ottieni</a>
+        <a href="#download">Scarica</a>
+        <a href="#install">Installa</a>
+        <a href="#first-launch">Primo avvio</a>
         <nav data-lang-switcher aria-label="Language"></nav>
       </div>
     </div>
   </nav>
 
   <section class="hero">
-    <h1>Install &amp; first launch</h1>
-    <p class="lead">Three steps to get Spendif.ai running on your computer: download, install, first launch. All offline, no account required.</p>
+    <h1>Installazione e primo avvio</h1>
+    <p class="lead">Tre passi per avere Spendif.ai in funzione sul tuo computer: scarica, installa, primo avvio. Tutto offline, niente account.</p>
   </section>
 
   <div class="wrap">
 
+    <!-- ── Step 1: Download ─────────────────────────────────────────── -->
 
     <section id="what-you-get">
-      <h2><span class="step-num" style="background:var(--green)">✨</span>What you get</h2>
+      <h2><span class="step-num" style="background:var(--green)">✨</span>Cosa ottieni</h2>
       <ul class="features-list">
-        <li><strong>Imports any bank's CSV/XLSX</strong>: auto-detects format, no manual mapping</li>
-        <li><strong>AI categorisation, fully offline</strong>: local LLM included, no cloud needed</li>
-        <li><strong>Local AI by default</strong>: data stays on your machine; remote LLM is opt-in and redacts IBAN / cards / owner names (amounts and dates still travel: see roadmap)</li>
-        <li><strong>Five languages</strong>: Italian, English, French, German, Spanish</li>
-        <li><strong>Card-account reconciliation</strong> <span class="beta-tag">(beta)</span>: pairs credit-card settlements with the underlying expenses to avoid double-counting<span class="beta-note">(edge cases still being refined)</span></li>
-        <li><strong>Internal transfer detection</strong> <span class="beta-tag">(beta)</span>: matches transfers across your own accounts so they don't inflate dashboards<span class="beta-note">(edge cases still being refined)</span></li>
+        <li><strong>Importa CSV/XLSX di qualsiasi banca</strong>: riconosce il formato in automatico, nessun mapping manuale</li>
+        <li><strong>Categorizzazione AI, completamente offline</strong>: LLM locale incluso, nessun cloud</li>
+        <li><strong>AI locale di default</strong>: i dati restano sulla tua macchina; LLM remoto opt-in con redazione di IBAN / carte / nomi titolare (importi e date viaggiano comunque: roadmap aperta)</li>
+        <li><strong>Cinque lingue</strong>: italiano, inglese, francese, tedesco, spagnolo</li>
+        <li><strong>Riconciliazione carta-conto</strong> <span class="beta-tag">(beta)</span>: appaia gli addebiti carta con le spese sottostanti per evitare il double-counting<span class="beta-note">(edge cases ancora in raffinamento)</span></li>
+        <li><strong>Rilevazione giroconti</strong> <span class="beta-tag">(beta)</span>: matcha i giroconti tra i tuoi conti perché non gonfino i dashboard<span class="beta-note">(edge cases ancora in raffinamento)</span></li>
       </ul>
     </section>
     <section id="download">
-      <h2><span class="step-num">1</span>Download for your system</h2>
+      <h2><span class="step-num">1</span>Scarica per il tuo sistema</h2>
 
       <div class="dl-grid">
+        <!-- macOS -->
         <div class="dl-card">
           <div class="os-icon">🍎</div>
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
-          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Download DMG</a>
-          <div class="dl-notes">macOS 12 Monterey or later. Apple Silicon only (M1 or newer).<br>On an Intel Mac? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">Tell us</a>: an Intel build is not planned, but one request is enough to reconsider.</div>
+          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica DMG</a>
+          <div class="dl-notes">macOS 12 Monterey o superiore. Solo Apple Silicon (M1 o successivi).<br>Hai un Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">Scrivicelo</a>: la build Intel non è prevista, ma basta una richiesta per ripensarci.</div>
         </div>
 
+        <!-- Windows -->
         <div class="dl-card">
           <div class="os-icon">🪟</div>
           <h3>Windows</h3>
           <div class="ext">SpendifAi-*.msix</div>
-          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Download MSIX</a>
-          <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + trusted cert needed during pre-alpha.</div>
+          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica MSIX</a>
+          <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + cert trusted richiesti per la fase pre-alpha.</div>
         </div>
 
+        <!-- Debian / Ubuntu -->
         <div class="dl-card">
           <div class="os-icon">🐧</div>
           <h3>Debian / Ubuntu</h3>
           <div class="ext">spendifai_*_amd64.deb</div>
-          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Download .deb</a>
+          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .deb</a>
           <div class="dl-notes">Ubuntu 22.04+, Debian 12+, Mint 21+.</div>
         </div>
 
+        <!-- Fedora / RHEL -->
         <div class="dl-card">
           <div class="os-icon">🎩</div>
           <h3>Fedora / RHEL</h3>
           <div class="ext">spendifai-*.rpm</div>
-          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Download .rpm</a>
+          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .rpm</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
         </div>
       </div>
 
-      <p class="dl-notes" style="margin-top:1.5rem">Looking for a specific version? See <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank" rel="noopener noreferrer">all releases</a> · Source code: <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">spendifai/spendif-ai</a>.</p>
+      <p class="dl-notes" style="margin-top:1.5rem">Cerchi una versione specifica? Vedi <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank" rel="noopener noreferrer">tutte le release</a> · Codice sorgente: <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">spendifai/spendif-ai</a>.</p>
     </section>
 
+    <!-- ── Step 2: Install ──────────────────────────────────────────── -->
     <section id="install">
-      <h2><span class="step-num">2</span>Install</h2>
+      <h2><span class="step-num">2</span>Installa</h2>
 
       <div class="step">
         <div class="step-text">
           <h3>macOS: DMG</h3>
-          <p>1. Double-click the downloaded <code>.dmg</code>.</p>
-          <p>2. Drag <strong>Spendif.ai.app</strong> into the <strong>Applications</strong> folder.</p>
-          <p>3. Eject the DMG (Cmd+E) and launch the app from Launchpad.</p>
-          <p>The DMG is signed with a Developer ID certificate and notarised by Apple, so macOS opens it with no warnings.</p>
-          <p style="margin-top:1.2rem"><strong>Alternatively, with Homebrew:</strong></p>
+          <p>1. Doppio click sul file <code>.dmg</code> scaricato.</p>
+          <p>2. Trascina <strong>Spendif.ai.app</strong> nella cartella <strong>Applicazioni</strong>.</p>
+          <p>3. Espelli il DMG (Cmd+E) e lancia l'app dal Launchpad.</p>
+          <p>Il DMG è firmato con certificato Developer ID e notarizzato da Apple: macOS lo apre senza avvisi.</p>
+          <p style="margin-top:1.2rem"><strong>In alternativa, con Homebrew:</strong></p>
           <p>
             <code>brew tap spendifai/spendifai</code><br>
             <code>brew trust --cask spendifai/spendifai/spendifai</code><br>
             <code>brew install --cask spendifai</code>
           </p>
-          <p>From then on you update with <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
+          <p>Da qui in avanti aggiorni con <code>brew update &amp;&amp; brew upgrade --cask spendifai</code>.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: drag-and-drop DMG screenshot -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/macos-dmg-dragdrop.png</code>
-            <div>(drag &amp; drop from DMG to Applications)</div>
+            <div>(drag &amp; drop dal DMG ad Applicazioni)</div>
           </div>
           <!-- <img src="/assets/screenshots/macos-dmg-dragdrop.png" alt="DMG drag and drop to Applications"> -->
         </div>
@@ -335,16 +350,17 @@
       <div class="step reverse">
         <div class="step-text">
           <h3>Windows: MSIX</h3>
-          <p>1. Double-click the downloaded <code>.msix</code>.</p>
-          <p>2. The built-in App Installer opens. Click <strong>Install</strong>.</p>
-          <p>3. The app appears in the Start Menu: launch from there.</p>
-          <p>The first few times, Windows may show "Windows protected your PC": click "More info", then "Run anyway". The warning fades as the certificate builds reputation. Details in the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank" rel="noopener noreferrer">guide</a>.</p>
+          <p>1. Doppio click sul file <code>.msix</code> scaricato.</p>
+          <p>2. Si apre l'installer App Installer integrato in Windows. Premi <strong>Installa</strong>.</p>
+          <p>3. L'app appare nello Start Menu e si lancia da lì.</p>
+          <p>Le prime volte Windows può mostrare "Windows ha protetto il PC": clicca su "Ulteriori informazioni" e poi su "Esegui comunque". L'avviso sparisce man mano che il certificato accumula reputazione. Dettagli nella <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank" rel="noopener noreferrer">guida</a>.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: Windows App Installer dialog -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/windows-msix-install.png</code>
-            <div>(Windows App Installer dialog)</div>
+            <div>(App Installer di Windows)</div>
           </div>
           <!-- <img src="/assets/screenshots/windows-msix-install.png" alt="Windows App Installer"> -->
         </div>
@@ -353,41 +369,44 @@
       <div class="step">
         <div class="step-text">
           <h3>Linux: .deb / .rpm</h3>
-          <p>From the terminal:</p>
+          <p>Da terminale:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>The <code>postinst</code> only installs <code>uv</code>. The venv, the model download and <code>.env</code> happen at <strong>first launch</strong>, so the first start takes a few minutes. Full guide: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank" rel="noopener noreferrer">installation docs</a>.</p>
+          <p>Il <code>postinst</code> installa solo <code>uv</code>. Al <strong>primo avvio</strong> l'app crea il venv, scarica il modello e configura <code>.env</code>: la prima apertura richiede quindi qualche minuto. Vedi <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank" rel="noopener noreferrer">guida completa</a>.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: Linux terminal install output -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/linux-deb-install.png</code>
-            <div>(dpkg/dnf terminal output)</div>
+            <div>(output terminale dpkg/dnf)</div>
           </div>
           <!-- <img src="/assets/screenshots/linux-deb-install.png" alt="Linux install output"> -->
         </div>
       </div>
     </section>
 
+    <!-- ── Step 3: First launch ─────────────────────────────────────── -->
     <section id="first-launch">
-      <h2><span class="step-num">3</span>First launch</h2>
-      <p>On first launch Spendif.ai sets up its environment: it's the longest step, but happens only once.</p>
+      <h2><span class="step-num">3</span>Primo avvio</h2>
+      <p>Al primo avvio Spendif.ai prepara l'ambiente: è il passaggio più lungo, ma succede solo la prima volta.</p>
 
       <div class="note">
-        <strong>⏱ Time required:</strong> depends on your connection speed (usually 5-15 minutes). Free disk space required: ~5 GB. Good news: <strong>you can start filling in the wizard right away</strong>, the model downloads in parallel.
+        <strong>⏱ Tempo richiesto:</strong> dipende dalla velocità della tua connessione (di solito 5-15 minuti). Spazio libero richiesto: ~5 GB. Buona notizia: <strong>puoi iniziare a compilare il wizard subito</strong>, il modello si scarica in parallelo.
       </div>
 
       <div class="step">
         <div class="step-text">
-          <h3>3a. Splash + AI model download (in parallel)</h3>
-          <p>Double-clicking opens a native window with a <strong>splash screen</strong>. Spendif.ai detects your RAM/VRAM and kicks off a background download of the LLM best suited for your hardware (Qwen 2.5, Gemma 3: sizes from 1 to 8 GB).</p>
-          <p>The model lives at <code>~/.spendifai/models/</code> (macOS/Linux) or <code>%USERPROFILE%\.spendifai\models\</code> (Windows) and survives reinstalls. <strong>The configuration wizard appears within seconds</strong>, without waiting for the download to finish.</p>
+          <h3>3a. Splash + download modello AI (in parallelo)</h3>
+          <p>Al doppio click si apre una finestra nativa con uno <strong>splash screen</strong>. Spendif.ai rileva la RAM/VRAM disponibile e fa partire il download in background del modello LLM più adatto al tuo hardware (Qwen 2.5, Gemma 3, dimensioni da 1 a 8 GB).</p>
+          <p>Il modello finisce in <code>~/.spendifai/models/</code> (macOS/Linux) o <code>%USERPROFILE%\.spendifai\models\</code> (Windows) e sopravvive a reinstallazioni. <strong>Il wizard di configurazione appare in pochi secondi</strong>, senza attendere la fine del download.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: splash screen with progress -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/splash-download-progress.png</code>
-            <div>(splash + model download progress)</div>
+            <div>(splash + barra progresso download modello)</div>
           </div>
           <!-- <img src="/assets/screenshots/splash-download-progress.png" alt="Splash screen with model download progress"> -->
         </div>
@@ -395,19 +414,20 @@
 
       <div class="step reverse">
         <div class="step-text">
-          <h3>3b. Onboarding wizard: 4 steps</h3>
-          <p>While the model continues downloading in the background, the <strong>configuration wizard</strong> guides you through 4 steps:</p>
-          <p>1. <strong>Language</strong>: taxonomy, date format, number separators.<br>
-             2. <strong>Holders</strong>: your name and the variants your bank uses.<br>
-             3. <strong>Accounts</strong>: current account, cards, cash.<br>
-             4. <strong>Summary + Start</strong>: everything is written only here, no partial persistence.</p>
-          <p>Every step shows a <strong>live download banner</strong> at the top (e.g. "📚 78% · ~3 min"). On the final summary, the <em>Start</em> button stays disabled until the model is 100%: so the Import page works immediately when you reach the app. Everything is changeable from <em>Settings</em> later.</p>
+          <h3>3b. Wizard di onboarding: 4 step</h3>
+          <p>Mentre il modello continua a scaricarsi in background, il <strong>wizard di configurazione</strong> ti guida in 4 step:</p>
+          <p>1. <strong>Lingua</strong>: tassonomia, formato date e separatori numerici.<br>
+             2. <strong>Titolari</strong>: il tuo nome e le varianti usate dalla banca.<br>
+             3. <strong>Conti</strong>: conto corrente, carte, contanti.<br>
+             4. <strong>Riepilogo + Avvia</strong>: tutto viene scritto solo qui, nessuna persistenza parziale.</p>
+          <p>Su ogni step un <strong>banner mostra il progresso del download</strong> (es. "📚 78% · ~3 min"). Sul riepilogo finale il bottone <em>Avvia</em> resta disabilitato finché il modello non è al 100%: così quando entri nell'app Import è subito utilizzabile. Tutto è cambiabile da <em>Impostazioni</em> in seguito.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: onboarding wizard step 1 -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/onboarding-step-1-language.png</code>
-            <div>(wizard step 1: language selection)</div>
+            <div>(wizard step 1: selezione lingua)</div>
           </div>
           <!-- <img src="/assets/screenshots/onboarding-step-1-language.png" alt="Onboarding step 1: language"> -->
         </div>
@@ -415,58 +435,60 @@
 
       <div class="step">
         <div class="step-text">
-          <h3>3c. App ready</h3>
-          <p>On confirm the wizard creates the SQLite database and lands you on the <strong>Import</strong> page. From here you load your first bank CSV/XLSX files.</p>
-          <p>From then on the flow is: double-click → splash (1-2 seconds) → app. No more downloads, no more wizard.</p>
+          <h3>3c. App pronta</h3>
+          <p>Al confirm del wizard, Spendif.ai crea il database SQLite e ti porta sulla pagina <strong>Import</strong>. Da qui carichi i primi CSV/XLSX della tua banca.</p>
+          <p>Dai successivi avvii il flusso è: doppio click → splash (1-2 secondi) → app. Niente più download, niente più wizard.</p>
         </div>
         <div class="step-img">
+          <!-- PLACEHOLDER: main app with import page -->
           <div class="ph">
             <div>📷 Screenshot</div>
             <code>assets/screenshots/app-ready-import-page.png</code>
-            <div>(app ready, Import page)</div>
+            <div>(app pronta, pagina Import)</div>
           </div>
           <!-- <img src="/assets/screenshots/app-ready-import-page.png" alt="App ready: import page"> -->
         </div>
       </div>
     </section>
 
+    <!-- ── Uninstall ───────────────────────────────── -->
     <!-- Uninstall -->
     <section id="uninstall">
-      <h2>Uninstalling</h2>
-      <p>Nothing stays on your computer against your will. The command depends on how you installed:</p>
-      <p>Not sure how you installed? If you used the Terminal it was Homebrew, otherwise it was the DMG.</p>
+      <h2>Disinstallare</h2>
+      <p>Niente resta sul computer contro la tua volontà. Il comando dipende da come hai installato:</p>
+      <p>Non ricordi come hai installato? Se hai usato il Terminale è Homebrew, altrimenti è il DMG.</p>
       <p><strong>macOS, Homebrew:</strong> <code>brew uninstall --cask spendifai</code></p>
-      <p><strong>macOS, DMG:</strong> drag <code>Spendif.ai.app</code> to the Trash</p>
+      <p><strong>macOS, DMG:</strong> trascina <code>Spendif.ai.app</code> nel Cestino</p>
       <p><strong>Debian / Ubuntu:</strong> <code>sudo apt remove spendifai</code></p>
       <p><strong>Fedora / RHEL:</strong> <code>sudo dnf remove spendifai</code></p>
-      <p><strong>Windows:</strong> Settings &gt; Apps &gt; Spendif.ai &gt; Uninstall</p>
-      <p><strong>Your data stays, on purpose.</strong> <code>~/.spendifai</code> (<code>%USERPROFILE%\.spendifai</code> on Windows) holds your transaction database, your settings and the AI models, several GB in all. None of the commands above touch it.</p>
-      <p><strong>Export what you want to keep before deleting it</strong>, from the Ledger page: once removed it cannot be recovered.</p>
-      <p>To remove the data too: with Homebrew, <code>brew uninstall --zap --cask spendifai</code>. Otherwise use the uninstaller for your system (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank" rel="noopener noreferrer">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank" rel="noopener noreferrer">Windows</a>), which asks separately about the database and the models, or delete the folder yourself.</p>
+      <p><strong>Windows:</strong> Impostazioni &gt; App &gt; Spendif.ai &gt; Disinstalla</p>
+      <p><strong>I tuoi dati restano, ed è voluto.</strong> In <code>~/.spendifai</code> (su Windows <code>%USERPROFILE%\.spendifai</code>) ci sono il database delle transazioni, le impostazioni e i modelli AI, diversi GB in tutto. Nessuno dei comandi qui sopra li tocca.</p>
+      <p><strong>Prima di cancellarli, esporta quello che vuoi tenere</strong> dalla pagina Registro: una volta rimossi non si recuperano.</p>
+      <p>Per rimuovere anche i dati: con Homebrew <code>brew uninstall --zap --cask spendifai</code>. Altrimenti usa il disinstallatore del tuo sistema (<a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/macos/uninstall.sh" target="_blank" rel="noopener noreferrer">macOS</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/linux/uninstall.sh" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://github.com/spendifai/spendif-ai/blob/main/packaging/windows/uninstall.ps1" target="_blank" rel="noopener noreferrer">Windows</a>), che chiede conferma separatamente per il database e per i modelli, oppure cancella a mano la cartella.</p>
     </section>
-
+    <!-- ── Help ──────────────────────────────────────────────────────── -->
     <section id="help">
-      <h2>Having trouble?</h2>
+      <h2>Hai problemi?</h2>
       <p>
-        Full documentation:
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank" rel="noopener noreferrer">install guide</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.en.md" target="_blank" rel="noopener noreferrer">user guide</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.md" target="_blank" rel="noopener noreferrer">macOS deep-dive</a> ·
-        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank" rel="noopener noreferrer">Windows deep-dive</a>.
+        Documentazione completa:
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.md" target="_blank" rel="noopener noreferrer">guida installazione</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/guida_utente.md" target="_blank" rel="noopener noreferrer">guida utente</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_macos.it.md" target="_blank" rel="noopener noreferrer">macOS dettagliata</a> ·
+        <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.it.md" target="_blank" rel="noopener noreferrer">Windows dettagliata</a>.
       </p>
-      <p>Bugs, questions, requests: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank" rel="noopener noreferrer">open a GitHub issue</a>.</p>
+      <p>Bug, domande, richieste: <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank" rel="noopener noreferrer">apri una issue su GitHub</a>.</p>
     </section>
     <!-- ── What's coming next (alpha-driven roadmap) ─────────────────── -->
     <section id="roadmap">
-      <h2>What's coming next</h2>
-      <p>Spendif.ai is in alpha. The features we add next are decided together with the people using the app today: no speculative work, no roadmap dictated from above.</p>
-      <p>Features under evaluation based on alpha-tester feedback:</p>
+      <h2>Cosa arriva dopo</h2>
+      <p>Spendif.ai è in alpha test. Le funzioni che aggiungeremo le decidiamo insieme a chi usa l'app oggi: nessun lavoro speculativo, nessuna roadmap calata dall'alto.</p>
+      <p>Funzioni in valutazione in base ai feedback degli alpha tester:</p>
       <ul>
-        <li><strong>Cash tracking</strong>: log cash purchases manually, with no bank statement attached</li>
-        <li><strong>Investment performance</strong>: see at a glance how the instruments in your portfolio are doing</li>
-        <li><strong>Companion mobile app</strong>: capture cash on the fly from your phone and sync with the desktop</li>
+        <li><strong>Tracking del cash</strong>: registrare manualmente le spese in contanti, senza estratto bancario</li>
+        <li><strong>Performance degli investimenti</strong>: vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio</li>
+        <li><strong>App mobile compagna</strong>: registrare cash al volo dal telefono e sincronizzare col desktop</li>
       </ul>
-      <p>Would one of these help you? Tell us in <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>. When enough requests stack up on the same feature, it moves to the top of the queue.</p>
+      <p>Una di queste ti servirebbe? Faccelo sapere su <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>. Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.</p>
     </section>
 
 

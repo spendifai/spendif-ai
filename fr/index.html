@@ -1,11 +1,29 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- Content-Security-Policy. GitHub Pages serves no custom headers, so the
+       policy has to travel in the markup (PRODUCT_BLUEPRINT 4.2, block F).
+       Note two limits of the meta form: frame-ancestors and report-uri are
+       ignored here, they exist only as real headers.
+       'unsafe-inline' is present for both script and style and is a deliberate
+       compromise, not an oversight: the pages carry inline <style> plus dozens
+       of style attributes, which no hash can cover, and two inline scripts one
+       of which differs per page. Hashes would make every later edit break the
+       page silently. On static pages with no user input the value left is
+       bounding WHERE external code, connections and frames may come from, and
+       that part is strict. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.vemetric.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://hub.vemetric.com; frame-src 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <!-- Language: English is canonical, the switch happens client-side towards a
+       published translation only. Rule and rationale: PROJECT_BLUEPRINT 3.0quinquies.
+       Loaded in <head>, before rendered content, so nobody sees a flash of the
+       wrong language. -->
+  <script src="/languages.js"></script>
+  <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <title>Spendif.ai: Votre registre bancaire unifié, sur votre ordinateur</title>
   <meta name="description" content="Spendif.ai agrège automatiquement les fichiers de mouvements de différentes banques en un registre unique: sans doublons, sans abonnement, sans envoyer vos données à quiconque." />
   <meta property="og:title" content="Spendif.ai: Votre registre bancaire unifié" />
@@ -13,19 +31,19 @@
   <meta property="og:type" content="website" />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/index.fr.html" />
-  <link rel="alternate" hreflang="it" href="https://spendif.ai/" />
-  <link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html" />
-  <link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html" />
-  <link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html" />
-  <link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html" />
-  <link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html" />
-  <link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html" />
-  <link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html" />
-  <link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html" />
-  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html" />
+  <link rel="canonical" href="https://spendif.ai/fr/" />
+  <link rel="alternate" hreflang="en" href="https://spendif.ai/" />
+  <link rel="alternate" hreflang="it" href="https://spendif.ai/it/" />
+  <link rel="alternate" hreflang="de" href="https://spendif.ai/de/" />
+  <link rel="alternate" hreflang="es" href="https://spendif.ai/es/" />
+  <link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/" />
+  <link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/" />
+  <link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/" />
+  <link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/" />
+  <link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/" />
+  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/" />
   <meta name="robots" content="index,follow" />
-  <meta property="og:url" content="https://spendif.ai/index.fr.html" />
+  <meta property="og:url" content="https://spendif.ai/fr/" />
   <meta property="og:site_name" content="Spendif.ai" />
   <meta property="og:locale" content="fr_FR" />
   <meta property="og:locale:alternate" content="it_IT" />
@@ -748,7 +766,7 @@
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "inLanguage": "fr",
-      "url": "https://spendif.ai/index.fr.html",
+      "url": "https://spendif.ai/fr/",
       "mainEntity": [
           {
               "@type": "Question",
@@ -829,19 +847,9 @@
     <li><a href="#privacy">Privacy</a></li>
     <li><a href="#features">Fonctionnalités</a></li>
     <li><a href="#developer">Developer</a></li>
-    <li><a href="https://github.com/spendifai/spendif-ai" target="_blank" class="nav-cta">GitHub ↗</a></li>
+    <li><a href="https://github.com/spendifai/spendif-ai" target="_blank" class="nav-cta" rel="noopener noreferrer">GitHub ↗</a></li>
   </ul>
-  <div class="lang-switcher">
-    <a href="index.html" title="Italiano">🇮🇹</a>
-    <a href="index.en.html" title="English">🇬🇧</a>
-    <a href="index.de.html" title="Deutsch">🇩🇪</a>
-    <a href="index.fr.html" title="Français" class="active">🇫🇷</a>
-    <a href="index.es.html" title="Español">🇪🇸</a>
-    <a href="index.pt.html" title="Português">🇵🇹</a>
-    <a href="index.nl.html" title="Nederlands">🇳🇱</a>
-    <a href="index.ja.html" title="日本語">🇯🇵</a>
-    <a href="index.pl.html" title="Polski">🇵🇱</a>
-  </div>
+    <nav data-lang-switcher aria-label="Language"></nav>
 </nav>
 
 <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
@@ -854,7 +862,7 @@
   </p>
   <div class="hero-actions">
     <a class="btn btn-primary" href="#install">▶ Installer maintenant</a>
-    <a class="btn btn-secondary" href="https://github.com/spendifai/spendif-ai" target="_blank">
+    <a class="btn btn-secondary" href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       View on GitHub
     </a>
@@ -954,17 +962,17 @@
 
     <div class="shots fade-in">
       <figure>
-        <img src="assets/screenshots/app-home-en.webp" width="1600" height="1548" loading="lazy" decoding="async"
+        <img src="/assets/screenshots/app-home-en.webp" width="1600" height="1548" loading="lazy" decoding="async"
              alt="Écran d'accueil de Spendif.ai : graphique des revenus mensuels et diagramme de flux">
         <figcaption>Accueil : revenus par mois et flux revenus → dépenses</figcaption>
       </figure>
       <figure>
-        <img src="assets/screenshots/app-categories-en.webp" width="1600" height="939" loading="lazy" decoding="async"
+        <img src="/assets/screenshots/app-categories-en.webp" width="1600" height="939" loading="lazy" decoding="async"
              alt="Analyse de Spendif.ai : anneau des dépenses par catégorie et treemap">
         <figcaption>Analyse : répartition des dépenses par catégorie et treemap catégorie → sous-catégorie</figcaption>
       </figure>
       <figure>
-        <img src="assets/screenshots/app-review-en.webp" width="1600" height="813" loading="lazy" decoding="async"
+        <img src="/assets/screenshots/app-review-en.webp" width="1600" height="813" loading="lazy" decoding="async"
              alt="Panneau de correction de Spendif.ai : sélection de l'opération, nouvelle catégorie et option d'enregistrer une règle déterministe">
         <figcaption>Révision : corrigez une opération, appliquez la correction à toutes les identiques, ou enregistrez-la comme règle</figcaption>
       </figure>
@@ -1182,8 +1190,8 @@
     <p class="section-sub">Application de bureau native avec IA locale incluse. Pas de Docker, pas de Terminal toujours ouvert.</p>
 
     <p style="text-align:center;margin:1.5rem 0 2.5rem;">
-      <a href="getting-started.fr.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Télécharger l'installeur (DMG · MSIX · .deb · .rpm)</a><br>
-      <span style="color:var(--muted);font-size:0.9rem;">Guide pas-à-pas avec captures d'écran → <a href="getting-started.fr.html">installation et premier lancement</a></span>
+      <a href="https://spendif.ai/fr/getting-started.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Télécharger l'installeur (DMG · MSIX · .deb · .rpm)</a><br>
+      <span style="color:var(--muted);font-size:0.9rem;">Guide pas-à-pas avec captures d'écran → <a href="https://spendif.ai/fr/getting-started.html">installation et premier lancement</a></span>
     </p>
 
     <p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;">ou, depuis le terminal :</p>
@@ -1266,14 +1274,14 @@
 
     <p class="install-dev-link">
       Installation développeur ou manuelle ? →
-      <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guide complet</a>
+      <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank" rel="noopener noreferrer">Guide complet</a>
     </p>
 
     <!-- ── Docker (alternative) ──────────────────────────────────────── -->
     <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border);">
       <h3 style="color: var(--blue); margin-bottom: 0.5rem;">🐳 Vous préférez Docker ?</h3>
       <p style="color: var(--muted); margin-bottom: 1.2rem;">
-        Seul <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color:var(--blue)">Docker Desktop</a> est requis. Conteneur officiel depuis GitHub Container Registry, navigateur à <strong>http://localhost:8501</strong>.
+        Seul <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color:var(--blue)" rel="noopener noreferrer">Docker Desktop</a> est requis. Conteneur officiel depuis GitHub Container Registry, navigateur à <strong>http://localhost:8501</strong>.
       </p>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
@@ -1303,8 +1311,8 @@
 <!-- ── Communauté / support ─────────────────────────────────────────────── -->
 <div style="text-align: center; padding: 2.5rem 1rem 1rem; max-width: 760px; margin: 0 auto;">
   <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.8;">
-    🆘 <strong style="color: var(--text);">Besoin d'aide ?</strong> <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">Ouvrez une issue sur GitHub</a>: bugs, questions, demandes de fonctionnalités.<br>
-    ⭐ <strong style="color: var(--text);">Vous aimez Spendif.ai ?</strong> <a href="https://github.com/spendifai/spendif-ai" target="_blank">Mettez-nous une étoile</a>: cela nous aide à atteindre les registres officiels (Homebrew Core, winget).
+    🆘 <strong style="color: var(--text);">Besoin d'aide ?</strong> <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank" rel="noopener noreferrer">Ouvrez une issue sur GitHub</a>: bugs, questions, demandes de fonctionnalités.<br>
+    ⭐ <strong style="color: var(--text);">Vous aimez Spendif.ai ?</strong> <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">Mettez-nous une étoile</a>: cela nous aide à atteindre les registres officiels (Homebrew Core, winget).
   </p>
 </div>
 
@@ -1486,7 +1494,7 @@
 
     <br>
     <div style="text-align:center; margin-top: 1rem;">
-      <a class="btn btn-primary" href="https://github.com/spendifai/spendif-ai" target="_blank">
+      <a class="btn btn-primary" href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         Go to GitHub
       </a>
@@ -1498,7 +1506,7 @@
 <footer>
   <p>
     <strong>Spendif.ai</strong> a un code public, sous licence PolyForm Noncommercial :
-    <a href="https://github.com/spendifai/spendif-ai" target="_blank">github.com/spendifai/spendif-ai</a>
+    <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">github.com/spendifai/spendif-ai</a>
   </p>
   <p class="disclaimer">
     Spendif.ai n'est pas un service cloud. C'est un programme qui tourne sur votre ordinateur.
