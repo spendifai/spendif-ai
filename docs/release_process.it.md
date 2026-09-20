@@ -29,6 +29,7 @@ finché lo script non verrà esteso:
 | `core/_build_info.py` | versione mostrata in sidebar; rigenerata al build dai builder macOS e Windows, ma **non** da `build-deb.sh` / `build-rpm.sh`, quindi i pacchetti Linux spediscono il valore committato |
 | `packaging/winget/SpendifAi.SpendifAi.*` | manifest winget |
 | `packaging/homebrew/spendifai.rb` | template del cask — `version`/`sha256` vengono poi resi nel tap da `packaging/homebrew/update-tap.sh` (Sezione 3) |
+| `uv.lock` | fissa la versione del progetto stesso. `ci.yml` esegue `uv sync --frozen`, che rifiuta un lock in disaccordo con `pyproject.toml`: dimenticarlo fa diventare rossa tutta la CI. Esegui `uv lock` dopo aver bumpato `pyproject.toml`: senza cambi di dipendenze riscrive una riga sola |
 
 ---
 

@@ -27,6 +27,7 @@ release commit, by hand until the script is extended:
 | `core/_build_info.py` | version shown in the sidebar; regenerated at build time by the macOS and Windows builders, but **not** by `build-deb.sh` / `build-rpm.sh`, so the Linux packages ship the committed value |
 | `packaging/winget/SpendifAi.SpendifAi.*` | winget manifests |
 | `packaging/homebrew/spendifai.rb` | cask template — `version`/`sha256` are then rendered into the tap by `packaging/homebrew/update-tap.sh` (Section 3) |
+| `uv.lock` | pins the project's own version. `ci.yml` runs `uv sync --frozen`, which refuses a lockfile that disagrees with `pyproject.toml`, so forgetting this one turns the whole CI red. Run `uv lock` after bumping `pyproject.toml`: with no dependency change it rewrites a single line |
 
 ---
 
