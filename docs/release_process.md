@@ -199,13 +199,32 @@ The cask carries a `livecheck` block with the `github_latest` strategy, so
 
 #### Publishing a release to the tap
 
-Run this **after** the GitHub Release is published (a draft is not downloadable
-by Homebrew):
+**This is automatic.** `.github/workflows/publish-tap.yml` runs on the
+`release: published` event and pushes the cask for you. There is nothing to do
+by hand in the normal flow.
+
+The trigger is the publish event, not the version tag, and that is deliberate.
+The tag fires while the release is still a draft holding the **unsigned** CI
+DMG (Section 2bis). A tag-triggered job would write that file's sha256 into the
+cask, and every user would then get a checksum mismatch from brew on a download
+that is perfectly fine.
+
+Prerequisite, once: the secret `TAP_PUSH_TOKEN` on `spendifai/spendif-ai`.
+`GITHUB_TOKEN` cannot write to another repository, and the cask lives in
+`spendifai/homebrew-spendifai`. Create a fine-grained personal access token
+with resource owner `spendifai`, access to both `spendifai/homebrew-spendifai`
+and `spendifai/spendif-ai`, and `Contents: Read and write`. Without it the
+workflow fails loudly rather than skipping: a tap that quietly stops being
+updated is the exact failure this workflow exists to prevent.
+
+To run it by hand (a re-publish, or a release that predates the workflow), use
+`workflow_dispatch` on the Actions tab, or the script directly:
 
 ```bash
 bash packaging/homebrew/update-tap.sh                 # version from the VERSION file
 bash packaging/homebrew/update-tap.sh --version 0.2.0 # or explicit
 bash packaging/homebrew/update-tap.sh --dry-run       # inspect first
+bash packaging/homebrew/update-tap.sh --verify-hash   # what CI passes; see below
 ```
 
 The script reads the DMG checksum from the release's `SHA256SUMS.txt` (falling
@@ -214,8 +233,16 @@ tap repository if it does not exist yet, and pushes `Casks/spendifai.rb` plus a
 generated README. It is idempotent: re-running it for the same version is a
 no-op.
 
+`--verify-hash` downloads the published DMG and cross-checks it against
+`SHA256SUMS.txt`, failing if they disagree. CI always passes it, because
+`SHA256SUMS.txt` is written by the publish job from the UNSIGNED artefacts and
+only step 3 of Section 2bis regenerates it after signing. Skip that step and
+the sums file still describes the unsigned DMG: the cask would then ship a
+checksum no user can ever match. Hashing the published asset is the only source
+that cannot be stale.
+
 Note: `packaging/release.sh` does **not** touch the tap, despite what earlier
-revisions of this document claimed. The tap update is the explicit step above.
+revisions of this document claimed.
 
 ### Homebrew Core (future)
 
@@ -430,6 +457,62 @@ Install/uninstall:
 sudo dnf install ./build/spendifai-0.1.0-1.noarch.rpm
 sudo dnf remove spendifai
 ```
+
+### APT repository (signed)
+
+`sudo apt install ./spendifai_*.deb` installs a file. It is not a repository:
+no `apt update`, no `apt upgrade`, no signature. The signed archive at
+`spendifai/apt`, served by GitHub Pages, is what makes the .deb behave like any
+other package on the system.
+
+**Publishing a release.** After the GitHub Release is published:
+
+```bash
+python3 packaging/linux/update-apt-repo.py                 # version from the VERSION file
+python3 packaging/linux/update-apt-repo.py --version 0.2.2 # or explicit
+python3 packaging/linux/update-apt-repo.py --dry-run       # build the index, push nothing
+```
+
+The script downloads the .deb assets, rebuilds `Packages` and `Release` from
+everything in the pool (so older versions stay installable), signs `InRelease`
+and `Release.gpg`, exports the public key dearmored, and pushes. It keeps the
+newest 5 versions in the pool; the GitHub Release keeps every version anyway.
+
+**Why this one is NOT automated in CI, unlike the Homebrew tap.** A repository
+signing key that leaks lets an attacker serve arbitrary packages to everyone
+who added the repository: the same damage as a leaked code signing key, and the
+same reason Section 2bis keeps the Apple credentials off CI. The key stays in
+`~/secrets/spendifai/gpg/`, and `.github/workflows/apt-repo.yml` has a `verify`
+job that runs after every release and weekly, failing when the published
+archive falls behind the newest release. Forgetting is loud rather than silent.
+
+**One-time setup.**
+
+```bash
+# 1. The signing key. Kept out of any repository, like every other credential.
+mkdir -p ~/secrets/spendifai/gpg && chmod 700 ~/secrets/spendifai/gpg
+gpg --full-generate-key         # ed25519, sign only, no expiry, a real passphrase
+
+# 2. Back it up. Losing it means every user has to re-add a new key by hand.
+gpg --export-secret-keys --armor <KEYID> > ~/secrets/spendifai/gpg/signing-key.asc
+gpg --gen-revoke <KEYID> > ~/secrets/spendifai/gpg/revocation.asc
+chmod 600 ~/secrets/spendifai/gpg/*
+
+# 3. First publish, which also creates the repository.
+python3 packaging/linux/update-apt-repo.py --gpg-key <KEYID>
+
+# 4. Enable Pages once, from the default branch root:
+#    https://github.com/spendifai/apt/settings/pages
+```
+
+On expiry: generate the key with **no expiry date**. An expired signing key
+breaks `apt update` for every user at once, on a date nobody wrote down. The
+revocation certificate from step 2 is what covers the compromise case.
+
+**Known limitation.** The package declares `Depends: python3 (>= 3.12)`.
+Ubuntu 24.04 and Debian 13 satisfy it; **Debian 12 ships Python 3.11 and cannot
+install it**. apt reports the unmet dependency rather than installing something
+broken, but the repository is still offered to machines that cannot use it.
 
 ### Interactive installers (no package manager)
 

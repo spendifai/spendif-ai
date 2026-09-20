@@ -29,6 +29,16 @@ mkdir -p "$USER_HOME_DIR"
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "=== launch.sh $(date -Iseconds) ==="
 
+# ── Mirror the install method into this user's data dir ─────────────────────
+# The package postinst runs as root and cannot know which users will launch the
+# app, so it writes the marker next to the code. The app only ever reads
+# ~/.spendifai (see services/update_service.py), so copy it here, every launch:
+# doing it once would miss the case of a machine that switches from .deb to
+# .rpm, or a second user who first launches after the install.
+if [[ -r "$APP_DIR/.install_method" ]]; then
+  cp -f "$APP_DIR/.install_method" "$USER_HOME_DIR/.install_method" 2>/dev/null || true
+fi
+
 # ── Zenity helper ───────────────────────────────────────────────────────────
 # Shows a GTK pulsate dialog with the given message while the next command
 # runs. Falls back to a silent run when zenity is missing (CI smoke tests).

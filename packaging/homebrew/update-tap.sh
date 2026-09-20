@@ -15,11 +15,13 @@
 #
 # USAGE
 #   bash packaging/homebrew/update-tap.sh [--version X.Y.Z] [--tap-repo owner/repo]
-#                                         [--dry-run]
+#                                         [--dry-run] [--verify-hash]
 #
-#   --version    Release to publish. Defaults to the VERSION file.
-#   --tap-repo   Tap repository. Defaults to spendifai/homebrew-spendifai.
-#   --dry-run    Print what would happen; touch nothing remote.
+#   --version      Release to publish. Defaults to the VERSION file.
+#   --tap-repo     Tap repository. Defaults to spendifai/homebrew-spendifai.
+#   --dry-run      Print what would happen; touch nothing remote.
+#   --verify-hash  Download the DMG and cross-check its hash against
+#                  SHA256SUMS.txt, failing on disagreement. See Step 2.
 #
 # PREREQUISITES
 #   gh (authenticated), git
@@ -37,12 +39,14 @@ TAP_REPO="spendifai/homebrew-spendifai"
 SOURCE_REPO="spendifai/spendif-ai"
 VERSION=""
 DRY_RUN=false
+VERIFY_HASH=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version)  VERSION="${2:?--version needs a value}"; shift ;;
     --tap-repo) TAP_REPO="${2:?--tap-repo needs a value}"; shift ;;
     --dry-run)  DRY_RUN=true ;;
+    --verify-hash) VERIFY_HASH=true ;;
     -h|--help)  sed -n '2,30p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
@@ -85,19 +89,51 @@ gh release view "${TAG}" --repo "${SOURCE_REPO}" --json assets --jq '.assets[].n
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
 
-SHA256=""
-if gh release download "${TAG}" --repo "${SOURCE_REPO}" \
-     --pattern 'SHA256SUMS.txt' --dir "${WORK}" 2>/dev/null; then
-  # Entries are written by `sha256sum` from the artifact download dirs, so the
-  # second field looks like ./macos-dmg/SpendifAi-X.Y.Z.dmg — match on basename.
-  SHA256="$(awk -v dmg="${DMG}" '{ n = $2; sub(/^\*/, "", n); sub(/.*\//, "", n); if (n == dmg) print $1 }' \
-    "${WORK}/SHA256SUMS.txt" | head -1)"
-fi
+# WHY --verify-hash exists. SHA256SUMS.txt is written by the CI publish job,
+# which hashes the UNSIGNED artefacts. The owner then signs the DMG locally and
+# replaces it with `gh release upload --clobber`, and only a separate manual
+# step regenerates SHA256SUMS.txt (docs/release_process.md, Section 2bis step 3).
+# Skip that step and the sums file still describes the unsigned DMG: the cask
+# would ship a checksum no user can ever match, and brew would abort every
+# install with "SHA256 mismatch". Hashing the published asset is the only source
+# that cannot be stale, so CI always passes --verify-hash and pays the download.
 
-if [[ -z "${SHA256}" ]]; then
-  info "SHA256SUMS.txt unusable — downloading ${DMG} to hash it locally (~120 MB)"
-  gh release download "${TAG}" --repo "${SOURCE_REPO}" --pattern "${DMG}" --dir "${WORK}"
-  SHA256="$(shasum -a 256 "${WORK}/${DMG}" | awk '{print $1}')"
+sha_from_sums() {
+  gh release download "${TAG}" --repo "${SOURCE_REPO}" \
+    --pattern 'SHA256SUMS.txt' --dir "${WORK}" 2>/dev/null || return 1
+  # Entries are written by `sha256sum` from the artifact download dirs, so the
+  # second field looks like ./macos-dmg/SpendifAi-X.Y.Z.dmg - match on basename.
+  awk -v dmg="${DMG}" '{ n = $2; sub(/^\*/, "", n); sub(/.*\//, "", n); if (n == dmg) print $1 }' \
+    "${WORK}/SHA256SUMS.txt" | head -1
+}
+
+sha_from_asset() {
+  gh release download "${TAG}" --repo "${SOURCE_REPO}" --pattern "${DMG}" --dir "${WORK}" >&2
+  if command -v shasum >/dev/null; then
+    shasum -a 256 "${WORK}/${DMG}" | awk '{print $1}'
+  else
+    sha256sum "${WORK}/${DMG}" | awk '{print $1}'
+  fi
+}
+
+SHA_SUMS="$(sha_from_sums || true)"
+
+if $VERIFY_HASH; then
+  info "Hashing the published ${DMG} (~120 MB) to cross-check SHA256SUMS.txt"
+  SHA256="$(sha_from_asset)"
+  if [[ -n "${SHA_SUMS}" && "${SHA_SUMS}" != "${SHA256}" ]]; then
+    err "SHA256SUMS.txt disagrees with the published ${DMG}.
+    sums file: ${SHA_SUMS}
+    actual:    ${SHA256}
+  The usual cause is a signed DMG uploaded with --clobber while SHA256SUMS.txt
+  was left describing the unsigned CI build. Regenerate and re-upload it
+  (docs/release_process.md, Section 2bis step 3), then re-run this script."
+  fi
+elif [[ -n "${SHA_SUMS}" ]]; then
+  SHA256="${SHA_SUMS}"
+else
+  info "SHA256SUMS.txt unusable - downloading ${DMG} to hash it locally (~120 MB)"
+  SHA256="$(sha_from_asset)"
 fi
 
 [[ "${SHA256}" =~ ^[a-f0-9]{64}$ ]] || err "could not determine a valid sha256 (got: '${SHA256}')"
@@ -184,9 +220,17 @@ if git diff --quiet && git diff --cached --quiet && [[ -z "$(git status --porcel
   exit 0
 fi
 
+# Commit identity: the local git config when the script runs on a workstation,
+# a bot identity when it runs in CI, where that config is empty and git would
+# abort with "Committer identity unknown".
+GIT_NAME="$(git -C "${REPO_ROOT}" config user.name  || true)"
+GIT_EMAIL="$(git -C "${REPO_ROOT}" config user.email || true)"
+[[ -n "${GIT_NAME}"  ]] || GIT_NAME="spendifai-release-bot"
+[[ -n "${GIT_EMAIL}" ]] || GIT_EMAIL="release-bot@users.noreply.github.com"
+
 git add Casks/spendifai.rb README.md
-git -c user.name="$(git -C "${REPO_ROOT}" config user.name)" \
-    -c user.email="$(git -C "${REPO_ROOT}" config user.email)" \
+git -c user.name="${GIT_NAME}" \
+    -c user.email="${GIT_EMAIL}" \
     commit -q -m "spendifai ${VERSION}"
 git push -q origin HEAD
 ok "Pushed spendifai ${VERSION} to ${TAP_REPO}"
