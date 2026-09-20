@@ -170,7 +170,7 @@ In the PR body include:
 
 ### Landing page (transitional)
 
-**Current workflow (transitional)**: edit `sw_artifacts/index.<lang>.html` directly. Open `index.en.html` alongside as a reference, change only visible text (NOT CSS, JS, or `href` URLs), save, PR.
+**Current workflow (transitional)**: edit `sw_artifacts/<lang>/index.html` directly. Open the canonical English `sw_artifacts/index.html` alongside as a reference, change only visible text (NOT CSS, JS, or `href` URLs), save, PR.
 
 Practical tips:
 

@@ -1,48 +1,54 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="fr">
 <head>
+  <!-- Language: English is canonical, the switch happens client-side towards a
+       published translation only. Rule and rationale: PROJECT_BLUEPRINT 3.0quinquies.
+       Loaded in <head>, before rendered content, so nobody sees a flash of the
+       wrong language. -->
+  <script src="/languages.js"></script>
+  <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <title>Spendif.ai: Ihr einheitliches Bankbuch, auf Ihrem Computer</title>
-  <meta name="description" content="Spendif.ai fasst Kontobewegungen verschiedener Banken automatisch in einem einzigen Hauptbuch zusammen: keine Duplikate, keine Abonnements, keine Datenweitergabe." />
-  <meta property="og:title" content="Spendif.ai: Ihr einheitliches Bankbuch" />
-  <meta property="og:description" content="Ein persönliches Finanzbuch mit öffentlichem Quellcode, das auf Ihrem Computer läuft. Ihre Daten bleiben Ihre." />
+  <title>Spendif.ai: Votre registre bancaire unifié, sur votre ordinateur</title>
+  <meta name="description" content="Spendif.ai agrège automatiquement les fichiers de mouvements de différentes banques en un registre unique: sans doublons, sans abonnement, sans envoyer vos données à quiconque." />
+  <meta property="og:title" content="Spendif.ai: Votre registre bancaire unifié" />
+  <meta property="og:description" content="Un registre financier personnel à code public qui tourne sur votre ordinateur. Vos données restent les vôtres." />
   <meta property="og:type" content="website" />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/index.de.html" />
-  <link rel="alternate" hreflang="it" href="https://spendif.ai/" />
-  <link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html" />
-  <link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html" />
-  <link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html" />
-  <link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html" />
-  <link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html" />
-  <link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html" />
-  <link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html" />
-  <link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html" />
-  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html" />
+  <link rel="canonical" href="https://spendif.ai/fr/" />
+  <link rel="alternate" hreflang="en" href="https://spendif.ai/" />
+  <link rel="alternate" hreflang="it" href="https://spendif.ai/it/" />
+  <link rel="alternate" hreflang="de" href="https://spendif.ai/de/" />
+  <link rel="alternate" hreflang="es" href="https://spendif.ai/es/" />
+  <link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/" />
+  <link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/" />
+  <link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/" />
+  <link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/" />
+  <link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/" />
+  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/" />
   <meta name="robots" content="index,follow" />
-  <meta property="og:url" content="https://spendif.ai/index.de.html" />
+  <meta property="og:url" content="https://spendif.ai/fr/" />
   <meta property="og:site_name" content="Spendif.ai" />
-  <meta property="og:locale" content="de_DE" />
+  <meta property="og:locale" content="fr_FR" />
   <meta property="og:locale:alternate" content="it_IT" />
   <meta property="og:locale:alternate" content="en_US" />
+  <meta property="og:locale:alternate" content="de_DE" />
   <meta property="og:locale:alternate" content="es_ES" />
-  <meta property="og:locale:alternate" content="fr_FR" />
   <meta property="og:locale:alternate" content="ja_JP" />
   <meta property="og:locale:alternate" content="nl_NL" />
   <meta property="og:locale:alternate" content="pl_PL" />
   <meta property="og:locale:alternate" content="pt_PT" />
-  <meta property="og:image" content="https://spendif.ai/og-image.de.png" />
+  <meta property="og:image" content="https://spendif.ai/og-image.fr.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta name="twitter:image" content="https://spendif.ai/og-image.de.png" />
+  <meta name="twitter:image" content="https://spendif.ai/og-image.fr.png" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Spendif.ai: Ihr einheitliches Bankbuch" />
-  <meta name="twitter:description" content="Spendif.ai fasst Kontobewegungen verschiedener Banken automatisch in einem einzigen Hauptbuch zusammen: keine Duplikate, keine Abonnements, keine Datenweitergabe." />
+  <meta name="twitter:title" content="Spendif.ai: Votre registre bancaire unifié" />
+  <meta name="twitter:description" content="Spendif.ai agrège automatiquement les fichiers de mouvements de différentes banques en un registre unique: sans doublons, sans abonnement, sans envoyer vos données à quiconque." />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -50,9 +56,9 @@
     "name": "Spendif.ai",
     "applicationCategory": "FinanceApplication",
     "operatingSystem": "Windows, macOS, Linux",
-    "description": "Spendif.ai fasst Kontobewegungen verschiedener Banken automatisch in einem einzigen Hauptbuch zusammen: keine Duplikate, keine Abonnements, keine Datenweitergabe.",
+    "description": "Spendif.ai agrège automatiquement les fichiers de mouvements de différentes banques en un registre unique: sans doublons, sans abonnement, sans envoyer vos données à quiconque.",
     "url": "https://spendif.ai/",
-    "inLanguage": "de",
+    "inLanguage": "fr",
     "isAccessibleForFree": true,
     "offers": {
       "@type": "Offer",
@@ -747,71 +753,71 @@
   {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "inLanguage": "de",
-      "url": "https://spendif.ai/index.de.html",
+      "inLanguage": "fr",
+      "url": "https://spendif.ai/fr/",
       "mainEntity": [
           {
               "@type": "Question",
-              "name": "Verbindet sich Spendif.ai mit meiner Bank?",
+              "name": "Spendif.ai se connecte-t-il à ma banque ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Nein, nie. Kein Open Banking, kein PSD2, kein Bankpasswort. Sie laden die Umsatzdatei selbst bei Ihrer Bank herunter, als CSV oder XLSX, und ziehen sie in die App."
+                  "text": "Non, jamais. Pas d'Open Banking, pas de DSP2, aucun mot de passe bancaire. Vous téléchargez vous-même le fichier des opérations depuis votre banque, en CSV ou XLSX, et vous le déposez dans l'application."
               }
           },
           {
               "@type": "Question",
-              "name": "Verlassen meine Daten meinen Computer?",
+              "name": "Mes données sortent-elles de mon ordinateur ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Nein. Spendif.ai speichert alles in einer lokalen SQLite-Datenbank unter ~/.spendifai/ und funktioniert ohne Verbindung. Wenn Sie ein externes LLM wählen, werden IBANs und Namen vor dem Senden aus den Beschreibungen entfernt."
+                  "text": "Non. Spendif.ai garde tout dans une base SQLite locale, dans ~/.spendifai/, et fonctionne sans connexion. Si vous choisissez un LLM distant, les IBAN et les noms sont retirés des libellés avant tout envoi."
               }
           },
           {
               "@type": "Question",
-              "name": "Was kostet es? Ist es für immer kostenlos?",
+              "name": "Combien ça coûte ? Est-ce gratuit pour toujours ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Heute ist Spendif.ai für den privaten Gebrauch kostenlos, ohne Abonnement und ohne versteckte Kosten. Der Quellcode ist öffentlich und Sie können ihn lesen. Später kann eine kostenpflichtige Version mit zusätzlichen Funktionen kommen: die installierte Version läuft weiter, und Ihre Daten bleiben in einer Datei auf Ihrem Computer, die Sie jederzeit mitnehmen können."
+                  "text": "Aujourd'hui Spendif.ai est gratuit pour un usage personnel, sans abonnement et sans frais cachés. Le code est public et vous pouvez le lire. Une version payante avec des fonctions supplémentaires pourra arriver plus tard : la version que vous avez installée continuera de fonctionner, et vos données restent dans un fichier sur votre ordinateur que vous pouvez emporter quand vous voulez."
               }
           },
           {
               "@type": "Question",
-              "name": "Brauche ich ein Konto?",
+              "name": "Dois-je créer un compte ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Nein. Keine E-Mail, keine Registrierung, kein Passwort zum Zurücksetzen. Sie installieren die App und nutzen sie."
+                  "text": "Non. Pas d'e-mail, pas d'inscription, pas de mot de passe à récupérer. Vous installez l'application et vous l'utilisez."
               }
           },
           {
               "@type": "Question",
-              "name": "Auf welchen Systemen läuft es?",
+              "name": "Sur quels systèmes cela fonctionne-t-il ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Windows, Linux und macOS 12 Monterey oder neuer auf Apple Silicon (M1 oder neuer). Es gibt keinen Build für Intel-Macs."
+                  "text": "Windows, Linux et macOS 12 Monterey ou plus récent sur Apple Silicon (M1 ou suivants). Il n'existe pas de version pour Mac Intel."
               }
           },
           {
               "@type": "Question",
-              "name": "Welche Banken werden unterstützt?",
+              "name": "Quelles banques sont prises en charge ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Jede Bank, bei der Sie Umsätze als CSV oder XLSX exportieren können. Spendif.ai erkennt das Format selbst, und Sie können Dateien verschiedener Banken zusammen importieren."
+                  "text": "Toute banque qui permet d'exporter les opérations en CSV ou XLSX. Spendif.ai reconnaît le format tout seul, et vous pouvez importer ensemble des fichiers de banques différentes."
               }
           },
           {
               "@type": "Question",
-              "name": "Was passiert, wenn ich dieselbe Datei zweimal importiere?",
+              "name": "Que se passe-t-il si j'importe deux fois le même fichier ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Nichts Schlimmes: bereits vorhandene Buchungen werden nicht dupliziert. Sie können dieselbe Datei beliebig oft erneut importieren."
+                  "text": "Rien de grave : les opérations déjà présentes ne sont pas dupliquées. Vous pouvez réimporter le même fichier autant de fois que vous voulez."
               }
           },
           {
               "@type": "Question",
-              "name": "Gibt es eine Handy-App?",
+              "name": "Existe-t-il une application mobile ?",
               "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Nein, Spendif.ai ist eine Desktop-Anwendung. Eine Begleit-App nur für Bargeldausgaben ist geplant, hat aber kein Datum."
+                  "text": "Non, Spendif.ai est une application de bureau. Une application compagnon pour saisir uniquement les dépenses en espèces est prévue, mais sans date."
               }
           }
       ]
@@ -825,88 +831,77 @@
 <nav>
   <a class="nav-logo" href="#"><svg width="22" height="22" viewBox="0 0 108 108" style="vertical-align:-4px;margin-right:5px" aria-hidden="true"><rect x="54" y="16" width="42" height="16" rx="5" fill="#2F9E7F"/><rect x="12" y="40" width="42" height="16" rx="5" fill="#C9603A"/><rect x="24" y="64" width="30" height="16" rx="5" fill="#4A73C4"/><rect x="4" y="88" width="50" height="16" rx="5" fill="#D69A2E"/></svg>Spendif<span>.</span>ai</a>
   <ul class="nav-links">
-    <li><a href="#how-it-works">So funktioniert es</a></li>
+    <li><a href="#how-it-works">Comment ça marche</a></li>
     <li><a href="#privacy">Privacy</a></li>
-    <li><a href="#features">Funktionen</a></li>
+    <li><a href="#features">Fonctionnalités</a></li>
     <li><a href="#developer">Developer</a></li>
     <li><a href="https://github.com/spendifai/spendif-ai" target="_blank" class="nav-cta">GitHub ↗</a></li>
-    
   </ul>
-  <div class="lang-switcher">
-    <a href="index.html" title="Italiano">🇮🇹</a>
-    <a href="index.en.html" title="English">🇬🇧</a>
-    <a href="index.de.html" title="Deutsch" class="active">🇩🇪</a>
-    <a href="index.fr.html" title="Français">🇫🇷</a>
-    <a href="index.es.html" title="Español">🇪🇸</a>
-    <a href="index.pt.html" title="Português">🇵🇹</a>
-    <a href="index.nl.html" title="Nederlands">🇳🇱</a>
-    <a href="index.ja.html" title="日本語">🇯🇵</a>
-    <a href="index.pl.html" title="Polski">🇵🇱</a>
-  </div>
+    <nav data-lang-switcher aria-label="Language"></nav>
 </nav>
 
 <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
 <section class="hero">
-  <div class="hero-badge">Öffentlicher Quellcode · <strong>Offline-first</strong> · Kein Abonnement</div>
-  <h1>Ihr <span class="accent">einheitliches</span> Bankbuch,<br>auf Ihrem Computer</h1>
+  <div class="hero-badge">Code public · <strong>Offline-first</strong> · Sans abonnement</div>
+  <h1>Votre registre bancaire <span class="accent">unifié</span>,<br>sur votre ordinateur</h1>
   <p class="hero-sub">
-    Importieren Sie Dateien von all Ihren Banken. Spendif.ai führt sie zusammen, eliminiert Doppelzählungen,
-    klassifiziert jede Transaktion, und Ihre Daten verlassen niemals Ihre Festplatte.
+    Importez les fichiers de toutes vos banques. Spendif.ai les fusionne, élimine les doubles comptages,
+    classifie chaque transaction, et vos données ne quittent jamais votre disque.
   </p>
   <div class="hero-actions">
-    <a class="btn btn-primary" href="#install">▶ Jetzt installieren</a>
+    <a class="btn btn-primary" href="#install">▶ Installer maintenant</a>
     <a class="btn btn-secondary" href="https://github.com/spendifai/spendif-ai" target="_blank">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       View on GitHub
     </a>
   </div>
-  <p class="hero-note">Python · Streamlit · SQLite · Ollama · kein Konto erforderlich</p>
+  <p class="hero-note">Python · Streamlit · SQLite · Ollama · aucun compte requis</p>
 </section>
 
 <!-- ── TRUST BAR ─────────────────────────────────────────────────────────── -->
 <div class="trust-bar">
-  <div class="trust-item"><span class="ico">🔒</span> Daten nur auf Ihrem Computer</div>
-  <div class="trust-item"><span class="ico">🔁</span> Idempotenter SHA-256-Import</div>
-  <div class="trust-item"><span class="ico">🏦</span> Multi-Bank, Multi-Format</div>
-  <div class="trust-item"><span class="ico">🤖</span> Lokale oder Cloud-KI mit PII-Redaktion</div>
-  <div class="trust-item"><span class="ico">🧪</span> 199 Tests, keine externen Abhängigkeiten</div>
+  <div class="trust-item"><span class="ico">🔒</span> Données uniquement sur votre ordinateur</div>
+  <div class="trust-item"><span class="ico">🔁</span> Import idempotent SHA-256</div>
+  <div class="trust-item"><span class="ico">🏦</span> Multi-banque, multi-format</div>
+  <div class="trust-item"><span class="ico">🤖</span> IA locale ou cloud avec rédaction PII</div>
+  <div class="trust-item"><span class="ico">🧪</span> 199 tests, zéro dépendance externe</div>
 </div>
 
 <!-- ── PROBLEM ──────────────────────────────────────────────────────────── -->
 <section id="problema">
   <div class="container">
-    <div class="section-label">Das Problem</div>
-    <h2>Drei Banken, drei Dateien, ein Chaos</h2>
+    <div class="section-label">Le problème</div>
+    <h2>Trois banques, trois fichiers, un bazar</h2>
     <p class="section-sub">
-      Jeden Monat: herunterladen, Excel öffnen, einfügen, Vorzeichen korrigieren, Duplikate finden.
-      Und jedes Mal stimmt etwas nicht.
+      Chaque mois : télécharger, ouvrir Excel, coller, corriger les signes, trouver les doublons.
+      Et à chaque fois quelque chose ne colle pas.
     </p>
 
     <div class="problem-grid fade-in">
       <div class="problem-card">
-        <h3>😩 Die monatliche Routine, die alle hassen</h3>
-        <p>Drei Kontobewegungsdateien von drei verschiedenen Bankportalen, inkompatible CSV-Formate,
-        Daten in unterschiedlichen Formaten, Beträge mit zufälligen Vorzeichen. Das manuelle Zusammenführen dauert Stunden
-        und erzeugt immer Fehler.</p>
+        <h3>😩 La routine mensuelle que tout le monde déteste</h3>
+        <p>Trois fichiers de mouvements de trois portails bancaires différents, formats CSV incompatibles,
+        dates dans des formats différents, montants avec des signes aléatoires. Les fusionner à la main prend des heures
+        et produit toujours des erreurs.</p>
       </div>
       <div class="problem-card highlight">
-        <h3>🔴 Das Problem aller Probleme: Doppelzählung</h3>
-        <p>Der Supermarkteinkauf erscheint auf der Kreditkartenabrechnung <em>und</em> auf dem Girokonto
-        als monatliche Sammelabbuchung. Alles zusammengerechnet erscheinen Ihre Ausgaben doppelt
-        so hoch wie sie tatsächlich sind. Kein gängiges Tool löst dies automatisch.</p>
+        <h3>🔴 Le problème des problèmes : le double comptage</h3>
+        <p>L'achat au supermarché apparaît sur le relevé de carte de crédit <em>et</em> sur le compte courant
+        comme un prélèvement mensuel agrégé. En additionnant tout, vos dépenses semblent le double
+        de ce qu'elles sont réellement. Aucun outil courant ne résout cela automatiquement.</p>
       </div>
       <div class="problem-card">
-        <h3>🔄 Interne Überweisungen, die Ihre Bilanz verfälschen</h3>
-        <p>Eine Überweisung auf ein Sparkonto ist keine Ausgabe. Aber wenn Sie beide Konten importieren,
-        erscheint dieselbe Transaktion zweimal: als Abgang vom Girokonto und als Zugang auf dem Sparkonto.</p>
+        <h3>🔄 Les virements internes qui faussent votre bilan</h3>
+        <p>Un virement vers un compte d'épargne n'est pas une dépense. Mais si vous importez les deux comptes,
+        la même transaction apparaît deux fois: comme sortie du compte courant et comme entrée sur le compte d'épargne.</p>
       </div>
       <div class="problem-card">
-        <h3>📋 Die Kategorisierung, die nie endet</h3>
-        <p>300 Transaktionen pro Monat von Hand zu klassifizieren ist ein Vollzeitjob. Cloud-Apps erledigen das,
-        aber sie senden Ihre Bankdaten an ihre Server und verlangen ein monatliches Abonnement.</p>
+        <h3>📋 La catégorisation qui ne finit jamais</h3>
+        <p>Classer 300 transactions par mois à la main est un travail à part entière. Les applications cloud le font,
+        mais elles envoient vos données bancaires sur leurs serveurs et vous facturent un abonnement mensuel.</p>
       </div>
     </div>
-    <p class="section-sub" style="margin-top:1rem">Die Oberfläche gibt es auf Deutsch, Italienisch, Englisch, Französisch und Spanisch.</p>
+    <p class="section-sub" style="margin-top:1rem">L'interface est disponible en français, italien, anglais, allemand et espagnol.</p>
   </div>
 </section>
 
@@ -915,27 +910,27 @@
 <!-- ── HOW IT WORKS ──────────────────────────────────────────────────────── -->
 <section id="how-it-works">
   <div class="container">
-    <div class="section-label">So funktioniert es</div>
-    <h2>Drei Schritte, keine Magie</h2>
-    <p class="section-sub">Keine Bankintegrationen, kein Konto, keine dateibezogene Konfiguration.</p>
+    <div class="section-label">Comment ça marche</div>
+    <h2>Trois étapes, pas de magie noire</h2>
+    <p class="section-sub">Pas d'intégrations bancaires, pas de compte, pas de configuration par fichier.</p>
 
     <div class="steps fade-in">
       <div class="step">
-        <h3>Dateien von Ihrer Bank herunterladen</h3>
-        <p>Exportieren Sie Kontobewegungen als CSV oder XLSX aus dem Portal Ihrer Bank.
-        Funktioniert mit jeder Bank: Spendif.ai erkennt
-        das Format automatisch ohne manuelle Konfiguration.</p>
+        <h3>Téléchargez les fichiers de votre banque</h3>
+        <p>Exportez les fichiers de mouvements en CSV ou XLSX depuis le portail de votre banque.
+        Fonctionne avec n'importe quelle banque: Spendif.ai détecte automatiquement
+        le format sans configuration manuelle.</p>
       </div>
       <div class="step">
-        <h3>In Spendif.ai ziehen und Verarbeiten klicken</h3>
-        <p>Wählen Sie alle Dateien auf einmal aus, auch von verschiedenen Banken, auch aus verschiedenen Jahren.
-        Spendif.ai erkennt den Dokumenttyp, korrigiert Vorzeichen, eliminiert Doppelzählungen
-        zwischen Karte und Konto und klassifiziert jede Transaktion.</p>
+        <h3>Glissez-les dans Spendif.ai et cliquez sur Traiter</h3>
+        <p>Sélectionnez tous les fichiers en une fois, même de banques différentes, même d'années différentes.
+        Spendif.ai détecte le type de document, corrige les signes, élimine les doubles comptages
+        entre carte et compte, et classifie chaque transaction.</p>
       </div>
       <div class="step">
-        <h3>Sehen Sie, wohin Ihr Geld geht</h3>
-        <p>Das einheitliche Hauptbuch zeigt alles an einem Ort: Diagramme, Filter, Export,
-        und die Gewissheit, dass jeder Euro <strong>genau einmal</strong> gezählt wird.</p>
+        <h3>Voyez où va votre argent</h3>
+        <p>Le registre unifié montre tout au même endroit : graphiques, filtres, export,
+        et la certitude que chaque euro est compté <strong>exactement une fois</strong>.</p>
       </div>
     </div>
   </div>
@@ -949,25 +944,25 @@
 <!-- ── SCHERMATE DI PRODOTTO ─────────────────────────────────────────────── -->
 <section id="schermate">
   <div class="container">
-    <div class="section-label">So sieht es aus</div>
-    <h2>Das Produkt, kein Mockup</h2>
-    <p class="section-sub">Drei Ansichten der laufenden App. Die gezeigten Daten sind Beispieldaten.</p>
+    <div class="section-label">À quoi ça ressemble</div>
+    <h2>Le produit, pas une maquette</h2>
+    <p class="section-sub">Trois écrans de l'application en fonctionnement. Les données affichées sont des exemples.</p>
 
     <div class="shots fade-in">
       <figure>
         <img src="assets/screenshots/app-home-en.webp" width="1600" height="1548" loading="lazy" decoding="async"
-             alt="Spendif.ai Startbildschirm: Diagramm der monatlichen Einnahmen und Flussdiagramm">
-        <figcaption>Start: Einnahmen pro Monat und der Fluss Einnahmen → Ausgaben</figcaption>
+             alt="Écran d'accueil de Spendif.ai : graphique des revenus mensuels et diagramme de flux">
+        <figcaption>Accueil : revenus par mois et flux revenus → dépenses</figcaption>
       </figure>
       <figure>
         <img src="assets/screenshots/app-categories-en.webp" width="1600" height="939" loading="lazy" decoding="async"
-             alt="Spendif.ai Analyse: Ringdiagramm der Ausgaben nach Kategorie und Treemap">
-        <figcaption>Analyse: Ausgabenverteilung nach Kategorie und Treemap Kategorie → Unterkategorie</figcaption>
+             alt="Analyse de Spendif.ai : anneau des dépenses par catégorie et treemap">
+        <figcaption>Analyse : répartition des dépenses par catégorie et treemap catégorie → sous-catégorie</figcaption>
       </figure>
       <figure>
         <img src="assets/screenshots/app-review-en.webp" width="1600" height="813" loading="lazy" decoding="async"
-             alt="Spendif.ai Korrekturbereich: Buchungsauswahl, neue Kategorie und Option, eine deterministische Regel zu speichern">
-        <figcaption>Prüfen: eine Buchung korrigieren, die Korrektur auf alle gleichen anwenden oder als Regel speichern</figcaption>
+             alt="Panneau de correction de Spendif.ai : sélection de l'opération, nouvelle catégorie et option d'enregistrer une règle déterministe">
+        <figcaption>Révision : corrigez une opération, appliquez la correction à toutes les identiques, ou enregistrez-la comme règle</figcaption>
       </figure>
     </div>
   </div>
@@ -975,45 +970,45 @@
 
 <section id="algoritmi">
   <div class="container">
-    <div class="section-label">Was sonst niemand automatisch macht</div>
-    <h2>Algorithmen, die echte Probleme lösen</h2>
-    <p class="section-sub">Dies ist keine generische Budget-App. Sie ist für die spezifischen Probleme von Menschen mit mehreren Bankkonten konzipiert.</p>
+    <div class="section-label">Ce que personne d'autre ne fait automatiquement</div>
+    <h2>Des algorithmes qui résolvent de vrais problèmes</h2>
+    <p class="section-sub">Ce n'est pas une application de budget générique. Elle est conçue autour des problèmes spécifiques des personnes ayant plusieurs comptes bancaires.</p>
 
     <div class="diff-grid fade-in">
       <div class="diff-card">
         <div class="tag">RF-03</div>
-        <h3>Kreditkarten-Girokonto-Abgleich</h3>
-        <p>Wenn die Kreditkarte den monatlichen Betrag vom Girokonto abbucht,
-        erkennt Spendif.ai die Beziehung und entfernt die Doppelzählung automatisch.</p>
+        <h3>Rapprochement carte de crédit-compte courant</h3>
+        <p>Quand la carte de crédit débite le montant mensuel du compte courant,
+        Spendif.ai reconnaît la relation et supprime le double comptage automatiquement.</p>
         <p style="margin-top:.75rem; color: var(--muted); font-size:.88rem;">
-          Zeitfenster ±45 Tage · 3 Abgleichsphasen:
-          Gleitfenster → Teilsumme für aufgeteilte Beträge → Teilabgleich
+          Fenêtre temporelle ±45 jours · 3 phases de correspondance :
+          fenêtre glissante → somme de sous-ensembles pour montants fractionnés → rapprochement partiel
         </p>
       </div>
       <div class="diff-card">
         <div class="tag">RF-04</div>
-        <h3>Erkennung interner Überweisungen</h3>
-        <p>Eine Überweisung vom Girokonto auf ein Sparkonto ist weder eine Ausgabe noch
-        eine Einnahme: Es ist eine interne Überweisung. Spendif.ai erkennt sie durch Vergleich
-        von Beträgen, Daten und Kontoinhabernamen in den Beschreibungen: selbst wenn die beiden Dateien
-        zu unterschiedlichen Zeiten importiert wurden.</p>
+        <h3>Détection des virements internes</h3>
+        <p>Un virement d'un compte courant vers un compte d'épargne n'est ni une dépense ni
+        un revenu : c'est un virement interne. Spendif.ai le reconnaît en comparant
+        montants, dates et noms de titulaires dans les descriptions, même si les deux fichiers
+        ont été importés à des moments différents.</p>
       </div>
       <div class="diff-card">
         <div class="tag">Dedup</div>
-        <h3>Idempotente Deduplizierung</h3>
-        <p>Jede Transaktion hat eine eindeutige ID, die aus ihrem Inhalt berechnet wird (SHA-256).
-        Wenn Sie dieselbe Datei zweimal importieren, passiert nichts.
-        Sie können Ihre gesamte Transaktionshistorie ohne Angst vor Duplikaten erneut importieren.</p>
+        <h3>Déduplication idempotente</h3>
+        <p>Chaque transaction a un identifiant unique calculé à partir de son contenu (SHA-256).
+        Si vous importez le même fichier deux fois, rien ne se passe.
+        Vous pouvez réimporter tout votre historique de transactions sans crainte de doublons.</p>
       </div>
       <div class="diff-card">
         <div class="tag">Categories</div>
-        <h3>Kaskadierende Hybrid-Klassifikation</h3>
-        <p>Die Kategorisierung verwendet vier Ebenen nacheinander:</p>
+        <h3>Classification hybride en cascade</h3>
+        <p>La catégorisation utilise quatre niveaux en séquence :</p>
         <ul class="cascade-list">
-          <li><span class="num">1</span><span><strong>Ihre Regeln</strong>: "CONAD" → Lebensmittel (rückwirkend angewendet)</span></li>
-          <li><span class="num">2</span><span><strong>Statische Regex</strong>: vordefinierte Muster für gängige Kategorien</span></li>
-          <li><span class="num">3</span><span><strong>LLM</strong>: für alles andere, lokale oder Cloud-KI</span></li>
-          <li><span class="num">4</span><span><strong>Fallback</strong>: "Zu überprüfen" wenn alles andere fehlschlägt</span></li>
+          <li><span class="num">1</span><span><strong>Vos règles</strong>: "CONAD" → Alimentation (appliquées rétroactivement)</span></li>
+          <li><span class="num">2</span><span><strong>Regex statiques</strong>: motifs prédéfinis pour les catégories courantes</span></li>
+          <li><span class="num">3</span><span><strong>LLM</strong>: pour tout le reste, IA locale ou cloud</span></li>
+          <li><span class="num">4</span><span><strong>Fallback</strong>: "À revoir" si tout le reste échoue</span></li>
         </ul>
       </div>
     </div>
@@ -1026,38 +1021,38 @@
 <section id="privacy" class="privacy-section">
   <div class="container">
     <div class="section-label">Privacy</div>
-    <h2>Ihre Daten bleiben Ihre. Wirklich.</h2>
-    <p class="section-sub">Das ist nicht nur ein Slogan. Es ist die Architektur.</p>
+    <h2>Vos données restent les vôtres. Vraiment.</h2>
+    <p class="section-sub">Ce n'est pas juste un slogan. C'est l'architecture.</p>
 
     <div class="privacy-grid fade-in">
       <div class="privacy-card">
         <div class="ico-big">🏠</div>
-        <h3>Standardmäßig Offline-first</h3>
-        <p>Spendif.ai verwendet standardmäßig <strong>Ollama lokal</strong>: eine KI-Engine, die
-        auf Ihrem Computer läuft, ohne Internetverbindung. Ihre Kontobewegungsdateien verlassen
-        niemals Ihre Festplatte.</p>
+        <h3>Offline-first par défaut</h3>
+        <p>Spendif.ai utilise <strong>Ollama en local</strong> par défaut : un moteur d'IA qui tourne
+        sur votre ordinateur, sans connexion internet. Vos fichiers de mouvements ne quittent
+        jamais votre disque.</p>
       </div>
       <div class="privacy-card">
         <div class="ico-big">🛡️</div>
-        <h3>Automatische PII-Redaktion</h3>
-        <p>Wenn Sie OpenAI oder Claude verwenden, entfernt Spendif.ai automatisch alle
-        identifizierenden Daten vor jedem Remote-Aufruf:</p>
+        <h3>Rédaction automatique des PII</h3>
+        <p>Si vous utilisez OpenAI ou Claude, Spendif.ai supprime automatiquement toutes
+        les données identifiantes avant chaque appel distant :</p>
         <div class="pii-chips">
           <span class="pii-chip">IBAN → &lt;ACCOUNT_ID&gt;</span>
           <span class="pii-chip">PAN → &lt;CARD_ID&gt;</span>
           <span class="pii-chip">Tax ID → &lt;FISCAL_ID&gt;</span>
-          <span class="pii-chip">Name → fiktiver Alias</span>
+          <span class="pii-chip">Nom → alias fictif</span>
         </div>
         <p style="margin-top:.75rem; font-size:.83rem; color:var(--muted)">
-          Wenn die Prüfung fehlschlägt, wird der Aufruf blockiert, nicht stillschweigend herabgestuft.
+          Si la vérification échoue, l'appel est bloqué, pas dégradé silencieusement.
         </p>
       </div>
       <div class="privacy-card">
         <div class="ico-big">💾</div>
-        <h3>Portable lokale Datenbank</h3>
-        <p>Daten werden in einer SQLite-Datei auf Ihrem Computer gespeichert. Sie können sie kopieren, verschieben,
-        sichern wie jede andere Datei. Keine obligatorische Cloud,
-        kein Konto, kein Abonnement.</p>
+        <h3>Base de données locale portable</h3>
+        <p>Les données sont stockées dans un fichier SQLite sur votre ordinateur. Vous pouvez le copier, le déplacer,
+        le sauvegarder comme n'importe quel autre fichier. Pas de cloud obligatoire,
+        pas de compte, pas d'abonnement.</p>
       </div>
     </div>
   </div>
@@ -1068,43 +1063,43 @@
 <!-- ── FOR WHO ───────────────────────────────────────────────────────────── -->
 <section id="per-chi">
   <div class="container">
-    <div class="section-label">Für wen Spendif.ai gedacht ist</div>
-    <h2>Nicht für jeden. Für alle, die echte Kontrolle wollen.</h2>
-    <p class="section-sub">Vier Profile, die in Spendif.ai etwas finden, was Alternativen nicht bieten.</p>
+    <div class="section-label">À qui s'adresse Spendif.ai</div>
+    <h2>Pas pour tout le monde. Pour ceux qui veulent un vrai contrôle.</h2>
+    <p class="section-sub">Quatre profils qui trouvent dans Spendif.ai quelque chose que les alternatives n'offrent pas.</p>
 
     <div class="audience-grid fade-in">
       <div class="audience-card">
         <div class="ico-circle">🏦</div>
         <div>
-          <h3>Personen mit Konten bei mehreren Banken</h3>
-          <p>Girokonto + Kreditkarte + Sparkonto + Depotkonto?
-          Spendif.ai vereint sie alle in einem einzigen Hauptbuch, ohne dass Sie etwas manuell tun müssen.</p>
+          <h3>Personnes avec des comptes dans plusieurs banques</h3>
+          <p>Compte courant + carte de crédit + compte d'épargne + compte-titres ?
+          Spendif.ai les unifie tous dans un seul registre sans rien faire manuellement.</p>
         </div>
       </div>
       <div class="audience-card">
         <div class="ico-circle">📊</div>
         <div>
-          <h3>Personen, die ihre Finanzen ernsthaft verfolgen</h3>
-          <p>Wenn Sie Excel für Ihre Ausgaben verwenden, kann Spendif.ai diese Routine ersetzen:
-          Sie importieren die Dateien einmal, Spendif.ai vereinheitlicht und klassifiziert, Sie überprüfen
-          nur die Ausnahmen.</p>
+          <h3>Personnes qui suivent sérieusement leurs finances</h3>
+          <p>Si vous utilisez Excel pour vos dépenses, Spendif.ai peut remplacer cette routine :
+          vous importez les fichiers une fois, Spendif.ai unifie et classifie, vous ne vérifiez
+          que les exceptions.</p>
         </div>
       </div>
       <div class="audience-card">
         <div class="ico-circle">🔐</div>
         <div>
-          <h3>Personen, die der Cloud nicht vertrauen</h3>
-          <p>Kein obligatorisches Remote-Backend, kein Konto, keine Registrierung.
-          Ihre Bankdaten bleiben dort, wo sie hingehören: auf Ihrem Computer.</p>
+          <h3>Personnes qui ne font pas confiance au cloud</h3>
+          <p>Pas de backend distant obligatoire, pas de compte, pas d'inscription.
+          Vos données bancaires restent là où elles doivent être : sur votre ordinateur.</p>
         </div>
       </div>
       <div class="audience-card">
         <div class="ico-circle">👨‍💻</div>
         <div>
-          <h3>Entwickler</h3>
-          <p>Python-Projekt mit öffentlichem Quellcode, modularer Architektur, LLM-Pipeline auf strukturierten Daten,
-          vollständige Testsuite. Ein Ausgangspunkt zum Experimentieren oder
-          zum Erstellen benutzerdefinierter Integrationen.</p>
+          <h3>Développeurs</h3>
+          <p>Projet Python à code public avec architecture modulaire, pipeline LLM sur données structurées,
+          suite de tests complète. Un point de départ pour expérimenter ou
+          construire des intégrations personnalisées.</p>
         </div>
       </div>
     </div>
@@ -1116,58 +1111,58 @@
 <!-- ── FEATURES ──────────────────────────────────────────────────────────── -->
 <section id="features">
   <div class="container">
-    <div class="section-label">Funktionen</div>
-    <h2>Alles was Sie brauchen, nichts mehr</h2>
+    <div class="section-label">Fonctionnalités</div>
+    <h2>Tout ce dont vous avez besoin, rien de plus</h2>
     <br>
 
     <div class="features-grid fade-in">
       <div class="feature-row">
-        <span class="feature-name">Multi-Bank-Import</span>
-        <span class="feature-desc">CSV und XLSX von jeder Bank</span>
+        <span class="feature-name">Import multi-banque</span>
+        <span class="feature-desc">CSV et XLSX de n'importe quelle banque</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Automatische Formaterkennung</span>
-        <span class="feature-desc">Keine manuelle Konfiguration für jeden Dateityp</span>
+        <span class="feature-name">Détection automatique du format</span>
+        <span class="feature-desc">Aucune configuration manuelle pour chaque type de fichier</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Einheitliches Hauptbuch</span>
-        <span class="feature-desc">Alle Transaktionen in chronologischer Reihenfolge, filterbar nach Datum / Konto / Kategorie / Kontext</span>
+        <span class="feature-name">Registre unifié</span>
+        <span class="feature-desc">Toutes les transactions par ordre chronologique, filtrables par date / compte / catégorie / contexte</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Automatische Klassifikation</span>
-        <span class="feature-desc">15 Ausgabenkategorien + 7 Einnahmenkategorien mit Unterkategorien</span>
+        <span class="feature-name">Classification automatique</span>
+        <span class="feature-desc">15 catégories de dépenses + 7 catégories de revenus avec sous-catégories</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Anpassbare Taxonomie</span>
-        <span class="feature-desc">Kategorien hinzufügen / bearbeiten ohne die App neu zu starten</span>
+        <span class="feature-name">Taxonomie personnalisable</span>
+        <span class="feature-desc">Ajouter / modifier des catégories sans redémarrer l'application</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Deterministische Regeln</span>
-        <span class="feature-desc">"ESSELUNGA → Lebensmittel"-Regeln rückwirkend angewendet</span>
+        <span class="feature-name">Règles déterministes</span>
+        <span class="feature-desc">Règles "ESSELUNGA → Alimentation" appliquées rétroactivement</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Interaktive Analysen</span>
-        <span class="feature-desc">7 Diagramme: Monatstrend, kumulativer Saldo, Kategorie-Kreisdiagramm, Top-10-Händler</span>
+        <span class="feature-name">Analyses interactives</span>
+        <span class="feature-desc">7 graphiques : tendance mensuelle, solde cumulé, camembert par catégorie, top 10 commerçants</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Lebenskontexte</span>
-        <span class="feature-desc">Ausgaben segmentieren nach Arbeit / Urlaub / Alltag</span>
+        <span class="feature-name">Contextes de vie</span>
+        <span class="feature-desc">Segmenter les dépenses par Travail / Vacances / Vie quotidienne</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Checkliste</span>
-        <span class="feature-desc">Monat × Konto Pivot-Tabelle: sehen Sie, welche Monate noch nicht importiert wurden</span>
+        <span class="feature-name">Liste de contrôle</span>
+        <span class="feature-desc">Tableau croisé mois × compte : voyez quels mois vous n'avez pas encore importés</span>
       </div>
       <div class="feature-row">
         <span class="feature-name">Export</span>
-        <span class="feature-desc">Eigenständiges HTML (mit Diagrammen), CSV, XLSX</span>
+        <span class="feature-desc">HTML autonome (avec graphiques), CSV, XLSX</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">Konfigurierbares LLM</span>
+        <span class="feature-name">LLM configurable</span>
         <span class="feature-desc">Ollama, OpenAI, Claude, Groq, Gemini, LM Studio, any compatible API</span>
       </div>
       <div class="feature-row">
-        <span class="feature-name">PII-Bereinigung</span>
-        <span class="feature-desc">Automatischer IBAN- / Kartennummern- / Steuer-ID- / Namensschutz vor Remote-Aufrufen</span>
+        <span class="feature-name">Nettoyage des PII</span>
+        <span class="feature-desc">Protection automatique IBAN / numéro de carte / identifiant fiscal / nom avant les appels distants</span>
       </div>
     </div>
   </div>
@@ -1179,15 +1174,15 @@
 <section id="install" class="install-section">
   <div class="container">
     <div class="section-label">Installation</div>
-    <h2>Ein Befehl, App bereit</h2>
-    <p class="section-sub">Native Desktop-App mit integrierter lokaler KI. Kein Docker, kein dauerhaft offenes Terminal.</p>
+    <h2>Une commande, application prête</h2>
+    <p class="section-sub">Application de bureau native avec IA locale incluse. Pas de Docker, pas de Terminal toujours ouvert.</p>
 
     <p style="text-align:center;margin:1.5rem 0 2.5rem;">
-      <a href="getting-started.de.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Installer herunterladen (DMG · MSIX · .deb · .rpm)</a><br>
-      <span style="color:var(--muted);font-size:0.9rem;">Schritt-für-Schritt-Anleitung mit Screenshots → <a href="getting-started.de.html">Installation &amp; erster Start</a></span>
+      <a href="https://spendif.ai/fr/getting-started.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Télécharger l'installeur (DMG · MSIX · .deb · .rpm)</a><br>
+      <span style="color:var(--muted);font-size:0.9rem;">Guide pas-à-pas avec captures d'écran → <a href="https://spendif.ai/fr/getting-started.html">installation et premier lancement</a></span>
     </p>
 
-    <p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;">oder, über das Terminal:</p>
+    <p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;">ou, depuis le terminal :</p>
 
     <div class="os-tabs">
       <button class="os-tab active" onclick="switchOS('mac')">🍎 macOS</button>
@@ -1204,7 +1199,7 @@
             <span class="d1"></span><span class="d2"></span><span class="d3"></span>
           </div>
           <span class="code-label">bash</span>
-          <button class="copy-btn" onclick="copyCode(this, 'mac')">Kopieren</button>
+          <button class="copy-btn" onclick="copyCode(this, 'mac')">Copier</button>
         </div>
         <div class="code-body">
           <div><span class="p">$ </span><span class="c">curl</span><span class="a"> -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/macos/install.sh | bash</span></div>
@@ -1220,7 +1215,7 @@
             <span class="d1"></span><span class="d2"></span><span class="d3"></span>
           </div>
           <span class="code-label">bash</span>
-          <button class="copy-btn" onclick="copyCode(this, 'deb')">Kopieren</button>
+          <button class="copy-btn" onclick="copyCode(this, 'deb')">Copier</button>
         </div>
         <div class="code-body">
           <div><span class="p">$ </span><span class="c">curl</span><span class="a"> -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-debian.sh | bash</span></div>
@@ -1236,7 +1231,7 @@
             <span class="d1"></span><span class="d2"></span><span class="d3"></span>
           </div>
           <span class="code-label">bash</span>
-          <button class="copy-btn" onclick="copyCode(this, 'rhel')">Kopieren</button>
+          <button class="copy-btn" onclick="copyCode(this, 'rhel')">Copier</button>
         </div>
         <div class="code-body">
           <div><span class="p">$ </span><span class="c">curl</span><span class="a"> -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-redhat.sh | bash</span></div>
@@ -1252,7 +1247,7 @@
             <span class="d1"></span><span class="d2"></span><span class="d3"></span>
           </div>
           <span class="code-label">powershell</span>
-          <button class="copy-btn" onclick="copyCode(this, 'win')">Kopieren</button>
+          <button class="copy-btn" onclick="copyCode(this, 'win')">Copier</button>
         </div>
         <div class="code-body">
           <div><span class="p">PS&gt; </span><span class="c">irm</span><span class="a"> https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex</span></div>
@@ -1261,20 +1256,20 @@
     </div>
 
     <p class="install-post">
-      Das Skript erkennt deine Hardware, lädt das für deinen RAM optimale KI-Modell (1-7 GB) und konfiguriert alles: <strong>kein Aufwand</strong>.<br>
-      Die App erscheint in Launchpad / Startmenü / Dateimanager, einsatzbereit.
+      Le script détecte votre matériel, télécharge le modèle IA optimal pour votre RAM (1-7 Go) et configure tout: <strong>zéro intervention</strong>.<br>
+      L'application apparaît dans Launchpad / Menu Démarrer / explorateur de fichiers, prête à l'emploi.
     </p>
 
     <p class="install-dev-link">
-      Entwickler oder manuelle Installation? →
-      <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Vollständige Anleitung</a>
+      Installation développeur ou manuelle ? →
+      <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guide complet</a>
     </p>
 
-    <!-- ── Docker (Alternative) ──────────────────────────────────────── -->
+    <!-- ── Docker (alternative) ──────────────────────────────────────── -->
     <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border);">
-      <h3 style="color: var(--blue); margin-bottom: 0.5rem;">🐳 Bevorzugst du Docker?</h3>
+      <h3 style="color: var(--blue); margin-bottom: 0.5rem;">🐳 Vous préférez Docker ?</h3>
       <p style="color: var(--muted); margin-bottom: 1.2rem;">
-        Nur <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color:var(--blue)">Docker Desktop</a> erforderlich. Offizieller Container vom GitHub Container Registry, Browser auf <strong>http://localhost:8501</strong>.
+        Seul <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color:var(--blue)">Docker Desktop</a> est requis. Conteneur officiel depuis GitHub Container Registry, navigateur à <strong>http://localhost:8501</strong>.
       </p>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
@@ -1301,11 +1296,11 @@
   </div>
 </section>
 
-<!-- ── Community / Support ─────────────────────────────────────────────── -->
+<!-- ── Communauté / support ─────────────────────────────────────────────── -->
 <div style="text-align: center; padding: 2.5rem 1rem 1rem; max-width: 760px; margin: 0 auto;">
   <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.8;">
-    🆘 <strong style="color: var(--text);">Brauchst du Hilfe?</strong> <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">Öffne ein Issue auf GitHub</a>: Bugs, Fragen, Feature-Wünsche.<br>
-    ⭐ <strong style="color: var(--text);">Gefällt dir Spendif.ai?</strong> <a href="https://github.com/spendifai/spendif-ai" target="_blank">Gib uns einen Stern</a>: das hilft uns, in die offiziellen Paket-Registries (Homebrew Core, winget) zu kommen.
+    🆘 <strong style="color: var(--text);">Besoin d'aide ?</strong> <a href="https://github.com/spendifai/spendif-ai/issues" target="_blank">Ouvrez une issue sur GitHub</a>: bugs, questions, demandes de fonctionnalités.<br>
+    ⭐ <strong style="color: var(--text);">Vous aimez Spendif.ai ?</strong> <a href="https://github.com/spendifai/spendif-ai" target="_blank">Mettez-nous une étoile</a>: cela nous aide à atteindre les registres officiels (Homebrew Core, winget).
   </p>
 </div>
 
@@ -1314,42 +1309,42 @@
 <!-- FAQ (generated by scripts/gen_faq.py) -->
 <section id="faq">
   <div class="container">
-    <div class="section-label">Häufige Fragen</div>
-    <h2>Die Fragen, die am häufigsten kommen</h2>
-    <p class="section-sub">Was Leute fragen, bevor sie es installieren.</p>
+    <div class="section-label">Questions fréquentes</div>
+    <h2>Les questions qui reviennent le plus</h2>
+    <p class="section-sub">Ce que demandent ceux qui ne l'ont pas encore installé.</p>
 
     <div class="faq-list fade-in">
       <details class="faq-item" open>
-        <summary>Verbindet sich Spendif.ai mit meiner Bank?</summary>
-        <p>Nein, nie. Kein Open Banking, kein PSD2, kein Bankpasswort. Sie laden die Umsatzdatei selbst bei Ihrer Bank herunter, als CSV oder XLSX, und ziehen sie in die App.</p>
+        <summary>Spendif.ai se connecte-t-il à ma banque ?</summary>
+        <p>Non, jamais. Pas d'Open Banking, pas de DSP2, aucun mot de passe bancaire. Vous téléchargez vous-même le fichier des opérations depuis votre banque, en CSV ou XLSX, et vous le déposez dans l'application.</p>
       </details>
       <details class="faq-item">
-        <summary>Verlassen meine Daten meinen Computer?</summary>
-        <p>Nein. Spendif.ai speichert alles in einer lokalen SQLite-Datenbank unter ~/.spendifai/ und funktioniert ohne Verbindung. Wenn Sie ein externes LLM wählen, werden IBANs und Namen vor dem Senden aus den Beschreibungen entfernt.</p>
+        <summary>Mes données sortent-elles de mon ordinateur ?</summary>
+        <p>Non. Spendif.ai garde tout dans une base SQLite locale, dans ~/.spendifai/, et fonctionne sans connexion. Si vous choisissez un LLM distant, les IBAN et les noms sont retirés des libellés avant tout envoi.</p>
       </details>
       <details class="faq-item">
-        <summary>Was kostet es? Ist es für immer kostenlos?</summary>
-        <p>Heute ist Spendif.ai für den privaten Gebrauch kostenlos, ohne Abonnement und ohne versteckte Kosten. Der Quellcode ist öffentlich und Sie können ihn lesen. Später kann eine kostenpflichtige Version mit zusätzlichen Funktionen kommen: die installierte Version läuft weiter, und Ihre Daten bleiben in einer Datei auf Ihrem Computer, die Sie jederzeit mitnehmen können.</p>
+        <summary>Combien ça coûte ? Est-ce gratuit pour toujours ?</summary>
+        <p>Aujourd'hui Spendif.ai est gratuit pour un usage personnel, sans abonnement et sans frais cachés. Le code est public et vous pouvez le lire. Une version payante avec des fonctions supplémentaires pourra arriver plus tard : la version que vous avez installée continuera de fonctionner, et vos données restent dans un fichier sur votre ordinateur que vous pouvez emporter quand vous voulez.</p>
       </details>
       <details class="faq-item">
-        <summary>Brauche ich ein Konto?</summary>
-        <p>Nein. Keine E-Mail, keine Registrierung, kein Passwort zum Zurücksetzen. Sie installieren die App und nutzen sie.</p>
+        <summary>Dois-je créer un compte ?</summary>
+        <p>Non. Pas d'e-mail, pas d'inscription, pas de mot de passe à récupérer. Vous installez l'application et vous l'utilisez.</p>
       </details>
       <details class="faq-item">
-        <summary>Auf welchen Systemen läuft es?</summary>
-        <p>Windows, Linux und macOS 12 Monterey oder neuer auf Apple Silicon (M1 oder neuer). Es gibt keinen Build für Intel-Macs.</p>
+        <summary>Sur quels systèmes cela fonctionne-t-il ?</summary>
+        <p>Windows, Linux et macOS 12 Monterey ou plus récent sur Apple Silicon (M1 ou suivants). Il n'existe pas de version pour Mac Intel.</p>
       </details>
       <details class="faq-item">
-        <summary>Welche Banken werden unterstützt?</summary>
-        <p>Jede Bank, bei der Sie Umsätze als CSV oder XLSX exportieren können. Spendif.ai erkennt das Format selbst, und Sie können Dateien verschiedener Banken zusammen importieren.</p>
+        <summary>Quelles banques sont prises en charge ?</summary>
+        <p>Toute banque qui permet d'exporter les opérations en CSV ou XLSX. Spendif.ai reconnaît le format tout seul, et vous pouvez importer ensemble des fichiers de banques différentes.</p>
       </details>
       <details class="faq-item">
-        <summary>Was passiert, wenn ich dieselbe Datei zweimal importiere?</summary>
-        <p>Nichts Schlimmes: bereits vorhandene Buchungen werden nicht dupliziert. Sie können dieselbe Datei beliebig oft erneut importieren.</p>
+        <summary>Que se passe-t-il si j'importe deux fois le même fichier ?</summary>
+        <p>Rien de grave : les opérations déjà présentes ne sont pas dupliquées. Vous pouvez réimporter le même fichier autant de fois que vous voulez.</p>
       </details>
       <details class="faq-item">
-        <summary>Gibt es eine Handy-App?</summary>
-        <p>Nein, Spendif.ai ist eine Desktop-Anwendung. Eine Begleit-App nur für Bargeldausgaben ist geplant, hat aber kein Datum.</p>
+        <summary>Existe-t-il une application mobile ?</summary>
+        <p>Non, Spendif.ai est une application de bureau. Une application compagnon pour saisir uniquement les dépenses en espèces est prévue, mais sans date.</p>
       </details>
     </div>
   </div>
@@ -1361,20 +1356,20 @@
 <!-- ── STACK ─────────────────────────────────────────────────────────────── -->
 <section id="stack">
   <div class="container">
-    <div class="section-label">Tech-Stack</div>
-    <h2>Bewährte Technologien, keine exotischen Abhängigkeiten</h2>
-    <p class="section-sub">Kein LLM-Framework (kein LangChain): KI-Backends verwenden die offiziellen SDKs direkt.</p>
+    <div class="section-label">Stack technique</div>
+    <h2>Technologies matures, aucune dépendance exotique</h2>
+    <p class="section-sub">Pas de framework LLM (pas de LangChain): les backends IA utilisent directement les SDK officiels.</p>
 
     <div class="stack-grid fade-in">
       <div class="stack-badge"><strong>Python 3.13</strong> <span>+ pandas</span></div>
-      <div class="stack-badge"><strong>Streamlit</strong> <span>Web-Oberfläche</span></div>
+      <div class="stack-badge"><strong>Streamlit</strong> <span>interface web</span></div>
       <div class="stack-badge"><strong>SQLite</strong> <span>+ SQLAlchemy</span></div>
-      <div class="stack-badge"><strong>Pydantic v2</strong> <span>Schema-Validierung</span></div>
-      <div class="stack-badge"><strong>Plotly</strong> <span>interaktive Diagramme</span></div>
-      <div class="stack-badge"><strong>uv</strong> <span>Paketmanager</span></div>
-      <div class="stack-badge"><strong>Ollama</strong> <span>lokale KI</span></div>
-      <div class="stack-badge"><strong>chardet</strong> <span>Zeichensatzerkennung</span></div>
-      <div class="stack-badge"><strong>openpyxl</strong> <span>Excel-Verarbeitung</span></div>
+      <div class="stack-badge"><strong>Pydantic v2</strong> <span>validation de schéma</span></div>
+      <div class="stack-badge"><strong>Plotly</strong> <span>graphiques interactifs</span></div>
+      <div class="stack-badge"><strong>uv</strong> <span>gestionnaire de paquets</span></div>
+      <div class="stack-badge"><strong>Ollama</strong> <span>IA locale</span></div>
+      <div class="stack-badge"><strong>chardet</strong> <span>détection d'encodage</span></div>
+      <div class="stack-badge"><strong>openpyxl</strong> <span>analyse Excel</span></div>
     </div>
   </div>
 </section>
@@ -1384,8 +1379,8 @@
 <!-- ── DEVELOPER ─────────────────────────────────────────────────────────── -->
 <section id="developer">
   <div class="container">
-    <div class="section-label">Für Entwickler</div>
-    <h2>Modulare Architektur, vollständige Testsuite</h2>
+    <div class="section-label">Pour les développeurs</div>
+    <h2>Architecture modulaire, suite de tests complète</h2>
 
     <div class="pipeline-box fade-in">
 <span class="ph">CSV/XLSX File</span>
@@ -1403,20 +1398,20 @@
 
     <div class="contribute-grid fade-in">
       <div class="contribute-card">
-        <h3>🔌 Neue LLM-Backends</h3>
-        <p><code>LLMBackend</code> implementieren (3 Methoden) und in <code>BackendFactory</code> registrieren. Funktioniert mit jeder OpenAI-kompatiblen API.</p>
+        <h3>🔌 Nouveaux backends LLM</h3>
+        <p>Implémentez <code>LLMBackend</code> (3 méthodes) et enregistrez-le dans <code>BackendFactory</code>. Fonctionne avec toute API compatible OpenAI.</p>
       </div>
       <div class="contribute-card">
-        <h3>🏦 Neue Bankformate</h3>
-        <p>Flow 2 erkennt sie automatisch per LLM ohne Codeänderungen. Das Schema wird gespeichert und bei nachfolgenden Importen wiederverwendet.</p>
+        <h3>🏦 Nouveaux formats bancaires</h3>
+        <p>Le Flow 2 les reconnaît automatiquement via LLM sans modification de code. Le schéma est sauvegardé et réutilisé lors des imports suivants.</p>
       </div>
       <div class="contribute-card">
-        <h3>🏷️ Neue Kategorien</h3>
-        <p>Über die Taxonomie-Seite, ohne den Code zu berühren. Die Taxonomie ist vollständig über die Oberfläche konfigurierbar.</p>
+        <h3>🏷️ Nouvelles catégories</h3>
+        <p>Depuis la page Taxonomie, sans toucher au code. La taxonomie est entièrement configurable depuis l'interface.</p>
       </div>
       <div class="contribute-card">
         <h3>🚀 REST API</h3>
-        <p>Die <code>process_file()</code>-Pipeline ist vollständig von der UI getrennt: sie kann ohne Änderungen über FastAPI bereitgestellt werden.</p>
+        <p>Le pipeline <code>process_file()</code> est complètement séparé de l'UI: il peut être exposé via FastAPI sans modification.</p>
       </div>
     </div>
 
@@ -1429,7 +1424,7 @@
         <span class="code-label">bash: test suite</span>
       </div>
       <div class="code-body">
-        <div><span class="p">$ </span><span class="c">uv run pytest</span><span class="a"> tests/ -v</span>         <span class="co"># 199 Tests, keine externen Abhängigkeiten</span></div>
+        <div><span class="p">$ </span><span class="c">uv run pytest</span><span class="a"> tests/ -v</span>         <span class="co"># 199 tests, zéro dépendance externe</span></div>
         <div><span class="p">$ </span><span class="c">uv run pytest</span><span class="a"> tests/ --cov=core</span>  <span class="co"># coverage of business logic layer</span></div>
       </div>
     </div>
@@ -1442,17 +1437,17 @@
 <section id="roadmap">
   <div class="container">
     <div class="section-label">Roadmap</div>
-    <h2>Was kommt</h2>
+    <h2>Ce qui arrive</h2>
     <br>
     <ul class="roadmap-list fade-in">
-      <li><span class="dot"></span>PDF-Unterstützung: natives Parsen von PDF-Kontobewegungsdateien</li>
-      <li><span class="dot"></span>Monatliches Budget pro Kategorie mit Benachrichtigungen</li>
-      <li><span class="dot"></span>Automatischer Import über Open Banking (PSD2)</li>
-      <li><span class="dot"></span>REST-API für externe Integrationen</li>
-      <li><span class="dot"></span>Mehrbenutzer-Version mit Authentifizierung</li>
-      <li><span class="dot"></span>Mobile App: Hauptbuch- und Analyse-Viewer</li>
-      <li><span class="dot"></span>Veröffentlichung in <strong>Homebrew Core</strong>: Installation ohne Tap</li>
-      <li><span class="dot"></span>Verteilung über <strong>winget</strong> (Windows): <code>winget install SpendifAi.SpendifAi</code></li>
+      <li><span class="dot"></span>Support PDF: analyse native des fichiers de mouvements PDF</li>
+      <li><span class="dot"></span>Budget mensuel par catégorie avec alertes</li>
+      <li><span class="dot"></span>Import automatique via Open Banking (PSD2)</li>
+      <li><span class="dot"></span>API REST pour les intégrations externes</li>
+      <li><span class="dot"></span>Version multi-utilisateurs avec authentification</li>
+      <li><span class="dot"></span>Application mobile: visualiseur de registre et analyses</li>
+      <li><span class="dot"></span>Publication sur <strong>Homebrew Core</strong>: installation sans ajouter le tap</li>
+      <li><span class="dot"></span>Distribution via <strong>winget</strong> (Windows): <code>winget install SpendifAi.SpendifAi</code></li>
     </ul>
   </div>
 </section>
@@ -1462,26 +1457,26 @@
 <!-- ── CONTRIBUTE ────────────────────────────────────────────────────────── -->
 <section id="contribuire">
   <div class="container">
-    <div class="section-label">Öffentlicher Quellcode</div>
-    <h2>Beiträge sind willkommen</h2>
-    <p class="section-sub">Bereiche, in denen Beiträge am nützlichsten sind:</p>
+    <div class="section-label">Code public</div>
+    <h2>Les contributions sont bienvenues</h2>
+    <p class="section-sub">Domaines où les contributions sont les plus utiles :</p>
 
     <div class="contribute-grid fade-in">
       <div class="contribute-card">
-        <h3>🏦 Neue Bankformate</h3>
-        <p>Wenn Ihre Bank nicht automatisch erkannt wird, öffnen Sie ein Issue mit einer anonymisierten CSV-Beispieldatei.</p>
+        <h3>🏦 Nouveaux formats bancaires</h3>
+        <p>Si votre banque n'est pas reconnue automatiquement, ouvrez une issue avec un échantillon CSV anonymisé.</p>
       </div>
       <div class="contribute-card">
-        <h3>🧪 UI-Tests</h3>
-        <p>Die Suite deckt die Business-Logic-Schicht ab, aber noch nicht die Streamlit-Oberfläche. Hier gibt es Raum für Beiträge.</p>
+        <h3>🧪 Tests UI</h3>
+        <p>La suite couvre la couche logique métier mais pas encore l'interface Streamlit. Il y a de la place pour contribuer.</p>
       </div>
       <div class="contribute-card">
-        <h3>🌍 Internationalisierung</h3>
-        <p>Die UI ist bereits in fünf Sprachen internationalisiert (IT, EN, FR, DE, ES). Es gibt Spielraum für weitere.</p>
+        <h3>🌍 Internationalisation</h3>
+        <p>L'UI est déjà internationalisée en cinq langues (IT, EN, FR, DE, ES). Il y a de la place pour en ajouter d'autres.</p>
       </div>
       <div class="contribute-card">
-        <h3>⚡ Leistung</h3>
-        <p>Batch-Kategorisierung ist der Engpass mit einem lokalen LLM. Hier gibt es Raum für Parallelisierung.</p>
+        <h3>⚡ Performance</h3>
+        <p>La catégorisation par lots est le goulot d'étranglement avec un LLM local. Il y a de la place pour la parallélisation.</p>
       </div>
     </div>
 
@@ -1498,14 +1493,14 @@
 <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
 <footer>
   <p>
-    <strong>Spendif.ai</strong> hat öffentlichen Quellcode unter der PolyForm-Noncommercial-Lizenz:
+    <strong>Spendif.ai</strong> a un code public, sous licence PolyForm Noncommercial :
     <a href="https://github.com/spendifai/spendif-ai" target="_blank">github.com/spendifai/spendif-ai</a>
   </p>
   <p class="disclaimer">
-    Spendif.ai ist kein Cloud-Dienst. Es ist ein Programm, das auf Ihrem Computer läuft.
-    Ihre Bankdaten werden niemals an Server von Drittanbietern gesendet, es sei denn, Sie wählen ausdrücklich
-    ein Remote-LLM-Backend: in diesem Fall werden alle identifizierenden Daten
-    vor der Übertragung entfernt.
+    Spendif.ai n'est pas un service cloud. C'est un programme qui tourne sur votre ordinateur.
+    Vos données bancaires ne sont jamais envoyées à des serveurs tiers, sauf si vous choisissez explicitement
+    un backend LLM distant: dans ce cas, toutes les données identifiantes sont
+    supprimées avant la transmission.
   </p>
 </footer>
 
@@ -1538,8 +1533,8 @@
   };
   function copyCode(btn, os) {
     navigator.clipboard.writeText(installCmds[os] || installCmds.mac).then(() => {
-      btn.textContent = 'Kopiert ✓';
-      setTimeout(() => btn.textContent = 'Kopieren', 2000);
+      btn.textContent = 'Copié ✓';
+      setTimeout(() => btn.textContent = 'Copier', 2000);
     });
   }
 </script>

@@ -1,7 +1,7 @@
 # Screenshots for getting-started page
 
 The gh-pages getting-started page (`getting-started.html` and
-`getting-started.en.html`) references the screenshots listed below.
+`getting-started.html`) references the screenshots listed below.
 
 Drop the PNG/JPG files in this folder using the exact filenames. The HTML
 already contains commented-out `<img>` tags — uncomment them once the

@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+  <!-- Language: English is canonical, the switch happens client-side towards a
+       published translation only. Rule and rationale: PROJECT_BLUEPRINT 3.0quinquies.
+       Loaded in <head>, before rendered content, so nobody sees a flash of the
+       wrong language. -->
+  <script src="/languages.js"></script>
+  <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -13,19 +19,19 @@
   <meta property="og:type" content="website" />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/index.pl.html" />
-  <link rel="alternate" hreflang="it" href="https://spendif.ai/" />
-  <link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html" />
-  <link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html" />
-  <link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html" />
-  <link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html" />
-  <link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html" />
-  <link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html" />
-  <link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html" />
-  <link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html" />
-  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html" />
+  <link rel="canonical" href="https://spendif.ai/pl/" />
+  <link rel="alternate" hreflang="en" href="https://spendif.ai/" />
+  <link rel="alternate" hreflang="it" href="https://spendif.ai/it/" />
+  <link rel="alternate" hreflang="de" href="https://spendif.ai/de/" />
+  <link rel="alternate" hreflang="es" href="https://spendif.ai/es/" />
+  <link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/" />
+  <link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/" />
+  <link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/" />
+  <link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/" />
+  <link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/" />
+  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/" />
   <meta name="robots" content="index,follow" />
-  <meta property="og:url" content="https://spendif.ai/index.pl.html" />
+  <meta property="og:url" content="https://spendif.ai/pl/" />
   <meta property="og:site_name" content="Spendif.ai" />
   <meta property="og:locale" content="pl_PL" />
   <meta property="og:locale:alternate" content="it_IT" />
@@ -748,7 +754,7 @@
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "inLanguage": "pl",
-      "url": "https://spendif.ai/index.pl.html",
+      "url": "https://spendif.ai/pl/",
       "mainEntity": [
           {
               "@type": "Question",
@@ -831,17 +837,7 @@
     <li><a href="#developer">Dla developerów</a></li>
     <li><a href="https://github.com/spendifai/spendif-ai" target="_blank" class="nav-cta">GitHub ↗</a></li>
   </ul>
-  <div class="lang-switcher">
-    <a href="index.html" title="Italiano">🇮🇹</a>
-    <a href="index.en.html" title="English">🇬🇧</a>
-    <a href="index.de.html" title="Deutsch">🇩🇪</a>
-    <a href="index.fr.html" title="Français">🇫🇷</a>
-    <a href="index.es.html" title="Español">🇪🇸</a>
-    <a href="index.pt.html" title="Português">🇵🇹</a>
-    <a href="index.nl.html" title="Nederlands">🇳🇱</a>
-    <a href="index.ja.html" title="日本語">🇯🇵</a>
-    <a href="index.pl.html" title="Polski" class="active">🇵🇱</a>
-  </div>
+    <nav data-lang-switcher aria-label="Language"></nav>
 </nav>
 
 <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
@@ -1182,8 +1178,8 @@
     <p class="section-sub">Natywna aplikacja desktopowa z lokalnym AI w komplecie. Bez Dockera, bez utrzymywania otwartego terminala.</p>
 
     <p style="text-align:center;margin:1.5rem 0 2.5rem;">
-      <a href="getting-started.pl.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Pobierz instalator (DMG · MSIX · .deb · .rpm)</a><br>
-      <span style="color:var(--muted);font-size:0.9rem;">Przewodnik krok po kroku ze zrzutami → <a href="getting-started.pl.html">instalacja i pierwsze uruchomienie</a></span>
+      <a href="https://spendif.ai/pl/getting-started.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Pobierz instalator (DMG · MSIX · .deb · .rpm)</a><br>
+      <span style="color:var(--muted);font-size:0.9rem;">Przewodnik krok po kroku ze zrzutami → <a href="https://spendif.ai/pl/getting-started.html">instalacja i pierwsze uruchomienie</a></span>
     </p>
 
     <p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;">lub z terminala:</p>

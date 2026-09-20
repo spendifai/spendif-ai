@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- Language: English is canonical, the switch happens client-side towards a
+       published translation only. Rule and rationale: PROJECT_BLUEPRINT 3.0quinquies.
+       Loaded in <head>, before rendered content, so nobody sees a flash of the
+       wrong language. -->
+  <script src="/languages.js"></script>
+  <script src="/lang_switch.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spendif.ai: Installation et premier lancement</title>
@@ -9,20 +15,20 @@
   <meta property="og:description" content="Trois étapes : télécharger, installer, premier lancement. Tout en local, pas de cloud." />
 
 <!-- SEO/GEO (managed) -->
-  <link rel="canonical" href="https://spendif.ai/getting-started.fr.html" />
-  <link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html" />
-  <link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html" />
-  <link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html" />
-  <link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html" />
-  <link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html" />
-  <link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html" />
-  <link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html" />
-  <link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html" />
-  <link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html" />
-  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html" />
+  <link rel="canonical" href="https://spendif.ai/fr/getting-started.html" />
+  <link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html" />
+  <link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html" />
+  <link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html" />
+  <link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html" />
+  <link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html" />
+  <link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html" />
+  <link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html" />
+  <link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html" />
+  <link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html" />
+  <link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html" />
   <meta name="robots" content="index,follow" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://spendif.ai/getting-started.fr.html" />
+  <meta property="og:url" content="https://spendif.ai/fr/getting-started.html" />
   <meta property="og:site_name" content="Spendif.ai" />
   <meta property="og:locale" content="fr_FR" />
   <meta property="og:locale:alternate" content="it_IT" />
@@ -45,25 +51,25 @@
       "name": "Spendif.ai: Installation et premier lancement",
       "description": "Téléchargez Spendif.ai pour macOS, Windows ou Linux. Guide pas-à-pas pour l'installation, le premier lancement et la configuration initiale.",
       "inLanguage": "fr",
-      "url": "https://spendif.ai/getting-started.fr.html",
+      "url": "https://spendif.ai/fr/getting-started.html",
       "step": [
           {
               "@type": "HowToStep",
               "position": 1,
               "name": "Téléchargez pour votre système",
-              "url": "https://spendif.ai/getting-started.fr.html#download"
+              "url": "https://spendif.ai/fr/getting-started.html#download"
           },
           {
               "@type": "HowToStep",
               "position": 2,
               "name": "Installer",
-              "url": "https://spendif.ai/getting-started.fr.html#install"
+              "url": "https://spendif.ai/fr/getting-started.html#install"
           },
           {
               "@type": "HowToStep",
               "position": 3,
               "name": "Premier lancement",
-              "url": "https://spendif.ai/getting-started.fr.html#first-launch"
+              "url": "https://spendif.ai/fr/getting-started.html#first-launch"
           }
       ],
       "about": {
@@ -149,7 +155,7 @@
         <a href="#download">Télécharger</a>
         <a href="#install">Installer</a>
         <a href="#first-launch">Premier lancement</a>
-        <span class="lang-switch">🌐 <a href="getting-started.en.html">EN</a> · <a href="getting-started.html">IT</a> · <a href="getting-started.de.html">DE</a> · <a href="getting-started.es.html">ES</a> · <a href="getting-started.ja.html">JA</a> · <a href="getting-started.nl.html">NL</a> · <a href="getting-started.pl.html">PL</a> · <a href="getting-started.pt.html">PT</a></span>
+        <nav data-lang-switcher aria-label="Language"></nav>
       </div>
     </div>
   </nav>

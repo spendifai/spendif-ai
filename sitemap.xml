@@ -3,254 +3,258 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://spendif.ai/</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.en.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/it/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.de.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/de/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.es.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/es/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.fr.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/fr/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.ja.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/ja/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.nl.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/nl/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.pl.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/pl/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
-    <loc>https://spendif.ai/index.pt.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/index.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/index.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/index.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/index.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/index.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/index.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/index.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/index.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/index.en.html"/>
+    <loc>https://spendif.ai/pt/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/"/>
   </url>
   <url>
     <loc>https://spendif.ai/getting-started.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.en.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/it/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.de.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/de/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.es.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/es/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.fr.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/fr/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.ja.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/ja/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.nl.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/nl/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.pl.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/pl/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
   </url>
   <url>
-    <loc>https://spendif.ai/getting-started.pt.html</loc>
-    <lastmod>2026-09-18</lastmod>
-    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/getting-started.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.en.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/getting-started.de.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/getting-started.es.html"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/getting-started.fr.html"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/getting-started.ja.html"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/getting-started.nl.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/getting-started.pl.html"/>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/getting-started.pt.html"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.en.html"/>
+    <loc>https://spendif.ai/pt/getting-started.html</loc>
+    <lastmod>2026-09-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spendif.ai/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://spendif.ai/it/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://spendif.ai/de/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://spendif.ai/es/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://spendif.ai/fr/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://spendif.ai/ja/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://spendif.ai/nl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://spendif.ai/pl/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://spendif.ai/pt/getting-started.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spendif.ai/getting-started.html"/>
+  </url>
+  <url>
+    <loc>https://spendif.ai/feedback.html</loc>
+    <lastmod>2026-09-20</lastmod>
   </url>
 </urlset>
