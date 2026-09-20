@@ -239,7 +239,7 @@
           <p>1. Dubbelklik op het gedownloade <code>.msix</code>-bestand.</p>
           <p>2. De ingebouwde App Installer van Windows opent. Klik op <strong>Installeren</strong>.</p>
           <p>3. De app verschijnt in het Startmenu: start hem daar vandaan.</p>
-          <p>Als je "Onbekende uitgever" ziet: open PowerShell als beheerder en importeer het certificaat eenmalig (zie de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">handleiding</a>).</p>
+          <p>De eerste keren kan Windows "Windows heeft uw pc beveiligd" tonen: klik op "Meer informatie" en daarna op "Toch uitvoeren". De waarschuwing verdwijnt zodra het certificaat reputatie opbouwt. Details in de <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/windows-msix-install.png</code><div>(Windows App Installer dialoog)</div></div>
@@ -252,7 +252,7 @@
           <p>Vanuit de terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>De <code>postinst</code> installeert <code>uv</code>, maakt het venv aan, downloadt het model en schrijft <code>.env</code>. Volledige handleiding: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">install guide</a>.</p>
+          <p>De <code>postinst</code> installeert alleen <code>uv</code>. De venv, het downloaden van het model en <code>.env</code> gebeuren bij de <strong>eerste start</strong>, die daardoor enkele minuten duurt. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Volledige handleiding</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Schermafbeelding</div><code>assets/screenshots/linux-deb-install.png</code><div>(dpkg/dnf terminaloutput)</div></div>

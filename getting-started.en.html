@@ -320,7 +320,7 @@
           <p>1. Double-click the downloaded <code>.msix</code>.</p>
           <p>2. The built-in App Installer opens. Click <strong>Install</strong>.</p>
           <p>3. The app appears in the Start Menu: launch from there.</p>
-          <p>If you see "Unknown publisher": open PowerShell as admin and import the certificate once (see the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
+          <p>The first few times, Windows may show "Windows protected your PC": click "More info", then "Run anyway". The warning fades as the certificate builds reputation. Details in the <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph">
@@ -338,7 +338,7 @@
           <p>From the terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>The <code>postinst</code> installs <code>uv</code>, creates the venv, downloads the model and writes <code>.env</code>. Full guide: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">installation docs</a>.</p>
+          <p>The <code>postinst</code> only installs <code>uv</code>. The venv, the model download and <code>.env</code> happen at <strong>first launch</strong>, so the first start takes a few minutes. Full guide: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">installation docs</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph">

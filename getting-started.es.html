@@ -239,7 +239,7 @@
           <p>1. Doble clic en el archivo <code>.msix</code> descargado.</p>
           <p>2. Se abre el Instalador de Apps integrado en Windows. Pulsa <strong>Instalar</strong>.</p>
           <p>3. La app aparece en el Menú Inicio y se lanza desde allí.</p>
-          <p>Si ves "Editor desconocido": abre PowerShell como admin e importa el certificado una vez (consulta la <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guía</a>).</p>
+          <p>Las primeras veces Windows puede mostrar "Windows protegió su PC": haz clic en "Más información" y luego en "Ejecutar de todas formas". El aviso desaparece a medida que el certificado acumula reputación. Detalles en la <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guía</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/windows-msix-install.png</code><div>(diálogo Instalador de Apps de Windows)</div></div>
@@ -252,7 +252,7 @@
           <p>Desde la terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>El <code>postinst</code> instala <code>uv</code>, crea el venv, descarga el modelo y configura <code>.env</code>. Guía completa: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">guía de instalación</a>.</p>
+          <p>El <code>postinst</code> solo instala <code>uv</code>. El venv, la descarga del modelo y <code>.env</code> se hacen en el <strong>primer arranque</strong>, que por eso tarda unos minutos. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guía completa</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/linux-deb-install.png</code><div>(salida del terminal dpkg/dnf)</div></div>

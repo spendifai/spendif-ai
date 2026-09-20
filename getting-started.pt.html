@@ -239,7 +239,7 @@
           <p>1. Dê duplo clique no arquivo <code>.msix</code> baixado.</p>
           <p>2. O Instalador de Aplicativos integrado do Windows abre. Clique em <strong>Instalar</strong>.</p>
           <p>3. O app aparece no Menu Iniciar: abra a partir dali.</p>
-          <p>Se você vir "Editor desconhecido": abra o PowerShell como administrador e importe o certificado uma vez (veja o <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guia</a>).</p>
+          <p>Nas primeiras vezes, o Windows pode mostrar "O Windows protegeu o seu PC": clique em "Mais informações" e depois em "Executar mesmo assim". O aviso desaparece à medida que o certificado ganha reputação. Detalhes no <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guia</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/windows-msix-install.png</code><div>(diálogo do Instalador de Aplicativos do Windows)</div></div>
@@ -252,7 +252,7 @@
           <p>No terminal:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>O <code>postinst</code> instala o <code>uv</code>, cria o venv, baixa o modelo e configura o <code>.env</code>. Guia completo: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">documentação de instalação</a>.</p>
+          <p>O <code>postinst</code> instala apenas <code>uv</code>. O venv, o download do modelo e o <code>.env</code> acontecem no <strong>primeiro arranque</strong>, que por isso demora alguns minutos. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guia completo</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Captura</div><code>assets/screenshots/linux-deb-install.png</code><div>(saída do terminal dpkg/dnf)</div></div>

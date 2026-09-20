@@ -239,7 +239,7 @@
           <p>1. Double-cliquez sur le fichier <code>.msix</code> téléchargé.</p>
           <p>2. L'installeur d'applications intégré à Windows s'ouvre. Cliquez sur <strong>Installer</strong>.</p>
           <p>3. L'app apparaît dans le menu Démarrer: lancez-la depuis là.</p>
-          <p>Si vous voyez "Éditeur inconnu" : ouvrez PowerShell en admin et importez le certificat une fois (voir le <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>).</p>
+          <p>Les premières fois, Windows peut afficher "Windows a protégé votre ordinateur" : cliquez sur "Informations complémentaires" puis sur "Exécuter quand même". L'avertissement disparaît à mesure que le certificat acquiert de la réputation. Détails dans le <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">guide</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/windows-msix-install.png</code><div>(boîte de dialogue Windows App Installer)</div></div>
@@ -252,7 +252,7 @@
           <p>Depuis le terminal :</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p>Le <code>postinst</code> installe <code>uv</code>, crée le venv, télécharge le modèle et configure <code>.env</code>. Guide complet : <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">documentation d'installation</a>.</p>
+          <p>Le <code>postinst</code> installe uniquement <code>uv</code>. Le venv, le téléchargement du modèle et <code>.env</code> se font au <strong>premier lancement</strong>, qui prend donc quelques minutes. <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">Guide complet</a>.</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 Capture</div><code>assets/screenshots/linux-deb-install.png</code><div>(sortie terminal dpkg/dnf)</div></div>

@@ -239,7 +239,7 @@
           <p>1. ダウンロードした <code>.msix</code> ファイルをダブルクリックします。</p>
           <p>2. Windows 内蔵のアプリ インストーラーが開きます。<strong>インストール</strong> をクリックします。</p>
           <p>3. アプリがスタートメニューに表示されます。そこから起動します。</p>
-          <p>「不明な発行元」と表示された場合: 管理者として PowerShell を開き、証明書を一度インポートしてください (<a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">ガイド</a>参照)。</p>
+          <p>最初の数回、Windows が「Windows によって PC が保護されました」と表示することがあります。「詳細情報」をクリックし、「実行」を選んでください。証明書の評価が蓄積されると表示されなくなります。詳細は<a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installation_windows.md" target="_blank">ガイド</a>をご覧ください。</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 スクリーンショット</div><code>assets/screenshots/windows-msix-install.png</code><div>(Windows アプリ インストーラーのダイアログ)</div></div>
@@ -252,7 +252,7 @@
           <p>ターミナルから:</p>
           <p><code>sudo apt install ./spendifai_*.deb</code> &nbsp;(Debian/Ubuntu)</p>
           <p><code>sudo dnf install ./spendifai-*.rpm</code> &nbsp;(Fedora/RHEL)</p>
-          <p><code>postinst</code> が <code>uv</code> をインストールし、venv を作成し、モデルをダウンロードして <code>.env</code> を構成します。完全なガイド: <a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">インストールドキュメント</a>。</p>
+          <p><code>postinst</code> は <code>uv</code> のみをインストールします。仮想環境の作成、モデルのダウンロード、<code>.env</code> の設定は<strong>初回起動時</strong>に行われるため、最初の起動には数分かかります。詳細は<a href="https://github.com/spendifai/spendif-ai/blob/main/docs/installazione.en.md" target="_blank">インストールガイド</a>をご覧ください。</p>
         </div>
         <div class="step-img">
           <div class="ph"><div>📷 スクリーンショット</div><code>assets/screenshots/linux-deb-install.png</code><div>(dpkg/dnf のターミナル出力)</div></div>
