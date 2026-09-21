@@ -12,9 +12,26 @@
 
 .PARAMETER Publisher
     X.500 DN that MUST match the signing certificate Subject exactly.
-    Default: "CN=SpendifAi Dev, O=Spendif.ai, C=IT" (placeholder for
-    self-signed cert). Override for production:
-      -Publisher "CN=Luigi Corsaro, O=Spendif.ai, C=IT"
+    A mismatch fails at signing time with 0x8007000B, and every signing
+    attempt burns a one-time OTP, so get this right before building.
+
+    Default is the self-signed dev placeholder used for sideload testing.
+    For production use -Production, which takes the DN from the environment
+    rather than from this file. Do not assume the DN matches the product or
+    company name: it is whatever the certificate authority issued.
+
+.PARAMETER Production
+    Build with the production publisher DN instead of the dev placeholder.
+
+    The DN is NOT stored in this repository: it is the X.500 subject of the
+    code signing certificate, and it identifies the certificate holder. It is
+    read from the MSIX_PUBLISHER environment variable, which comes from a
+    repository secret in CI and from the local credentials file otherwise.
+
+    To recover the value from the certificate:
+      openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
+    Then rewrite stateOrProvince from ST= to S=, which is how the manifest
+    spells it, and keep every other component byte for byte.
 
 .PARAMETER PublisherDisplay
     Friendly publisher name (shown in Add/Remove Programs).
@@ -34,21 +51,24 @@
 .EXAMPLE
     cd sw_artifacts
     .\packaging\windows\build-msix.ps1
-    .\packaging\windows\build-msix.ps1 -Version 3.1.0.0 -Publisher "CN=Luigi Corsaro, O=Spendif.ai, C=IT"
+    .\packaging\windows\build-msix.ps1 -Version 3.1.0.0 -Production
     .\packaging\windows\build-msix.ps1 -WithSSM
 
 .NOTES
     Requires Windows SDK (for makeappx.exe). Install via:
       winget install Microsoft.WindowsSDK.10.0.22621
-    Output is unsigned. Sign with packaging\windows\sign-local.ps1 before
-    distribution — MSIX cannot be installed in normal mode without a
-    trusted signature.
+    Output is unsigned. MSIX cannot be installed in normal mode without a
+    trusted signature, so sign before distributing:
+      production: blueprint/sw_artifacts/tools/codesign/sign_windows.sh
+                  (runs on macOS or Linux, no Windows machine needed)
+      dev only:   packaging\windows\sign-local.ps1 with a self-signed cert
 #>
 [CmdletBinding()]
 param(
     [string]$Version = "",
     [string]$Publisher = "CN=SpendifAi Dev, O=Spendif.ai, C=IT",
     [string]$PublisherDisplay = "Spendif.ai",
+    [switch]$Production,
     [ValidateSet("x64", "arm64", "neutral")]
     [string]$Architecture = "x64",
     [switch]$SkipPyInstaller,
@@ -58,6 +78,21 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $RepoRoot
+
+# The production publisher DN is personal data of the certificate holder, so it
+# is never committed. It arrives from the environment, and the manifest must
+# reproduce the certificate subject character by character or signing fails.
+if ($Production) {
+    if ($PSBoundParameters.ContainsKey("Publisher")) {
+        throw "-Production and -Publisher are mutually exclusive: pick one."
+    }
+    if (-not $env:MSIX_PUBLISHER) {
+        throw "-Production needs MSIX_PUBLISHER set to the certificate subject DN. See the -Production help in this script for how to recover it."
+    }
+    $Publisher = $env:MSIX_PUBLISHER
+    # Deliberately not printed: it would end up in public CI logs.
+    Write-Host "Publisher taken from MSIX_PUBLISHER"
+}
 
 # ── 1. Resolve version (must be 4 parts) ─────────────────────────────────────
 if (-not $Version) {
