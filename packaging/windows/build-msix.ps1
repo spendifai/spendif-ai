@@ -111,6 +111,24 @@ if ($Production) {
     Write-Host "Publisher taken from MSIX_PUBLISHER"
 }
 
+# Validate the DN against the manifest schema BEFORE building anything. makeappx
+# applies this same pattern, but it does so after PyInstaller has run, it reports
+# a masked value because the DN comes from a secret, and it raises one identical
+# C00CE169 for every possible defect. Ten minutes to learn nothing. The pattern
+# below is the one makeappx prints in that error, kept verbatim.
+$dnAttr = '(CN|L|O|OU|E|C|S|STREET|T|G|I|SN|DC|SERIALNUMBER|Description|PostalCode|POBox|Phone|X21Address|dnQualifier|(OID\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))+))'
+$dnVal  = '(([^,+="<>#;])+|".*")'
+$dnPattern = '^' + $dnAttr + '=' + $dnVal + '(, (' + $dnAttr + '=' + $dnVal + '))*$'
+if ($Publisher -cnotmatch $dnPattern) {
+    # Say which defect it is, since the schema cannot. These two account for
+    # every failure seen so far, and the value itself is never echoed.
+    $hint = @()
+    if ($Publisher -cmatch ',(?! )')  { $hint += "components must be separated by a comma AND a space; RFC2253 output uses bare commas" }
+    if ($Publisher -cmatch '(^|, )ST=') { $hint += "stateOrProvince must be spelled OID.2.5.4.8=, not ST=: the schema accepts S and the numeric OID, and the signer accepts ST and the numeric OID, so only the OID form passes both" }
+    if (-not $hint) { $hint += "check every component against the pattern; attribute names are case sensitive" }
+    throw "the publisher DN does not match the manifest schema.`n  " + ($hint -join "`n  ")
+}
+
 # ── 1. Resolve version (must be 4 parts) ─────────────────────────────────────
 if (-not $Version) {
     if (Test-Path "VERSION") {
