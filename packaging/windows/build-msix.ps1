@@ -31,23 +31,21 @@
     To recover the value from the certificate:
       openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
     Keep every component byte for byte, then make two rewrites: spell
-    stateOrProvince as OID.2.5.4.8=, and separate components with a comma
-    AND A SPACE. RFC2253 prints bare commas, which the manifest schema
-    rejects with the very same error as a bad abbreviation, so the two
-    defects are easy to confuse: the log masks the value, and only the
-    pattern in the message tells them apart.
+    stateOrProvince as S=, the way Windows writes it, and separate components
+    with a comma AND A SPACE. RFC2253 prints ST= and bare commas, and each of
+    those fails the build on its own.
 
-    That spelling looks pedantic and is the only one that works. The two
-    tools that read this DN disagree: makeappx validates the manifest against
-    a schema whose list of accepted abbreviations contains S and NOT ST, and
-    rejects the package with "error C00CE169 ... violates pattern constraint";
-    the signer parses the same DN with BouncyCastle, which does not know S and
-    rejects it with "Unknown object id - S passed to distinguished name". The
-    schema also admits the numeric OID form, and BouncyCastle reads it as the
-    same attribute as the certificate ST=, so that form is the only meeting
-    point. Both measured 2026-09-21, the first after a build failed on it.
+    Three validators read this DN and each refuses something the others take.
+    The manifest schema refuses ST= ("error C00CE169 ... violates pattern
+    constraint"). The semantic check that runs after it refuses the numeric
+    OID form ("must be valid as per publisher naming rules"). BouncyCastle,
+    which the signer uses to compare this DN against the certificate, refuses
+    S=. Nothing clears all three unaided, so the manifest carries the Windows
+    spelling and the signer is taught to read it: see the X.500 style in the
+    shared codesign tooling. All three measured 2026-09-21, at the cost of
+    three builds.
 
-    Still unverified: that Windows accepts this form at install time. If an
+    Still unverified: that Windows accepts the package at install time. If an
     install fails with 0x8007000B on the publisher, this is where to look.
 
 .PARAMETER PublisherDisplay
@@ -119,12 +117,17 @@ if ($Production) {
 $dnAttr = '(CN|L|O|OU|E|C|S|STREET|T|G|I|SN|DC|SERIALNUMBER|Description|PostalCode|POBox|Phone|X21Address|dnQualifier|(OID\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))+))'
 $dnVal  = '(([^,+="<>#;])+|".*")'
 $dnPattern = '^' + $dnAttr + '=' + $dnVal + '(, (' + $dnAttr + '=' + $dnVal + '))*$'
+# The numeric OID form satisfies the pattern and is then refused by the naming
+# rules, so it has to be caught separately or it looks valid right up to makeappx.
+if ($Publisher -cmatch 'OID\.[0-9]') {
+    throw "the publisher DN uses the numeric OID form, which clears the manifest schema and is then refused by the publisher naming rules. Spell stateOrProvince as S=."
+}
 if ($Publisher -cnotmatch $dnPattern) {
     # Say which defect it is, since the schema cannot. These two account for
     # every failure seen so far, and the value itself is never echoed.
     $hint = @()
     if ($Publisher -cmatch ',(?! )')  { $hint += "components must be separated by a comma AND a space; RFC2253 output uses bare commas" }
-    if ($Publisher -cmatch '(^|, )ST=') { $hint += "stateOrProvince must be spelled OID.2.5.4.8=, not ST=: the schema accepts S and the numeric OID, and the signer accepts ST and the numeric OID, so only the OID form passes both" }
+    if ($Publisher -cmatch '(^|, )ST=') { $hint += "stateOrProvince must be spelled S=, not ST=: the schema rejects ST, and the numeric OID form clears the schema only to fail the publisher naming rules right after" }
     if (-not $hint) { $hint += "check every component against the pattern; attribute names are case sensitive" }
     throw "the publisher DN does not match the manifest schema.`n  " + ($hint -join "`n  ")
 }
