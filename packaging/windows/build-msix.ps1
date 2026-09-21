@@ -30,8 +30,12 @@
 
     To recover the value from the certificate:
       openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
-    Keep every component byte for byte, then rewrite stateOrProvince as
-    OID.2.5.4.8= and leave every other component with its usual abbreviation.
+    Keep every component byte for byte, then make two rewrites: spell
+    stateOrProvince as OID.2.5.4.8=, and separate components with a comma
+    AND A SPACE. RFC2253 prints bare commas, which the manifest schema
+    rejects with the very same error as a bad abbreviation, so the two
+    defects are easy to confuse: the log masks the value, and only the
+    pattern in the message tells them apart.
 
     That spelling looks pedantic and is the only one that works. The two
     tools that read this DN disagree: makeappx validates the manifest against
