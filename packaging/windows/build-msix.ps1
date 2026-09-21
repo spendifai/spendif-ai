@@ -30,8 +30,16 @@
 
     To recover the value from the certificate:
       openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
-    Then rewrite stateOrProvince from ST= to S=, which is how the manifest
-    spells it, and keep every other component byte for byte.
+    Keep every component byte for byte, and keep stateOrProvince spelled ST=.
+
+    Do NOT rewrite ST= as S=, which is how Windows renders that attribute:
+    the signer parses the DN with BouncyCastle, which rejects S= outright
+    ("Unknown object id - S passed to distinguished name") and refuses to
+    sign. Measured 2026-09-21. The two spellings are the same attribute
+    (OID 2.5.4.8), so a DN-aware comparison treats them alike, but only the
+    ST= form gets through the signer. If a Windows install ever rejects the
+    package with 0x8007000B on the publisher, this is the first thing to
+    revisit: it has not been tested against Windows yet.
 
 .PARAMETER PublisherDisplay
     Friendly publisher name (shown in Add/Remove Programs).
