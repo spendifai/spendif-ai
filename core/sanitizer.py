@@ -99,8 +99,8 @@ def redact_pii(text: str, config: SanitizationConfig | None = None) -> str:
     config = config or SanitizationConfig()
 
     # Owner names — replaced with fake but plausible names.
-    # All token-permutations are matched so that both "Luigi Corsaro" and
-    # "Corsaro Luigi" (surname-first, common in Italian bank exports) are caught.
+    # All token-permutations are matched so that both "Mario Rossi" and
+    # "Rossi Mario" (surname-first, common in Italian bank exports) are caught.
     for i, name in enumerate(config.owner_names):
         name = name.strip()
         if not name:
