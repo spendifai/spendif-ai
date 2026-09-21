@@ -30,16 +30,21 @@
 
     To recover the value from the certificate:
       openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
-    Keep every component byte for byte, and keep stateOrProvince spelled ST=.
+    Keep every component byte for byte, then rewrite stateOrProvince as
+    OID.2.5.4.8= and leave every other component with its usual abbreviation.
 
-    Do NOT rewrite ST= as S=, which is how Windows renders that attribute:
-    the signer parses the DN with BouncyCastle, which rejects S= outright
-    ("Unknown object id - S passed to distinguished name") and refuses to
-    sign. Measured 2026-09-21. The two spellings are the same attribute
-    (OID 2.5.4.8), so a DN-aware comparison treats them alike, but only the
-    ST= form gets through the signer. If a Windows install ever rejects the
-    package with 0x8007000B on the publisher, this is the first thing to
-    revisit: it has not been tested against Windows yet.
+    That spelling looks pedantic and is the only one that works. The two
+    tools that read this DN disagree: makeappx validates the manifest against
+    a schema whose list of accepted abbreviations contains S and NOT ST, and
+    rejects the package with "error C00CE169 ... violates pattern constraint";
+    the signer parses the same DN with BouncyCastle, which does not know S and
+    rejects it with "Unknown object id - S passed to distinguished name". The
+    schema also admits the numeric OID form, and BouncyCastle reads it as the
+    same attribute as the certificate ST=, so that form is the only meeting
+    point. Both measured 2026-09-21, the first after a build failed on it.
+
+    Still unverified: that Windows accepts this form at install time. If an
+    install fails with 0x8007000B on the publisher, this is where to look.
 
 .PARAMETER PublisherDisplay
     Friendly publisher name (shown in Add/Remove Programs).
