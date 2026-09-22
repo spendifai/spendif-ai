@@ -183,7 +183,7 @@ COPYRIGHT
 # the right version into the package without dirtying the working tree.
 cat > "${INSTALL_ROOT}/core/_build_info.py" <<PYEOF
 # Generated at build time - do not edit manually.
-BUILD_TIME = "$(date '+%Y-%m-%d %H:%M')"
+BUILD_TIME = "$(date -u '+%Y-%m-%d %H:%M UTC')"
 BUILD_VERSION = "${VERSION}"
 PYEOF
 

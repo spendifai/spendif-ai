@@ -77,7 +77,8 @@ if [[ "${WITH_SSM}" == "true" ]]; then
 fi
 
 # ── 0b. Stamp build info ────────────────────────────────────────────────────
-BUILD_TS="$(date '+%Y-%m-%d %H:%M')"
+# UTC e dichiarato: vedi build-msix.ps1 per il perche'.
+BUILD_TS="$(date -u '+%Y-%m-%d %H:%M UTC')"
 cat > "${REPO_ROOT}/core/_build_info.py" <<PYEOF
 # Generated at build time — do not edit manually.
 BUILD_TIME = "${BUILD_TS}"

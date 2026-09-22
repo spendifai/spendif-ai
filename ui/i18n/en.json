@@ -1128,5 +1128,5 @@
   "settings.update_col.method": "Install",
   "settings.update_col.date": "Date",
   "update.cmd.git_source": "Update from the install directory:\n```\ngit pull && uv sync\n```",
-  "upload.emulated_arm": "This build is x64 running under emulation on a Windows ARM machine. The local AI model still works, but each import can take hours instead of minutes. For usable speed, switch to a hosted model in Settings, or use a native x64 machine."
+  "upload.emulated_arm": "This build is x64 running under emulation on a Windows ARM machine, where the local AI model cannot run at all: the emulator does not implement the CPU instructions it needs, and a test of the model fails with Windows error 0xc000001d. Choose a hosted model in Settings, or use a native x64 machine. Everything else in the app works normally."
 }

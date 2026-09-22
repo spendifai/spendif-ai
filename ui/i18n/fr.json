@@ -1128,5 +1128,5 @@
   "settings.update_col.method": "Installation",
   "settings.update_col.date": "Date",
   "update.cmd.git_source": "Mettez a jour depuis le dossier d'installation :\n```\ngit pull && uv sync\n```",
-  "upload.emulated_arm": "Cette version est x64 et s'execute en emulation sur une machine Windows ARM. Le modele IA local fonctionne, mais un import peut prendre des heures au lieu de minutes. Pour une vitesse utilisable, passez a un modele heberge dans les parametres, ou utilisez une machine x64 native."
+  "upload.emulated_arm": "Cette version est x64 et s'execute en emulation sur une machine Windows ARM, ou le modele IA local ne peut pas fonctionner du tout : l'emulateur n'implemente pas les instructions processeur necessaires, et un test du modele echoue avec l'erreur Windows 0xc000001d. Choisissez un modele heberge dans les parametres, ou utilisez une machine x64 native. Tout le reste de l'application fonctionne normalement."
 }

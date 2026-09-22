@@ -1128,5 +1128,5 @@
   "settings.update_col.method": "Installation",
   "settings.update_col.date": "Datum",
   "update.cmd.git_source": "Aus dem Installationsverzeichnis aktualisieren:\n```\ngit pull && uv sync\n```",
-  "upload.emulated_arm": "Diese Version ist x64 und laeuft emuliert auf einem Windows-ARM-Rechner. Das lokale KI-Modell funktioniert, aber ein Import kann Stunden statt Minuten dauern. Fuer brauchbare Geschwindigkeit wechseln Sie in den Einstellungen zu einem gehosteten Modell oder verwenden Sie einen nativen x64-Rechner."
+  "upload.emulated_arm": "Diese Version ist x64 und laeuft emuliert auf einem Windows-ARM-Rechner, wo das lokale KI-Modell gar nicht laufen kann: der Emulator implementiert die benoetigten Prozessorbefehle nicht, und ein Test des Modells scheitert mit dem Windows-Fehler 0xc000001d. Waehlen Sie in den Einstellungen ein gehostetes Modell oder verwenden Sie einen nativen x64-Rechner. Alles andere in der App funktioniert normal."
 }

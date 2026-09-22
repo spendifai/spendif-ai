@@ -168,12 +168,19 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=STRIP,
     upx=False,
-    # console=False is the production setting for a polished desktop app, but
-    # it routes stdout/stderr to /dev/null on macOS — any crash before the
-    # webview window appears becomes invisible. Use console=True until the
-    # launcher is fully stabilised so we always see Python tracebacks. The
-    # persistent log file in desktop/launcher.py covers production use anyway.
-    console=True,
+    # console=True esisteva per non perdere i traceback: senza console, su
+    # macOS stdout e stderr finivano in /dev/null e un errore prima della
+    # finestra era invisibile. Quella ragione e' venuta meno, perche' il
+    # launcher redirige entrambi su file e da oggi ci manda anche l'output del
+    # processo Streamlit, che e' dove succede il lavoro vero.
+    #
+    # Il prezzo di lasciarla accesa lo paga Windows: una finestra di comandi
+    # nera resta aperta dietro l'app per tutta la sessione.
+    #
+    # Resta scoperto un caso solo: un errore del bootloader di PyInstaller,
+    # prima che Python parta. Li' non c'e' file di log perche' non c'e' ancora
+    # nessuno a scriverlo.
+    console=False,
     icon=icon_path,
 )
 
