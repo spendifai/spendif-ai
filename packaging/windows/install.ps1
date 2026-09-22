@@ -107,8 +107,12 @@ $ENV_FILE        = Join-Path $InstallDir ".env"
 $VENV_ACTIVATE   = Join-Path $InstallDir ".venv\Scripts\Activate.ps1"
 $VENV_PYTHON     = Join-Path $InstallDir ".venv\Scripts\python.exe"
 
+# Keep in step with requires-python in pyproject.toml. The installer used to
+# demand 3.13 while the project accepted 3.12, so on a machine with 3.12 it
+# installed a second Python, then went on using the 3.12 it had found.
 $MIN_PY_MAJOR    = 3
-$MIN_PY_MINOR    = 13
+$MIN_PY_MINOR    = 12
+$MAX_PY_MINOR    = 14   # inclusive; 3.15 is outside requires-python
 
 $START_MENU_DIR  = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 $DESKTOP_DIR     = $env:USERPROFILE | Join-Path -ChildPath "Desktop"
@@ -202,6 +206,37 @@ function Test-Command {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Helper: run a native command and actually look at how it went
+#
+#  PowerShell 5.1 does not raise on a native command that exits non-zero, not
+#  even under $ErrorActionPreference = "Stop": that setting governs cmdlets,
+#  not executables. So `try { uv sync } catch { }` catches nothing, and this
+#  installer used to print "Base dependencies installed" right after uv had
+#  failed to build a package. Every native call goes through here instead.
+#
+#  -AllowFailure returns $false instead of throwing, for the places where
+#  failing is a real option and the caller has a plan for it.
+# ─────────────────────────────────────────────────────────────────────────────
+function Invoke-Native {
+    param(
+        [Parameter(Mandatory = $true)][string]$What,
+        [Parameter(Mandatory = $true)][scriptblock]$Command,
+        [switch]$AllowFailure
+    )
+    $global:LASTEXITCODE = 0
+    & $Command
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        if ($AllowFailure) {
+            _Warn "$What exited with code $code"
+            return $false
+        }
+        throw "$What failed (exit code $code)"
+    }
+    return $true
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Helper: create a Windows .lnk shortcut
 #
 #  Parameters:
@@ -238,15 +273,31 @@ function New-Shortcut {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Helper: detect NVIDIA GPU via WMI
+#  Helper: what GPU is in this machine
+#
+#  Returns the vendor we can say something true about: "nvidia", "amd",
+#  "intel" or $null. The previous version answered a narrower question - is
+#  there an NVIDIA card - and so told an owner of a 16 GB Radeon that their
+#  machine had no GPU. We cannot accelerate on that card yet, but saying so is
+#  not the same as pretending it is not there.
 # ─────────────────────────────────────────────────────────────────────────────
-function Test-NvidiaGpu {
+function Get-GpuVendor {
     try {
-        $gpus = Get-WmiObject Win32_VideoController -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -like "*NVIDIA*" }
-        return ($null -ne $gpus)
+        $gpus = @(Get-WmiObject Win32_VideoController -ErrorAction SilentlyContinue)
+        foreach ($pattern in @("*NVIDIA*", "*AMD*", "*Radeon*", "*Intel*")) {
+            $hit = $gpus | Where-Object { $_.Name -like $pattern } | Select-Object -First 1
+            if ($hit) {
+                $vendor = switch -Wildcard ($pattern) {
+                    "*NVIDIA*" { "nvidia" }
+                    "*Intel*"  { "intel" }
+                    default    { "amd" }
+                }
+                return @{ Vendor = $vendor; Name = $hit.Name }
+            }
+        }
+        return $null
     } catch {
-        return $false
+        return $null
     }
 }
 
@@ -258,10 +309,12 @@ function Install-PythonViaWinget {
     try {
         # --accept-package-agreements and --accept-source-agreements
         # suppress the interactive consent prompts
-        winget install Python.Python.3.13 `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --silent
+        Invoke-Native "winget install Python.Python.3.13" {
+            winget install Python.Python.3.13 `
+                --accept-package-agreements `
+                --accept-source-agreements `
+                --silent
+        }
         # winget puts Python in %LOCALAPPDATA%\Programs\Python\Python313
         $candidates = @(
             "$env:LOCALAPPDATA\Programs\Python\Python313",
@@ -322,10 +375,12 @@ function Install-PythonDirect {
 function Install-GitViaWinget {
     _Step "Installing Git via winget..."
     try {
-        winget install Git.Git `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --silent
+        Invoke-Native "winget install Git.Git" {
+            winget install Git.Git `
+                --accept-package-agreements `
+                --accept-source-agreements `
+                --silent
+        }
         # Add Git to PATH for this session
         $gitPaths = @(
             "C:\Program Files\Git\cmd",
@@ -403,7 +458,7 @@ function Ensure-Uv {
 
     # Method 2: pip install uv
     try {
-        python -m pip install --quiet uv
+        Invoke-Native "pip install uv" { python -m pip install --quiet uv }
         Add-ToPath (Join-Path $env:APPDATA "Python\Python313\Scripts")
         Add-ToPath (Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\Scripts")
         if (Test-Command "uv") {
@@ -432,19 +487,19 @@ if ($Update) {
     _Step "Fetching latest changes from origin/$Branch..."
     Push-Location $InstallDir
     try {
-        git fetch --prune origin 2>&1 | Out-Null
-        git checkout $Branch 2>&1 | Out-Null
-        git pull --ff-only origin $Branch
+        Invoke-Native "git fetch" { git fetch --prune origin 2>&1 | Out-Null }
+        Invoke-Native "git checkout $Branch" { git checkout $Branch 2>&1 | Out-Null }
+        Invoke-Native "git pull" { git pull --ff-only origin $Branch }
         _OK "Code updated to latest $Branch"
 
         _Step "Syncing Python dependencies..."
-        uv sync --quiet
+        Invoke-Native "uv sync" { uv sync --quiet }
         _OK "Dependencies up to date"
 
         if (Test-Path $DB_PATH) {
             _Step "Running database migrations..."
             $env:SPENDIFAI_DB = "sqlite:///$($DB_PATH -replace '\\','/')"
-            uv run alembic upgrade head
+            Invoke-Native "alembic upgrade head" { uv run alembic upgrade head }
             _OK "Database migrated"
         } else {
             _Info "No database at $DB_PATH -- will be created on first launch"
@@ -526,11 +581,19 @@ $env:PATH = "$userPath;$machPath"
 $pyVer = Get-PythonVersion
 $needPython = $true
 
+function Test-PythonInRange {
+    param($Ver)
+    if (-not $Ver) { return $false }
+    return ($Ver[0] -eq $MIN_PY_MAJOR -and $Ver[1] -ge $MIN_PY_MINOR -and $Ver[1] -le $MAX_PY_MINOR)
+}
+
 if ($pyVer) {
     $pyMaj = $pyVer[0]; $pyMin = $pyVer[1]
-    if ($pyMaj -gt $MIN_PY_MAJOR -or ($pyMaj -eq $MIN_PY_MAJOR -and $pyMin -ge $MIN_PY_MINOR)) {
+    if (Test-PythonInRange $pyVer) {
         _OK "Python $pyMaj.$pyMin already installed"
         $needPython = $false
+    } elseif ($pyMin -gt $MAX_PY_MINOR) {
+        _Warn "Python $pyMaj.$pyMin found, but this release supports up to $MIN_PY_MAJOR.$MAX_PY_MINOR"
     } else {
         _Warn "Python $pyMaj.$pyMin found but >= $MIN_PY_MAJOR.$MIN_PY_MINOR required"
     }
@@ -554,6 +617,15 @@ if ($needPython) {
     $pyVer = Get-PythonVersion
     if (-not $pyVer) {
         _Die "Python installed but 'python' command not found on PATH. Open a new PowerShell and re-run the installer."
+    }
+    # Checking again is the point: a freshly installed Python that is not first
+    # on PATH leaves the old one in charge, and the installer used to print
+    # whatever version it found as if it were the one it had just installed.
+    if (-not (Test-PythonInRange $pyVer)) {
+        _Die ("Python $($pyVer[0]).$($pyVer[1]) is still what 'python' resolves to, " +
+              "outside the supported $MIN_PY_MAJOR.$MIN_PY_MINOR-$MIN_PY_MAJOR.$MAX_PY_MINOR range.`n`n" +
+              "Open a NEW PowerShell window and re-run the installer: the freshly " +
+              "installed Python is only on the PATH of new shells.")
     }
     _OK "Python $($pyVer[0]).$($pyVer[1])"
 }
@@ -602,9 +674,9 @@ if (Test-Path (Join-Path $InstallDir ".git")) {
     _Info "Existing installation found — updating to $Branch..."
     Push-Location $InstallDir
     try {
-        git fetch --prune origin 2>&1 | Out-Null
-        git checkout $Branch 2>&1 | Out-Null
-        git pull --ff-only origin $Branch | Out-Null
+        Invoke-Native "git fetch" { git fetch --prune origin 2>&1 | Out-Null }
+        Invoke-Native "git checkout $Branch" { git checkout $Branch 2>&1 | Out-Null }
+        Invoke-Native "git pull" { git pull --ff-only origin $Branch | Out-Null }
     } catch {
         _Warn "git pull failed — continuing with existing code ($_)"
     } finally {
@@ -612,7 +684,15 @@ if (Test-Path (Join-Path $InstallDir ".git")) {
     }
 } else {
     _Info "Cloning $REPO_URL (branch: $Branch)..."
-    git clone --branch $Branch --depth 1 $REPO_URL $InstallDir
+    try {
+        Invoke-Native "git clone $REPO_URL" {
+            git clone --branch $Branch --depth 1 $REPO_URL $InstallDir
+        }
+    } catch {
+        _Die ("Could not download the code: $_`n`n" +
+              "Check the network connection and that github.com is reachable, " +
+              "then re-run the installer.")
+    }
 }
 _OK "Code ready at $InstallDir"
 
@@ -681,22 +761,31 @@ SPENDIFAI_DB=sqlite:///$($DB_PATH -replace '\\','/')
 #  Step 12: Detect GPU, build venv and install dependencies
 #
 #  llama-cpp-python on Windows:
-#    - No Metal (Apple-only), no ROCm (Linux-only, unstable on Windows).
-#    - CUDA (NVIDIA) is the only viable GPU acceleration path.
-#    - We auto-detect an NVIDIA GPU via WMI and attempt to install a CUDA 12.x
-#      pre-built wheel from abetlen's unofficial wheel index.
-#    - If detection fails or the wheel install errors, we fall back to the
-#      CPU-only wheel which is always available via PyPI.
-#    - AMD / Intel Arc users get CPU-only automatically — Vulkan support in
-#      llama-cpp is too experimental to attempt here.
+#    - PyPI has no Windows wheel, only a source distribution, so installing it
+#      from there means compiling: CMake plus the Visual Studio Build Tools,
+#      which a normal desktop does not have. That was the whole reason this
+#      installer failed on a clean Windows 11 on 2026-09-22. pyproject.toml now
+#      resolves the package from a prebuilt-wheel index, so `uv sync` below
+#      downloads it and nothing is compiled here.
+#    - An NVIDIA card can do better than the CPU wheel: the CUDA 12.x wheel
+#      from the same upstream index replaces it, pinned to the same version as
+#      the lockfile so the two cannot drift apart.
+#    - An AMD or Intel card gets the CPU wheel. Vulkan would work in principle
+#      and llama.cpp supports it on Windows, but no prebuilt Vulkan wheel is
+#      published and we have no AMD machine in CI to test one we built.
 # ─────────────────────────────────────────────────────────────────────────────
 _Step "Detecting GPU..."
-$HasNvidia = Test-NvidiaGpu
+$gpu = Get-GpuVendor
+$HasNvidia = ($null -ne $gpu -and $gpu.Vendor -eq "nvidia")
 if ($HasNvidia) {
-    $gpuName = (Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like "*NVIDIA*" } | Select-Object -First 1).Name
-    _OK "NVIDIA GPU detected: $gpuName — will attempt CUDA wheel for llama-cpp-python"
+    _OK "NVIDIA GPU detected: $($gpu.Name), will attempt the CUDA wheel for llama-cpp-python"
+} elseif ($null -ne $gpu -and $gpu.Vendor -eq "amd") {
+    _Info "AMD GPU detected: $($gpu.Name)"
+    _Info "GPU acceleration is not available for AMD cards yet: the model will run on the CPU"
+} elseif ($null -ne $gpu) {
+    _Info "$($gpu.Name) detected: the model will run on the CPU"
 } else {
-    _Info "No NVIDIA GPU detected — using CPU-only llama-cpp-python"
+    _Info "No dedicated GPU detected: the model will run on the CPU"
 }
 
 _Step "Creating virtual environment and installing dependencies..."
@@ -704,39 +793,51 @@ _Info "First run may take a few minutes (downloading all packages)..."
 
 Push-Location $InstallDir
 try {
-    # Base install via uv sync (uses pyproject.toml / uv.lock)
-    # --extra desktop: include pywebview for native window (no browser needed)
-    # uv.lock pins all versions, so this is fully reproducible.
-    uv sync --extra desktop --quiet
+    # --extra desktop: pywebview, for the native window instead of a browser.
+    # uv.lock pins every version, wheel URLs included, so this is reproducible.
+    try {
+        Invoke-Native "uv sync --extra desktop" { uv sync --extra desktop --quiet }
+    } catch {
+        Pop-Location
+        _Die ("Dependency installation failed: $_`n`n" +
+              "The output above says which package and why. Re-running the " +
+              "installer is safe: it resumes from what is already downloaded.")
+    }
     _OK "Base dependencies installed"
 
-    # ── llama-cpp-python: CPU or CUDA ────────────────────────────────────────
-    # uv.lock / pyproject.toml may already pull in the CPU build.
-    # If NVIDIA GPU is present, we attempt to replace it with the CUDA wheel.
-    # The CUDA wheel is NOT in the regular PyPI index; it is served from
-    # https://abetlen.github.io/llama-cpp-python/whl/cu124/
-    # (wheel index for CUDA 12.4 — broadly compatible with CUDA 12.x drivers)
+    # The CUDA wheel is not on PyPI; it is served from the same upstream index
+    # as the CPU one. Pinning it to the version in uv.lock keeps the GPU build
+    # and the locked build the same code: an unpinned install here used to
+    # fetch a newer release than the lockfile said, and nobody would have
+    # noticed until the two behaved differently.
     if ($HasNvidia) {
-        _Step "Attempting llama-cpp-python CUDA 12.x wheel (GPU inference)..."
-        try {
-            uv pip install llama-cpp-python `
-                --extra-index-url "https://abetlen.github.io/llama-cpp-python/whl/cu124" `
-                --force-reinstall `
-                --no-deps `
-                2>&1 | Tee-Object -Variable llama_output | Out-Null
-            # Quick sanity check: import the module
-            & (Join-Path $InstallDir ".venv\Scripts\python.exe") `
-                -c "import llama_cpp; print('llama_cpp OK')" 2>&1 | Out-Null
-            _OK "llama-cpp-python installed with CUDA 12.x GPU support"
-        } catch {
-            _Warn "CUDA wheel install failed: $_ -- falling back to CPU-only build"
-            uv pip install llama-cpp-python --force-reinstall --no-deps --quiet
-            _OK "llama-cpp-python installed (CPU-only fallback)"
+        $lockText = Get-Content -Raw -Path "uv.lock"
+        $llamaVersion = [regex]::Match($lockText, 'name = "llama-cpp-python"\r?\nversion = "([^"]+)"').Groups[1].Value
+        if (-not $llamaVersion) {
+            _Warn "Could not read the llama-cpp-python version from uv.lock: keeping the CPU wheel"
+        } else {
+            _Step "Attempting llama-cpp-python $llamaVersion CUDA 12.x wheel (GPU inference)..."
+            try {
+                Invoke-Native "uv pip install llama-cpp-python==$llamaVersion (CUDA)" {
+                    uv pip install "llama-cpp-python==$llamaVersion" `
+                        --extra-index-url "https://abetlen.github.io/llama-cpp-python/whl/cu124" `
+                        --force-reinstall `
+                        --no-deps `
+                        --quiet
+                }
+                # Importing it is the only proof that the wheel matches this
+                # machine: a CUDA wheel installs happily on a box whose driver
+                # cannot load it.
+                Invoke-Native "import llama_cpp" {
+                    & (Join-Path $InstallDir ".venv\Scripts\python.exe") -c "import llama_cpp" 2>&1 | Out-Null
+                }
+                _OK "llama-cpp-python installed with CUDA 12.x GPU support"
+            } catch {
+                _Warn "CUDA wheel did not work ($_): restoring the CPU build from the lockfile"
+                Invoke-Native "uv sync (restore CPU wheel)" { uv sync --extra desktop --quiet }
+                _OK "llama-cpp-python installed (CPU-only)"
+            }
         }
-    } else {
-        # Ensure the CPU wheel is installed (uv sync may have skipped it)
-        uv pip install llama-cpp-python --quiet --no-deps 2>&1 | Out-Null
-        _OK "llama-cpp-python installed (CPU-only)"
     }
 } finally {
     Pop-Location
@@ -751,7 +852,7 @@ if (Test-Path $DB_PATH) {
     Push-Location $InstallDir
     try {
         $env:SPENDIFAI_DB = "sqlite:///$($DB_PATH -replace '\\','/')"
-        uv run alembic upgrade head
+        Invoke-Native "alembic upgrade head" { uv run alembic upgrade head }
         _OK "Database up to date"
     } catch {
         _Warn "Alembic migration failed ($_) -- app may show migration prompt on first launch"

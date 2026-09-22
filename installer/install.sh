@@ -90,10 +90,11 @@ for _i in $(seq 1 30); do
 done
 
 if ! curl -sf "$APP_URL/_stcore/health" >/dev/null 2>&1; then
-    warn "L'app non risponde entro 60s. Controlla i log con:\n  docker compose --project-directory $INSTALL_DIR logs -f"
-else
-    success "Spendif.ai è in esecuzione!"
+    # Non un avviso da scorrere: se l'app non ha risposto, niente di quello che
+    # verrebbe stampato sotto e' vero, a partire dall'indirizzo del browser.
+    error "L'app non risponde entro 60s.\n\nGuarda i log con:\n  docker compose --project-directory $INSTALL_DIR logs -f\n\nPoi riprova: i container restano avviati."
 fi
+success "Spendif.ai è in esecuzione!"
 
 # ── 7. Istruzioni finali ───────────────────────────────────────────────────────
 echo ""

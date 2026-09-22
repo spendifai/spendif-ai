@@ -75,8 +75,8 @@ echo "uv: $UV"
 # ── 2. Sync user venv (idempotent — fast if already aligned) ────────────────
 # We use a marker file (.venv/.spendifai_ready) to detect "first time setup is
 # needed". The marker is created ONLY after a successful uv sync. If the venv
-# directory exists but the marker doesn't (e.g. previous launch crashed during
-# the long llama-cpp-python build), we still treat this as a first launch so
+# directory exists but the marker doesn't (e.g. a previous launch was killed
+# halfway through the download), we still treat this as a first launch so
 # the user gets the zenity progress dialog instead of staring at a spinner.
 READY_MARKER="$VENV_DIR/.spendifai_ready"
 IS_FIRST_LAUNCH=false
@@ -87,7 +87,7 @@ if [ ! -f "$READY_MARKER" ] || [ ! -x "$VENV_DIR/bin/python" ]; then
   else
     echo "First launch — creating $VENV_DIR"
   fi
-  echo "This compiles llama-cpp-python natively (3-8 min on arm64; faster on amd64)."
+  echo "Downloading the Python environment (no compilation: see pyproject.toml)."
 
   # Create the venv with SYSTEM site-packages exposed. This lets pywebview
   # find `gi` (python3-gi) and `cairo` (python3-cairo) — system-managed,
@@ -101,11 +101,36 @@ if [ ! -f "$READY_MARKER" ] || [ ! -x "$VENV_DIR/bin/python" ]; then
   fi
 fi
 
-# Detect NVIDIA GPU (best-effort)
+# ── GPU: say what is there, and use it when we can ──────────────────────────
+# Nothing is compiled here any more: pyproject.toml resolves llama-cpp-python
+# from a prebuilt-wheel index, so `uv sync` downloads a CPU build. An NVIDIA
+# card can do better and the same upstream index publishes a CUDA build, so we
+# swap the wheel after the sync. An AMD card cannot be used yet - nobody
+# publishes a prebuilt Vulkan wheel and we have no AMD machine to test one we
+# built - but telling the owner of a 16 GB Radeon that no GPU was detected was
+# false, and false is worse than unsupported.
+GPU_VENDOR="none"
+GPU_NAME=""
 if command -v nvidia-smi &>/dev/null; then
-  export CMAKE_ARGS="-DGGML_CUDA=on"
-  export FORCE_CMAKE=1
+  GPU_VENDOR="nvidia"
+  GPU_NAME="$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)"
+elif command -v lspci &>/dev/null; then
+  gpu_line="$(lspci 2>/dev/null | grep -iE 'VGA|3D controller|Display controller' | head -1 || true)"
+  if [ -n "$gpu_line" ]; then
+    GPU_NAME="${gpu_line#*: }"
+    case "$gpu_line" in
+      *NVIDIA*)                 GPU_VENDOR="nvidia" ;;
+      *AMD*|*ATI*|*Radeon*)     GPU_VENDOR="amd" ;;
+      *Intel*)                  GPU_VENDOR="intel" ;;
+    esac
+  fi
 fi
+case "$GPU_VENDOR" in
+  nvidia) echo "GPU: ${GPU_NAME:-NVIDIA} - will install the CUDA build" ;;
+  amd)    echo "GPU: ${GPU_NAME:-AMD} - GPU acceleration for AMD is not available yet, the model runs on the CPU" ;;
+  intel)  echo "GPU: ${GPU_NAME:-Intel} - the model runs on the CPU" ;;
+  *)      echo "GPU: none detected - the model runs on the CPU" ;;
+esac
 
 cd "$APP_DIR"
 
@@ -119,59 +144,99 @@ export UV_PROJECT_ENVIRONMENT="$VENV_DIR"
 # with the .deb / .rpm is canonical — we just install from it.
 UV_SYNC_FLAGS=(sync --extra desktop --frozen)
 
-# Pulsate dialog only on first launch — afterwards uv sync is sub-second.
+# A llama-cpp-python that is not the one in the lockfile - the CUDA wheel, or
+# a local SSM build - must survive the sync, or every launch would undo it.
+if [ -f "$VENV_DIR/.cuda_wheel" ] || [ -f "$VENV_DIR/.ssm_built" ]; then
+  UV_SYNC_FLAGS+=(--no-reinstall-package llama-cpp-python)
+fi
+
+# ── Failure has to be visible ───────────────────────────────────────────────
+# This script is normally started by the .desktop entry, with no terminal
+# attached. Until 2026-09-22 a failed sync ended the script through `set -e`
+# BEFORE the error message and the zenity dialog below could run: the user
+# double-clicked the icon and nothing whatsoever happened. So the exit status
+# is captured by hand and the dialog is the last thing that runs.
+_fail() {
+  local headline="$1"
+  local detail="$2"
+  echo "FATAL: $headline"
+  echo "$detail"
+  echo "Full log: $LOG_FILE"
+  if command -v zenity &>/dev/null; then
+    zenity --error --title="Spendif.ai" --width=520 \
+      --text="${headline}\n\n${detail}\n\nDettagli in ${LOG_FILE}" 2>/dev/null || true
+  fi
+  exit 1
+}
+
+sync_rc=0
 if $IS_FIRST_LAUNCH; then
   _with_progress \
     "Spendif.ai — Primo avvio" \
-    "Sto preparando l'ambiente AI (3–8 min).\nQuesta è una sola volta.\nNon chiudere questa finestra." \
-    "$UV" "${UV_SYNC_FLAGS[@]}" || {
-      echo "uv sync failed, retrying CPU-only (in same venv)..."
-      unset CMAKE_ARGS FORCE_CMAKE
-      _with_progress \
-        "Spendif.ai — Primo avvio" \
-        "Compilazione GPU fallita, riprovo CPU-only (qualche minuto in più)." \
-        "$UV" "${UV_SYNC_FLAGS[@]}"
-    }
+    "Sto preparando l'ambiente AI.\nQuesta è una sola volta.\nNon chiudere questa finestra." \
+    "$UV" "${UV_SYNC_FLAGS[@]}" || sync_rc=$?
 else
-  "$UV" "${UV_SYNC_FLAGS[@]}" || {
-    echo "uv sync failed, retrying CPU-only..."
-    unset CMAKE_ARGS FORCE_CMAKE
-    "$UV" "${UV_SYNC_FLAGS[@]}"
-  }
+  "$UV" "${UV_SYNC_FLAGS[@]}" || sync_rc=$?
+fi
+
+if [ "$sync_rc" -ne 0 ]; then
+  # A download that cannot resolve a name reads exactly like a broken install
+  # unless we say which one it is. On Arch, on 2026-09-22, it was the DNS.
+  if tail -n 40 "$LOG_FILE" 2>/dev/null | grep -qiE 'dns error|name or service not known|temporary failure in name resolution|tunnel error|failed to fetch'; then
+    _fail "Non sono riuscito a scaricare i componenti." \
+          "Sembra un problema di rete di questo computer (DNS o proxy), non dell'applicazione.\nControlla la connessione e riprova ad avviare Spendif.ai."
+  fi
+  _fail "Preparazione dell'ambiente non riuscita." \
+        "Riprova ad avviare l'applicazione. Se fallisce di nuovo:\n  rm -rf $VENV_DIR && /opt/spendifai/launch.sh"
 fi
 
 if [ ! -x "$VENV_DIR/bin/python" ]; then
-  echo "FATAL: venv exists but $VENV_DIR/bin/python is missing."
-  echo "Inspect ~/.spendifai/launch.log, then:"
-  echo "  rm -rf $VENV_DIR && /opt/spendifai/launch.sh"
-  if command -v zenity &>/dev/null; then
-    zenity --error --title="Spendif.ai" --width=480 \
-      --text="Setup non completato. Vedi ~/.spendifai/launch.log e riprova:\nrm -rf ~/.spendifai/.venv && /opt/spendifai/launch.sh"
-  fi
-  exit 1
+  _fail "L'ambiente è incompleto." \
+        "Ricrealo con:\n  rm -rf $VENV_DIR && /opt/spendifai/launch.sh"
 fi
-# ── 2b. SSM build — first launch only ───────────────────────────────────────
-# Compiles llama-cpp-python from git with GPU support so Qwen 3.5 9B (and
-# future SSM-hybrid models) work. Runs once; protected by SSM_MARKER so
-# subsequent uv syncs don't re-run the 3-8 min compile.
-SSM_MARKER="$VENV_DIR/.ssm_built"
-if $IS_FIRST_LAUNCH && [ ! -f "$SSM_MARKER" ]; then
-  echo "▸ Building llama-cpp-python with SSM support (first launch only)…"
-  _ssm_ok=true
-  PYTHON="$VENV_DIR/bin/python" \
-    bash "$APP_DIR/scripts/setup_ssm_build.sh" --yes --no-custom-list || _ssm_ok=false
-  if $_ssm_ok; then
-    touch "$SSM_MARKER"
-    echo "✔ SSM build complete — Qwen 3.5 9B models now available"
-  else
-    echo "⚠ SSM build failed — app will work but Qwen 3.5 9B models are unavailable"
+
+# ── CUDA wheel for NVIDIA cards (first launch only) ─────────────────────────
+# Pinned to the very version the lockfile holds: an unpinned install here would
+# quietly put a different llama-cpp-python on GPU machines than on every other.
+if [ "$GPU_VENDOR" = "nvidia" ] && [ ! -f "$VENV_DIR/.cuda_wheel" ]; then
+  llama_version="$(awk '/name = "llama-cpp-python"/ { getline; gsub(/[^0-9.]/, "", $0); print; exit }' "$APP_DIR/uv.lock")"
+  if [ -n "$llama_version" ]; then
+    echo "▸ Installing the CUDA build of llama-cpp-python ${llama_version}..."
+    if "$UV" pip install "llama-cpp-python==${llama_version}" \
+         --extra-index-url "https://abetlen.github.io/llama-cpp-python/whl/cu124" \
+         --force-reinstall --no-deps \
+       && "$VENV_DIR/bin/python" -c "import llama_cpp" >/dev/null 2>&1; then
+      touch "$VENV_DIR/.cuda_wheel"
+      echo "✔ CUDA build in place: the model runs on the GPU"
+    else
+      # Installing is not the test; importing is. A CUDA wheel installs happily
+      # on a machine whose driver cannot load it.
+      echo "⚠ CUDA build unusable on this machine: restoring the CPU build"
+      "$UV" sync --extra desktop --frozen || true
+    fi
   fi
-elif [ -f "$SSM_MARKER" ]; then
-  # Protect the SSM build: uv sync --no-reinstall-package keeps the git-compiled
-  # llama-cpp-python and only updates other packages when the lockfile changes.
-  echo "SSM build present — using --no-reinstall-package llama-cpp-python"
-  UV_PROJECT_ENVIRONMENT="$VENV_DIR" \
-    "$UV" sync --extra desktop --frozen --no-reinstall-package llama-cpp-python 2>/dev/null || true
+fi
+
+# ── SSM build, opt in and never automatic ─────────────────────────────────────
+# Compiling llama-cpp-python from git adds Qwen 3.5 9B and other SSM-hybrid
+# architectures. It also needs a full C/C++ toolchain and several minutes, on
+# a machine that has just been told the setup is one click. Until 2026-09-22
+# it ran on every first launch: on a Ubuntu without g++ it burned the time and
+# failed, and where it succeeded it replaced a known-good wheel with a local
+# build nobody had tested. It is now explicit:
+#
+#   SPENDIFAI_SSM_BUILD=1 /opt/spendifai/launch.sh
+#
+SSM_MARKER="$VENV_DIR/.ssm_built"
+if [ "${SPENDIFAI_SSM_BUILD:-0}" = "1" ] && [ ! -f "$SSM_MARKER" ]; then
+  echo "▸ Building llama-cpp-python with SSM support (this takes several minutes)..."
+  if PYTHON="$VENV_DIR/bin/python" \
+       bash "$APP_DIR/scripts/setup_ssm_build.sh" --yes --no-custom-list; then
+    touch "$SSM_MARKER"
+    echo "✔ SSM build complete: Qwen 3.5 9B models now available"
+  else
+    echo "⚠ SSM build failed: the application still works, Qwen 3.5 9B models do not"
+  fi
 fi
 
 # Mark the venv as ready so subsequent launches skip the slow first-launch
