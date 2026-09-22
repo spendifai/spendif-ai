@@ -61,6 +61,10 @@ _LOG_DIR = Path.home() / "Library" / "Logs" if sys.platform == "darwin" else Pat
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _LOG_FILE = _LOG_DIR / "spendifai-launcher.log"
 
+# Definito prima del try: se l'apertura fallisce il nome deve esistere lo
+# stesso, perche' viene passato a Popen piu' avanti.
+_log_fh = None
+
 try:
     _log_fh = open(_LOG_FILE, "w", buffering=1, encoding="utf-8")  # line-buffered
     sys.stdout = _log_fh
@@ -498,7 +502,16 @@ def _start_streamlit(port: int, app_dir: Path) -> subprocess.Popen:
     # Via env così vale anche nel bundle, dove .streamlit/config.toml può non esserci.
     env["STREAMLIT_CLIENT_TOOLBAR_MODE"] = "viewer"
 
+    # Il figlio eredita i descrittori del sistema operativo, non il sys.stdout
+    # del padre: senza questo redirect, in un'app lanciata da icona (nessuna
+    # console) tutto cio' che Streamlit e la pipeline scrivono finisce nel
+    # nulla. Il file di log conteneva solo il launcher, cioe' la parte che non
+    # fa il lavoro. Il 2026-09-22 questo ha reso impossibile capire perche' un
+    # import restasse a zero per cento: nessuna traccia, da nessuna parte.
     popen_kwargs = {"env": env, "cwd": str(app_dir)}
+    if _log_fh is not None:
+        popen_kwargs["stdout"] = _log_fh
+        popen_kwargs["stderr"] = subprocess.STDOUT
     if sys.platform != "win32":
         # Detach into a new session so the child + its descendants form
         # their own process group, killable with one signal.
@@ -579,6 +592,15 @@ def main() -> None:
     print("main(): checking for stale instance lock...", flush=True)
     _SPENDIFAI_HOME.mkdir(parents=True, exist_ok=True)
     _kill_previous_instance()
+
+    try:
+        from core.platform_info import is_emulated_x64_on_arm
+
+        if is_emulated_x64_on_arm():
+            print("main(): ATTENZIONE, processo x64 emulato su Windows ARM64: "
+                  "l'inferenza locale sara' lentissima", flush=True)
+    except Exception as _exc:
+        print(f"main(): rilevazione emulazione non riuscita ({_exc})", flush=True)
 
     print("main(): resolving app_dir...", flush=True)
     app_dir = _resolve_app_dir()

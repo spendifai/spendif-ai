@@ -86,11 +86,14 @@ def render_model_download_banner() -> None:
         return
 
     pct = float(status.get("pct", 0.0))
-    msg = status.get("msg", "Preparazione...")
     eta_str = _format_duration(status.get("eta_remaining_s"))
     pct_int = int(pct * 100)
 
+    # Il campo "msg" dello stato NON si mostra: lo scrive il launcher in
+    # italiano, e finiva dentro una frase tradotta in cinque lingue. Dice
+    # inoltre cio' che la frase dice gia'. Resta nel file di stato perche' e'
+    # utile nel log, che e' materiale da diagnosi e non da interfaccia.
     st.info(
-        t("model_banner.downloading_full", pct=pct_int, eta=eta_str, msg=msg)
+        t("model_banner.downloading_full", pct=pct_int, eta=eta_str)
     )
     st.progress(pct, text=f"{pct_int}%")

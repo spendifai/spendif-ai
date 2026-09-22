@@ -172,8 +172,16 @@ if $DRY_RUN; then
 fi
 
 CLONE="${WORK}/tap"
-gh repo clone "${TAP_REPO}" "${CLONE}" -- --quiet 2>/dev/null || git clone --quiet \
-  "https://github.com/${TAP_REPO}.git" "${CLONE}"
+# git non sa autenticarsi da solo: in CI non c'e' un helper configurato, e il
+# push su un tap pubblico le credenziali le vuole comunque. Senza questa riga
+# il push muore con "could not read Username for https://github.com", che non
+# dice nulla di utile. gh configura l'helper usando il token gia' nell'ambiente.
+gh auth setup-git
+
+# L'errore di gh NON si butta via: prima lo si nascondeva con 2>/dev/null e si
+# ricadeva su un clone anonimo, cosi' un problema di token si presentava molte
+# righe dopo travestito da altro.
+gh repo clone "${TAP_REPO}" "${CLONE}" -- --quiet
 
 mkdir -p "${CLONE}/Casks"
 cp "${RENDERED}" "${CLONE}/Casks/spendifai.rb"

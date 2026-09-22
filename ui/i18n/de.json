@@ -123,8 +123,8 @@
   "checklist.color_legend": "ℹ️ Farblegende",
   "review.reprocess_summary": "{updated} aktualisiert · {categorised} neu kategorisiert.",
   "model_banner.failed": "⚠ Download des KI-Modells fehlgeschlagen: `{error}`. Die App funktioniert, aber die KI-Funktionen bleiben deaktiviert, bis das Modell geladen ist. Schließen und öffnen Sie die App erneut, oder prüfen Sie `{log}`.",
-  "model_banner.downloading_full": "📚 **Das Gehirn von Spendif.ai wird geladen** — {pct}% · verbleibend: **{eta}** · {msg}\n\n*Das passiert nur beim ersten Start (~3 GB). Sie können mit der Einrichtung fortfahren: die KI ist am Ende automatisch bereit. Import und Kategorisierung stehen dann zur Verfügung.*",
-  "model_banner.downloading": "📚 **Das Gehirn von Spendif.ai wird geladen** — {pct}% · verbleibend: **{eta}** · {msg}",
+  "model_banner.downloading_full": "📚 **Das Gehirn von Spendif.ai wird geladen** - {pct}% · verbleibend: **{eta}**\n\n*Das passiert nur beim ersten Start (~3 GB). Sie können mit der Einrichtung fortfahren: die KI ist am Ende automatisch bereit. Import und Kategorisierung stehen dann zur Verfügung.*",
+  "model_banner.downloading": "📚 **Das Gehirn von Spendif.ai wird geladen** - {pct}% · verbleibend: **{eta}**",
   "settings.context_n": "Kontext {n}",
   "ledger.rule_apply_update": "📏 Regel ändern und anwenden",
   "ledger.rule_apply_create": "📏 Regel erstellen und anwenden",
@@ -1127,5 +1127,6 @@
   "settings.update_col.arch": "Arch.",
   "settings.update_col.method": "Installation",
   "settings.update_col.date": "Datum",
-  "update.cmd.git_source": "Aus dem Installationsverzeichnis aktualisieren:\n```\ngit pull && uv sync\n```"
+  "update.cmd.git_source": "Aus dem Installationsverzeichnis aktualisieren:\n```\ngit pull && uv sync\n```",
+  "upload.emulated_arm": "Diese Version ist x64 und laeuft emuliert auf einem Windows-ARM-Rechner. Das lokale KI-Modell funktioniert, aber ein Import kann Stunden statt Minuten dauern. Fuer brauchbare Geschwindigkeit wechseln Sie in den Einstellungen zu einem gehosteten Modell oder verwenden Sie einen nativen x64-Rechner."
 }

@@ -123,8 +123,8 @@
   "checklist.color_legend": "ℹ️ Colour legend",
   "review.reprocess_summary": "{updated} updated · {categorised} re-categorised.",
   "model_banner.failed": "⚠ AI model download failed: `{error}`. The app works but AI features stay disabled until the model is downloaded. Try closing and reopening the app, or check `{log}`.",
-  "model_banner.downloading_full": "📚 **Downloading the brain of Spendif.ai** — {pct}% · time left: **{eta}** · {msg}\n\n*This happens only on first launch (~3 GB). You can carry on with the setup: the AI becomes ready automatically when it finishes. Import and categorisation become available then.*",
-  "model_banner.downloading": "📚 **Downloading the brain of Spendif.ai** — {pct}% · time left: **{eta}** · {msg}",
+  "model_banner.downloading_full": "📚 **Downloading the brain of Spendif.ai** - {pct}% · time left: **{eta}**\n\n*This happens only on first launch (~3 GB). You can carry on with the setup: the AI becomes ready automatically when it finishes. Import and categorisation become available then.*",
+  "model_banner.downloading": "📚 **Downloading the brain of Spendif.ai** - {pct}% · time left: **{eta}**",
   "settings.context_n": "Context {n}",
   "ledger.rule_apply_update": "📏 Update rule and apply",
   "ledger.rule_apply_create": "📏 Create rule and apply",
@@ -1127,5 +1127,6 @@
   "settings.update_col.arch": "Arch",
   "settings.update_col.method": "Install",
   "settings.update_col.date": "Date",
-  "update.cmd.git_source": "Update from the install directory:\n```\ngit pull && uv sync\n```"
+  "update.cmd.git_source": "Update from the install directory:\n```\ngit pull && uv sync\n```",
+  "upload.emulated_arm": "This build is x64 running under emulation on a Windows ARM machine. The local AI model still works, but each import can take hours instead of minutes. For usable speed, switch to a hosted model in Settings, or use a native x64 machine."
 }

@@ -304,10 +304,15 @@ jobs:
 
       - name: Compute SHA256 checksums
         run: |
+          # I nomi devono essere NUDI, senza il percorso della cartella da cui
+          # arrivano gli artefatti: chi scarica il file degli hash e un
+          # installer li mette nella stessa cartella, e "sha256sum -c" cerca i
+          # nomi cosi' come sono scritti. Con "./macos-dmg/SpendifAi.dmg" non
+          # trova niente e la verifica diventa impossibile per chiunque.
           cd packages
-          find . -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" \) | while read f; do
-            sha256sum "$f"
-          done | tee ../SHA256SUMS.txt
+          find . -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" \) \
+            -exec sh -c 'cd "$(dirname "$1")" && sha256sum "$(basename "$1")"' _ {} \; \
+            | sort -k2 | tee ../SHA256SUMS.txt
 
       - name: Build release notes
         run: |
