@@ -31,6 +31,7 @@ def _ai_model_still_downloading() -> bool:
     pct = float(data.get("pct", 0.0))
     return pct < 1.0
 
+from services.update_service import UpdateService
 from services.import_service import (
     Confidence,
     DocumentSchema,
@@ -432,6 +433,15 @@ def render_upload_page(engine):
     # The desktop launcher downloads it in the background on first run; until
     # it's done, surface a clear "please wait" instead of letting the user
     # upload and then watch the LLM call fail.
+    # Emulazione x64 su Windows ARM: l'import parte ma l'inferenza locale e'
+    # cosi' lenta da sembrare un blocco. Si avvisa e si lascia procedere: e'
+    # una macchina lenta, non una configurazione vietata.
+    try:
+        if UpdateService(engine).runs_emulated():
+            st.warning(t_fn("upload.emulated_arm"), icon="🐢")
+    except Exception:
+        pass
+
     if _ai_model_still_downloading():
         st.warning(
             t_fn("upload.model_downloading"),

@@ -28,6 +28,40 @@ logger = setup_logging()
 _MODEL_STATUS_FILE = Path.home() / ".spendifai" / "model_download.status"
 
 
+@st.fragment(run_every=2)  # type: ignore[attr-defined]
+def _render_model_download_wait() -> None:
+    """Avanzamento del download, che si aggiorna da solo.
+
+    Era un blocco normale di pagina, e per farlo avanzare l'onboarding
+    rieseguiva l'INTERA pagina ogni due secondi. Su un modello da 7 GB sono
+    circa mille riesecuzioni: i widget si ridisegnavano in continuazione,
+    sembrando passare da abilitato a disabilitato, e ogni cosa digitata
+    spariva. Un frammento ridisegna solo se stesso e lascia in pace il resto.
+
+    Alla fine del download serve pero' una riesecuzione dell'app, una sola:
+    il pulsante Avvia sta fuori da questo frammento e va riabilitato. Il flag
+    in session_state impedisce che diventi un ciclo.
+    """
+    status = _read_model_download_status()
+    ready = status is None or status.get("done") is True
+
+    was_waiting = st.session_state.get("_ob_model_wait", False)
+    st.session_state["_ob_model_wait"] = not ready
+
+    if ready:
+        if was_waiting:
+            st.rerun(scope="app")
+        return
+
+    pct = float(status.get("pct", 0.0)) if status else 0.0
+    eta_str = _format_download_eta(status.get("eta_remaining_s") if status else None)
+    st.info(
+        f"⏳ **{t('onboarding.step3.waiting_model')}** - {int(pct * 100)}% · {eta_str}",
+        icon="📚",
+    )
+    st.progress(pct, text=f"{int(pct * 100)}%")
+
+
 def _read_model_download_status() -> dict | None:
     """Return the live status dict written by ``desktop/launcher.py``.
 
@@ -753,14 +787,7 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
     _dl_error = _dl_status.get("error") if _dl_status else None
 
     if not _dl_ready:
-        _pct = float(_dl_status.get("pct", 0.0)) if _dl_status else 0.0
-        _eta = _dl_status.get("eta_remaining_s") if _dl_status else None
-        _eta_str = _format_download_eta(_eta)
-        st.info(
-            f"⏳ **{t('onboarding.step3.waiting_model')}** — {int(_pct * 100)}% · {_eta_str}",
-            icon="📚",
-        )
-        st.progress(_pct, text=f"{int(_pct * 100)}%")
+        _render_model_download_wait()
     elif _dl_error:
         st.error(t("onboarding.step3.model_error", error=_dl_error))
 
@@ -792,11 +819,17 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
             st.session_state[_K_STEP] = 6
             st.rerun()
 
-    # Auto-refresh every 2 s while we are waiting on the model so the user
-    # sees live progress without manually re-running.
-    if not _dl_ready:
-        time.sleep(2)
-        st.rerun()
+    # Niente ciclo di rerun a livello di pagina mentre si aspetta il modello.
+    # Ce n'era uno, sleep(2) piu' st.rerun(), e su un download da 7 GB
+    # significava un migliaio di riesecuzioni dell'intera pagina: i widget si
+    # ridisegnavano di continuo, sembrando passare da abilitato a disabilitato,
+    # e ogni interazione veniva azzerata due secondi dopo. Dall'esterno era
+    # indistinguibile da un blocco.
+    #
+    # L'avanzamento lo mostra _render_model_download_wait, che e' un
+    # st.fragment(run_every=2) e ridisegna solo se stesso. Quando il download
+    # finisce e' quel frammento a chiedere una riesecuzione dell'app, una
+    # volta sola, cosi' il pulsante Avvia si riattiva da solo.
 
 
 def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
@@ -902,6 +935,17 @@ def _persist_choices(
         # LLAMA_CPP_MODEL_PATH; we point llm_backend at it here so the app
         # works end-to-end on first run with no further user intervention.
         _ui_lang = st.session_state.get("_ob_ui_lang", lang)
+
+        # Vedi il commento su llama_cpp_n_ctx piu' sotto.
+        try:
+            from services.llm_service import recommended_llama_cpp_context
+
+            _detected_ctx = recommended_llama_cpp_context(
+                os.environ.get("LLAMA_CPP_MODEL_PATH", "")
+            )
+        except Exception:
+            _detected_ctx = None
+
         cfg_svc.set_bulk({
             "date_display_format":     loc["date_display_format"],
             "amount_decimal_sep":      loc["amount_decimal_sep"],
@@ -914,7 +958,16 @@ def _persist_choices(
             "llm_backend":             "local_llama_cpp",
             "cat_llm_backend":         "local_llama_cpp",
             "llama_cpp_n_gpu_layers":  "0",      # CPU by default; user can opt-in via Settings
-            "llama_cpp_n_ctx":         "4096",   # fits Qwen2.5 / Gemma-3 / Phi-4
+            # Il contesto lo calcola recommended_llama_cpp_context, la stessa
+            # funzione che usa la pagina delle impostazioni quando scegli il
+            # modello a mano: capacita' del file, con il tetto del benchmark.
+            # Qui c'era 4096 fisso, che stava SOTTO il fabbisogno dei nostri
+            # stessi prompt (un estratto conto vero ne produce 4000-5300):
+            # il modello rifiutava e l'utente leggeva che il formato non era
+            # riconosciuto, mentre file e modello erano entrambi in ordine.
+            # Se la rilevazione non riesce si scrive 0, che in tutto il codice
+            # significa "decidi tu al momento di caricare il modello".
+            "llama_cpp_n_ctx":         str(_detected_ctx or 0),
             "llama_cpp_model_path":    os.environ.get("LLAMA_CPP_MODEL_PATH", ""),
         })
 

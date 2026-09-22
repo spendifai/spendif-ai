@@ -123,8 +123,8 @@
   "checklist.color_legend": "ℹ️ Leyenda de colores",
   "review.reprocess_summary": "{updated} actualizadas · {categorised} recategorizadas.",
   "model_banner.failed": "⚠ Fallo en la descarga del modelo de IA: `{error}`. La app funciona pero las funciones de IA quedan desactivadas hasta que se descargue el modelo. Vuelve a intentarlo cerrando y abriendo la app, o consulta `{log}`.",
-  "model_banner.downloading_full": "📚 **Descargando el cerebro de Spendif.ai** — {pct}% · tiempo restante: **{eta}** · {msg}\n\n*Solo ocurre en el primer arranque (~3 GB). Puedes seguir con la configuración: la IA estará lista automáticamente al terminar. La importación y la categorización estarán disponibles entonces.*",
-  "model_banner.downloading": "📚 **Descargando el cerebro de Spendif.ai** — {pct}% · tiempo restante: **{eta}** · {msg}",
+  "model_banner.downloading_full": "📚 **Descargando el cerebro de Spendif.ai** - {pct}% · tiempo restante: **{eta}**\n\n*Solo ocurre en el primer arranque (~3 GB). Puedes seguir con la configuración: la IA estará lista automáticamente al terminar. La importación y la categorización estarán disponibles entonces.*",
+  "model_banner.downloading": "📚 **Descargando el cerebro de Spendif.ai** - {pct}% · tiempo restante: **{eta}**",
   "settings.context_n": "Contexto {n}",
   "ledger.rule_apply_update": "📏 Modificar regla y aplicar",
   "ledger.rule_apply_create": "📏 Crear regla y aplicar",
@@ -1127,5 +1127,6 @@
   "settings.update_col.arch": "Arq.",
   "settings.update_col.method": "Instalacion",
   "settings.update_col.date": "Fecha",
-  "update.cmd.git_source": "Actualiza desde la carpeta de instalacion:\n```\ngit pull && uv sync\n```"
+  "update.cmd.git_source": "Actualiza desde la carpeta de instalacion:\n```\ngit pull && uv sync\n```",
+  "upload.emulated_arm": "Esta version es x64 y se ejecuta emulada en una maquina Windows ARM, donde el modelo de IA local no puede funcionar: el emulador no implementa las instrucciones de procesador que necesita, y una prueba del modelo falla con el error de Windows 0xc000001d. Elige un modelo alojado en los ajustes, o usa una maquina x64 nativa. Todo lo demas de la app funciona con normalidad."
 }

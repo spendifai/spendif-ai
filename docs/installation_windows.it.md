@@ -31,6 +31,27 @@
 
 ---
 
+
+### Windows su ARM: il modello locale non funziona
+
+I pacchetti sono costruiti per x64. Su una macchina Windows ARM, un portatile
+Snapdragon o una macchina virtuale su Apple Silicon, Windows li esegue in
+emulazione x64. L'app si installa e funziona, ma **il modello AI locale li'
+non puo' girare**: la prova del modello fallisce con `0xc000001d`, istruzione
+illegale, perche' l'emulatore non fornisce le istruzioni del processore con
+cui e' compilata la libreria di inferenza. Aumentare i processori o la memoria
+non cambia nulla, perche' non c'e' niente che vada lento: un'istruzione che
+non esiste ferma il processo all'istante.
+
+Misurato il 2026-09-22 su una macchina virtuale Windows ARM. Due release
+distanti otto mesi sono state confrontate istruzione per istruzione e sotto
+questo aspetto sono identiche: nessuna versione precedente si comporta
+diversamente.
+
+Su una macchina del genere, scegli un modello ospitato dalle impostazioni.
+Tutto il resto, import, categorizzazione, registro e report, funziona
+normalmente.
+
 ## Quick Start — One-Liner
 
 Apri **PowerShell** (non CMD) e incolla:

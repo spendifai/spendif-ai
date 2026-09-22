@@ -34,6 +34,32 @@ if getattr(sys, "frozen", False) and len(sys.argv) >= 3 and sys.argv[1] == "-m":
         runpy.run_module(_mod, run_name="__main__", alter_sys=True)
     sys.exit(0)
 
+# Stessa ri-esecuzione, altra forma: `-c <codice>`, che e' come multiprocessing
+# avvia i propri processi ausiliari. La guardia sopra copre solo `-m`, quindi
+# un figlio con `-c` proseguiva e rifaceva l'avvio completo del launcher.
+# Il 2026-09-22 un resource_tracker avviato cosi' ha trovato il lock
+# dell'istanza vera, l'ha presa per un residuo e l'ha uccisa: l'app si e'
+# chiusa da sola sotto gli occhi dell'utente. Lo stesso figlio aveva gia'
+# troncato il file di log, che si apre in scrittura, cancellando la storia
+# dell'avvio buono.
+#
+# Si esegue il codice ricevuto e si esce, che e' cio' che farebbe
+# l'interprete: la stringa arriva dall'argv del processo, cioe' da chi lo ha
+# generato, che e' l'app stessa.
+if getattr(sys, "frozen", False) and "-c" in sys.argv[1:]:
+    _i = sys.argv.index("-c")
+    _code = sys.argv[_i + 1] if len(sys.argv) > _i + 1 else ""
+    sys.argv = ["-c"] + sys.argv[_i + 2:]
+    exec(compile(_code, "<string>", "exec"), {"__name__": "__main__"})
+    sys.exit(0)
+
+# Difesa documentata da PyInstaller per lo stesso problema, sul percorso
+# `--multiprocessing-fork`: senza, ogni figlio rieseguirebbe questo file.
+# Fuori da un figlio non fa nulla.
+import multiprocessing
+
+multiprocessing.freeze_support()
+
 import atexit
 import os
 import signal
@@ -60,6 +86,10 @@ from threading import Thread
 _LOG_DIR = Path.home() / "Library" / "Logs" if sys.platform == "darwin" else Path.home() / ".spendifai"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _LOG_FILE = _LOG_DIR / "spendifai-launcher.log"
+
+# Definito prima del try: se l'apertura fallisce il nome deve esistere lo
+# stesso, perche' viene passato a Popen piu' avanti.
+_log_fh = None
 
 try:
     _log_fh = open(_LOG_FILE, "w", buffering=1, encoding="utf-8")  # line-buffered
@@ -498,7 +528,16 @@ def _start_streamlit(port: int, app_dir: Path) -> subprocess.Popen:
     # Via env così vale anche nel bundle, dove .streamlit/config.toml può non esserci.
     env["STREAMLIT_CLIENT_TOOLBAR_MODE"] = "viewer"
 
+    # Il figlio eredita i descrittori del sistema operativo, non il sys.stdout
+    # del padre: senza questo redirect, in un'app lanciata da icona (nessuna
+    # console) tutto cio' che Streamlit e la pipeline scrivono finisce nel
+    # nulla. Il file di log conteneva solo il launcher, cioe' la parte che non
+    # fa il lavoro. Il 2026-09-22 questo ha reso impossibile capire perche' un
+    # import restasse a zero per cento: nessuna traccia, da nessuna parte.
     popen_kwargs = {"env": env, "cwd": str(app_dir)}
+    if _log_fh is not None:
+        popen_kwargs["stdout"] = _log_fh
+        popen_kwargs["stderr"] = subprocess.STDOUT
     if sys.platform != "win32":
         # Detach into a new session so the child + its descendants form
         # their own process group, killable with one signal.
@@ -579,6 +618,15 @@ def main() -> None:
     print("main(): checking for stale instance lock...", flush=True)
     _SPENDIFAI_HOME.mkdir(parents=True, exist_ok=True)
     _kill_previous_instance()
+
+    try:
+        from core.platform_info import is_emulated_x64_on_arm
+
+        if is_emulated_x64_on_arm():
+            print("main(): ATTENZIONE, processo x64 emulato su Windows ARM64: "
+                  "l'inferenza locale sara' lentissima", flush=True)
+    except Exception as _exc:
+        print(f"main(): rilevazione emulazione non riuscita ({_exc})", flush=True)
 
     print("main(): resolving app_dir...", flush=True)
     app_dir = _resolve_app_dir()

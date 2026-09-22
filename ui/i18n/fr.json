@@ -123,8 +123,8 @@
   "checklist.color_legend": "ℹ️ Légende des couleurs",
   "review.reprocess_summary": "{updated} mises à jour · {categorised} re-catégorisées.",
   "model_banner.failed": "⚠ Échec du téléchargement du modèle IA : `{error}`. L'application fonctionne mais les fonctions IA restent désactivées tant que le modèle n'est pas téléchargé. Réessayez en fermant et rouvrant l'application, ou consultez `{log}`.",
-  "model_banner.downloading_full": "📚 **Téléchargement du cerveau de Spendif.ai** — {pct}% · temps restant : **{eta}** · {msg}\n\n*Cela n'arrive qu'au premier lancement (~3 Go). Vous pouvez continuer la configuration : l'IA sera prête automatiquement à la fin. L'import et la catégorisation seront alors disponibles.*",
-  "model_banner.downloading": "📚 **Téléchargement du cerveau de Spendif.ai** — {pct}% · temps restant : **{eta}** · {msg}",
+  "model_banner.downloading_full": "📚 **Téléchargement du cerveau de Spendif.ai** - {pct}% · temps restant : **{eta}**\n\n*Cela n'arrive qu'au premier lancement (~3 Go). Vous pouvez continuer la configuration : l'IA sera prête automatiquement à la fin. L'import et la catégorisation seront alors disponibles.*",
+  "model_banner.downloading": "📚 **Téléchargement du cerveau de Spendif.ai** - {pct}% · temps restant : **{eta}**",
   "settings.context_n": "Contexte {n}",
   "ledger.rule_apply_update": "📏 Modifier la règle et appliquer",
   "ledger.rule_apply_create": "📏 Créer la règle et appliquer",
@@ -1127,5 +1127,6 @@
   "settings.update_col.arch": "Arch.",
   "settings.update_col.method": "Installation",
   "settings.update_col.date": "Date",
-  "update.cmd.git_source": "Mettez a jour depuis le dossier d'installation :\n```\ngit pull && uv sync\n```"
+  "update.cmd.git_source": "Mettez a jour depuis le dossier d'installation :\n```\ngit pull && uv sync\n```",
+  "upload.emulated_arm": "Cette version est x64 et s'execute en emulation sur une machine Windows ARM, ou le modele IA local ne peut pas fonctionner du tout : l'emulateur n'implemente pas les instructions processeur necessaires, et un test du modele echoue avec l'erreur Windows 0xc000001d. Choisissez un modele heberge dans les parametres, ou utilisez une machine x64 native. Tout le reste de l'application fonctionne normalement."
 }

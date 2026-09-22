@@ -156,7 +156,9 @@ if ($WithSSM) {
 }
 
 # ── 1c. Stamp build info ─────────────────────────────────────────────────────
-$BuildTs = (Get-Date -Format "yyyy-MM-dd HH:mm")
+# UTC e dichiarato: era l'ora locale del costruttore, quindi lo stesso
+# campo valeva UTC in CI e ora italiana in locale, senza modo di saperlo.
+$BuildTs = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm") + " UTC"
 @"
 # Generated at build time — do not edit manually.
 BUILD_TIME = "$BuildTs"

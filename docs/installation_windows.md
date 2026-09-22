@@ -18,6 +18,7 @@
 | Disk | 5 GB free | 12 GB (Python + venv + models + data) |
 | Python | 3.13 (installed automatically) | 3.13 |
 | Git | any recent version | installed automatically |
+| CPU | x64 (Intel or AMD) | x64 (Intel or AMD) |
 | GPU | optional | NVIDIA (for CUDA-accelerated LLM inference) |
 | VRAM | — (CPU-only) | >= model size (e.g. 8 GB for 7B Q4) |
 
@@ -34,6 +35,25 @@ Qwen2.5-3B (2.1 GB), not Gemma-3-12B (6.8 GB).
 `llama-cpp-python` is experimental and not enabled by this installer.
 
 ---
+
+
+### Windows on ARM is not supported for the local model
+
+The packages are built for x64. On a Windows ARM machine, a Snapdragon laptop
+or a virtual machine on Apple Silicon, Windows runs them under x64 emulation.
+The app installs and works, but **the local AI model cannot run there**:
+testing it fails with `0xc000001d`, an illegal instruction, because the
+emulator does not provide the CPU instructions the inference library is
+compiled with. More cores and more memory make no difference, since nothing
+is running slowly: an instruction that does not exist stops the process at
+once.
+
+Measured on 2026-09-22 on a Windows ARM virtual machine. Two releases built
+eight months apart were compared instruction by instruction and are
+identical in this respect, so no earlier version behaves differently.
+
+On such a machine, choose a hosted model in Settings. Everything else,
+import, categorisation, ledger and reports, works normally.
 
 ## Quick Start — One-Liner
 
