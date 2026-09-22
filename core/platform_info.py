@@ -16,6 +16,18 @@ _IMAGE_FILE_MACHINE_UNKNOWN = 0x0000
 _IMAGE_FILE_MACHINE_ARM64 = 0xAA64
 
 
+def _verdict(process_machine: int, native_machine: int) -> bool:
+    """La regola, separata dalla chiamata a Windows perche' sia verificabile.
+
+    ``process_machine`` vale UNKNOWN quando il processo NON e' emulato; in quel
+    caso ``native_machine`` non dice nulla di utile. Emulato su ARM64 significa
+    entrambe le condizioni insieme.
+    """
+    if process_machine == _IMAGE_FILE_MACHINE_UNKNOWN:
+        return False
+    return native_machine == _IMAGE_FILE_MACHINE_ARM64
+
+
 def is_emulated_x64_on_arm() -> bool:
     """True se questo processo x64 gira emulato su un Windows ARM64.
 
@@ -45,8 +57,6 @@ def is_emulated_x64_on_arm() -> bool:
         )
         if not ok:
             return False
-        # process_machine vale UNKNOWN quando il processo NON e' emulato.
-        emulated = process_machine.value != _IMAGE_FILE_MACHINE_UNKNOWN
-        return emulated and native_machine.value == _IMAGE_FILE_MACHINE_ARM64
+        return _verdict(process_machine.value, native_machine.value)
     except Exception:
         return False
