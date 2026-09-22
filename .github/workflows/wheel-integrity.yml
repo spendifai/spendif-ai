@@ -1,0 +1,47 @@
+# The llama-cpp-python wheels come from an index that publishes no checksums,
+# so uv.lock pins their URLs but not their bytes (every other package in the
+# lockfile carries a sha256 from PyPI). This job is what stands in for that:
+# the checksums we vetted live in packaging/llama_wheel_hashes.txt, and a file
+# replaced upstream turns the build red instead of reaching a user machine.
+#
+# It runs when the pin or the recorded hashes change, and once a week, because
+# a swap upstream is not something we would otherwise cause or notice.
+name: Wheel integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - uv.lock
+      - pyproject.toml
+      - packaging/llama_wheel_hashes.txt
+      - tools/check_llama_wheels.py
+      - .github/workflows/wheel-integrity.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - uv.lock
+      - pyproject.toml
+      - packaging/llama_wheel_hashes.txt
+      - tools/check_llama_wheels.py
+      - .github/workflows/wheel-integrity.yml
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: llama-cpp-python wheels match the recorded checksums
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      # The tool is stdlib-only (tomllib, urllib, hashlib), so it needs no
+      # project environment: syncing one here would download every dependency
+      # to check three files.
+      - name: Verify wheel checksums
+        run: python3 tools/check_llama_wheels.py
