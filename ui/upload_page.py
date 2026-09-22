@@ -31,6 +31,7 @@ def _ai_model_still_downloading() -> bool:
     pct = float(data.get("pct", 0.0))
     return pct < 1.0
 
+from services.update_service import UpdateService
 from services.import_service import (
     Confidence,
     DocumentSchema,
@@ -436,9 +437,7 @@ def render_upload_page(engine):
     # cosi' lenta da sembrare un blocco. Si avvisa e si lascia procedere: e'
     # una macchina lenta, non una configurazione vietata.
     try:
-        from core.platform_info import is_emulated_x64_on_arm
-
-        if is_emulated_x64_on_arm():
+        if UpdateService(engine).runs_emulated():
             st.warning(t_fn("upload.emulated_arm"), icon="🐢")
     except Exception:
         pass

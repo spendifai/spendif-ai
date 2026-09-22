@@ -149,6 +149,18 @@ class UpdateService:
 
     # ── 1. record what is running ───────────────────────────────────────────
 
+    def runs_emulated(self) -> bool:
+        """True se questa copia gira emulata (x64 su Windows ARM64).
+
+        Sta qui e non in ``core`` per il livello che la consuma: e' la UI a
+        doverne avvisare l'utente, e la UI non importa da ``core``. Questo
+        servizio gia' si occupa di sistema operativo, architettura e metodo di
+        installazione, che sono la stessa famiglia di domande.
+        """
+        from core.platform_info import is_emulated_x64_on_arm
+
+        return is_emulated_x64_on_arm()
+
     def record_launch(self) -> UpdateEvent | None:
         """Write an update_event row when the running version is new to this DB.
 
