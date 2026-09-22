@@ -9,7 +9,7 @@ and where to look when something dies silently.
 
 For the **public release** workflow (tagging, signing for distribution,
 publishing on Homebrew / winget) see
-[release_process.md](release_process.md) instead.
+the internal release process document instead.
 
 ---
 

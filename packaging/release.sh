@@ -9,7 +9,7 @@
 # a DRAFT GitHub Release with all artifacts attached.
 #
 # The owner then signs DMG + MSIX locally (hybrid signing — see
-# docs/release_process.md), uploads the signed binaries with
+# the internal release process document), uploads the signed binaries with
 # `gh release upload <tag> <file> --clobber`, and publishes the draft.
 #
 # USAGE
