@@ -316,7 +316,16 @@ jobs:
           # Extract changelog section
           NOTES=""
           if [ -f CHANGELOG.md ]; then
-            NOTES=$(awk '/^## \[/{if(found) exit; found=1; next} found{print}' CHANGELOG.md)
+            # Estrae la sezione DELLA VERSIONE che si sta rilasciando. La versione
+            # precedente saltava la prima intestazione e stampava fino alla
+            # seconda: con un "## [Unreleased]" vuoto in testa, che e' il caso
+            # normale fra una release e l'altra, restituiva una stringa vuota e
+            # la release usciva con le sole note di ripiego, senza dirlo.
+            NOTES=$(awk -v v="$VERSION" '
+              $0 ~ "^## \\[" v "\\]" { found=1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md)
           fi
           [ -z "$NOTES" ] && NOTES="Release v${VERSION}"
 

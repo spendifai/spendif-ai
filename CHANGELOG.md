@@ -6,13 +6,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-09-20
+## [0.3.0] - 2026-09-22
 
 ### Added
+- Signed Windows installer. The MSIX carries an Authenticode signature and a timestamp, so Windows installs it instead of refusing an unsigned package. Signing runs on the maintainer's machine against a key held on an HSM, and never in CI (#AI-329)
 - In-app update notification for packaged installs. A Homebrew, DMG, .deb or .rpm install now learns when a newer release exists and is shown the upgrade command for the way it was actually installed. Until now the badge was fed only by the source-install launcher's `git fetch`, so a packaged build read a file nobody would ever write (#AI-317)
 - `update_event` table recording one row per version this installation has run, with the OS, architecture and install method. Local history that never leaves the machine; Settings > Updates shows it and can turn the check off (#AI-317)
 - Signed APT repository. `packaging/linux/update-apt-repo.py` builds and signs the archive published at `spendifai/apt`, so Debian and Ubuntu get `apt update` and `apt upgrade` instead of a one-shot `apt install ./file.deb` (#AI-322)
 - The Homebrew cask is now published automatically when a release is published, rather than by a manual step that could be forgotten (#AI-316)
+
+### Fixed
+- The Windows app installed and then closed on launch, showing only the startup screen. The bundle was symbol stripped, which is not supported on Windows and left the Python runtime unloadable, so the app died before running a line of its own code
+- The macOS install script accepted Python 3.11, which the project cannot use, and failed several steps later inside the dependency resolver. It now checks both ends of the supported range before doing anything, and a failure caused by the interpreter is no longer reported as a Metal build problem
+
+### Changed
+- macOS install instructions on the website now use the Homebrew tap, which also keeps the app updated, instead of the one-shot install script
 
 ### Security
 - The `.deb` postinst and `.rpm` `%post` no longer pipe `curl` into a shell as root to install uv. The version is pinned, the asset is downloaded by name, and its sha256 is verified before anything executes. On mismatch the step refuses with no fallback (#AI-321)
