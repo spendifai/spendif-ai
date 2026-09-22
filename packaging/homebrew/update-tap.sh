@@ -92,7 +92,7 @@ trap 'rm -rf "${WORK}"' EXIT
 # WHY --verify-hash exists. SHA256SUMS.txt is written by the CI publish job,
 # which hashes the UNSIGNED artefacts. The owner then signs the DMG locally and
 # replaces it with `gh release upload --clobber`, and only a separate manual
-# step regenerates SHA256SUMS.txt (docs/release_process.md, Section 2bis step 3).
+# step regenerates SHA256SUMS.txt (the internal release process, Section 2bis step 3).
 # Skip that step and the sums file still describes the unsigned DMG: the cask
 # would ship a checksum no user can ever match, and brew would abort every
 # install with "SHA256 mismatch". Hashing the published asset is the only source
@@ -127,7 +127,7 @@ if $VERIFY_HASH; then
     actual:    ${SHA256}
   The usual cause is a signed DMG uploaded with --clobber while SHA256SUMS.txt
   was left describing the unsigned CI build. Regenerate and re-upload it
-  (docs/release_process.md, Section 2bis step 3), then re-run this script."
+  (the internal release process, Section 2bis step 3), then re-run this script."
   fi
 elif [[ -n "${SHA_SUMS}" ]]; then
   SHA256="${SHA_SUMS}"

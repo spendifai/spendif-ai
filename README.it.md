@@ -200,7 +200,7 @@ Dettagli → [docs/developer_guide.md](docs/developer_guide.md).
 | Guida alla categorizzazione | [EN](docs/guida_classificazione.en.md) · [IT](docs/guida_classificazione.md) |
 | Schema database | [EN](docs/database.en.md) · [IT](docs/database.md) |
 | Deployment | [EN](docs/deployment.en.md) · [IT](docs/deployment.md) |
-| Processo di rilascio | [EN](docs/release_process.md) · [IT](docs/release_process.it.md) |
+| Processo di rilascio | documento interno, non pubblicato |
 | Loop di build e test desktop | [EN](docs/desktop_build_and_test.md) · [IT](docs/desktop_build_and_test.it.md) |
 | Contribuire | [EN](CONTRIBUTING.en.md) · [IT](CONTRIBUTING.md) |
 | Politica di sicurezza | [EN](SECURITY.md) · [IT](SECURITY.it.md) |
