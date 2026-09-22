@@ -1,0 +1,37 @@
+# The per-user environment is built at FIRST LAUNCH, not here: this hook runs
+# as root and has no business creating anything in a user's home. See
+# /opt/spendifai/launch.sh, which every desktop entry points at.
+
+post_install() {
+  cat <<'EOF'
+
+  Spendif.ai installed.
+
+  Launch it from the applications menu, or run:
+      /opt/spendifai/launch.sh
+
+  The first start downloads the Python environment into ~/.spendifai
+  (a few hundred MB, once). Nothing is compiled.
+
+  Your data stays in ~/.spendifai and survives removing the package.
+
+EOF
+}
+
+post_upgrade() {
+  cat <<'EOF'
+
+  Spendif.ai updated. The next launch aligns ~/.spendifai/.venv with the
+  new lockfile by itself.
+
+EOF
+}
+
+post_remove() {
+  cat <<'EOF'
+
+  Spendif.ai removed. Your ledger and models are still in ~/.spendifai
+  Delete them with:  rm -rf ~/.spendifai
+
+EOF
+}

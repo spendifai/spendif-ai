@@ -47,7 +47,7 @@ _SPENDIFAI_HOME = Path.home() / ".spendifai"
 # dragged to /Applications, which has no install hook at all: see _install_method.
 _INSTALL_METHOD_FILE = _SPENDIFAI_HOME / ".install_method"
 
-_KNOWN_METHODS = {"homebrew", "dmg", "git", "deb", "rpm", "msix", "winget"}
+_KNOWN_METHODS = {"homebrew", "dmg", "git", "deb", "rpm", "arch", "msix", "winget"}
 
 _LATEST_RELEASE_URL = "https://api.github.com/repos/spendifai/spendif-ai/releases/latest"
 _HTTP_TIMEOUT = 5.0

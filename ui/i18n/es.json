@@ -1108,6 +1108,7 @@
   "update.cmd.git": "Actualiza desde el Terminal:\n```\nbash ~/Applications/Spendif.ai/packaging/macos/install.sh --update\n```",
   "update.cmd.deb": "Descarga el nuevo paquete .deb desde [Releases](https://github.com/spendifai/spendif-ai/releases/latest) e instalalo con `sudo apt install ./spendifai_*.deb`.",
   "update.cmd.rpm": "Descarga el nuevo paquete .rpm desde [Releases](https://github.com/spendifai/spendif-ai/releases/latest) e instalalo con `sudo dnf install ./spendifai-*.rpm`.",
+  "update.cmd.arch": "Actualiza desde el Terminal:\n```\nparu -Syu spendifai\n```\nO con el asistente AUR que utilices.",
   "update.cmd.msix": "Descarga el nuevo MSIX desde [Releases](https://github.com/spendifai/spendif-ai/releases/latest) y haz doble clic para instalarlo.",
   "update.cmd.winget": "Actualiza desde PowerShell:\n```\nwinget upgrade SpendifAi\n```",
   "update.cmd.unknown": "Descarga la nueva version desde [Releases](https://github.com/spendifai/spendif-ai/releases/latest).",
