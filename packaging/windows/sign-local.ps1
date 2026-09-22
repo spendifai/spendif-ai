@@ -1,11 +1,28 @@
 <#
 .SYNOPSIS
-    Spendif.ai — Windows MSIX local signing.
+    Spendif.ai - Windows MSIX signing, DEVELOPMENT ONLY.
 
 .DESCRIPTION
-    Wraps SignTool.exe to sign an MSIX with a Code Signing certificate.
+    Wraps SignTool.exe to sign an MSIX with a .pfx file, for sideload
+    testing on a development machine with a self-signed certificate.
+
+    THIS IS NOT THE PRODUCTION PATH, and it cannot become one. Since June
+    2023 the CA/Browser Forum requires the private key of an OV code
+    signing certificate to live on a hardware token or an HSM, so a .pfx
+    on disk no longer exists for a real certificate. The production
+    certificate (Actalis, issued 2026-09-21) is signed remotely and the
+    key never reaches this machine.
+
+    Production signing:
+      blueprint/sw_artifacts/tools/codesign/sign_windows.sh
+    It runs on macOS or Linux, so signing a Windows artifact does not need
+    a Windows machine. Building the MSIX still does, because makeappx.exe
+    ships with the Windows SDK.
+
     The certificate Subject MUST match the <Identity Publisher="..."> in
-    the MSIX manifest, otherwise SignTool fails with 0x8007000B.
+    the MSIX manifest, otherwise SignTool fails with 0x8007000B. Build the
+    package accordingly: build-msix.ps1 with no arguments for the dev
+    placeholder used here, or -Production for the real certificate.
 
 .PARAMETER Msix
     Path to the MSIX file. If omitted, picks the newest in build\.
@@ -36,8 +53,10 @@
       # Install for trust:
       Import-Certificate -FilePath spendifai.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 
-    PRODUCTION CERT: buy from Sectigo / DigiCert (OV ~$200/yr, EV ~$400/yr).
-    EV certs get zero SmartScreen warning immediately; OV builds reputation.
+    The production certificate was bought from Actalis in September 2026
+    (OV, not EV: SmartScreen reputation accumulates with downloads instead
+    of being granted immediately). See the blueprint codesign README for
+    the full procedure, credentials layout and known limits.
 #>
 [CmdletBinding()]
 param(

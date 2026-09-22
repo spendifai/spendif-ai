@@ -80,8 +80,13 @@ DO_UPDATE=false
 REPO_URL="https://github.com/spendifai/spendif-ai.git"
 SPENDIFAI_HOME="$HOME/.spendifai"
 APP_BUNDLE="/Applications/Spendif.ai.app"
+# Devono combaciare con requires-python di pyproject.toml (>=3.12,<3.14).
+# Qui sono duplicati e non letti da li' perche' il controllo avviene PRIMA del
+# clone: quando gira, pyproject.toml non e' ancora sul disco. Se cambia il
+# vincolo del progetto, queste due righe vanno cambiate con lui.
 MIN_PYTHON_MAJOR=3
-MIN_PYTHON_MINOR=11
+MIN_PYTHON_MINOR=12
+MAX_PYTHON_MINOR=13
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Usage
@@ -266,9 +271,13 @@ else
   PY_MAJ=$(echo "$PY_FULL" | cut -d. -f1)
   PY_MIN=$(echo "$PY_FULL" | cut -d. -f2)
 
-  if [[ "$PY_MAJ" -lt "$MIN_PYTHON_MAJOR" ]] || \
-     { [[ "$PY_MAJ" -eq "$MIN_PYTHON_MAJOR" ]] && [[ "$PY_MIN" -lt "$MIN_PYTHON_MINOR" ]]; }; then
-    die "Python $PY_FULL found, but >= ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR} required. Use --brew or upgrade manually."
+  # Serve anche il limite superiore: un interprete troppo nuovo passerebbe il
+  # controllo e verrebbe respinto da uv dopo il clone, a meta' installazione.
+  if [[ "$PY_MAJ" -ne "$MIN_PYTHON_MAJOR" ]] || \
+     [[ "$PY_MIN" -lt "$MIN_PYTHON_MINOR" ]] || \
+     [[ "$PY_MIN" -gt "$MAX_PYTHON_MINOR" ]]; then
+    die "Python $PY_FULL found at $PYTHON_BIN, but this project needs >= ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR} and <= ${MIN_PYTHON_MAJOR}.${MAX_PYTHON_MINOR}.
+   Run again with --brew to install a supported Python automatically, or put one on your PATH."
   fi
   ok "Python $PY_FULL ($PYTHON_BIN)"
 fi
@@ -381,11 +390,25 @@ export FORCE_CMAKE=1
 
 # uv sync reads pyproject.toml / uv.lock and creates .venv automatically
 # --extra desktop: include pywebview for native window (no Terminal needed)
-uv sync --extra desktop --python "$PYTHON_BIN" 2>&1 | tail -5 || {
-  warn "uv sync with Metal flags failed — retrying without Metal (CPU-only fallback)..."
+# Il fallback esiste per un caso solo: la compilazione con Metal che non riesce.
+# Riprovare a prescindere dalla causa fa ripetere identico un comando destinato a
+# fallire, e stampa un messaggio che accusa Metal di colpe altrui.
+SYNC_LOG=$(mktemp)
+if ! uv sync --extra desktop --python "$PYTHON_BIN" >"$SYNC_LOG" 2>&1; then
+  tail -5 "$SYNC_LOG"
+  if grep -q "incompatible with the project" "$SYNC_LOG"; then
+    rm -f "$SYNC_LOG"
+    die "L'interprete $PYTHON_BIN non e' compatibile con il progetto.
+   Rilancia con --brew, oppure metti sul PATH un Python fra ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR} e ${MIN_PYTHON_MAJOR}.${MAX_PYTHON_MINOR}."
+  fi
+  warn "uv sync con Metal fallito - riprovo senza Metal (solo CPU)..."
   unset CMAKE_ARGS FORCE_CMAKE
-  uv sync --extra desktop --python "$PYTHON_BIN"
-}
+  if ! uv sync --extra desktop --python "$PYTHON_BIN"; then
+    rm -f "$SYNC_LOG"
+    die "uv sync fallito anche senza Metal: l'errore e' sopra."
+  fi
+fi
+rm -f "$SYNC_LOG"
 
 ok "Python environment ready"
 

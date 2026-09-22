@@ -126,11 +126,18 @@ jobs:
           retention-days: 30
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Windows — PyInstaller → .exe folder → MSIX (unsigned)
+  # Windows: PyInstaller -> .exe folder -> MSIX (unsigned)
   #
-  # The MSIX is produced unsigned in CI. Owner signs locally with a
-  # Code Signing certificate via packaging\windows\sign-local.ps1 before
-  # publishing the GitHub Release (hybrid signing model — see docs/release.md).
+  # The MSIX is produced unsigned in CI and signed locally afterwards, because
+  # the Actalis code signing key lives on an HSM and every signature needs a
+  # one-time password. No CI runner can hold that credential.
+  #
+  # Built with -Production so the manifest Publisher matches the certificate
+  # subject exactly. Without it the package carries the self-signed dev DN and
+  # signing fails with 0x8007000B, wasting an OTP.
+  #
+  # Signing (on macOS or Linux, no Windows machine needed):
+  #   blueprint/sw_artifacts/tools/codesign/sign_windows.sh
   # ─────────────────────────────────────────────────────────────────────────
   build-windows:
     name: Build Windows MSIX
@@ -150,9 +157,15 @@ jobs:
         run: uv sync --extra desktop
 
       - name: Build MSIX (PyInstaller + makeappx)
+        env:
+          # X.500 subject of the code signing certificate. Personal data of the
+          # certificate holder, so it lives in a repository secret and never in
+          # the tree. Without it the build fails instead of silently producing a
+          # package that cannot be signed.
+          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
         run: |
           $version = "${{ needs.prepare.outputs.version }}"
-          .\packaging\windows\build-msix.ps1 -Version $version
+          .\packaging\windows\build-msix.ps1 -Version $version -Production
 
       - name: Verify MSIX
         run: |

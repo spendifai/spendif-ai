@@ -121,14 +121,37 @@ spctl -a -t open --context context:primary-signature -v /tmp/downloaded.dmg
 gh release upload v3.1.0 build/SpendifAi-3.1.0-arm64.dmg --clobber
 ```
 
-```powershell
-# 2b. Windows — sign the MSIX
-gh release download v3.1.0 --pattern '*.msix' --dir C:\release
-$env:MSIX_CERT_PATH = "C:\certs\spendifai.pfx"
-$env:MSIX_CERT_PASSWORD = "secret"
-.\packaging\windows\sign-local.ps1 -Msix C:\release\SpendifAi-3.1.0.msix
-gh release upload v3.1.0 C:\release\SpendifAi-3.1.0.msix --clobber
+```bash
+# 2b. Windows - sign the MSIX, from macOS, no Windows machine needed
+#
+# The OV certificate has no .pfx: since 2023 the private key lives on an HSM
+# and every use goes through the provider's client. Signing therefore stays
+# local and manual, like the Apple credentials, and never runs in CI.
+#
+# The vendor client mis-handles MSIX: given one, it signs it as a jar, exits
+# 0, and returns a package Windows reads as unsigned. sign_appx.sh hands the
+# same remote key to the APPX signer instead. See the codesign README in the
+# blueprint tooling for the whole story.
+gh release download v3.1.0 --pattern '*.msix' --dir /tmp/release
+
+bash ~/Documents/Progetti/blueprint/sw_artifacts/tools/codesign/sign_appx.sh \
+  --input  /tmp/release/SpendifAi-3.1.0.msix \
+  --output /tmp/release/SpendifAi-3.1.0-signed.msix \
+  --program-name "Spendif.ai" \
+  --program-url  "https://spendif.ai" \
+  --creds ~/secrets/spendifai/windows/codesign.env
+
+# The script verifies before returning: AppxSignature.p7x must be present and
+# all four APPX hashes must match. Do not upload a package that failed either.
+mv /tmp/release/SpendifAi-3.1.0-signed.msix /tmp/release/SpendifAi-3.1.0.msix
+gh release upload v3.1.0 /tmp/release/SpendifAi-3.1.0.msix --clobber
 ```
+
+The publisher DN in the package manifest must equal the certificate subject,
+which means the build has to know it: `MSIX_PUBLISHER` is a repository secret
+and the build fails without it. Its spelling is not obvious and is documented
+in `build-msix.ps1`; the short version is `S=` for stateOrProvince and a comma
+plus a space between components.
 
 ```bash
 # 3. Recompute SHA256SUMS.txt to include the signed files

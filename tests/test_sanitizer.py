@@ -197,11 +197,11 @@ class TestRedactPiiEdgeCases:
 
 class TestRestoreOwnerAliases:
     def test_round_trip(self):
-        cfg = SanitizationConfig(owner_names=["Luigi Corsaro"], description_language="it")
-        original = "bonifico Luigi Corsaro conto deposito"
+        cfg = SanitizationConfig(owner_names=["Mario Rossi"], description_language="it")
+        original = "bonifico Mario Rossi conto deposito"
         sanitized = redact_pii(original, cfg)
         restored = restore_owner_aliases(sanitized, cfg)
-        assert "Luigi Corsaro" in restored
+        assert "Mario Rossi" in restored
 
     def test_restore_no_config_returns_unchanged(self):
         text = "qualche testo"

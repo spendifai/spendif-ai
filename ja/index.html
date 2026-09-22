@@ -1255,7 +1255,9 @@
           <button class="copy-btn" onclick="copyCode(this, 'mac')">コピー</button>
         </div>
         <div class="code-body">
-          <div><span class="p">$ </span><span class="c">curl</span><span class="a"> -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/macos/install.sh | bash</span></div>
+          <div><span class="p">$ </span><span class="c">brew</span><span class="a"> tap spendifai/spendifai</span></div>
+          <div><span class="p">$ </span><span class="c">brew</span><span class="a"> trust --cask spendifai/spendifai/spendifai</span></div>
+          <div><span class="p">$ </span><span class="c">brew</span><span class="a"> install --cask spendifai</span></div>
         </div>
       </div>
     </div>
@@ -1578,7 +1580,7 @@
 
   /* Copy install command */
   const installCmds = {
-    mac:  'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/macos/install.sh | bash',
+    mac:  'brew tap spendifai/spendifai\nbrew trust --cask spendifai/spendifai/spendifai\nbrew install --cask spendifai',
     deb:  'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-debian.sh | bash',
     rhel: 'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-redhat.sh | bash',
     win:  'irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex'

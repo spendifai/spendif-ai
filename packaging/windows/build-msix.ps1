@@ -12,9 +12,41 @@
 
 .PARAMETER Publisher
     X.500 DN that MUST match the signing certificate Subject exactly.
-    Default: "CN=SpendifAi Dev, O=Spendif.ai, C=IT" (placeholder for
-    self-signed cert). Override for production:
-      -Publisher "CN=Luigi Corsaro, O=Spendif.ai, C=IT"
+    A mismatch fails at signing time with 0x8007000B, and every signing
+    attempt burns a one-time OTP, so get this right before building.
+
+    Default is the self-signed dev placeholder used for sideload testing.
+    For production use -Production, which takes the DN from the environment
+    rather than from this file. Do not assume the DN matches the product or
+    company name: it is whatever the certificate authority issued.
+
+.PARAMETER Production
+    Build with the production publisher DN instead of the dev placeholder.
+
+    The DN is NOT stored in this repository: it is the X.500 subject of the
+    code signing certificate, and it identifies the certificate holder. It is
+    read from the MSIX_PUBLISHER environment variable, which comes from a
+    repository secret in CI and from the local credentials file otherwise.
+
+    To recover the value from the certificate:
+      openssl x509 -in <cert>.cer -noout -subject -nameopt RFC2253
+    Keep every component byte for byte, then make two rewrites: spell
+    stateOrProvince as S=, the way Windows writes it, and separate components
+    with a comma AND A SPACE. RFC2253 prints ST= and bare commas, and each of
+    those fails the build on its own.
+
+    Three validators read this DN and each refuses something the others take.
+    The manifest schema refuses ST= ("error C00CE169 ... violates pattern
+    constraint"). The semantic check that runs after it refuses the numeric
+    OID form ("must be valid as per publisher naming rules"). BouncyCastle,
+    which the signer uses to compare this DN against the certificate, refuses
+    S=. Nothing clears all three unaided, so the manifest carries the Windows
+    spelling and the signer is taught to read it: see the X.500 style in the
+    shared codesign tooling. All three measured 2026-09-21, at the cost of
+    three builds.
+
+    Still unverified: that Windows accepts the package at install time. If an
+    install fails with 0x8007000B on the publisher, this is where to look.
 
 .PARAMETER PublisherDisplay
     Friendly publisher name (shown in Add/Remove Programs).
@@ -34,21 +66,24 @@
 .EXAMPLE
     cd sw_artifacts
     .\packaging\windows\build-msix.ps1
-    .\packaging\windows\build-msix.ps1 -Version 3.1.0.0 -Publisher "CN=Luigi Corsaro, O=Spendif.ai, C=IT"
+    .\packaging\windows\build-msix.ps1 -Version 3.1.0.0 -Production
     .\packaging\windows\build-msix.ps1 -WithSSM
 
 .NOTES
     Requires Windows SDK (for makeappx.exe). Install via:
       winget install Microsoft.WindowsSDK.10.0.22621
-    Output is unsigned. Sign with packaging\windows\sign-local.ps1 before
-    distribution — MSIX cannot be installed in normal mode without a
-    trusted signature.
+    Output is unsigned. MSIX cannot be installed in normal mode without a
+    trusted signature, so sign before distributing:
+      production: blueprint/sw_artifacts/tools/codesign/sign_windows.sh
+                  (runs on macOS or Linux, no Windows machine needed)
+      dev only:   packaging\windows\sign-local.ps1 with a self-signed cert
 #>
 [CmdletBinding()]
 param(
     [string]$Version = "",
     [string]$Publisher = "CN=SpendifAi Dev, O=Spendif.ai, C=IT",
     [string]$PublisherDisplay = "Spendif.ai",
+    [switch]$Production,
     [ValidateSet("x64", "arm64", "neutral")]
     [string]$Architecture = "x64",
     [switch]$SkipPyInstaller,
@@ -58,6 +93,44 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $RepoRoot
+
+# The production publisher DN is personal data of the certificate holder, so it
+# is never committed. It arrives from the environment, and the manifest must
+# reproduce the certificate subject character by character or signing fails.
+if ($Production) {
+    if ($PSBoundParameters.ContainsKey("Publisher")) {
+        throw "-Production and -Publisher are mutually exclusive: pick one."
+    }
+    if (-not $env:MSIX_PUBLISHER) {
+        throw "-Production needs MSIX_PUBLISHER set to the certificate subject DN. See the -Production help in this script for how to recover it."
+    }
+    $Publisher = $env:MSIX_PUBLISHER
+    # Deliberately not printed: it would end up in public CI logs.
+    Write-Host "Publisher taken from MSIX_PUBLISHER"
+}
+
+# Validate the DN against the manifest schema BEFORE building anything. makeappx
+# applies this same pattern, but it does so after PyInstaller has run, it reports
+# a masked value because the DN comes from a secret, and it raises one identical
+# C00CE169 for every possible defect. Ten minutes to learn nothing. The pattern
+# below is the one makeappx prints in that error, kept verbatim.
+$dnAttr = '(CN|L|O|OU|E|C|S|STREET|T|G|I|SN|DC|SERIALNUMBER|Description|PostalCode|POBox|Phone|X21Address|dnQualifier|(OID\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))+))'
+$dnVal  = '(([^,+="<>#;])+|".*")'
+$dnPattern = '^' + $dnAttr + '=' + $dnVal + '(, (' + $dnAttr + '=' + $dnVal + '))*$'
+# The numeric OID form satisfies the pattern and is then refused by the naming
+# rules, so it has to be caught separately or it looks valid right up to makeappx.
+if ($Publisher -cmatch 'OID\.[0-9]') {
+    throw "the publisher DN uses the numeric OID form, which clears the manifest schema and is then refused by the publisher naming rules. Spell stateOrProvince as S=."
+}
+if ($Publisher -cnotmatch $dnPattern) {
+    # Say which defect it is, since the schema cannot. These two account for
+    # every failure seen so far, and the value itself is never echoed.
+    $hint = @()
+    if ($Publisher -cmatch ',(?! )')  { $hint += "components must be separated by a comma AND a space; RFC2253 output uses bare commas" }
+    if ($Publisher -cmatch '(^|, )ST=') { $hint += "stateOrProvince must be spelled S=, not ST=: the schema rejects ST, and the numeric OID form clears the schema only to fail the publisher naming rules right after" }
+    if (-not $hint) { $hint += "check every component against the pattern; attribute names are case sensitive" }
+    throw "the publisher DN does not match the manifest schema.`n  " + ($hint -join "`n  ")
+}
 
 # ── 1. Resolve version (must be 4 parts) ─────────────────────────────────────
 if (-not $Version) {

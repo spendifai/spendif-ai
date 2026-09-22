@@ -148,6 +148,14 @@ a = Analysis(
     noarchive=False,
 )
 
+# PyInstaller delega lo strip alla toolchain GNU, che e' fatta per ELF: sui
+# binari PE di Windows produce file che il caricatore non accetta piu'. La
+# documentazione ufficiale lo dichiara "not recommended for Windows", e il
+# 2026-09-22 e' costato un pacchetto MSIX che si installava e non partiva:
+# python312.dll rovinato, LoadLibrary "Invalid access to memory location",
+# nessun log perche' Python non arrivava a girare. Su macOS resta attivo.
+STRIP = sys.platform != "win32"
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -158,7 +166,7 @@ exe = EXE(
     name="SpendifAi",
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=STRIP,
     upx=False,
     # console=False is the production setting for a polished desktop app, but
     # it routes stdout/stderr to /dev/null on macOS — any crash before the
@@ -173,7 +181,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=True,
+    strip=STRIP,
     upx=False,
     name="SpendifAi",
 )

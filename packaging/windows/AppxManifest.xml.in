@@ -5,7 +5,7 @@
   Tokens substituted by packaging/windows/build-msix.ps1:
     @VERSION@               e.g. 3.0.0.0 (4-part version)
     @PUBLISHER@             X.500 DN, must match cert subject exactly
-                            e.g. "CN=Luigi Corsaro, O=Spendif.ai, C=IT"
+                            must equal the certificate subject exactly; see build-msix.ps1 -Production
     @PUBLISHER_DISPLAY@     Friendly name shown to user
     @ARCH@                  x64 | arm64 | neutral
 
