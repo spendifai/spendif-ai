@@ -34,6 +34,32 @@ if getattr(sys, "frozen", False) and len(sys.argv) >= 3 and sys.argv[1] == "-m":
         runpy.run_module(_mod, run_name="__main__", alter_sys=True)
     sys.exit(0)
 
+# Stessa ri-esecuzione, altra forma: `-c <codice>`, che e' come multiprocessing
+# avvia i propri processi ausiliari. La guardia sopra copre solo `-m`, quindi
+# un figlio con `-c` proseguiva e rifaceva l'avvio completo del launcher.
+# Il 2026-09-22 un resource_tracker avviato cosi' ha trovato il lock
+# dell'istanza vera, l'ha presa per un residuo e l'ha uccisa: l'app si e'
+# chiusa da sola sotto gli occhi dell'utente. Lo stesso figlio aveva gia'
+# troncato il file di log, che si apre in scrittura, cancellando la storia
+# dell'avvio buono.
+#
+# Si esegue il codice ricevuto e si esce, che e' cio' che farebbe
+# l'interprete: la stringa arriva dall'argv del processo, cioe' da chi lo ha
+# generato, che e' l'app stessa.
+if getattr(sys, "frozen", False) and "-c" in sys.argv[1:]:
+    _i = sys.argv.index("-c")
+    _code = sys.argv[_i + 1] if len(sys.argv) > _i + 1 else ""
+    sys.argv = ["-c"] + sys.argv[_i + 2:]
+    exec(compile(_code, "<string>", "exec"), {"__name__": "__main__"})
+    sys.exit(0)
+
+# Difesa documentata da PyInstaller per lo stesso problema, sul percorso
+# `--multiprocessing-fork`: senza, ogni figlio rieseguirebbe questo file.
+# Fuori da un figlio non fa nulla.
+import multiprocessing
+
+multiprocessing.freeze_support()
+
 import atexit
 import os
 import signal
