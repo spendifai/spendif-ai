@@ -947,7 +947,14 @@ def _persist_choices(
             "llm_backend":             "local_llama_cpp",
             "cat_llm_backend":         "local_llama_cpp",
             "llama_cpp_n_gpu_layers":  "0",      # CPU by default; user can opt-in via Settings
-            "llama_cpp_n_ctx":         "4096",   # fits Qwen2.5 / Gemma-3 / Phi-4
+            # 0 = lo decide il motore: min(contesto del modello, 16384), dove
+            # il tetto viene dai dati del benchmark ed e' 2,3 volte il massimo
+            # osservato. Qui c'era 4096 fisso, che stava SOTTO il fabbisogno dei
+            # nostri stessi prompt: il classificatore di un estratto conto vero
+            # ne produce fra 4000 e 5300, quindi il modello rifiutava, il
+            # ripiego non c'era, e l'utente leggeva che il formato non era
+            # riconosciuto. Il file era innocente e il modello pure.
+            "llama_cpp_n_ctx":         "0",
             "llama_cpp_model_path":    os.environ.get("LLAMA_CPP_MODEL_PATH", ""),
         })
 
