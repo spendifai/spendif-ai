@@ -935,6 +935,17 @@ def _persist_choices(
         # LLAMA_CPP_MODEL_PATH; we point llm_backend at it here so the app
         # works end-to-end on first run with no further user intervention.
         _ui_lang = st.session_state.get("_ob_ui_lang", lang)
+
+        # Vedi il commento su llama_cpp_n_ctx piu' sotto.
+        try:
+            from services.llm_service import recommended_llama_cpp_context
+
+            _detected_ctx = recommended_llama_cpp_context(
+                os.environ.get("LLAMA_CPP_MODEL_PATH", "")
+            )
+        except Exception:
+            _detected_ctx = None
+
         cfg_svc.set_bulk({
             "date_display_format":     loc["date_display_format"],
             "amount_decimal_sep":      loc["amount_decimal_sep"],
@@ -947,14 +958,16 @@ def _persist_choices(
             "llm_backend":             "local_llama_cpp",
             "cat_llm_backend":         "local_llama_cpp",
             "llama_cpp_n_gpu_layers":  "0",      # CPU by default; user can opt-in via Settings
-            # 0 = lo decide il motore: min(contesto del modello, 16384), dove
-            # il tetto viene dai dati del benchmark ed e' 2,3 volte il massimo
-            # osservato. Qui c'era 4096 fisso, che stava SOTTO il fabbisogno dei
-            # nostri stessi prompt: il classificatore di un estratto conto vero
-            # ne produce fra 4000 e 5300, quindi il modello rifiutava, il
-            # ripiego non c'era, e l'utente leggeva che il formato non era
-            # riconosciuto. Il file era innocente e il modello pure.
-            "llama_cpp_n_ctx":         "0",
+            # Il contesto lo calcola recommended_llama_cpp_context, la stessa
+            # funzione che usa la pagina delle impostazioni quando scegli il
+            # modello a mano: capacita' del file, con il tetto del benchmark.
+            # Qui c'era 4096 fisso, che stava SOTTO il fabbisogno dei nostri
+            # stessi prompt (un estratto conto vero ne produce 4000-5300):
+            # il modello rifiutava e l'utente leggeva che il formato non era
+            # riconosciuto, mentre file e modello erano entrambi in ordine.
+            # Se la rilevazione non riesce si scrive 0, che in tutto il codice
+            # significa "decidi tu al momento di caricare il modello".
+            "llama_cpp_n_ctx":         str(_detected_ctx or 0),
             "llama_cpp_model_path":    os.environ.get("LLAMA_CPP_MODEL_PATH", ""),
         })
 

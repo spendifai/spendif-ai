@@ -102,6 +102,28 @@ def detect_llama_cpp_context(model_path: str = "") -> int | None:
     return LlamaCppBackend.read_gguf_context_length(model_path)
 
 
+def recommended_llama_cpp_context(model_path: str = "") -> int | None:
+    """Contesto da impostare davvero: quello del modello, ma con il tetto.
+
+    ``detect_llama_cpp_context`` restituisce la capacita' dichiarata dal file,
+    che su un modello moderno sono 131072 token. Impostarla per intero non e'
+    gratis: la cache delle chiavi cresce con il contesto e si mangia la memoria
+    della macchina. Il tetto ``DEFAULT_N_CTX_CAP`` viene dai dati del
+    benchmark ed e' 2,3 volte il prompt piu' grande mai osservato.
+
+    Esiste perche' il valore veniva deciso in due punti che non si parlavano:
+    l'onboarding ne scriveva uno fisso, troppo piccolo per i nostri stessi
+    prompt, e la pagina delle impostazioni proponeva quello pieno, troppo
+    grande per la macchina. Da qui in poi il numero si calcola in un posto solo.
+    """
+    from core.llm_backends import LlamaCppBackend
+
+    detected = detect_llama_cpp_context(model_path)
+    if not detected:
+        return None
+    return min(detected, LlamaCppBackend.DEFAULT_N_CTX_CAP)
+
+
 def detect_ollama_context(model: str, base_url: str = "http://localhost:11434") -> int | None:
     """Query Ollama /api/show for the model's context length."""
     from core.llm_backends import OllamaBackend

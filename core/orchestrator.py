@@ -1075,6 +1075,13 @@ def process_file(
                 f"{config.confidence_threshold} → stopping for user schema review"
             )
             _finalize_phase_timings()
+            # Uno schema assente e uno schema poco affidabile arrivano qui per
+            # la stessa porta, ma non sono la stessa cosa. Se doc_schema e'
+            # None il classificatore non ha MAI risposto: ogni motore ha
+            # fallito, per esempio perche' il modello locale ha rifiutato il
+            # prompt o perche' il servizio remoto non risponde. Senza dirlo,
+            # l'utente vede solo la richiesta di mappare le colonne a mano e
+            # ne deduce che il suo file non sia supportato, che e' falso.
             return ImportResult(
                 batch_sha256=batch_sha256,
                 source_name=filename,
@@ -1082,7 +1089,16 @@ def process_file(
                 doc_schema=doc_schema,
                 reconciliations=[],
                 transfer_links=[],
-                errors=[],
+                errors=(
+                    []
+                    if doc_schema is not None
+                    else [
+                        "The AI model never answered: every configured backend "
+                        "failed on this file. Nothing is wrong with the file. "
+                        "Open LLM Models and press Test, which reports the "
+                        "reason, and check the launcher log for the full error."
+                    ]
+                ),
                 flow_used=flow_used,
                 total_file_rows=len(df_raw),
                 header_rows_skipped=_header_rows_skipped,

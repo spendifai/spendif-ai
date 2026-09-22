@@ -68,9 +68,11 @@ def _do_ollama_pull(base_url: str, model: str) -> None:
 
 def _autodetect_ctx_llama() -> None:
     """on_change callback: read GGUF context length and update session state."""
-    from services.llm_service import detect_llama_cpp_context
+    from services.llm_service import recommended_llama_cpp_context
     path = st.session_state.get("_wgt_llama_path", "")
-    ctx = detect_llama_cpp_context(path)
+    # Non il contesto pieno del modello: quello con il tetto. Proporre 131072
+    # significherebbe suggerire all'utente di esaurirsi la memoria.
+    ctx = recommended_llama_cpp_context(path)
     if ctx:
         st.session_state["_wgt_llama_n_ctx"] = ctx
 
