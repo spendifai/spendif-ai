@@ -93,8 +93,16 @@ fi
 RELEASE_ID="$(gh api "repos/${SOURCE_REPO}/releases/tags/${TAG}" --jq '.id')" \
   || err "release ${TAG} not found in ${SOURCE_REPO}"
 
-gh api "repos/${SOURCE_REPO}/releases/${RELEASE_ID}/assets" --jq '.[].name' \
-  | grep -qx "${DMG}" || err "release ${TAG} has no asset named ${DMG}"
+# Collected into a variable rather than piped into `grep -q`: under pipefail
+# grep exits at the first match, gh dies of SIGPIPE, the pipeline returns 141
+# and the check reports a missing asset that is right there. It fails only when
+# gh is still writing, so it fails intermittently, which is worse than always.
+ASSET_NAMES="$(gh api "repos/${SOURCE_REPO}/releases/${RELEASE_ID}/assets" --jq '.[].name')" \
+  || err "could not list the assets of ${TAG} in ${SOURCE_REPO}"
+
+grep -qx "${DMG}" <<<"${ASSET_NAMES}" \
+  || err "release ${TAG} has no asset named ${DMG}. It carries:
+$(echo "${ASSET_NAMES}" | sed 's/^/    /')"
 
 # ── Step 2 — checksum of the DMG ────────────────────────────────────────────
 WORK="$(mktemp -d)"
@@ -109,9 +117,23 @@ trap 'rm -rf "${WORK}"' EXIT
 # install with "SHA256 mismatch". Hashing the published asset is the only source
 # that cannot be stale, so CI always passes --verify-hash and pays the download.
 
+# `gh release download` resolves names through the same empty array as the
+# check above, so it reports "no assets to download" for a release that has
+# thirteen. Fetching by asset id goes through the collection that is correct,
+# and works for a private repository too, which a browser_download_url would
+# not without extra headers.
+fetch_asset() {
+  local name="$1" dest="$2" id
+  id="$(gh api "repos/${SOURCE_REPO}/releases/${RELEASE_ID}/assets" \
+        --jq ".[] | select(.name == \"${name}\") | .id")" || return 1
+  [ -n "$id" ] || return 1
+  gh api "repos/${SOURCE_REPO}/releases/assets/${id}" \
+    -H "Accept: application/octet-stream" > "$dest" || return 1
+  [ -s "$dest" ] || return 1
+}
+
 sha_from_sums() {
-  gh release download "${TAG}" --repo "${SOURCE_REPO}" \
-    --pattern 'SHA256SUMS.txt' --dir "${WORK}" 2>/dev/null || return 1
+  fetch_asset "SHA256SUMS.txt" "${WORK}/SHA256SUMS.txt" 2>/dev/null || return 1
   # Entries are written by `sha256sum` from the artifact download dirs, so the
   # second field looks like ./macos-dmg/SpendifAi-X.Y.Z.dmg - match on basename.
   awk -v dmg="${DMG}" '{ n = $2; sub(/^\*/, "", n); sub(/.*\//, "", n); if (n == dmg) print $1 }' \
@@ -119,7 +141,7 @@ sha_from_sums() {
 }
 
 sha_from_asset() {
-  gh release download "${TAG}" --repo "${SOURCE_REPO}" --pattern "${DMG}" --dir "${WORK}" >&2
+  fetch_asset "${DMG}" "${WORK}/${DMG}" >&2 || err "could not download ${DMG} from ${TAG}"
   if command -v shasum >/dev/null; then
     shasum -a 256 "${WORK}/${DMG}" | awk '{print $1}'
   else
