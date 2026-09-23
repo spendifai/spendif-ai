@@ -139,6 +139,46 @@ cd "$APP_DIR"
 # so the subprocess inherits it.
 export UV_PROJECT_ENVIRONMENT="$VENV_DIR"
 
+# ── What in this environment is a custom build ──────────────────────────────
+# One file answers that, `<venv>/.custom_packages`, and it is the same file
+# scripts/_lib/protect_custom.sh reads in a development checkout: bare package
+# names, one per line, `#` for comments. The two mechanisms that ACT on the
+# answer stay different, deliberately - there the venv is next to the checkout
+# and a backup can be written beside it, here /opt is read-only and the venv
+# lives in the user's home - but they stop keeping separate lists of what is
+# custom, which is how one of them ends up protecting a build the other has
+# already replaced.
+CUSTOM_LIST="$VENV_DIR/.custom_packages"
+
+_is_custom() {
+  [ -f "$CUSTOM_LIST" ] || return 1
+  # Both spellings are in use: the repository list is written with underscores,
+  # this one with dashes, and protect_custom.sh converts before comparing. Do
+  # the same here, or a name written by hand in the other form reads as absent
+  # and the custom build gets replaced on the next launch.
+  local want
+  want="$(printf '%s' "$1" | tr '-' '_')"
+  grep -v '^[[:space:]]*#' "$CUSTOM_LIST" 2>/dev/null \
+    | tr '-' '_' | grep -qx "$want"
+}
+
+_mark_custom() {
+  local pkg="$1" why="$2"
+  _is_custom "$pkg" && return 0
+  # Whether the file existed has to be decided BEFORE the append redirection,
+  # which creates it: asking inside the block always finds it there.
+  local fresh=false
+  [ -f "$CUSTOM_LIST" ] || fresh=true
+  {
+    if $fresh; then
+      echo "# Custom builds installed here. Read by launch.sh and by"
+      echo "# scripts/_lib/protect_custom.sh. One package name per line."
+    fi
+    echo "# ${pkg}: ${why} ($(date -u '+%Y-%m-%d'))"
+    echo "$pkg"
+  } >> "$CUSTOM_LIST"
+}
+
 # `--frozen` so uv does not try to update /opt/spendifai/uv.lock at runtime
 # (that file lives in a read-only system directory). The lockfile shipped
 # with the .deb / .rpm is canonical — we just install from it.
@@ -146,7 +186,9 @@ UV_SYNC_FLAGS=(sync --extra desktop --frozen)
 
 # A llama-cpp-python that is not the one in the lockfile - the CUDA wheel, or
 # a local SSM build - must survive the sync, or every launch would undo it.
-if [ -f "$VENV_DIR/.cuda_wheel" ] || [ -f "$VENV_DIR/.ssm_built" ]; then
+# Telling uv not to touch the package is stronger than backing it up and
+# restoring it afterwards: there is no window in which the good build is gone.
+if _is_custom llama-cpp-python; then
   UV_SYNC_FLAGS+=(--no-reinstall-package llama-cpp-python)
 fi
 
@@ -198,7 +240,7 @@ fi
 # ── CUDA wheel for NVIDIA cards (first launch only) ─────────────────────────
 # Pinned to the very version the lockfile holds: an unpinned install here would
 # quietly put a different llama-cpp-python on GPU machines than on every other.
-if [ "$GPU_VENDOR" = "nvidia" ] && [ ! -f "$VENV_DIR/.cuda_wheel" ]; then
+if [ "$GPU_VENDOR" = "nvidia" ] && ! _is_custom llama-cpp-python; then
   llama_version="$(awk '/name = "llama-cpp-python"/ { getline; gsub(/[^0-9.]/, "", $0); print; exit }' "$APP_DIR/uv.lock")"
   if [ -n "$llama_version" ]; then
     echo "▸ Installing the CUDA build of llama-cpp-python ${llama_version}..."
@@ -206,7 +248,7 @@ if [ "$GPU_VENDOR" = "nvidia" ] && [ ! -f "$VENV_DIR/.cuda_wheel" ]; then
          --extra-index-url "https://abetlen.github.io/llama-cpp-python/whl/cu124" \
          --force-reinstall --no-deps \
        && "$VENV_DIR/bin/python" -c "import llama_cpp" >/dev/null 2>&1; then
-      touch "$VENV_DIR/.cuda_wheel"
+      _mark_custom llama-cpp-python "cuda ${llama_version}"
       echo "✔ CUDA build in place: the model runs on the GPU"
     else
       # Installing is not the test; importing is. A CUDA wheel installs happily
@@ -227,12 +269,11 @@ fi
 #
 #   SPENDIFAI_SSM_BUILD=1 /opt/spendifai/launch.sh
 #
-SSM_MARKER="$VENV_DIR/.ssm_built"
-if [ "${SPENDIFAI_SSM_BUILD:-0}" = "1" ] && [ ! -f "$SSM_MARKER" ]; then
+if [ "${SPENDIFAI_SSM_BUILD:-0}" = "1" ] && ! _is_custom llama-cpp-python; then
   echo "▸ Building llama-cpp-python with SSM support (this takes several minutes)..."
   if PYTHON="$VENV_DIR/bin/python" \
        bash "$APP_DIR/scripts/setup_ssm_build.sh" --yes --no-custom-list; then
-    touch "$SSM_MARKER"
+    _mark_custom llama-cpp-python "ssm build from git"
     echo "✔ SSM build complete: Qwen 3.5 9B models now available"
   else
     echo "⚠ SSM build failed: the application still works, Qwen 3.5 9B models do not"

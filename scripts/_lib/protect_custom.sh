@@ -15,6 +15,14 @@
 #                    non-interactive → skip sync entirely if custom packages would be touched.
 #   _CUSTOM_LIST     Path to .custom_packages file (default: "benchmark/.custom_packages").
 #
+#  TWO FILES, ONE QUESTION. The list above is a declaration that belongs to a
+#  development checkout. The same question is asked by the packaged application,
+#  which has no checkout to read: /opt is read-only and `benchmark/` is not even
+#  shipped. So whoever installs a custom build also records it INSIDE the venv,
+#  in `<venv>/.custom_packages`, and both files are read here. The venv is the
+#  thing that actually knows what is inside it; the repository file only says
+#  what this checkout expects to protect.
+#
 # Public API: `safe_sync_run` — runs `uv sync --inexact --quiet` with protection.
 
 SAFE_SYNC_MODE="${SAFE_SYNC_MODE:-interactive}"
@@ -22,6 +30,15 @@ PYTHON="${PYTHON:-python3}"
 _CUSTOM_LIST="${_CUSTOM_LIST:-benchmark/.custom_packages}"
 _CUSTOM_BACKUP=".venv/_custom_backup"
 _SITE_PKGS=""
+
+# Every file that answers "which packages here are custom builds". Callers may
+# point VENV_DIR elsewhere; by default the venv sits next to the checkout.
+_safe_sync_list_files() {
+    local f
+    for f in "$_CUSTOM_LIST" "${VENV_DIR:-.venv}/.custom_packages"; do
+        [ -f "$f" ] && echo "$f"
+    done
+}
 
 _safe_sync_init_paths() {
     # IMPORTANTE: il backup/restore deve operare sul site-packages del VENV
@@ -59,7 +76,7 @@ _safe_sync_version_ge() {
 
 _safe_sync_backup_custom() {
     [ -z "$_SITE_PKGS" ] && return
-    [ -f "$_CUSTOM_LIST" ] || return
+    [ -n "$(_safe_sync_list_files)" ] || return
     rm -rf "$_CUSTOM_BACKUP"
     mkdir -p "$_CUSTOM_BACKUP"
     local n=0
@@ -78,7 +95,7 @@ _safe_sync_backup_custom() {
         done
         echo "$pkg_under=$ver" >> "$_CUSTOM_BACKUP/_versions"
         n=$((n + 1))
-    done < "$_CUSTOM_LIST"
+    done < <(cat $(_safe_sync_list_files) 2>/dev/null)
     [ "$n" -gt 0 ] && echo "[safe_sync] Backed up $n custom package(s)"
     return 0
 }
@@ -147,7 +164,7 @@ _safe_sync_print_affected() {
 
 safe_sync_run() {
     _safe_sync_init_paths
-    if [ ! -f "$_CUSTOM_LIST" ]; then
+    if [ -z "$(_safe_sync_list_files)" ]; then
         uv sync --inexact --quiet
         return
     fi
