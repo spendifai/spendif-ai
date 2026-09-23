@@ -1233,7 +1233,8 @@
     <p class="section-sub">Natywna aplikacja desktopowa z lokalnym AI w komplecie. Bez Dockera, bez utrzymywania otwartego terminala.</p>
 
     <p style="text-align:center;margin:1.5rem 0 2.5rem;">
-      <a href="https://spendif.ai/pl/getting-started.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Pobierz instalator (DMG · MSIX · .deb · .rpm)</a><br>
+      <a id="dl-primary" href="https://spendif.ai/pl/getting-started.html" style="display:inline-block;background:var(--blue);color:#fff;padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;text-decoration:none;">📥 Pobierz instalator (DMG · MSIX · .deb · .rpm)</a><br>
+      <span id="dl-primary-file" style="display:block;color:var(--muted);font-size:0.8rem;margin-top:0.4rem;font-family:monospace;"></span>
       <span style="color:var(--muted);font-size:0.9rem;">Przewodnik krok po kroku ze zrzutami → <a href="https://spendif.ai/pl/getting-started.html">instalacja i pierwsze uruchomienie</a></span>
     </p>
 
@@ -1243,7 +1244,6 @@
       <button class="os-tab active" onclick="switchOS('mac')">🍎 macOS</button>
       <button class="os-tab" onclick="switchOS('deb')">🐧 Debian / Ubuntu</button>
       <button class="os-tab" onclick="switchOS('rhel')">🎩 Fedora / RHEL</button>
-      <button class="os-tab" onclick="switchOS('win')">🪟 Windows</button>
     </div>
 
     <!-- macOS -->
@@ -1292,22 +1292,6 @@
         </div>
         <div class="code-body">
           <div><span class="p">$ </span><span class="c">curl</span><span class="a"> -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-redhat.sh | bash</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Windows -->
-    <div class="os-panel" id="panel-win">
-      <div class="code-block fade-in">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="d1"></span><span class="d2"></span><span class="d3"></span>
-          </div>
-          <span class="code-label">powershell</span>
-          <button class="copy-btn" onclick="copyCode(this, 'win')">Kopiuj</button>
-        </div>
-        <div class="code-body">
-          <div><span class="p">PS&gt; </span><span class="c">irm</span><span class="a"> https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex</span></div>
         </div>
       </div>
     </div>
@@ -1585,8 +1569,7 @@
   const installCmds = {
     mac:  'brew tap spendifai/spendifai\nbrew trust --cask spendifai/spendifai/spendifai\nbrew install --cask spendifai',
     deb:  'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-debian.sh | bash',
-    rhel: 'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-redhat.sh | bash',
-    win:  'irm https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/windows/install.ps1 | iex'
+    rhel: 'curl -fsSL https://raw.githubusercontent.com/spendifai/spendif-ai/main/packaging/linux/install-redhat.sh | bash'
   };
   function copyCode(btn, os) {
     navigator.clipboard.writeText(installCmds[os] || installCmds.mac).then(() => {
@@ -1594,6 +1577,38 @@
       setTimeout(() => btn.textContent = 'Kopiuj', 2000);
     });
   }
+</script>
+
+<!-- One-click download: point the install button at the file for the visitor's
+     system. Detection is local, so nothing here depends on the network; with
+     JavaScript off the button keeps its href to the download page, which lists
+     every system. The label stays as the page wrote it - it is translated, the
+     file name is not - and the file name is shown underneath instead. -->
+<script>
+(function () {
+  var BASE = 'https://github.com/spendifai/spendif-ai/releases/latest/download/';
+  var FILE = { mac: 'SpendifAi-arm64.dmg', win: 'SpendifAi.msix', deb: 'spendifai_amd64.deb', rpm: 'spendifai.rpm', arch: 'spendifai.pkg.tar.zst' };
+
+  var ua = navigator.userAgent || '';
+  var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  var os = null;
+  if (!/Android|iPhone|iPad|iPod/i.test(ua)) {
+    if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) os = 'mac';
+    else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'win';
+    else if (/Linux|X11/i.test(plat + ' ' + ua)) {
+      // Most browsers say nothing about the distribution. When one does,
+      // use it; otherwise the .deb is the safe default it always was.
+      if (/Arch|Manjaro|EndeavourOS/i.test(ua)) os = 'arch';
+      else os = /Fedora|Red Hat|CentOS|Rocky|Alma|SUSE/i.test(ua) ? 'rpm' : 'deb';
+    }
+  }
+
+  var btn = document.getElementById('dl-primary');
+  if (!btn || !os) return;
+  btn.href = BASE + FILE[os];
+  var name = document.getElementById('dl-primary-file');
+  if (name) name.textContent = FILE[os];
+})();
 </script>
 </body>
 </html>

@@ -1,0 +1,98 @@
+# Maintainer: Luigi Corsaro <lcorsaro69@gmail.com>
+#
+# Spendif.ai for Arch Linux, published on the AUR as `spendifai`.
+#
+# SAME SHAPE AS THE .deb AND .rpm: this package ships the source tree to
+# /opt/spendifai and a launcher that builds a per-user environment in
+# ~/.spendifai on first start. It does not vendor the Python dependencies,
+# and it compiles nothing - llama-cpp-python arrives as a prebuilt wheel
+# (see [tool.uv.sources] in pyproject.toml).
+#
+# WHY `arch=('any')`: nothing here is compiled at package time. The wheels
+# that are architecture-specific are picked by uv at first launch, from the
+# lockfile, for whatever machine is running.
+#
+# WHY `uv` is a hard dependency here and not in the .deb: Arch actually
+# packages uv, so we can depend on it instead of bootstrapping a binary from
+# the network in a post-install hook, which is what Debian and Fedora force
+# us to do. This is the better arrangement, not a different one.
+#
+# RELEASE: bump pkgver, then run `updpkgsums` in this directory to refresh
+# the checksum before publishing to the AUR.
+
+pkgname=spendifai
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Personal finance manager with local AI categorisation, fully offline"
+arch=('any')
+url="https://github.com/spendifai/spendif-ai"
+license=('MIT')
+depends=(
+  'python'
+  'python-gobject'
+  'python-cairo'
+  'webkit2gtk-4.1'
+  'zenity'
+  'uv'
+  'git'
+  'curl'
+)
+optdepends=(
+  'gcc: optional local build for Qwen 3.5 SSM models (SPENDIFAI_SSM_BUILD=1)'
+  'make: same'
+  'cmake: same'
+  'nvidia-utils: CUDA build of llama-cpp-python on NVIDIA cards'
+)
+options=('!strip')
+install="${pkgname}.install"
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('6461bf84d5a8c00f5f3ad43fa47cd79fee1ccdff5d26686a7d01cb3f359b3326')
+
+package() {
+  cd "${srcdir}/spendif-ai-${pkgver}"
+
+  install -dm755 "${pkgdir}/opt/spendifai"
+
+  # Runtime code only: the same list the .deb ships, kept in step with
+  # APP_DIRS in packaging/linux/build-deb.sh.
+  local d
+  for d in api config core db desktop nsi prompts reports services support ui; do
+    [[ -d "$d" ]] && cp -r "$d" "${pkgdir}/opt/spendifai/$d"
+  done
+
+  local f
+  for f in app.py pyproject.toml uv.lock VERSION .env.example; do
+    [[ -f "$f" ]] && install -Dm644 "$f" "${pkgdir}/opt/spendifai/$f"
+  done
+
+  install -Dm755 packaging/linux/launch.sh "${pkgdir}/opt/spendifai/launch.sh"
+
+  # How this copy got here, read by services/update_service.py to print the
+  # right upgrade command. Packaged as a file rather than written by the
+  # install hook, so pacman owns it and removes it with the package.
+  echo "arch" | install -Dm644 /dev/stdin "${pkgdir}/opt/spendifai/.install_method"
+
+  install -Dm644 packaging/macos/spendifai_256.png \
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/spendifai.png"
+  install -Dm644 packaging/macos/spendifai_256.png \
+    "${pkgdir}/opt/spendifai/spendifai.png"
+
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+  install -Dm644 /dev/stdin "${pkgdir}/usr/share/applications/spendifai.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Spendif.ai
+Comment=Personal finance manager with local AI categorisation
+Exec=/opt/spendifai/launch.sh
+Icon=spendifai
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true
+StartupWMClass=spendifai
+Keywords=finance;budget;bank;expense;
+DESKTOP
+
+  find "${pkgdir}/opt/spendifai" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+  find "${pkgdir}/opt/spendifai" -name '*.pyc' -delete 2>/dev/null || true
+}

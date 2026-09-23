@@ -235,6 +235,11 @@
     .dl-btn:hover { opacity: 0.9; text-decoration: none; }
     .dl-btn.alt { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
     .dl-notes { color: var(--muted); font-size: 0.85rem; margin-top: 0.8rem; }
+    /* Marks the card matching the visitor's system. Deliberately wordless:
+       the page exists in nine languages and a label here would be English in
+       eight of them. */
+    .dl-card.is-yours { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue) inset; }
+    .dl-meta { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; font-variant-numeric: tabular-nums; min-height: 1em; }
 
     /* ── Steps with screenshots ───────────────────────────────────────── */
     .step {
@@ -339,7 +344,7 @@
           <div class="os-icon">🍎</div>
           <h3>macOS</h3>
           <div class="ext">SpendifAi-*.dmg</div>
-          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica DMG</a>
+          <a id="dl-mac" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/SpendifAi-arm64.dmg" target="_blank" rel="noopener noreferrer">Scarica DMG</a>
           <div class="dl-notes">macOS 12 Monterey o superiore. Solo Apple Silicon (M1 o successivi).<br>Hai un Mac Intel? <a href="https://github.com/spendifai/spendif-ai/discussions" target="_blank" rel="noopener noreferrer">Scrivicelo</a>: la build Intel non è prevista, ma basta una richiesta per ripensarci.</div>
         </div>
 
@@ -348,7 +353,7 @@
           <div class="os-icon">🪟</div>
           <h3>Windows</h3>
           <div class="ext">SpendifAi-*.msix</div>
-          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica MSIX</a>
+          <a id="dl-win" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/SpendifAi.msix" target="_blank" rel="noopener noreferrer">Scarica MSIX</a>
           <div class="dl-notes">Windows 10 1809+ / Windows 11. Sideload + cert trusted richiesti per la fase pre-alpha.</div>
         </div>
 
@@ -357,7 +362,7 @@
           <div class="os-icon">🐧</div>
           <h3>Debian / Ubuntu</h3>
           <div class="ext">spendifai_*_amd64.deb</div>
-          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .deb</a>
+          <a id="dl-deb" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/spendifai_amd64.deb" target="_blank" rel="noopener noreferrer">Scarica .deb</a>
           <div class="dl-notes">Ubuntu 22.04+, Debian 12+, Mint 21+.</div>
         </div>
 
@@ -366,8 +371,16 @@
           <div class="os-icon">🎩</div>
           <h3>Fedora / RHEL</h3>
           <div class="ext">spendifai-*.rpm</div>
-          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest" target="_blank" rel="noopener noreferrer">Scarica .rpm</a>
+          <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/spendifai.rpm" target="_blank" rel="noopener noreferrer">Scarica .rpm</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
+        </div>
+
+        <div class="dl-card">
+          <div class="os-icon">🏔️</div>
+          <h3>Arch Linux</h3>
+          <div class="ext">spendifai-*.pkg.tar.zst</div>
+          <a id="dl-arch" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/spendifai.pkg.tar.zst" target="_blank" rel="noopener noreferrer">Scarica .pkg.tar.zst</a>
+          <div class="dl-notes">Arch, Manjaro, EndeavourOS<br><code>sudo pacman -Syu</code><br><code>sudo pacman -U ./spendifai-*.pkg.tar.zst</code></div>
         </div>
       </div>
 
@@ -555,33 +568,66 @@
   <footer>
     <p>© 2026 Luigi Corsaro · Spendif.ai · MIT License · <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
   </footer>
-  <!-- Direct-download: resolve the latest release assets and point each OS button at its file -->
+  <!-- The download buttons resolve without this script: their href is already
+       the stable per-OS name under releases/latest/download/. What follows is
+       decoration only - which card is yours, and what you are about to get. -->
   <script>
   (function () {
-    var MATCH = {
-      'dl-mac': function (n) { return /\.dmg$/i.test(n); },
-      'dl-win': function (n) { return /\.msix$/i.test(n); },
-      'dl-deb': function (n) { return /_amd64\.deb$/i.test(n); },
-      'dl-rpm': function (n) { return /\.rpm$/i.test(n); }
+    var CARD_OF = { mac: 'dl-mac', win: 'dl-win', deb: 'dl-deb', rpm: 'dl-rpm', arch: 'dl-arch' };
+    var ALIAS = {
+      'dl-mac': 'SpendifAi-arm64.dmg',
+      'dl-win': 'SpendifAi.msix',
+      'dl-deb': 'spendifai_amd64.deb',
+      'dl-rpm': 'spendifai.rpm',
+      'dl-arch': 'spendifai.pkg.tar.zst'
     };
+
+    function guessOs() {
+      var ua = navigator.userAgent || '';
+      var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      // A phone cannot install any of these, so highlighting one would be a lie.
+      if (/Android|iPhone|iPad|iPod/i.test(ua)) return null;
+      if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) return 'mac';
+      if (/Win/i.test(plat) || /Windows/i.test(ua)) return 'win';
+      if (/Linux|X11/i.test(plat + ' ' + ua)) {
+        if (/Arch|Manjaro|EndeavourOS/i.test(ua)) return 'arch';
+        return /Fedora|Red Hat|CentOS|Rocky|Alma|SUSE/i.test(ua) ? 'rpm' : 'deb';
+      }
+      return null;
+    }
+
+    var os = guessOs();
+    if (os) {
+      var btn = document.getElementById(CARD_OF[os]);
+      var card = btn && btn.closest('.dl-card');
+      if (card) {
+        card.classList.add('is-yours');
+        var grid = card.parentNode;
+        if (grid && grid.firstChild !== card) grid.insertBefore(card, grid.firstChild);
+      }
+    }
+
+    // Version and size, when GitHub answers. Numbers only, no words: see the
+    // note on .is-yours above. A failure here leaves the cards as they are.
     fetch('https://api.github.com/repos/spendifai/spendif-ai/releases/latest', { headers: { 'Accept': 'application/vnd.github+json' } })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (rel) {
         var assets = (rel && rel.assets) || [];
-        Object.keys(MATCH).forEach(function (id) {
+        var byName = {};
+        assets.forEach(function (a) { byName[a.name] = a; });
+        Object.keys(ALIAS).forEach(function (id) {
           var el = document.getElementById(id);
-          if (!el) return;
-          for (var i = 0; i < assets.length; i++) {
-            if (MATCH[id](assets[i].name)) {
-              el.href = assets[i].browser_download_url;
-              el.setAttribute('download', '');
-              el.removeAttribute('target');
-              break;
-            }
-          }
+          var asset = byName[ALIAS[id]];
+          if (!el || !asset) return;
+          var card = el.closest('.dl-card');
+          if (!card) return;
+          var meta = card.querySelector('.dl-meta');
+          if (!meta) { meta = document.createElement('div'); meta.className = 'dl-meta'; card.appendChild(meta); }
+          meta.textContent = (rel.tag_name || '') + ' \u00b7 ' + Math.round(asset.size / 1048576) + ' MB';
         });
       })
-      .catch(function () { /* keep the releases-page fallback href */ });
+      .catch(function () { /* the links work anyway */ });
+
   })();
   </script>
 </body>

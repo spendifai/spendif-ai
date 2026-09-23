@@ -51,6 +51,7 @@ _COMMAND_KEYS = {
     "git":      "update.cmd.git",
     "deb":      "update.cmd.deb",
     "rpm":      "update.cmd.rpm",
+    "arch":     "update.cmd.arch",
     "msix":     "update.cmd.msix",
     "winget":   "update.cmd.winget",
 }

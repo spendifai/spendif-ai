@@ -5,7 +5,11 @@ description = "Unified personal finance ledger with hybrid LLM pipeline"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Luigi Corsaro" }]
-requires-python = ">=3.12,<3.14"
+# Upper bound widened to 3.15 on 2026-09-22: Arch Linux has shipped Python
+# 3.14 since August, so a cap at <3.14 made the app uninstallable on every
+# rolling distribution - the venv is created against the system interpreter.
+# The CI matrix runs the suite on 3.14 so this stays a checked claim.
+requires-python = ">=3.12,<3.15"
 dependencies = [
     # Core data
     "pandas>=2.2",
@@ -15,7 +19,9 @@ dependencies = [
     "openai>=1.30",
     "anthropic>=0.28",
     "requests>=2.31",
-    "llama-cpp-python>=0.3.0",
+    # Version floor is the first one the prebuilt wheel indexes below carry
+    # for every platform we ship. See [tool.uv.sources].
+    "llama-cpp-python>=0.3.35",
     # Database
     "sqlalchemy>=2.0",
     "alembic>=1.13",
@@ -75,6 +81,64 @@ desktop = [
     #       (gir1.2-webkit2-4.1, libgirepository) which we already
     #       depend on from the .deb side — there is no reason to
     #       install another copy via pip.
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  llama-cpp-python: install a prebuilt wheel, never compile on the user machine
+#
+#  PyPI ships this package as a source distribution only, so `uv sync` compiled
+#  it on every machine that installed Spendif.ai. That needs a full C/C++
+#  toolchain and CMake, which a normal desktop does not have: on 2026-09-22 it
+#  was the cause of three failed installations out of four (a Ubuntu without
+#  g++, a Windows without the Visual Studio Build Tools) and of a 3-to-8-minute
+#  first launch where it did work.
+#
+#  Linux and Windows therefore take the prebuilt CPU wheels that upstream
+#  publishes. macOS deliberately does NOT:
+#    • the macOS wheel is built for CPU, and taking it would silently drop
+#      Metal inference on Apple Silicon, our fastest platform;
+#    • the `metal` wheel published upstream for 0.3.35 is a malformed zip
+#      (uv: "invalid Zip archive: Invalid local file header"; Python's more
+#      tolerant zipfile opens it, which is how a broken file gets published);
+#    • and no macOS user ever compiles it anyway - the DMG is built by CI with
+#      PyInstaller, so the compilation happens on a runner, once, with the
+#      toolchain Xcode already provides.
+#
+#  On Linux and Windows the CPU wheel means an AMD GPU stays unused: there is
+#  no prebuilt Vulkan or ROCm wheel upstream. Building one is a separate piece
+#  of work; until then the app says so instead of reporting "no GPU".
+#
+#  The index is declared `explicit`, so ONLY this package is ever fetched from
+#  it and no other dependency can be shadowed by a same-named file published
+#  there.
+#
+#  INTEGRITY: unlike PyPI, this index publishes no checksums, so uv.lock
+#  records its wheel URLs WITHOUT a sha256 - the only entries in the whole
+#  lockfile that have none. The version is pinned, the bytes are not: a GitHub
+#  release asset can be replaced in place by whoever owns it. The checksums we
+#  observed are therefore committed in packaging/llama_wheel_hashes.txt and
+#  checked by tools/check_llama_wheels.py, so a swap upstream turns CI red
+#  instead of reaching a user.
+# ─────────────────────────────────────────────────────────────────────────────
+[[tool.uv.index]]
+name = "llama-cpp-cpu"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu/"
+explicit = true
+
+[tool.uv.sources]
+llama-cpp-python = [
+    { index = "llama-cpp-cpu", marker = "sys_platform != 'darwin'" },
+]
+
+# The platforms we actually ship: arm64 DMG, x86_64 and arm64 .deb, x86_64 MSIX
+# and RPM. Declaring them keeps the lock honest - a resolution that cannot be
+# satisfied on one of these fails here, at lock time, instead of on a user
+# machine. Intel Macs are deliberately absent (see getting-started.html).
+[tool.uv]
+environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux'",
+    "sys_platform == 'win32'",
 ]
 
 [tool.pytest.ini_options]

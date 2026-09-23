@@ -166,10 +166,15 @@ Requires:       gtk3
 Requires:       zenity
 Requires:       git
 Requires:       curl
-Requires:       gcc
-Requires:       gcc-c++
-Requires:       make
-Requires:       cmake
+# The toolchain is no longer needed to start: llama-cpp-python arrives as a
+# prebuilt wheel (see [tool.uv.sources] in pyproject.toml) instead of being
+# compiled at first launch. dnf installs weak dependencies by default, so the
+# optional SSM build still works out of the box, but a minimal install without
+# them now yields a working application instead of one that cannot start.
+Recommends:     gcc
+Recommends:     gcc-c++
+Recommends:     make
+Recommends:     cmake
 Requires:       pkgconfig
 
 # Build is just unpacking — no compilation needed

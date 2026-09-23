@@ -16,6 +16,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.13"]
+        # 3.14 is what rolling distributions ship today (Arch since August
+        # 2026), and the venv on Linux is built against the system interpreter.
+        # One runner is enough to catch a dependency that has not caught up.
+        include:
+          - os: ubuntu-latest
+            python-version: "3.14"
 
     steps:
       - name: Checkout
@@ -28,7 +34,9 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --frozen
+        # Without --python the matrix value is decorative: uv would pick its
+        # own interpreter and every row would test the same version.
+        run: uv sync --frozen --python ${{ matrix.python-version }}
 
       - name: Verify prompt integrity (S-01)
         run: uv run python tools/compute_prompt_hashes.py --verify
@@ -437,7 +445,9 @@ jobs:
 
       - name: Validate native installer .ps1 syntax (PowerShell)
         run: |
-          for f in packaging/windows/install.ps1 packaging/windows/uninstall.ps1; do
+          # Every .ps1 we ship, not just the two installers: a parse error in
+          # a packaging or signing script surfaces during a release otherwise.
+          for f in $(git ls-files '*.ps1' | grep -v '^quarantine/'); do
             pwsh -NoProfile -Command "
               \$err = \$null
               \$null = [System.Management.Automation.Language.Parser]::ParseFile(
@@ -455,6 +465,8 @@ jobs:
 
       - name: Validate Linux package build scripts (syntax)
         run: |
-          for f in packaging/linux/build-deb.sh packaging/linux/build-rpm.sh; do
+          # PKGBUILD is bash too, and a parse error in it only shows up when
+          # someone tries to build the package.
+          for f in $(git ls-files 'packaging/linux/*.sh' 'packaging/*.sh' 'packaging/linux/arch/PKGBUILD'); do
             bash -n "$f" && echo "✅ $f syntax OK"
           done

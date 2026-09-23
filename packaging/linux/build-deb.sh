@@ -25,6 +25,19 @@
 #    postinst also creates the .desktop file, downloads the model, and
 #    writes the .env — all of which need the code in place.
 #
+#  • WHY is the C/C++ toolchain only a Recommends?
+#    Until 2026-09-22 llama-cpp-python was compiled on the user's machine at
+#    first launch, so a compiler was mandatory - and the Depends line listed
+#    `gcc, cmake` while the build needs `g++` and `make` too. The RPM spec had
+#    the full set; this one did not, and that single missing `g++` is why the
+#    package installed cleanly on Ubuntu and then never started: CMake stopped
+#    at "Could not find compiler set in environment variable CXX".
+#    The package now installs a prebuilt wheel (see [tool.uv.sources] in
+#    pyproject.toml), so nothing is compiled on the normal path. The toolchain
+#    stays as a Recommends - apt installs it by default, so the optional SSM
+#    build keeps working out of the box - but its absence can no longer keep
+#    the application from starting.
+#
 #  • WHY Depends: python3, git, curl (not uv)?
 #    uv is not in any distro repo. postinst installs it via the official
 #    bootstrap script (curl | sh). Declaring it as a Depends would make
@@ -196,7 +209,8 @@ Version: ${VERSION}
 Section: misc
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, gcc, cmake, pkgconf, zenity
+Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, pkgconf, zenity
+Recommends: g++, gcc, make, cmake
 Installed-Size: $(du -sk "${INSTALL_ROOT}" | cut -f1)
 Maintainer: Luigi Corsaro <lcorsaro69@gmail.com>
 Homepage: https://github.com/spendifai/spendif-ai
@@ -322,93 +336,6 @@ chmod 0755 "${PKG_ROOT}/DEBIAN/prerm"
 cp "${SCRIPT_DIR}/launch.sh" "${INSTALL_ROOT}/launch.sh"
 chmod 0755 "${INSTALL_ROOT}/launch.sh"
 
-# (legacy inline heredoc kept disabled below — `: <<...` skips it)
-: <<'LAUNCH_OBSOLETE_HEREDOC'
-#!/bin/bash
-# =============================================================================
-#  Spendif.ai — user-space launcher (Linux)
-#  Sets up ~/.spendifai/.venv on first run, then execs the pywebview launcher.
-#  /opt/spendifai contains read-only source code; nothing user-specific lives
-#  there. All per-user state goes in ~/.spendifai/.
-# =============================================================================
-set -eo pipefail        # pipefail so `... | tail` stops swallowing uv errors
-
-APP_DIR="/opt/spendifai"
-USER_HOME_DIR="$HOME/.spendifai"
-VENV_DIR="$USER_HOME_DIR/.venv"
-LOG_FILE="$USER_HOME_DIR/launch.log"
-
-mkdir -p "$USER_HOME_DIR"
-exec > >(tee -a "$LOG_FILE") 2>&1
-echo "=== launch.sh $(date -Iseconds) ==="
-
-# ── 1. Find uv ──────────────────────────────────────────────────────────────
-UV=""
-for candidate in /usr/local/bin/uv "$HOME/.local/bin/uv" /usr/bin/uv; do
-  if [ -x "$candidate" ]; then UV="$candidate"; break; fi
-done
-if [ -z "$UV" ]; then
-  echo "uv not found — installing in user home"
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  UV="$HOME/.local/bin/uv"
-fi
-echo "uv: $UV"
-
-# ── 2. Sync user venv (idempotent — fast if already in sync) ────────────────
-# Run uv sync EVERY launch, not just when the venv directory is missing:
-# package upgrades (e.g. `apt upgrade spendifai`) ship a new pyproject.toml
-# with possibly new deps (this is how PyQt6 got added in 0.1.1 vs 0.1.0).
-# If the venv already matches the lockfile, uv sync is a no-op (checks
-# hashes, exits in ~1 s). Otherwise it installs / upgrades / removes
-# packages as needed.
-IS_FIRST_LAUNCH=false
-if [ ! -d "$VENV_DIR" ]; then
-  IS_FIRST_LAUNCH=true
-  echo "First launch — creating $VENV_DIR"
-  echo "This compiles llama-cpp-python natively (3-8 min on arm64; faster on amd64)."
-else
-  echo "Existing venv — running uv sync to align with current pyproject.toml..."
-fi
-
-# Detect NVIDIA GPU (best-effort, falls back silently)
-if command -v nvidia-smi &>/dev/null; then
-  export CMAKE_ARGS="-DGGML_CUDA=on"
-  export FORCE_CMAKE=1
-fi
-
-# We do NOT pass --quiet — silent compile feels like a hung script. Verbose
-# stderr makes uv errors visible in launch.log when something breaks.
-cd "$APP_DIR"
-if ! UV_PROJECT_ENVIRONMENT="$VENV_DIR" "$UV" sync --extra desktop; then
-  echo "uv sync failed (GPU build error or first attempt), retrying CPU-only..."
-  unset CMAKE_ARGS FORCE_CMAKE
-  if $IS_FIRST_LAUNCH; then
-    rm -rf "$VENV_DIR"      # nuke a possibly-partial venv before retry
-  fi
-  UV_PROJECT_ENVIRONMENT="$VENV_DIR" "$UV" sync --extra desktop
-fi
-
-if [ ! -x "$VENV_DIR/bin/python" ]; then
-  echo "FATAL: venv exists but $VENV_DIR/bin/python is missing."
-  echo "Check this log for uv errors, then remove the venv and retry:"
-  echo "  rm -rf $VENV_DIR && /opt/spendifai/launch.sh"
-  exit 1
-fi
-echo "venv ready: $VENV_DIR"
-
-# ── 3. Seed .env if missing (writable in USER_HOME, not in /opt) ────────────
-ENV_FILE="$USER_HOME_DIR/.env"
-if [ ! -f "$ENV_FILE" ]; then
-  cat > "$ENV_FILE" <<EOF
-SPENDIFAI_DB=sqlite:///$USER_HOME_DIR/ledger.db
-LLM_BACKEND=local_llama_cpp
-EOF
-fi
-
-# ── 4. Launch the pywebview app ─────────────────────────────────────────────
-cd "$APP_DIR"
-exec "$VENV_DIR/bin/python" -m desktop.launcher
-LAUNCH_OBSOLETE_HEREDOC
 
 # ── .desktop file ────────────────────────────────────────────────────────────
 cat > "${PKG_ROOT}/usr/share/applications/spendifai.desktop" <<'DESKTOP'

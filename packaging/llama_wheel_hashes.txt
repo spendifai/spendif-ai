@@ -1,0 +1,8 @@
+# sha256 of the llama-cpp-python wheels we ship, one per platform.
+# The upstream wheel indexes publish no checksums, so these are recorded
+# here and verified by tools/check_llama_wheels.py. Regenerate with
+# `python tools/check_llama_wheels.py --update` after a version bump,
+# and read the upstream release notes before committing the new values.
+b5a4abd4d1d506d6f06b997c21d0532670a3f5350c9e6cfb3e54c33bf1322584  https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.35/llama_cpp_python-0.3.35-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+d172f3d3c8cdd194c3c47c71cb077ed6e61354a2d0f939ceeac0c8fd29999596  https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.35/llama_cpp_python-0.3.35-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+31590ea000d5aff6f05f1e428048e72318a83709288159a5bd4dabec530080bb  https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.35/llama_cpp_python-0.3.35-py3-none-win_amd64.whl

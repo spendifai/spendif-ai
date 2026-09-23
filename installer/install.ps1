@@ -13,6 +13,24 @@ function Success { param($msg) Write-Host "✅ $msg" -ForegroundColor Green }
 function Warn    { param($msg) Write-Host "⚠️  $msg" -ForegroundColor Yellow }
 function Err     { param($msg) Write-Host "❌ $msg" -ForegroundColor Red; exit 1 }
 
+# PowerShell 5.1 does not raise when a native command exits non-zero, not even
+# under $ErrorActionPreference = "Stop" - that governs cmdlets, not executables.
+# So `try { docker info } catch { }` caught nothing, and this script announced
+# "Docker trovato" one line after Docker had printed that its engine was not
+# running, then carried on to the end and opened a browser on an app that was
+# never started. Every docker call goes through here now.
+function Invoke-Native {
+    param(
+        [Parameter(Mandatory = $true)][string]$What,
+        [Parameter(Mandatory = $true)][scriptblock]$Command
+    )
+    $global:LASTEXITCODE = 0
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        Err "$What non e' riuscito (codice $LASTEXITCODE).`n`nL'output qui sopra dice perche'."
+    }
+}
+
 Write-Host ""
 Write-Host "╔══════════════════════════════════════╗" -ForegroundColor White
 Write-Host "║        Spendif.ai — Installer          ║" -ForegroundColor White
@@ -25,10 +43,12 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Err "Docker non trovato.`n`nInstalla Docker Desktop da: https://www.docker.com/products/docker-desktop/`nPoi riavvia questo script."
 }
 
-try {
-    docker info | Out-Null
-} catch {
-    Err "Docker non è in esecuzione.`n`nAvvia Docker Desktop e riprova."
+# Redirected to null on both streams: a stopped engine writes a long connect
+# error to stderr, and the user does not need to read it to be told, in the
+# next line, that Docker is not running.
+docker info *> $null
+if ($LASTEXITCODE -ne 0) {
+    Err "Docker non è in esecuzione.`n`nAvvia Docker Desktop, attendi che l'icona smetta di caricare, poi riprova."
 }
 
 Success "Docker trovato: $(docker --version)"
@@ -65,10 +85,10 @@ Success "Configurazione scaricata"
 
 # ── 5. Pull immagine + avvio ──────────────────────────────────────────────────
 Info "Scarico le immagini Docker (prima volta: ~500 MB, poi aggiornamenti incrementali)..."
-docker compose @ProfileArgs pull
+Invoke-Native "Il download delle immagini" { docker compose @ProfileArgs pull }
 
 Info "Avvio Spendif.ai..."
-docker compose @ProfileArgs up -d
+Invoke-Native "L'avvio dei container" { docker compose @ProfileArgs up -d }
 
 # ── 6. Attendi che l'app sia pronta ───────────────────────────────────────────
 Info "Attendo che l'app sia pronta..."
@@ -82,10 +102,13 @@ for ($i = 1; $i -le 30; $i++) {
 }
 
 if (-not $ready) {
-    Warn "L'app non risponde entro 60s. Controlla i log con:`n  docker compose --project-directory $InstallDir logs -f"
-} else {
-    Success "Spendif.ai è in esecuzione!"
+    # Not a warning to scroll past: nothing below this point is true if the app
+    # never answered, so the instructions and the browser stay unopened.
+    Err ("L'app non risponde entro 60s.`n`nGuarda i log con:`n" +
+         "  docker compose --project-directory $InstallDir logs -f`n`n" +
+         "Poi riprova. I container restano avviati.")
 }
+Success "Spendif.ai è in esecuzione!"
 
 # ── 7. Istruzioni finali ──────────────────────────────────────────────────────
 Write-Host ""
