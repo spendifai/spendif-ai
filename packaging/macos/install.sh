@@ -80,13 +80,13 @@ DO_UPDATE=false
 REPO_URL="https://github.com/spendifai/spendif-ai.git"
 SPENDIFAI_HOME="$HOME/.spendifai"
 APP_BUNDLE="/Applications/Spendif.ai.app"
-# Devono combaciare con requires-python di pyproject.toml (>=3.12,<3.14).
+# Devono combaciare con requires-python di pyproject.toml (>=3.12,<3.15).
 # Qui sono duplicati e non letti da li' perche' il controllo avviene PRIMA del
 # clone: quando gira, pyproject.toml non e' ancora sul disco. Se cambia il
 # vincolo del progetto, queste due righe vanno cambiate con lui.
 MIN_PYTHON_MAJOR=3
 MIN_PYTHON_MINOR=12
-MAX_PYTHON_MINOR=13
+MAX_PYTHON_MINOR=14
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Usage

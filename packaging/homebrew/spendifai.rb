@@ -48,9 +48,17 @@ cask "spendifai" do
   # Homebrew would happily install a binary those machines cannot execute.
   depends_on arch: :arm64
 
-  # App bundle produced by desktop.spec (BUNDLE name="SpendifAi.app"), renamed
-  # on install so Finder shows the product name.
-  app "SpendifAi.app", target: "Spendif.ai.app"
+  # App bundle produced by desktop.spec (BUNDLE name="SpendifAi.app"), installed
+  # under that same name and NOT renamed.
+  #
+  # It used to be renamed to Spendif.ai.app for the prettier label in Finder,
+  # and that put the same product at two different paths: the DMG is a disk
+  # image, so whoever drags it gets SpendifAi.app and no stanza can change
+  # that. The two channels then diverged by construction, and brew refused to
+  # upgrade a machine where the app had been replaced from the DMG, because it
+  # looked for the app at the path only brew ever used. A dot in the label is
+  # not worth a class of error that only appears when the channels cross.
+  app "SpendifAi.app"
 
   # Post-install: create the data dir the launcher expects for GGUF models, and
   # record HOW this copy was installed.
