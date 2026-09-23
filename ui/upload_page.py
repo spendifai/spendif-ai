@@ -51,6 +51,37 @@ logger = setup_logging()
 _DB_WRITE_INTERVAL = 1.5
 
 
+def _elapsed_text(start, end=None) -> str:
+    """How long an import has been running, or took.
+
+    A percentage alone does not tell somebody whether to wait or to go away:
+    12% after ten seconds and 12% after four minutes are different situations,
+    and only one of them is worth watching. The job row already carries the
+    start, so this is a subtraction.
+
+    Stored timestamps come back from SQLite without a timezone even though they
+    were written in UTC; comparing one of those against an aware "now" raises.
+    Naive values are therefore read as UTC, which is what they are.
+    """
+    if start is None:
+        return ""
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end is None:
+        end = datetime.now(timezone.utc)
+    elif end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+
+    total = int(max(0, (end - start).total_seconds()))
+    hours, rest = divmod(total, 3600)
+    minutes, seconds = divmod(rest, 60)
+    if hours:
+        return f"{hours}h {minutes:02d}m"
+    if minutes:
+        return f"{minutes}m {seconds:02d}s"
+    return f"{seconds}s"
+
+
 @st.fragment(run_every="2s")
 def _render_job_status_poll(import_svc: ImportService) -> None:
     """Auto-refreshing job-status fragment (polls DB every 2 s).
@@ -74,7 +105,12 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
         msg = job.status_message or t_fn("upload.processing")
         st.info(f"⏳ {msg}")
         st.progress(pct)
-        st.caption(t_fn("upload.progress_auto", pct=int(pct * 100)))
+        elapsed = _elapsed_text(job.started_at)
+        if elapsed:
+            st.caption(t_fn("upload.progress_auto_elapsed",
+                            pct=int(pct * 100), elapsed=elapsed))
+        else:
+            st.caption(t_fn("upload.progress_auto", pct=int(pct * 100)))
         st.session_state["_upload_job_was_running"] = True
         if not was_running:
             st.rerun()
@@ -82,6 +118,11 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
     elif job.status == "completed":
         st.success(job.status_message or t_fn("upload.completed"))
         st.progress(1.0)
+        # The total is worth more than the running count was: it is what the
+        # next import on this machine will roughly cost.
+        total = _elapsed_text(job.started_at, job.completed_at)
+        if total:
+            st.caption(t_fn("upload.completed_in", elapsed=total))
         if job.detail_message:
             st.caption(job.detail_message)
         if was_running:

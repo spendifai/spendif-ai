@@ -1166,5 +1166,7 @@
   "diagnostics.rating.label": "Combien d'etoiles donneriez-vous a Spendif.ai en ce moment ?",
   "diagnostics.rating.none": "Pas d'evaluation",
   "diagnostics.document.caption": "Voici exactement ce qui sera enregistre dans le fichier.",
-  "diagnostics.download": "Enregistrer le document"
+  "diagnostics.download": "Enregistrer le document",
+  "upload.progress_auto_elapsed": "Actualisation automatique - {pct}% termine - {elapsed} ecoulees",
+  "upload.completed_in": "Terminee en {elapsed}"
 }

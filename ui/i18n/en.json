@@ -1166,5 +1166,7 @@
   "diagnostics.rating.label": "How many stars would you give Spendif.ai right now?",
   "diagnostics.rating.none": "No rating",
   "diagnostics.document.caption": "This is exactly what will be saved to the file.",
-  "diagnostics.download": "Save the document"
+  "diagnostics.download": "Save the document",
+  "upload.progress_auto_elapsed": "Auto-refresh - {pct}% completed - {elapsed} elapsed",
+  "upload.completed_in": "Completed in {elapsed}"
 }
