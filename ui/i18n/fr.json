@@ -1108,7 +1108,7 @@
   "update.cmd.git": "Mettez a jour depuis le Terminal :\n```\nbash ~/Applications/Spendif.ai/packaging/macos/install.sh --update\n```",
   "update.cmd.deb": "Telechargez le nouveau paquet .deb depuis [Releases](https://github.com/spendifai/spendif-ai/releases/latest) et installez-le avec `sudo apt install ./spendifai_*.deb`.",
   "update.cmd.rpm": "Telechargez le nouveau paquet .rpm depuis [Releases](https://github.com/spendifai/spendif-ai/releases/latest) et installez-le avec `sudo dnf install ./spendifai-*.rpm`.",
-  "update.cmd.arch": "Mettez a jour depuis le Terminal :\n```\nparu -Syu spendifai\n```\nOu avec l'assistant AUR que vous utilisez.",
+  "update.cmd.arch": "Telechargez le nouveau paquet .pkg.tar.zst depuis [Releases](https://github.com/spendifai/spendif-ai/releases/latest) et installez-le avec `sudo pacman -Syu && sudo pacman -U ./spendifai-*.pkg.tar.zst`.",
   "update.cmd.msix": "Telechargez le nouveau MSIX depuis [Releases](https://github.com/spendifai/spendif-ai/releases/latest) et double-cliquez pour l'installer.",
   "update.cmd.winget": "Mettez a jour depuis PowerShell :\n```\nwinget upgrade SpendifAi\n```",
   "update.cmd.unknown": "Telechargez la nouvelle version depuis [Releases](https://github.com/spendifai/spendif-ai/releases/latest).",

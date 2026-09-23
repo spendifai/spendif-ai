@@ -1584,7 +1584,7 @@
 <script>
 (function () {
   var BASE = 'https://github.com/spendifai/spendif-ai/releases/latest/download/';
-  var FILE = { mac: 'SpendifAi-arm64.dmg', win: 'SpendifAi.msix', deb: 'spendifai_amd64.deb', rpm: 'spendifai.rpm' };
+  var FILE = { mac: 'SpendifAi-arm64.dmg', win: 'SpendifAi.msix', deb: 'spendifai_amd64.deb', rpm: 'spendifai.rpm', arch: 'spendifai.pkg.tar.zst' };
 
   var ua = navigator.userAgent || '';
   var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
@@ -1592,7 +1592,12 @@
   if (!/Android|iPhone|iPad|iPod/i.test(ua)) {
     if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) os = 'mac';
     else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'win';
-    else if (/Linux|X11/i.test(plat + ' ' + ua)) os = /Fedora|Red Hat|CentOS|Rocky|Alma|SUSE/i.test(ua) ? 'rpm' : 'deb';
+    else if (/Linux|X11/i.test(plat + ' ' + ua)) {
+      // Most browsers say nothing about the distribution. When one does,
+      // use it; otherwise the .deb is the safe default it always was.
+      if (/Arch|Manjaro|EndeavourOS/i.test(ua)) os = 'arch';
+      else os = /Fedora|Red Hat|CentOS|Rocky|Alma|SUSE/i.test(ua) ? 'rpm' : 'deb';
+    }
   }
 
   var btn = document.getElementById('dl-primary');

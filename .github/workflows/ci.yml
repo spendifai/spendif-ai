@@ -465,6 +465,8 @@ jobs:
 
       - name: Validate Linux package build scripts (syntax)
         run: |
-          for f in $(git ls-files 'packaging/linux/*.sh' 'packaging/*.sh'); do
+          # PKGBUILD is bash too, and a parse error in it only shows up when
+          # someone tries to build the package.
+          for f in $(git ls-files 'packaging/linux/*.sh' 'packaging/*.sh' 'packaging/linux/arch/PKGBUILD'); do
             bash -n "$f" && echo "✅ $f syntax OK"
           done

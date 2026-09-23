@@ -43,6 +43,7 @@ PATTERNS=(
   '*_amd64.deb:spendifai_amd64.deb'
   '*_arm64.deb:spendifai_arm64.deb'
   '*.rpm:spendifai.rpm'
+  '*.pkg.tar.zst:spendifai.pkg.tar.zst'
 )
 
 WORK="$(mktemp -d)"

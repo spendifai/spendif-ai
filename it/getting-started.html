@@ -374,6 +374,14 @@
           <a id="dl-rpm" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/spendifai.rpm" target="_blank" rel="noopener noreferrer">Scarica .rpm</a>
           <div class="dl-notes">Fedora 40+, RHEL 9+, Rocky / Alma 9+.</div>
         </div>
+
+        <div class="dl-card">
+          <div class="os-icon">🏔️</div>
+          <h3>Arch Linux</h3>
+          <div class="ext">spendifai-*.pkg.tar.zst</div>
+          <a id="dl-arch" class="dl-btn" href="https://github.com/spendifai/spendif-ai/releases/latest/download/spendifai.pkg.tar.zst" target="_blank" rel="noopener noreferrer">Scarica .pkg.tar.zst</a>
+          <div class="dl-notes">Arch, Manjaro, EndeavourOS<br><code>sudo pacman -Syu</code><br><code>sudo pacman -U ./spendifai-*.pkg.tar.zst</code></div>
+        </div>
       </div>
 
       <p class="dl-notes" style="margin-top:1.5rem">Cerchi una versione specifica? Vedi <a href="https://github.com/spendifai/spendif-ai/releases" target="_blank" rel="noopener noreferrer">tutte le release</a> · Codice sorgente: <a href="https://github.com/spendifai/spendif-ai" target="_blank" rel="noopener noreferrer">spendifai/spendif-ai</a>.</p>
@@ -565,12 +573,13 @@
        decoration only - which card is yours, and what you are about to get. -->
   <script>
   (function () {
-    var CARD_OF = { mac: 'dl-mac', win: 'dl-win', deb: 'dl-deb', rpm: 'dl-rpm' };
+    var CARD_OF = { mac: 'dl-mac', win: 'dl-win', deb: 'dl-deb', rpm: 'dl-rpm', arch: 'dl-arch' };
     var ALIAS = {
       'dl-mac': 'SpendifAi-arm64.dmg',
       'dl-win': 'SpendifAi.msix',
       'dl-deb': 'spendifai_amd64.deb',
-      'dl-rpm': 'spendifai.rpm'
+      'dl-rpm': 'spendifai.rpm',
+      'dl-arch': 'spendifai.pkg.tar.zst'
     };
 
     function guessOs() {
@@ -581,6 +590,7 @@
       if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) return 'mac';
       if (/Win/i.test(plat) || /Windows/i.test(ua)) return 'win';
       if (/Linux|X11/i.test(plat + ' ' + ua)) {
+        if (/Arch|Manjaro|EndeavourOS/i.test(ua)) return 'arch';
         return /Fedora|Red Hat|CentOS|Rocky|Alma|SUSE/i.test(ua) ? 'rpm' : 'deb';
       }
       return null;

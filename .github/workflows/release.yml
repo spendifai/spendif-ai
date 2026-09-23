@@ -280,11 +280,76 @@ jobs:
           retention-days: 30
 
   # ─────────────────────────────────────────────────────────────────────────
+  build-arch:
+    name: Build Arch package
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Build the package inside an Arch container
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          # Built from THIS checkout, not from a tarball fetched back from the
+          # forge: the package is then the exact commit being released, there
+          # is no checksum to bump by hand, and no race with GitHub generating
+          # the tag archive. make-pkgbuild.sh derives the recipe from the
+          # committed one so the two cannot drift apart.
+          git archive --prefix="spendif-ai-${VERSION}/" -o /tmp/src.tar.gz HEAD
+          bash packaging/linux/arch/make-pkgbuild.sh \
+            --release "$VERSION" \
+            --tarball /tmp/src.tar.gz \
+            --out "$PWD/build/arch"
+
+          docker run --rm -v "$PWD/build/arch:/pkg" -w /pkg archlinux:base-devel bash -c '
+            set -e
+            # makepkg refuses to run as root, deliberately.
+            useradd -m builder
+            chown -R builder /pkg
+            # -d skips the dependency check: nothing is compiled here, the
+            # dependencies matter at install time, and the smoke test below
+            # proves them in a container that starts without any of them.
+            su builder -c "makepkg -f -d"
+          '
+          ls -lh build/arch/*.pkg.tar.zst
+
+      - name: Smoke test in a clean Arch container
+        # The .deb job has the same step for the same reason. It is worth more
+        # here: on 2026-09-22 the .deb shipped with `g++` missing from its
+        # dependency list, and every machine that already had a compiler
+        # installed it cleanly. A container that starts with nothing is the
+        # only place where a missing dependency has to show itself.
+        run: |
+          docker run --rm -v "$PWD/build/arch:/packages:ro" archlinux:base bash -c '
+            set -e
+            pacman -Syu --noconfirm >/dev/null
+            # -U pulls the declared dependencies from the repositories; one we
+            # forgot to declare makes this fail instead of working by accident.
+            pacman -U --noconfirm /packages/spendifai-*.pkg.tar.zst
+            test -x /opt/spendifai/launch.sh
+            test -f /opt/spendifai/app.py
+            grep -qx arch /opt/spendifai/.install_method
+            echo "package installed, files in place"
+            pacman -Rns --noconfirm spendifai
+            test ! -e /opt/spendifai
+            echo "removed cleanly"
+          '
+
+      - name: Upload Arch package artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: arch-package
+          path: build/arch/*.pkg.tar.zst
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────────────
   # Publish — Create GitHub Release + attach all artifacts
   # ─────────────────────────────────────────────────────────────────────────
   publish:
     name: Create GitHub Release
-    needs: [prepare, build-macos, build-windows, build-deb, build-rpm]
+    needs: [prepare, build-macos, build-windows, build-deb, build-rpm, build-arch]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -310,7 +375,7 @@ jobs:
           # nomi cosi' come sono scritti. Con "./macos-dmg/SpendifAi.dmg" non
           # trova niente e la verifica diventa impossibile per chiunque.
           cd packages
-          find . -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" \) \
+          find . -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" \) \
             -exec sh -c 'cd "$(dirname "$1")" && sha256sum "$(basename "$1")"' _ {} \; \
             | sort -k2 | tee ../SHA256SUMS.txt
 
@@ -349,6 +414,7 @@ jobs:
           | Ubuntu/Debian (x86_64) | spendifai_${VERSION}_amd64.deb | sudo apt install ./spendifai_${VERSION}_amd64.deb |
           | Ubuntu/Debian (ARM64) | spendifai_${VERSION}_arm64.deb | sudo apt install ./spendifai_${VERSION}_arm64.deb |
           | Fedora/RHEL | spendifai-${VERSION}-1.noarch.rpm | sudo dnf install ./spendifai-*.rpm |
+          | Arch Linux | spendifai-${VERSION}-1-any.pkg.tar.zst | sudo pacman -Syu, then sudo pacman -U ./spendifai-*.pkg.tar.zst |
 
           ### SHA256 Checksums
           EOF
@@ -362,7 +428,7 @@ jobs:
           # DMG / MSIX locally and replace them via `gh release upload --clobber`
           # before publishing. See docs/release.md (hybrid signing model).
           TAG="${{ needs.prepare.outputs.tag }}"
-          FILES=$(find packages/ -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" \))
+          FILES=$(find packages/ -type f \( -name "*.dmg" -o -name "*.msix" -o -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" \))
           gh release create "$TAG" \
             --draft \
             --title "Spendif.ai $TAG" \
