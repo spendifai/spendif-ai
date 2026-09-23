@@ -658,7 +658,11 @@ Lo script `benchmark_stats.py --by-host` usa automaticamente i nomi amichevoli.
 
 ### Protezione librerie compilate custom
 
-Quando si compila manualmente una libreria GPU-specific (es. `llama-cpp-python` con Vulkan/ROCm o con supporto SSM per Qwen 3.5), `uv sync` può sovrascriverla con la versione PyPI standard. La protezione è centralizzata in `scripts/_lib/protect_custom.sh` e condivisa da tre punti di entrata.
+Quando si compila manualmente una libreria GPU-specific (es. `llama-cpp-python` con Vulkan/ROCm o con supporto SSM per Qwen 3.5), `uv sync` può sovrascriverla con la versione PyPI standard. La protezione è centralizzata in `scripts/_lib/protect_custom.sh` e condivisa da tre punti di entrata, più un quarto che agisce diversamente (vedi sotto).
+
+**Due meccanismi, una sola fonte di verità.** Nella copia di sviluppo il venv sta accanto al checkout e si può scrivere un backup di fianco: lì `protect_custom.sh` fa backup, lascia agire `uv sync` e ripristina se uv ha declassato il pacchetto. Nell'applicazione installata niente di tutto questo è possibile - `/opt/spendifai` è in sola lettura, il venv sta in `~/.spendifai/.venv` e la cartella `benchmark/` non viene nemmeno spedita - quindi `packaging/linux/launch.sh` usa lo strumento più forte che ha: dice a uv di **non toccare** il pacchetto (`--no-reinstall-package`), così non esiste nemmeno la finestra in cui la build buona è già stata sostituita e non ancora ripristinata.
+
+Quello che i due condividono è **l'elenco**, non la macchina: entrambi leggono sia `benchmark/.custom_packages` (la dichiarazione del checkout) sia `<venv>/.custom_packages` (quello che c'è davvero in quell'ambiente, scritto da chi installa la build custom). Il secondo è quello che conta nell'app pacchettizzata, dove il primo non esiste. Entrambi i formati - trattini o trattini bassi - sono accettati.
 
 **Comando canonico per sincronizzare le dipendenze (sempre, anche se non hai build custom):**
 
@@ -675,10 +679,11 @@ Equivale a `uv sync --inexact --quiet` ma, se l'operazione toccherebbe una libre
 | `scripts/safe_sync.sh` | interactive | prompt `y/N` + restore post-sync se downgrade/remove |
 | `start.sh` (avvio app) | non-interactive | SKIP del sync + warning, l'app parte con il venv corrente |
 | `benchmark/run_benchmark_full.sh` | interactive (o `--skip-sync`) | prompt + restore, oppure salta tutto |
+| `packaging/linux/launch.sh` (app installata) | non-interactive | `--no-reinstall-package`: uv non tocca affatto il pacchetto custom |
 
 `start.sh` usa modalità non-interactive per non bloccare l'avvio dell'app: se le tue dipendenze sono out-of-date e uv vorrebbe aggiornarle ma una build custom è a rischio, l'app parte lo stesso e ti avvisa di lanciare `safe_sync.sh` manualmente quando vuoi gestire l'update.
 
-**File `benchmark/.custom_packages`**: lista dei pacchetti da proteggere (uno per riga). Aggiungere qualsiasi libreria compilata manualmente:
+**File `benchmark/.custom_packages`**: lista dei pacchetti da proteggere in questa copia di lavoro (uno per riga). Aggiungere qualsiasi libreria compilata manualmente:
 
 ```
 # benchmark/.custom_packages
@@ -688,7 +693,9 @@ torch
 triton
 ```
 
-Quando una wheel PyPI ufficiale include il supporto che ti serviva (es. SSM in `llama-cpp-python`), rimuovi la riga corrispondente — non c'è più nulla da proteggere.
+Quando una wheel PyPI ufficiale include il supporto che ti serviva (es. SSM in `llama-cpp-python`), rimuovi la riga corrispondente: non c'è più nulla da proteggere.
+
+**File `<venv>/.custom_packages`**: stesso formato, ma scritto automaticamente da chi installa la build - oggi il ramo CUDA e la build SSM di `launch.sh`, domani quello Vulkan. Vive dentro l'ambiente che descrive, quindi viaggia con lui e resta vero anche dove non c'è nessun checkout. Va bene cancellarlo se si ricostruisce l'ambiente da zero: senza il file, il pacchetto torna a essere quello del lockfile al primo sync.
 
 **Bypass diretto (sconsigliato)**: `uv sync` chiamato direttamente dal terminale NON passa per la protezione e può sovrascrivere silenziosamente una build custom. Usalo solo se sai cosa stai facendo o se `.custom_packages` non lista nulla che ti riguardi.
 
