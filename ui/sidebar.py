@@ -22,6 +22,7 @@ _NAV_KEYS = [
     ("taxonomy",        "taxonomy"),
     ("llm_models",      "llm_models"),
     ("settings",        "settings"),
+    ("diagnostics",     "diagnostics"),
     ("checklist",       "checklist"),
     ("chat",            "chat"),
 ]

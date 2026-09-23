@@ -236,6 +236,10 @@ elif page == "settings":
     from ui.settings_page import render_settings_page
     render_settings_page(engine)
 
+elif page == "diagnostics":
+    from ui.diagnostics_page import render_diagnostics_page
+    render_diagnostics_page(engine)
+
 elif page == "checklist":
     from ui.checklist_page import render_checklist_page
     render_checklist_page(engine)
