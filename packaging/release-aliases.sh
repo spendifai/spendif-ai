@@ -46,11 +46,19 @@ PATTERNS=(
   '*.pkg.tar.zst:spendifai.pkg.tar.zst'
 )
 
+# gh infers the repository from the working directory, and everything below
+# runs inside a temporary one. Resolve it here, while we are still inside the
+# checkout, and pass it explicitly: without this the uploads fail with "not a
+# git repository" AFTER the packages have been signed, which is the worst
+# possible moment to discover it.
+REPO_SLUG="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+[ -n "$REPO_SLUG" ] || { echo "Cannot tell which repository this is." >&2; exit 1; }
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 echo "==> Downloading assets of $TAG"
-gh release download "$TAG" --dir "$WORK" --clobber
+gh release download "$TAG" --repo "$REPO_SLUG" --dir "$WORK" --clobber
 cd "$WORK"
 
 # A re-run finds the aliases of the previous run sitting in the same folder,
@@ -109,10 +117,10 @@ else
 fi
 
 echo "==> Uploading ${#UPLOAD[@]} files to $TAG"
-gh release upload "$TAG" "${UPLOAD[@]}" --clobber
+gh release upload "$TAG" --repo "$REPO_SLUG" "${UPLOAD[@]}" --clobber
 
 echo "==> Verifying the release now carries every alias"
-present="$(gh release view "$TAG" --json assets -q '.assets[].name')"
+present="$(gh release view "$TAG" --repo "$REPO_SLUG" --json assets -q '.assets[].name')"
 for p in "${PATTERNS[@]}"; do
   alias_name="${p##*:}"
   if ! grep -qx "$alias_name" <<<"$present"; then

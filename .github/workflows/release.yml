@@ -75,6 +75,15 @@ jobs:
             uv run python packaging/macos/create_icon.py || echo "Icon generation failed — using default"
           fi
 
+      - name: Stamp the build info
+        # PyInstaller freezes whatever is on disk when it runs, so this has to
+        # come first. Until now the stamp only happened inside build-dmg.sh,
+        # which this job calls afterwards: every DMG shipped the version
+        # committed in the repository, which is the previous release's. A 0.3.1
+        # that believes it is 0.3.0 offers its own version as an upgrade to
+        # every macOS user, forever.
+        run: bash packaging/stamp-build-info.sh ${{ needs.prepare.outputs.version }}
+
       - name: Build .app via PyInstaller
         run: |
           uv run pyinstaller desktop.spec --noconfirm --clean
@@ -84,6 +93,14 @@ jobs:
         run: |
           test -d dist/SpendifAi.app
           echo "✅ SpendifAi.app created"
+          # The bundle has to report the version being released. It reported
+          # the previous one for every release until 0.3.1, and nothing failed.
+          STAMPED=$(grep BUILD_VERSION dist/SpendifAi.app/Contents/Resources/core/_build_info.py | cut -d'"' -f2)
+          if [ "$STAMPED" != "${{ needs.prepare.outputs.version }}" ]; then
+            echo "::error::the bundle reports $STAMPED, the release is ${{ needs.prepare.outputs.version }}"
+            exit 1
+          fi
+          echo "✅ bundle reports $STAMPED"
 
       - name: Install create-dmg
         run: brew install create-dmg

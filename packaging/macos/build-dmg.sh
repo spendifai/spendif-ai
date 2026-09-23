@@ -77,14 +77,9 @@ if [[ "${WITH_SSM}" == "true" ]]; then
 fi
 
 # ── 0b. Stamp build info ────────────────────────────────────────────────────
-# UTC e dichiarato: vedi build-msix.ps1 per il perche'.
-BUILD_TS="$(date -u '+%Y-%m-%d %H:%M UTC')"
-cat > "${REPO_ROOT}/core/_build_info.py" <<PYEOF
-# Generated at build time — do not edit manually.
-BUILD_TIME = "${BUILD_TS}"
-BUILD_VERSION = "${VERSION}"
-PYEOF
-echo "▸ Build stamp: v${VERSION} @ ${BUILD_TS}"
+# One implementation, shared with the release workflow: the stamp decides what
+# the update check compares against, so it is not a thing to keep two copies of.
+bash "${REPO_ROOT}/packaging/stamp-build-info.sh" "${VERSION}"
 
 # ── 1. PyInstaller ──────────────────────────────────────────────────────────
 if [[ "${SKIP_PYINSTALLER}" == "false" ]]; then
