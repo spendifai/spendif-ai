@@ -75,8 +75,18 @@ fork → branch → commit → PR → review → merge
 1. **Fork** del repository
 2. Crea un branch: `git checkout -b feat/nome-feature` o `fix/nome-bug`
 3. Sviluppa con test — vedi [Setup](#setup-ambiente-di-sviluppo)
-4. Apri una **Pull Request** verso `main`
+4. Apri una **Pull Request** verso `develop`
 5. Collega la PR all'issue con `Closes #N` nel body
+
+### I due branch di lunga durata
+
+Su `develop` arriva il lavoro. `main` e' cio' che e' stato rilasciato: da li'
+viene servito il sito, da li' viene pubblicata l'immagine del container, e una
+release e' un tag tagliato su quel branch. Quindi `main` si muove una volta per
+rilascio, per merge di `develop`, e mai per un push diretto.
+
+Una pull request punta percio' a `develop`, non a `main`, a meno che non ripari
+qualcosa che e' gia' nelle mani degli utenti.
 
 ### Cosa aspettarsi dalla review
 

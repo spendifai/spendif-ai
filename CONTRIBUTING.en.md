@@ -77,8 +77,18 @@ fork → branch → commit → PR → review → merge
 1. **Fork** the repository
 2. Create a branch: `git checkout -b feat/feature-name` or `fix/bug-name`
 3. Develop with tests — see [Setup](#development-environment-setup)
-4. Open a **Pull Request** against `main`
+4. Open a **Pull Request** against `develop`
 5. Link the PR to the issue with `Closes #N` in the body
+
+### The two long-lived branches
+
+`develop` is where work lands. `main` is what has been released: the website
+is served from it, the container image is published from it, and a release is
+a tag cut on it. So `main` moves once per release, by merging `develop`, and
+never by a direct push.
+
+A pull request therefore targets `develop`, not `main`, unless it repairs
+something already in the hands of users.
 
 ### What to expect from review
 
