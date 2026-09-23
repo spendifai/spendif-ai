@@ -24,6 +24,11 @@ from services.diagnostics_service import collect, to_xml
 from services.settings_service import SettingsService
 from ui.i18n import t
 
+# The channel a non-technical user can actually use. The issue tracker stays
+# for the technical audience, on the website; it is a dead end for everyone
+# else, who has no account and no reason to get one.
+SUPPORT_ADDRESS = "support@spendif.ai"
+
 
 def _yes_no(value: bool) -> str:
     return t("diagnostics.yes") if value else t("diagnostics.no")
@@ -119,3 +124,11 @@ def render_diagnostics_page(engine) -> None:
         file_name=f"spendifai-report-{app['version']}.xml",
         mime="application/xml",
     )
+
+    # Where it goes, once they have it. Saying so here is the difference
+    # between a file in the Downloads folder and a support request: the page
+    # produced something useful and then left the reader to guess who wants it.
+    st.markdown(t("diagnostics.support").format(
+        address=SUPPORT_ADDRESS,
+        mailto=f"mailto:{SUPPORT_ADDRESS}?subject=Spendif.ai%20{app['version']}",
+    ))

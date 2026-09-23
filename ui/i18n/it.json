@@ -1168,5 +1168,6 @@
   "diagnostics.document.caption": "Questo e' esattamente cio' che verra' salvato nel file.",
   "diagnostics.download": "Salva il documento",
   "upload.progress_auto_elapsed": "Aggiornamento automatico - {pct}% completato - {elapsed} trascorsi",
-  "upload.completed_in": "Completata in {elapsed}"
+  "upload.completed_in": "Completata in {elapsed}",
+  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file."
 }

@@ -1168,5 +1168,6 @@
   "diagnostics.document.caption": "Genau das wird in der Datei gespeichert.",
   "diagnostics.download": "Dokument speichern",
   "upload.progress_auto_elapsed": "Automatische Aktualisierung - {pct}% abgeschlossen - {elapsed} vergangen",
-  "upload.completed_in": "Abgeschlossen in {elapsed}"
+  "upload.completed_in": "Abgeschlossen in {elapsed}",
+  "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei."
 }
