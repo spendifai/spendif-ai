@@ -82,7 +82,18 @@ if [[ "${IS_DRAFT}" == "true" ]]; then
   echo "    Publish it with: gh release edit ${TAG} --draft=false"
 fi
 
-gh release view "${TAG}" --repo "${SOURCE_REPO}" --json assets --jq '.assets[].name' \
+# WHY NOT `gh release view --json assets`. It is what this check used, and it
+# failed on the only two releases it has ever run against: for v0.3.0 and
+# v0.3.1 the release object came back with an EMPTY assets array while the
+# release carried thirteen files, the download URLs served them, and the
+# dedicated assets endpoint listed them all. Minutes later it still said zero.
+# So the array embedded in the release object is not a reliable answer, and
+# the check declared a signed DMG missing right after it had been uploaded.
+# The assets collection is the authoritative list; ask that instead.
+RELEASE_ID="$(gh api "repos/${SOURCE_REPO}/releases/tags/${TAG}" --jq '.id')" \
+  || err "release ${TAG} not found in ${SOURCE_REPO}"
+
+gh api "repos/${SOURCE_REPO}/releases/${RELEASE_ID}/assets" --jq '.[].name' \
   | grep -qx "${DMG}" || err "release ${TAG} has no asset named ${DMG}"
 
 # ── Step 2 — checksum of the DMG ────────────────────────────────────────────
