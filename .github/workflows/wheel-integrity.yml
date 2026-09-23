@@ -10,7 +10,7 @@ name: Wheel integrity
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - uv.lock
       - pyproject.toml
@@ -18,7 +18,7 @@ on:
       - tools/check_llama_wheels.py
       - .github/workflows/wheel-integrity.yml
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - uv.lock
       - pyproject.toml

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Refuse a direct push to a protected branch.
+#
+# GitHub already protects main on the public repository, but that protection
+# does not apply to administrators unless enforce_admins is on, and it cannot
+# be enabled at all on a private repository under the free plan. Both holes
+# are invisible at the moment they matter: the push succeeds and nothing says
+# a rule was skipped.
+#
+# This hook is the part that depends neither on the plan nor on the role. It
+# refuses before anything leaves the machine, and it names the way out.
+#
+# Install with scripts/install-git-hooks.sh. To bypass it deliberately:
+#   git push --no-verify
+set -euo pipefail
+
+PROTECTED="${GIT_PROTECTED_BRANCHES:-main master}"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    case "$remote_ref" in
+        refs/heads/*) branch="${remote_ref#refs/heads/}" ;;
+        *) continue ;;
+    esac
+
+    for protected in $PROTECTED; do
+        if [ "$branch" = "$protected" ]; then
+            cat >&2 <<MSG
+
+  Direct push to '$branch' refused.
+
+  Work belongs on a branch and reaches this one through a pull request:
+
+      git switch -c <type>/<description>    # feat/ fix/ chore/ docs/
+      git push -u origin HEAD
+      gh pr create --base develop
+
+  If this push really is the exception, the shortcut exists and is
+  explicit:  git push --no-verify
+
+MSG
+            exit 1
+        fi
+    done
+done
+
+exit 0
