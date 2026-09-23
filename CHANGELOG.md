@@ -6,6 +6,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-23
+
+### Fixed
+- Installing on Linux and Windows no longer compiles anything. llama-cpp-python was built from source on every machine that installed Spendif.ai, which needs CMake and a C/C++ toolchain a desktop does not have: it was the single reason the application could not be installed on a clean Ubuntu or a clean Windows 11. It now arrives as a prebuilt wheel pinned in the lockfile, and first launch is a download instead of three to eight minutes of compiling. macOS is unchanged and still compiles in CI, where the toolchain exists, so GPU inference on Apple Silicon is not quietly lost
+- The Debian package declared `gcc` and `cmake` but not `g++` or `make`, while the Fedora package declared all four. The package installed cleanly on Ubuntu and then never started, stopping at `Could not find compiler set in environment variable CXX`
+- The Windows installers no longer report success after a failure. A native command that exits non-zero raises nothing in PowerShell 5.1, so the Docker installer announced "Docker trovato" one line below Docker's own message that the engine was not running, then carried on to open a browser on an application that had never started, and the native installer announced that dependencies were installed right after the build of one had failed
+- A failed first launch on Linux is visible. The launcher exited before its own error message and dialog could run, so anyone starting the application from the desktop icon saw nothing happen at all. A download that cannot resolve a name is now told apart from a broken installation, since the first case is the network of that machine and not a defect of ours
+- The Windows installer accepted whatever Python it found after installing 3.13, so a machine whose PATH still pointed at 3.12 went on using 3.12. The supported range is now checked both before and after, and matches what the project actually declares
+- The Linux packages have never carried an application icon. Both builders installed a 256px PNG if it existed, and nothing has ever produced one, so every .deb and .rpm shipped with a desktop entry pointing at an icon name that resolves to nothing
+
+### Added
+- Arch Linux is a supported system. The release carries `spendifai-<version>-1-any.pkg.tar.zst`, built and smoke tested in a container that starts with nothing, so a dependency left undeclared fails the build instead of working by accident on machines that happen to have it. Install with `sudo pacman -Syu` followed by `sudo pacman -U ./spendifai-*.pkg.tar.zst`
+- Python 3.14 is supported. Rolling distributions have shipped it since August and the Linux environment is built against the system interpreter, so the previous upper bound made the package uninstallable there. The test suite runs on 3.14 in CI
+- AMD and Intel graphics cards are named instead of being reported as absent. Acceleration for them is not available yet, which the application now says plainly rather than claiming no GPU is present
+
+### Changed
+- Downloading is one click. Every release now also carries each installer under a fixed name, which is what the buttons on the website link, so they resolve to the newest release without a request to the GitHub API: they keep working behind a privacy blocker, past the API rate limit, and with JavaScript turned off
+- The compilation of llama-cpp-python for Qwen 3.5 models no longer runs by itself at first launch, where it replaced a known-good wheel with an untested local build. It is available on request with `SPENDIFAI_SSM_BUILD=1`
+- Only one way to install on Windows is offered on the website. The source installer needed a toolchain a clean machine does not have and was advertised beside the MSIX
+
+### Security
+- The wheels that carry the inference engine are checked against recorded checksums. They come from an index that publishes none of its own, so the lockfile pins their version but not their bytes: the checksums we vetted are committed, and verified on every change to the pin and once a week
+
 ## [0.3.0] - 2026-09-22
 
 ### Added

@@ -8,6 +8,29 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-23
+
+### Corretto
+- Su Linux e Windows l'installazione non compila piu' niente. llama-cpp-python veniva costruito dai sorgenti su ogni macchina che installava Spendif.ai, e serve CMake piu' un toolchain C/C++ che un computer normale non ha: era la ragione per cui l'applicazione non si riusciva a installare su una Ubuntu appena installata o una Windows 11 pulita. Ora arriva come wheel precompilata fissata nel lockfile, e il primo avvio e' uno scaricamento invece di tre-otto minuti di compilazione. macOS resta com'era e continua a compilare in CI, dove il toolchain c'e', cosi' l'inferenza su GPU Apple Silicon non viene persa in silenzio
+- Il pacchetto Debian dichiarava `gcc` e `cmake` ma non `g++` ne' `make`, mentre quello Fedora li dichiarava tutti e quattro. Il pacchetto si installava pulito su Ubuntu e poi non partiva mai, fermandosi su `Could not find compiler set in environment variable CXX`
+- Gli installer Windows non dichiarano piu' di essere riusciti dopo un fallimento. In PowerShell 5.1 un comando nativo che esce con errore non solleva niente, quindi l'installer Docker annunciava "Docker trovato" una riga sotto il messaggio di Docker che diceva che il motore non era in esecuzione, poi proseguiva fino ad aprire il browser su un'applicazione mai avviata, e quello nativo annunciava le dipendenze installate subito dopo che la costruzione di una era fallita
+- Un primo avvio fallito su Linux si vede. Il launcher usciva prima del proprio messaggio di errore e della finestra di avviso, quindi chi avviava dall'icona non vedeva accadere assolutamente nulla. Uno scaricamento che non riesce a risolvere un nome viene ora distinto da un'installazione rotta, perche' il primo caso e' la rete di quel computer e non un nostro difetto
+- L'installer Windows accettava qualunque Python trovasse dopo aver installato il 3.13, quindi una macchina che nel PATH aveva ancora il 3.12 proseguiva con il 3.12. L'intervallo supportato viene ora verificato prima e dopo, e coincide con quello che il progetto dichiara
+- I pacchetti Linux non hanno mai avuto l'icona dell'applicazione. Entrambi installavano un PNG da 256px se esisteva, e niente lo ha mai prodotto: ogni .deb e ogni .rpm sono usciti con una voce di menu che punta a un nome di icona che non risolve nulla
+
+### Aggiunto
+- Arch Linux e' un sistema supportato. La release contiene `spendifai-<versione>-1-any.pkg.tar.zst`, costruito e provato in un container che parte da zero, cosi' una dipendenza non dichiarata fa fallire la costruzione invece di funzionare per caso sulle macchine che ce l'hanno gia'. Si installa con `sudo pacman -Syu` seguito da `sudo pacman -U ./spendifai-*.pkg.tar.zst`
+- Python 3.14 e' supportato. Le distribuzioni rolling lo spediscono da agosto e l'ambiente Linux si crea sull'interprete di sistema, quindi il limite precedente rendeva il pacchetto non installabile la'. I test girano su 3.14 in CI
+- Le schede grafiche AMD e Intel vengono nominate invece di essere date per assenti. L'accelerazione per quelle schede non c'e' ancora, e l'applicazione ora lo dice chiaramente invece di sostenere che non ci sia nessuna GPU
+
+### Modificato
+- Scaricare e' un clic. Ogni release contiene anche ciascun installer sotto un nome fisso, che e' quello che i bottoni del sito collegano: si risolvono sulla release piu' recente senza una richiesta all'API di GitHub, quindi continuano a funzionare dietro un blocco per la privacy, oltre il limite di richieste dell'API e con JavaScript disattivato
+- La compilazione di llama-cpp-python per i modelli Qwen 3.5 non parte piu' da sola al primo avvio, dove sostituiva una wheel funzionante con una costruzione locale non provata. Resta disponibile su richiesta con `SPENDIFAI_SSM_BUILD=1`
+- Sul sito viene offerto un solo modo di installare su Windows. L'installer da sorgenti richiedeva un toolchain che una macchina pulita non ha ed era pubblicizzato accanto all'MSIX
+
+### Sicurezza
+- Le wheel che contengono il motore di inferenza vengono confrontate con i checksum registrati. Arrivano da un indice che non ne pubblica, quindi il lockfile fissa la versione ma non i byte: i checksum verificati sono committati e ricontrollati a ogni cambio della versione e una volta a settimana
+
 ## [0.3.0] - 2026-09-20
 
 ### Aggiunto
