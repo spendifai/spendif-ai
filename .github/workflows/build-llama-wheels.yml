@@ -164,3 +164,67 @@ jobs:
             dist/*.whl
             dist/SHA256SUMS
           retention-days: 14
+
+  linux-bundle:
+    # The self-contained Linux package, built where the wheel was built.
+    #
+    # WHY IT EXISTS
+    #   Today the Linux packages build their environment on first launch,
+    #   against the distribution's Python. That hands the product to the
+    #   distribution: Arch ships 3.14 and Debian 12 ships 3.11, and on
+    #   2026-09-23 we were out of range on both sides on the same day. A
+    #   bundle replaces that moving target with one number we choose.
+    #
+    #   The number is the glibc of this runner. It is compatible forwards, so
+    #   building on 22.04 (2.35) reaches Debian 12, Ubuntu 22.04 and Mint 21
+    #   as well as everything newer, and where it does not reach it says so
+    #   out loud instead of failing quietly.
+    needs: linux-x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: llama-wheel-linux-x86_64
+          path: wheel/
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies, then our own inference wheel over the pinned one
+        # Installed after the sync on purpose: uv.lock pins the wheel from a
+        # third-party index, and replacing it is the whole point, so it has to
+        # win.
+        run: |
+          set -euo pipefail
+          uv sync --extra desktop
+          uv pip install --reinstall wheel/llama_cpp_python-*.whl
+          uv run python -c "import llama_cpp, pathlib; print('inference library from', pathlib.Path(llama_cpp.__file__).parent)"
+
+      - name: Build the bundle
+        run: uv run --extra desktop pyinstaller desktop.spec --noconfirm --clean
+
+      - name: The accelerators travel with it
+        # The same check as on the wheel, one step later: a bundle that leaves
+        # the plugins behind starts, runs on the processor, and says nothing.
+        run: |
+          set -euo pipefail
+          FOUND=$(find dist/SpendifAi -name "libggml*.so*" -printf "%f\n" | sort -u)
+          echo "backends inside the bundle:"
+          echo "${FOUND}" | sed "s/^/    /"
+          for lib in libggml-base.so libggml-cpu.so libggml-vulkan.so; do
+            echo "${FOUND}" | grep -qx "${lib}" || { echo "missing from the bundle: ${lib}"; exit 1; }
+          done
+
+      - name: What it weighs
+        run: du -sh dist/SpendifAi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle-x86_64
+          path: dist/SpendifAi
+          retention-days: 14
