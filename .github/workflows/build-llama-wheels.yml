@@ -245,3 +245,59 @@ jobs:
           name: linux-bundle-x86_64
           path: dist/SpendifAi
           retention-days: 14
+
+  linux-deb:
+    # The package, and the only question that matters about it: does it run on
+    # a machine we have never had.
+    #
+    # Debian 12 is the test because it is the one today's package excludes. It
+    # ships Python 3.11, the project needs 3.12 or newer, and the old package
+    # built its environment against whatever Python the distribution had. A
+    # bundle carrying its own interpreter is the whole point, and this is
+    # where that claim is either true or not.
+    needs: linux-bundle
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-bundle-x86_64
+          path: bundle/
+
+      - name: Build the package
+        run: |
+          set -euo pipefail
+          chmod +x bundle/SpendifAi || true
+          bash packaging/linux/build-deb.sh --bundle-dir "$(pwd)/bundle"
+          ls -lh build/*.deb
+
+      - name: What it declares it needs
+        # The dependency line is the part that used to install cleanly and
+        # then fail to start. Printed so a change to it is visible in the log
+        # rather than discovered by a user.
+        run: dpkg-deb -I build/spendifai_*.deb | sed -n "1,25p"
+
+      - name: It installs and runs on Debian 12
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$(pwd)/build:/pkg" debian:12 bash -euo pipefail -c '
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends /pkg/spendifai_*.deb
+            echo "--- the interpreter the package brought with it ---"
+            /opt/spendifai/SpendifAi -c "
+            import sys, pathlib
+            print(\"python\", sys.version.split()[0])
+            import llama_cpp
+            lib = pathlib.Path(llama_cpp.__file__).parent / \"lib\"
+            found = sorted(p.name for p in lib.glob(\"libggml-*\"))
+            print(\"backends:\", \", \".join(found))
+            assert any(\"vulkan\" in n for n in found), \"no Vulkan backend in the installed package\"
+            "
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spendifai-deb
+          path: build/*.deb
+          retention-days: 14
