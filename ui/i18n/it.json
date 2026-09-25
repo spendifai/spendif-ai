@@ -1152,6 +1152,14 @@
   "diagnostics.field.devices": "Motori di calcolo attivi",
   "diagnostics.field.install": "Installato con",
   "diagnostics.field.build": "Data della build",
+  "diagnostics.field.python": "Python",
+  "diagnostics.section.observed": "Come sta andando il modello",
+  "diagnostics.observed.caption": "Cosa ha fatto davvero il modello su questo computer, non come e' configurato.",
+  "diagnostics.observed.none": "Il modello non e' ancora stato usato: questi dati compariranno dopo la prima analisi.",
+  "diagnostics.field.calls": "Richieste",
+  "diagnostics.field.median_ms": "Tempo tipico (ms)",
+  "diagnostics.field.max_prompt": "Richiesta piu' lunga",
+  "diagnostics.context_pressure": "Nella fase {phase} il testo inviato al modello ha raggiunto {prompt} su {context} di spazio disponibile. Quando lo spazio finisce l'analisi fallisce: conviene aumentare il valore del contesto nelle impostazioni del modello.",
   "diagnostics.field.backend": "Tipo",
   "diagnostics.field.model": "Modello",
   "diagnostics.field.context": "Contesto",
@@ -1169,5 +1177,12 @@
   "diagnostics.download": "Salva il documento",
   "upload.progress_auto_elapsed": "Aggiornamento automatico - {pct}% completato - {elapsed} trascorsi",
   "upload.completed_in": "Completata in {elapsed}",
-  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file."
+  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file.",
+  "file.saved": "Salvato in {path}",
+  "file.save_failed": "Non e' stato possibile salvare il file: {error}",
+  "diagnostics.support_desktop": "**Serve aiuto?** Salva il documento qui sopra, poi usa il pulsante per scrivere a {address}: la mail si apre gia' pronta e tu allega il file salvato. Descrivi cosa stavi facendo: il resto lo dice il file.",
+  "diagnostics.mail.button": "Scrivi all'assistenza",
+  "diagnostics.mail.body": "Descrivi qui cosa stavi facendo. Allega il documento tecnico salvato dall'applicazione.",
+  "diagnostics.mail.body_saved": "Descrivi qui cosa stavi facendo. Allega il documento tecnico che trovi in: {path}",
+  "diagnostics.mail.failed": "Non e' stato possibile aprire il programma di posta. Scrivi a {address} allegando il documento salvato."
 }

@@ -1152,6 +1152,14 @@
   "diagnostics.field.devices": "Motores de calculo activos",
   "diagnostics.field.install": "Instalado con",
   "diagnostics.field.build": "Fecha de compilacion",
+  "diagnostics.field.python": "Python",
+  "diagnostics.section.observed": "Como va el modelo",
+  "diagnostics.observed.caption": "Lo que el modelo hizo realmente en este ordenador, no como esta configurado.",
+  "diagnostics.observed.none": "El modelo aun no se ha usado: estos datos apareceran tras el primer analisis.",
+  "diagnostics.field.calls": "Peticiones",
+  "diagnostics.field.median_ms": "Tiempo habitual (ms)",
+  "diagnostics.field.max_prompt": "Peticion mas larga",
+  "diagnostics.context_pressure": "En la fase {phase} el texto enviado al modelo alcanzo {prompt} de los {context} disponibles. Cuando ese espacio se agota el analisis falla: aumenta el valor del contexto en los ajustes del modelo.",
   "diagnostics.field.backend": "Tipo",
   "diagnostics.field.model": "Modelo",
   "diagnostics.field.context": "Contexto",
@@ -1169,5 +1177,12 @@
   "diagnostics.download": "Guardar el documento",
   "upload.progress_auto_elapsed": "Actualizacion automatica - {pct}% completado - {elapsed} transcurridos",
   "upload.completed_in": "Completada en {elapsed}",
-  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo."
+  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo.",
+  "file.saved": "Guardado en {path}",
+  "file.save_failed": "No se ha podido guardar el archivo: {error}",
+  "diagnostics.support_desktop": "**Necesitas ayuda?** Guarda el documento de arriba y usa el boton para escribir a {address}: el mensaje se abre listo y tu adjuntas el archivo guardado. Describe que estabas haciendo: el resto lo dice el archivo.",
+  "diagnostics.mail.button": "Escribir a soporte",
+  "diagnostics.mail.body": "Describe aqui que estabas haciendo. Adjunta el documento tecnico guardado por la aplicacion.",
+  "diagnostics.mail.body_saved": "Describe aqui que estabas haciendo. Adjunta el documento tecnico, que esta aqui: {path}",
+  "diagnostics.mail.failed": "No se ha podido abrir el programa de correo. Escribe a {address} adjuntando el documento guardado."
 }

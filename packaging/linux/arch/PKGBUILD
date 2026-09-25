@@ -56,7 +56,12 @@ package() {
   # Runtime code only: the same list the .deb ships, kept in step with
   # APP_DIRS in packaging/linux/build-deb.sh.
   local d
-  for d in api config core db desktop nsi prompts reports services support ui; do
+  # nsi/ is deliberately absent. It is the generation input for
+  # core/static_rules.json, and core/static_rules.json is what runs
+  # (core/nsi_lookup.py reads it). Listing nsi/ here shipped 16 MB into
+  # locally built artifacts and nothing into CI ones, because the directory
+  # is gitignored: same artifact name, different contents per builder.
+  for d in api chat_bot config core db desktop prompts reports services support ui; do
     [[ -d "$d" ]] && cp -r "$d" "${pkgdir}/opt/spendifai/$d"
   done
 

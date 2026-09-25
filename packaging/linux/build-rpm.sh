@@ -95,7 +95,12 @@ rm -rf "${TARBALL_DIR}"
 mkdir -p "${TARBALL_DIR}"
 
 # Application directories
-APP_DIRS=(api config core db desktop nsi prompts reports services support ui)
+# nsi/ is deliberately absent. It is the generation input for
+# core/static_rules.json, and core/static_rules.json is what runs
+# (core/nsi_lookup.py reads it). Listing nsi/ here shipped 16 MB into
+# locally built artifacts and nothing into CI ones, because the directory
+# is gitignored: same artifact name, different contents per builder.
+APP_DIRS=(api chat_bot config core db desktop prompts reports services support ui)
 for d in "${APP_DIRS[@]}"; do
   [[ -d "${REPO_ROOT}/${d}" ]] && cp -r "${REPO_ROOT}/${d}" "${TARBALL_DIR}/${d}"
 done

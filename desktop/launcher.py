@@ -80,8 +80,15 @@ from threading import Thread
 #
 # We redirect both streams to a per-user log file BEFORE importing anything
 # heavy that could blow up at import time (e.g. webview, streamlit deps),
-# so even a `ModuleNotFoundError` or `ImportError` is captured. The file is
-# truncated on every launch — it's a diagnostic log, not an audit trail.
+# so even a `ModuleNotFoundError` or `ImportError` is captured.
+#
+# The previous run is kept as `.1` instead of being overwritten. This file
+# used to be truncated at every launch, on the grounds that it is a
+# diagnostic log and not an audit trail. That reasoning had the timing
+# backwards: the moment the log is worth reading is right after a crash, and
+# the first thing anybody does after a crash is start the application again,
+# which erased the only existing copy. One generation back is enough to
+# survive that restart and costs one file.
 
 _LOG_DIR = Path.home() / "Library" / "Logs" if sys.platform == "darwin" else Path.home() / ".spendifai"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -92,6 +99,17 @@ _LOG_FILE = _LOG_DIR / "spendifai-launcher.log"
 _log_fh = None
 
 try:
+    # Keep the previous run before opening this one. os.replace is atomic and
+    # overwrites `.1` in one step, so no window exists in which neither file
+    # is complete.
+    if _LOG_FILE.exists():
+        try:
+            os.replace(_LOG_FILE, _LOG_FILE.with_suffix(_LOG_FILE.suffix + ".1"))
+        except OSError:
+            # A rotation that fails must not stop the application from
+            # starting: losing the previous log is worse than nothing, not
+            # worse than not booting.
+            pass
     _log_fh = open(_LOG_FILE, "w", buffering=1, encoding="utf-8")  # line-buffered
     sys.stdout = _log_fh
     sys.stderr = _log_fh

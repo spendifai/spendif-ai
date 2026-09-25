@@ -18,6 +18,7 @@ import re
 import streamlit as st
 
 from services.import_service import ImportService
+from ui.widgets.file_handoff import offer_file
 
 # Ordered for a stable selectbox (frozenset VALID_ACCOUNT_TYPES has no order).
 _ACCOUNT_TYPES = [
@@ -398,9 +399,9 @@ def _render_export(result, schema, trace, meta) -> None:
         "transactions": result.transactions,
         "llm_trace": trace,
     }
-    st.download_button(
+    offer_file(
         "⬇ Scarica trace completo (JSON)",
-        data=json.dumps(payload, ensure_ascii=False, indent=2, default=str),
-        file_name=f"debug_trace_{meta.get('filename', 'file')}.json",
-        mime="application/json",
+        json.dumps(payload, ensure_ascii=False, indent=2, default=str),
+        f"debug_trace_{meta.get('filename', 'file')}.json",
+        "application/json",
     )

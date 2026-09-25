@@ -1152,6 +1152,14 @@
   "diagnostics.field.devices": "Active compute engines",
   "diagnostics.field.install": "Installed with",
   "diagnostics.field.build": "Build date",
+  "diagnostics.field.python": "Python",
+  "diagnostics.section.observed": "How the model is doing",
+  "diagnostics.observed.caption": "What the model actually did on this computer, not how it is configured.",
+  "diagnostics.observed.none": "The model has not been used yet: these figures appear after the first analysis.",
+  "diagnostics.field.calls": "Requests",
+  "diagnostics.field.median_ms": "Typical time (ms)",
+  "diagnostics.field.max_prompt": "Longest request",
+  "diagnostics.context_pressure": "In the {phase} step the text sent to the model reached {prompt} of the {context} available. When that space runs out the analysis fails: raise the context value in the model settings.",
   "diagnostics.field.backend": "Type",
   "diagnostics.field.model": "Model",
   "diagnostics.field.context": "Context",
@@ -1169,5 +1177,12 @@
   "diagnostics.download": "Save the document",
   "upload.progress_auto_elapsed": "Auto-refresh - {pct}% completed - {elapsed} elapsed",
   "upload.completed_in": "Completed in {elapsed}",
-  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest."
+  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest.",
+  "file.saved": "Saved to {path}",
+  "file.save_failed": "The file could not be saved: {error}",
+  "diagnostics.support_desktop": "**Need help?** Save the document above, then use the button to write to {address}: the message opens ready, and you attach the saved file. Describe what you were doing: the file says the rest.",
+  "diagnostics.mail.button": "Write to support",
+  "diagnostics.mail.body": "Describe what you were doing. Attach the technical document saved by the application.",
+  "diagnostics.mail.body_saved": "Describe what you were doing. Attach the technical document, which is here: {path}",
+  "diagnostics.mail.failed": "The mail program could not be opened. Write to {address} and attach the saved document."
 }

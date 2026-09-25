@@ -124,3 +124,96 @@ def test_acceleration_is_reported_as_its_own_answer(session, settings):
     # from the first.
     assert "acceleration_active" in graphics
     assert isinstance(graphics["acceleration_active"], bool)
+
+
+def test_logs_are_described_and_not_quoted(session, settings, tmp_path, monkeypatch):
+    """The report says whether a trace exists. It does not carry the trace.
+
+    A log line contains absolute paths, and an absolute path on this machine
+    contains the account name of whoever runs the application. The whole point
+    of naming the log instead of copying it is that asking for the file stays a
+    decision the user makes.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "app_20260925_090000.log").write_text(
+        "2026-09-25 09:00:00 - SPENDIFY - CRITICAL - Unhandled exception\n"
+        f"  File \"{SENTINELS['home_path']}\", line 1, in <module>\n"
+        f"  processing {SENTINELS['source_file']}\n"
+    )
+    monkeypatch.setenv("SPENDIFAI_LOG_DIR", str(log_dir))
+
+    report = diagnostics.collect(session, settings)
+    xml = diagnostics.to_xml(report)
+
+    # It noticed the crash...
+    assert report["logs"]["unhandled_exception_recorded"] is True
+    assert report["logs"]["latest_app_log"] == "app_20260925_090000.log"
+    assert report["logs"]["app_log_files"] == 1
+
+    # ...without repeating a single line of it.
+    for label, value in SENTINELS.items():
+        assert value not in xml, f"the log section leaks {label}: {value!r}"
+    assert "Traceback" not in xml
+    assert "/Users/" not in xml
+
+
+def _usage(session, **kwargs):
+    from db.models import LlmUsageLog
+
+    defaults = dict(
+        backend="local_llama_cpp",
+        model_id=SENTINELS["home_path"],
+        caller="categorizer",
+        source_name=SENTINELS["source_file"],
+        n_ctx=4096,
+        duration_ms=100,
+        prompt_tokens=100,
+    )
+    defaults.update(kwargs)
+    session.add(LlmUsageLog(**defaults))
+    session.commit()
+
+
+def test_observed_calls_say_what_happened_without_naming_the_file(session, settings):
+    """The call log names the imported file. That column must never be read."""
+    _usage(session)
+    report = diagnostics.collect(session, settings)
+    xml = diagnostics.to_xml(report)
+
+    assert report["llm_observed"], "the call log was not read at all"
+    group = report["llm_observed"][0]
+    assert group["calls"] == 1
+    assert group["phase"] == "categorizer"
+    # The model by file name, as everywhere else in this document.
+    assert group["model"] == "gemma-3-12b.gguf"
+
+    for label, value in SENTINELS.items():
+        assert value not in xml, f"the observed section leaks {label}: {value!r}"
+
+
+def test_a_prompt_that_fills_the_context_is_reported_as_such(session, settings):
+    """The shape of the defect that reported itself as 'all backends failed'.
+
+    A context of 4096 with prompts arriving at 4000 is the one-line version of
+    a diagnosis that cost hours on 2026-09-22.
+    """
+    _usage(session, prompt_tokens=400, duration_ms=50)
+    _usage(session, prompt_tokens=4000, duration_ms=90)
+
+    group = diagnostics.collect(session, settings)["llm_observed"][0]
+
+    assert group["calls"] == 2
+    assert group["max_prompt_tokens"] == 4000
+    assert group["context"] == 4096
+    assert group["context_pressure"] is True
+
+
+def test_a_prompt_well_inside_the_context_is_not_flagged(session, settings):
+    _usage(session, prompt_tokens=400)
+    _usage(session, prompt_tokens=900)
+
+    group = diagnostics.collect(session, settings)["llm_observed"][0]
+
+    assert group["context_pressure"] is False
+    assert group["median_ms"] == 100

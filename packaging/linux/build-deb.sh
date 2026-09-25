@@ -128,7 +128,12 @@ mkdir -p "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps"
 echo "▸ Copying application files..."
 
 # Copy only the directories and files needed at runtime
-APP_DIRS=(api config core db desktop nsi prompts reports services support ui)
+# nsi/ is deliberately absent. It is the generation input for
+# core/static_rules.json, and core/static_rules.json is what runs
+# (core/nsi_lookup.py reads it). Listing nsi/ here shipped 16 MB into
+# locally built artifacts and nothing into CI ones, because the directory
+# is gitignored: same artifact name, different contents per builder.
+APP_DIRS=(api chat_bot config core db desktop prompts reports services support ui)
 for d in "${APP_DIRS[@]}"; do
   if [[ -d "${REPO_ROOT}/${d}" ]]; then
     cp -r "${REPO_ROOT}/${d}" "${INSTALL_ROOT}/${d}"
