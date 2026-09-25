@@ -32,7 +32,7 @@ LAUNCHER = Path(__file__).resolve().parent.parent / "desktop" / "launcher.py"
 
 
 def _source() -> str:
-    return LAUNCHER.read_text()
+    return LAUNCHER.read_text(encoding="utf-8")
 
 
 def test_a_missing_window_library_is_not_fatal():
@@ -147,7 +147,7 @@ def test_it_really_imports_with_no_window_library(tmp_path):
     )
     if not result_file.exists():
         log = tmp_path / "Library" / "Logs" / "spendifai-launcher.log"
-        detail = log.read_text()[-2000:] if log.exists() else outcome.stderr
+        detail = log.read_text(encoding="utf-8")[-2000:] if log.exists() else outcome.stderr
         pytest.fail(f"the launcher did not import without a window library:\n{detail}")
 
-    assert result_file.read_text() == "native=False browser=True"
+    assert result_file.read_text(encoding="utf-8") == "native=False browser=True"
