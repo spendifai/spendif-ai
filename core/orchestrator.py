@@ -249,6 +249,11 @@ class ImportResult:
     errors: list[str] = field(default_factory=list)
     flow_used: str = "unknown"  # "flow1" or "flow2"
     needs_schema_review: bool = False   # True when confidence is medium/low → user must confirm schema
+    # The direction of the amounts, asked about only when the two readings of
+    # it disagree. Not a confidence threshold: a threshold is a dial somebody
+    # has to tune, while a disagreement between two independent estimates is
+    # a fact. Stays False once the person has settled the format.
+    sign_needs_confirmation: bool = False
     available_columns: list[str] = field(default_factory=list)  # column names for review UI
     total_file_rows: int = 0          # total rows in the raw DataFrame (after header stripping)
     header_rows_skipped: int = 0      # rows stripped as header/pre-header
@@ -1552,7 +1557,38 @@ def process_file(
         merged_count=_merge_count,
         internal_transfer_count=_giro_count,
         phase_durations_ms=_phase_durations_ms,
+        sign_needs_confirmation=_sign_needs_a_question(doc_schema),
     )
+
+
+def _sign_needs_a_question(schema) -> bool:
+    """Whether to interrupt somebody about the direction of their amounts.
+
+    Three sources decide that direction, in this order. The person's own
+    answer, once given, wins for ever: that is the seal, and re-asking after
+    it teaches people their answers do not stick. Otherwise two independent
+    readings are compared, the model's and the measurement on the data. When
+    they agree the file is imported in silence. Only their disagreement is
+    worth a question.
+
+    Deliberately not a confidence threshold. A threshold is a dial somebody
+    has to tune and defend; two estimators contradicting each other is a fact
+    that needs no tuning.
+    """
+    if schema is None:
+        return False
+    if getattr(schema, "user_confirmed", False):
+        return False
+
+    model_says = getattr(schema, "sign_llm_verdict", None)
+    data_says = getattr(schema, "sign_deterministic_verdict", None)
+    if model_says is None or data_says is None:
+        # One of them did not run: a reused schema, or a file whose layout
+        # carries the direction structurally. There is no disagreement to
+        # report, and inventing a question here would be noise.
+        return False
+
+    return model_says != data_says
 
 
 def process_files(

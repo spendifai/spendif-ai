@@ -488,13 +488,30 @@ def classify_document(
         )
         result["doc_type"] = doc_type_override
 
+    # What the model made of the direction, before anything deterministic
+    # touches it. Kept because the disagreement between the two is the only
+    # thing worth interrupting a person for.
+    _llm_verdict = bool(result.get("invert_sign"))
+
     result = _apply_step0_invert_sign(result, source_name)
 
-    # AI-149: deterministic sign decision driven by the account-type prior.
+    # AI-149: deterministic sign decision driven by the document-type prior.
     # On single-amount-column files this OVERRIDES the LLM's sign_convention/
-    # invert_sign/ratios — the direction of the sign is an accounting fact, not
+    # invert_sign/ratios: the direction of the sign is an accounting fact, not
     # a semantic guess. See documents/04_software_engineering/07_deterministic_pipeline.md.
     result = _apply_doc_type_sign_prior(result, df_raw, source_name)
+
+    _prior_decided = bool(result.pop("sign_prior_applied", False))
+    result["sign_llm_verdict"] = _llm_verdict
+    result["sign_deterministic_verdict"] = (
+        bool(result.get("invert_sign")) if _prior_decided else None
+    )
+    if _prior_decided and _llm_verdict != result["sign_deterministic_verdict"]:
+        logger.info(
+            "classify_document [%s]: the two readings of the direction disagree "
+            "(model=%s, measured=%s)",
+            source_name, _llm_verdict, result["sign_deterministic_verdict"],
+        )
 
     # Compute deterministic confidence score from merged result
     score = compute_confidence_score(result, header_certain=header_certain)
@@ -1331,6 +1348,9 @@ def _apply_doc_type_sign_prior(
         basis = "S0-single-cycle"
 
     out["invert_sign"] = (measured != expected)
+    # This is what makes the two readings comparable: without it, "the
+    # deterministic one agrees" cannot be told apart from "it never ran".
+    out["sign_prior_applied"] = True
     logger.info(
         f"classify_document [{source_name}]: sign prior [{basis}] "
         f"type={out.get('doc_type')} n_pos={n_pos} n_neg={n_neg} "

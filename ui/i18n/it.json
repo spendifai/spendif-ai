@@ -1169,5 +1169,11 @@
   "diagnostics.download": "Salva il documento",
   "upload.progress_auto_elapsed": "Aggiornamento automatico - {pct}% completato - {elapsed} trascorsi",
   "upload.completed_in": "Completata in {elapsed}",
-  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file."
+  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file.",
+  "sign.title": "Una cosa sola da controllare: entrate e uscite di questo file",
+  "sign.explain": "Su **{filename}** ({n} movimenti) non e' chiaro come la banca scrive le spese: potrebbero essere finite al contrario, con le uscite contate come entrate. Guarda un paio di righe nel registro e dimmi come stanno. Te lo chiedo una volta sola: per i prossimi file di questa banca me lo ricordo.",
+  "sign.flip": "Sono al contrario, ribalta tutto",
+  "sign.keep": "Vanno bene cosi'",
+  "sign.flipped": "Ribaltati {n} movimenti. Per i prossimi file di questa banca faccio cosi' senza chiedere.",
+  "sign.kept": "Perfetto. Per i prossimi file di questa banca non te lo chiedo piu'."
 }

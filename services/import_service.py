@@ -344,3 +344,33 @@ class ImportService:
             force_schema_import=settings.get("force_schema_import", "false").lower() == "true",
             cat_llm_backend=settings.get("cat_llm_backend", ""),
         )
+
+    # ── The direction of the amounts, once the person has settled it ────────
+
+    def confirm_sign(self, batch_sha256: str, source_identifier: str, flip: bool) -> int:
+        """Record the answer for this format, and apply it to what was imported.
+
+        Both answers seal the format, not only the one that changes something:
+        "it is already right" is an answer too, and asking again next month
+        would teach the person that answering is pointless.
+
+        Returns how many transactions were turned round.
+        """
+        from db import repository
+        from db.models import get_session
+
+        session = get_session(self.engine)
+        try:
+            moved = repository.invert_batch_amounts(session, batch_sha256) if flip else 0
+
+            schema = repository.get_document_schema(session, source_identifier)
+            if schema is not None:
+                if flip:
+                    schema.invert_sign = not schema.invert_sign
+                schema.user_confirmed = True
+                repository.upsert_document_schema(session, schema)
+
+            session.commit()
+            return moved
+        finally:
+            session.close()
