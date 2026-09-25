@@ -49,7 +49,7 @@ def test_the_import_path_never_reads_the_declared_account_type():
     only checked the outcome would pass again the day somebody re-wires the
     lookup and the value happens to agree.
     """
-    tree = ast.parse(ORCHESTRATOR.read_text())
+    tree = ast.parse(ORCHESTRATOR.read_text(encoding="utf-8"))
     reads = [
         node
         for node in ast.walk(tree)
@@ -63,7 +63,7 @@ def test_the_import_path_never_reads_the_declared_account_type():
 
 @pytest.mark.parametrize("function", ["_apply_doc_type_sign_prior", "_apply_step0_invert_sign"])
 def test_neither_sign_decision_accepts_a_declared_type(function):
-    tree = ast.parse(CLASSIFIER.read_text())
+    tree = ast.parse(CLASSIFIER.read_text(encoding="utf-8"))
     node = next(
         n for n in ast.walk(tree)
         if isinstance(n, ast.FunctionDef) and n.name == function
