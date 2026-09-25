@@ -172,21 +172,28 @@ License: PolyForm-Noncommercial-1.0.0
  https://polyformproject.org/licenses/noncommercial/1.0.0/
 COPYRIGHT
 
-# ── Stamp build info ────────────────────────────────────────────────────────
-# WHY here and not in the repo: the macOS and Windows builders overwrite
-# core/_build_info.py in the working tree, which is fine for them because the
-# result gets committed at release time. The Linux packages used to ship
-# whatever value happened to be committed, so a .deb built from a tag whose
-# _build_info.py still held the previous version would report the wrong
-# version forever. That was invisible while the number was only decoration;
-# now the in-app update check compares against it, and a stale value means a
-# permanent false "update available" badge. Stamping into the staged copy gets
-# the right version into the package without dirtying the working tree.
-cat > "${INSTALL_ROOT}/core/_build_info.py" <<PYEOF
-# Generated at build time - do not edit manually.
-BUILD_TIME = "$(date -u '+%Y-%m-%d %H:%M UTC')"
-BUILD_VERSION = "${VERSION}"
-PYEOF
+# ── Build stamp ─────────────────────────────────────────────────────────────
+# Not written here any more, because the bundle already carries it: the stamp
+# is generated when the bundle is built and PyInstaller takes it along. This
+# script used to write it into the staged copy, at a path that exists in a
+# source tree and not in a bundle, where the application code lives under
+# _internal.
+#
+# It is checked instead, and the check is not ceremony. The version in that
+# file is what the in-app update check compares against, so a stale value is a
+# permanent false "update available" badge, and a missing one is a package that
+# cannot tell the user what it is.
+STAMP=$(find "${INSTALL_ROOT}" -name "_build_info.py" -print -quit)
+if [[ -z "${STAMP}" ]]; then
+  echo "✖ No build stamp in the bundle: it cannot say which version it is."
+  exit 1
+fi
+echo "▸ Build stamp found: $(grep BUILD_VERSION "${STAMP}" | head -1)"
+if ! grep -q "BUILD_VERSION = \"${VERSION}\"" "${STAMP}"; then
+  echo "⚠ The bundle was stamped with a different version than ${VERSION}:"
+  echo "  $(grep BUILD_VERSION "${STAMP}" | head -1)"
+  echo "  The package would report the bundle's version, not this one."
+fi
 
 echo "✔ Application files copied"
 
