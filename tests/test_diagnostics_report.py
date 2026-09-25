@@ -124,3 +124,35 @@ def test_acceleration_is_reported_as_its_own_answer(session, settings):
     # from the first.
     assert "acceleration_active" in graphics
     assert isinstance(graphics["acceleration_active"], bool)
+
+
+def test_logs_are_described_and_not_quoted(session, settings, tmp_path, monkeypatch):
+    """The report says whether a trace exists. It does not carry the trace.
+
+    A log line contains absolute paths, and an absolute path on this machine
+    contains the account name of whoever runs the application. The whole point
+    of naming the log instead of copying it is that asking for the file stays a
+    decision the user makes.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "app_20260925_090000.log").write_text(
+        "2026-09-25 09:00:00 - SPENDIFY - CRITICAL - Unhandled exception\n"
+        f"  File \"{SENTINELS['home_path']}\", line 1, in <module>\n"
+        f"  processing {SENTINELS['source_file']}\n"
+    )
+    monkeypatch.setenv("SPENDIFAI_LOG_DIR", str(log_dir))
+
+    report = diagnostics.collect(session, settings)
+    xml = diagnostics.to_xml(report)
+
+    # It noticed the crash...
+    assert report["logs"]["unhandled_exception_recorded"] is True
+    assert report["logs"]["latest_app_log"] == "app_20260925_090000.log"
+    assert report["logs"]["app_log_files"] == 1
+
+    # ...without repeating a single line of it.
+    for label, value in SENTINELS.items():
+        assert value not in xml, f"the log section leaks {label}: {value!r}"
+    assert "Traceback" not in xml
+    assert "/Users/" not in xml

@@ -32,9 +32,10 @@ load_dotenv()
 import streamlit as st
 
 from db.models import create_tables, get_engine
-from support.logging import setup_logging
+from support.logging import capture_unhandled_exceptions, setup_logging
 
 logger = setup_logging()
+capture_unhandled_exceptions()
 logger.info("Starting Spendif.ai")
 
 # ── S-01: Prompt integrity check ─────────────────────────────────────────────
@@ -176,78 +177,98 @@ from ui.sidebar import render_sidebar
 page = render_sidebar()
 
 # ── Route ─────────────────────────────────────────────────────────────────────
-if page == "home":
-    from ui.home_page import render_home_page
-    render_home_page(engine)
+def _route(page: str, engine) -> None:
+    """Render the selected page.
 
-elif page == "import":
-    from ui.upload_page import render_upload_page
-    render_upload_page(engine)
+    A function rather than a bare chain so there is one place to catch what a
+    page raises. Streamlit renders an uncaught exception on screen and does not
+    put it in the application log: on 2026-09-23 the traceback of the broken
+    Chat page existed in exactly one file, the launcher log, and that file is
+    rewritten at every start. The technical report for support collects the
+    application log, so it arrived empty on precisely the defect it was built
+    to describe.
+    """
+    if page == "home":
+        from ui.home_page import render_home_page
+        render_home_page(engine)
 
-elif page == "history":
-    from ui.history_page import render_history_page
-    render_history_page(engine)
+    elif page == "import":
+        from ui.upload_page import render_upload_page
+        render_upload_page(engine)
 
-elif page == "ledger":
-    from ui.registry_page import render_registry_page
-    render_registry_page(engine)
+    elif page == "history":
+        from ui.history_page import render_history_page
+        render_history_page(engine)
 
-elif page == "bulk_edit":
-    from ui.bulk_edit_page import render_bulk_edit_page
-    render_bulk_edit_page(engine)
+    elif page == "ledger":
+        from ui.registry_page import render_registry_page
+        render_registry_page(engine)
 
-elif page == "analytics":
-    from ui.analysis_page import render_analysis_page
-    render_analysis_page(engine)
+    elif page == "bulk_edit":
+        from ui.bulk_edit_page import render_bulk_edit_page
+        render_bulk_edit_page(engine)
 
-elif page == "report":
-    from ui.report_page import render_report_page
-    render_report_page(engine)
+    elif page == "analytics":
+        from ui.analysis_page import render_analysis_page
+        render_analysis_page(engine)
 
-elif page == "budget":
-    from ui.budget_page import render_budget_page
-    render_budget_page(engine)
+    elif page == "report":
+        from ui.report_page import render_report_page
+        render_report_page(engine)
 
-elif page == "budget_vs_actual":
-    from ui.budget_vs_actual_page import render_budget_vs_actual_page
-    render_budget_vs_actual_page(engine)
+    elif page == "budget":
+        from ui.budget_page import render_budget_page
+        render_budget_page(engine)
 
-elif page == "review":
-    from ui.review_page import render_review_page
-    render_review_page(engine)
+    elif page == "budget_vs_actual":
+        from ui.budget_vs_actual_page import render_budget_vs_actual_page
+        render_budget_vs_actual_page(engine)
 
-elif page == "rules":
-    from ui.rules_page import render_rules_page
-    render_rules_page(engine)
+    elif page == "review":
+        from ui.review_page import render_review_page
+        render_review_page(engine)
 
-elif page == "counterparts":
-    from ui.counterparts_page import render_counterparts_page
-    render_counterparts_page(engine)
+    elif page == "rules":
+        from ui.rules_page import render_rules_page
+        render_rules_page(engine)
 
-elif page == "taxonomy":
-    from ui.taxonomy_page import render_taxonomy_page
-    render_taxonomy_page(engine)
+    elif page == "counterparts":
+        from ui.counterparts_page import render_counterparts_page
+        render_counterparts_page(engine)
 
-elif page == "llm_models":
-    from ui.llm_models_page import render_llm_models_page
-    render_llm_models_page(engine)
+    elif page == "taxonomy":
+        from ui.taxonomy_page import render_taxonomy_page
+        render_taxonomy_page(engine)
 
-elif page == "settings":
-    from ui.settings_page import render_settings_page
-    render_settings_page(engine)
+    elif page == "llm_models":
+        from ui.llm_models_page import render_llm_models_page
+        render_llm_models_page(engine)
 
-elif page == "diagnostics":
-    from ui.diagnostics_page import render_diagnostics_page
-    render_diagnostics_page(engine)
+    elif page == "settings":
+        from ui.settings_page import render_settings_page
+        render_settings_page(engine)
 
-elif page == "checklist":
-    from ui.checklist_page import render_checklist_page
-    render_checklist_page(engine)
+    elif page == "diagnostics":
+        from ui.diagnostics_page import render_diagnostics_page
+        render_diagnostics_page(engine)
 
-elif page == "chat":
-    from ui.chat_page import render_chat_page
-    render_chat_page(engine)
+    elif page == "checklist":
+        from ui.checklist_page import render_checklist_page
+        render_checklist_page(engine)
 
-elif _DEV_MODE and page == "debugger":
-    from ui.debugger_page import render_debugger_page
-    render_debugger_page(engine)
+    elif page == "chat":
+        from ui.chat_page import render_chat_page
+        render_chat_page(engine)
+
+    elif _DEV_MODE and page == "debugger":
+        from ui.debugger_page import render_debugger_page
+        render_debugger_page(engine)
+
+
+try:
+    _route(page, engine)
+except Exception:
+    # Logged, then re-raised: Streamlit still shows the error on screen, the
+    # log keeps the only copy that survives the restart.
+    logger.exception("Unhandled exception while rendering page '%s'", page)
+    raise

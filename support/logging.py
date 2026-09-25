@@ -74,3 +74,53 @@ def setup_logging():
     )
 
     return spendify_logger
+
+
+# Installed once per process. Streamlit re-imports every module on each rerun,
+# so this module-level flag is what keeps the hooks from stacking.
+_HOOKS_INSTALLED = False
+
+
+def capture_unhandled_exceptions():
+    """Send what nobody caught to the application log as well as to stderr.
+
+    An exception raised outside a page render - in a worker thread, at import
+    time, during shutdown - reaches stderr and nothing else. In the windowed
+    desktop bundle stderr belongs to the launcher, whose log is rewritten at
+    every start, so the trace of a crash disappears the moment the person does
+    the obvious thing and restarts the application. The log that survives, and
+    the one the technical report for support collects, is this one.
+
+    The previous hooks are chained rather than replaced: whatever the runtime
+    was doing with an unhandled exception it keeps doing.
+    """
+    global _HOOKS_INSTALLED
+    if _HOOKS_INSTALLED:
+        return
+
+    import threading
+
+    logger = logging.getLogger("SPENDIFY")
+    previous_excepthook = sys.excepthook
+    previous_threadhook = threading.excepthook
+
+    def _log_and_defer(exc_type, exc_value, exc_tb):
+        # KeyboardInterrupt is a person pressing Ctrl-C, not a defect.
+        if not issubclass(exc_type, KeyboardInterrupt):
+            logger.critical(
+                "Unhandled exception", exc_info=(exc_type, exc_value, exc_tb)
+            )
+        previous_excepthook(exc_type, exc_value, exc_tb)
+
+    def _log_and_defer_thread(args):
+        if args.exc_type is not SystemExit:
+            logger.critical(
+                "Unhandled exception in thread %s",
+                args.thread.name if args.thread else "unknown",
+                exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+            )
+        previous_threadhook(args)
+
+    sys.excepthook = _log_and_defer
+    threading.excepthook = _log_and_defer_thread
+    _HOOKS_INSTALLED = True

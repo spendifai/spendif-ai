@@ -139,6 +139,63 @@ def _counts(session: Any) -> dict[str, int]:
     return out
 
 
+def _log_summary() -> dict[str, Any]:
+    """What the logs would say, without saying it.
+
+    The contents stay out of this document on purpose. A log line carries
+    absolute paths, and every absolute path on this machine contains the
+    account name of whoever is running the application; it can also carry the
+    name of an imported statement, which names a bank and a period. What a
+    support request needs first is not the text: it is whether a trace exists
+    at all, and in which file, so it can be asked for deliberately.
+
+    Both locations are reported, because they answer different questions. The
+    application log is written by the application; the launcher log is the
+    redirect of stdout and stderr, and it is where a failure that happens
+    before the application is running ends up.
+    """
+    from support.logging import _resolve_log_dir
+
+    summary: dict[str, Any] = {
+        "app_log_files": 0,
+        "latest_app_log": "",
+        "unhandled_exception_recorded": False,
+        "launcher_log_present": False,
+        "launcher_log_previous_present": False,
+    }
+
+    try:
+        log_dir = _resolve_log_dir()
+        app_logs = sorted(log_dir.glob("app_*.log"))
+        summary["app_log_files"] = len(app_logs)
+        if app_logs:
+            latest = app_logs[-1]
+            # The file name is a timestamp, which is the one part of a path
+            # that describes nobody.
+            summary["latest_app_log"] = latest.name
+            text = latest.read_text(errors="replace")
+            summary["unhandled_exception_recorded"] = "Unhandled exception" in text
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a read
+        logger.warning("diagnostics: cannot inspect application logs (%s)", exc)
+
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        launcher_dir = (
+            _Path.home() / "Library" / "Logs"
+            if _sys.platform == "darwin"
+            else _Path.home() / ".spendifai"
+        )
+        launcher_log = launcher_dir / "spendifai-launcher.log"
+        summary["launcher_log_present"] = launcher_log.exists()
+        summary["launcher_log_previous_present"] = launcher_log.with_suffix(".log.1").exists()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diagnostics: cannot inspect launcher log (%s)", exc)
+
+    return summary
+
+
 def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
     """Assemble the report. Never raises: a diagnostic that crashes says nothing."""
     from core import runtime_info
@@ -198,6 +255,7 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         },
         "ledger": _counts(session),
         "imports": _import_summary(session),
+        "logs": _log_summary(),
     }
 
 
@@ -213,7 +271,8 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
         "generated_at": report["generated_at"],
     })
 
-    for section in ("application", "system", "graphics", "inference", "ledger", "imports"):
+    for section in ("application", "system", "graphics", "inference", "ledger",
+                    "imports", "logs"):
         node = ET.SubElement(root, section)
         for key, value in report.get(section, {}).items():
             if isinstance(value, dict):
