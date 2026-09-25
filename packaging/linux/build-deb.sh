@@ -251,8 +251,10 @@ fi
 
 echo ""
 echo "  ✔ Spendif.ai installed."
-echo "    On first launch the app will set up a per-user Python venv in"
-echo "    ~/.spendifai/.venv and download the recommended AI model (~3 GB)."
+echo "    Everything it needs is already installed: this package carries its"
+echo "    own Python and its own dependencies."
+echo "    On first launch it downloads the recommended AI model (about 3 GB)"
+echo "    and opens the interface in your browser."
 echo "    Launch: search 'Spendif' in Activities, or run /opt/spendifai/launch.sh"
 echo ""
 POSTINST
