@@ -55,14 +55,29 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build dependencies
-        # spirv-headers is not optional: without it CMake stops during
-        # configuration, which is a confusing place to discover a missing
-        # package.
+        # The shader compiler does not come from Ubuntu here. glslc and
+        # libshaderc-dev are absent from 22.04, and 22.04 is not negotiable:
+        # the glibc of the build machine is what decides how far the artefact
+        # reaches. The recipe recorded in the decision document was derived on
+        # a newer Ubuntu, where those packages exist; the two constraints meet
+        # only through the LunarG repository, which is the upstream publisher
+        # of the Vulkan SDK.
+        #
+        # This adds a third-party apt source to the build. It is pinned to the
+        # distribution codename and its signing key is fetched over https from
+        # the publisher, which is the same trust we already place in the
+        # distribution's own mirrors, and no more.
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake \
-            libvulkan-dev glslc spirv-headers spirv-tools libshaderc-dev
+          sudo apt-get install -y --no-install-recommends build-essential cmake wget ca-certificates
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc \
+            | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc > /dev/null
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends vulkan-sdk
+          echo "glslc: $(glslc --version | head -1)"
 
       - uses: actions/setup-python@v5
         with:
