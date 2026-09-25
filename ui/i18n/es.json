@@ -1170,6 +1170,6 @@
   "upload.progress_auto_elapsed": "Actualizacion automatica - {pct}% completado - {elapsed} transcurridos",
   "upload.completed_in": "Completada en {elapsed}",
   "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo.",
-  "upload.file_progress_elapsed": "Procesando... {pct}% - {elapsed}",
-  "upload.file_progress_with_phase_elapsed": "Procesando: {phase} {pct}% - {elapsed}"
+  "upload.file_progress_since": "Procesando... {pct}% - iniciado a las {started}",
+  "upload.file_progress_with_phase_since": "Procesando: {phase} {pct}% - iniciado a las {started}"
 }

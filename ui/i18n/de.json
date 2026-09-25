@@ -1170,6 +1170,6 @@
   "upload.progress_auto_elapsed": "Automatische Aktualisierung - {pct}% abgeschlossen - {elapsed} vergangen",
   "upload.completed_in": "Abgeschlossen in {elapsed}",
   "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei.",
-  "upload.file_progress_elapsed": "Verarbeitung... {pct}% - {elapsed}",
-  "upload.file_progress_with_phase_elapsed": "Verarbeitung: {phase} {pct}% - {elapsed}"
+  "upload.file_progress_since": "Verarbeitung... {pct}% - begonnen um {started}",
+  "upload.file_progress_with_phase_since": "Verarbeitung: {phase} {pct}% - begonnen um {started}"
 }

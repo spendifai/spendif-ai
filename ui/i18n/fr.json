@@ -1170,6 +1170,6 @@
   "upload.progress_auto_elapsed": "Actualisation automatique - {pct}% termine - {elapsed} ecoulees",
   "upload.completed_in": "Terminee en {elapsed}",
   "diagnostics.support": "**Besoin d'aide ?** Enregistrez le document ci-dessus et joignez-le a un email a [{address}]({mailto}). Decrivez ce que vous faisiez : le fichier dit le reste.",
-  "upload.file_progress_elapsed": "Traitement... {pct}% - {elapsed}",
-  "upload.file_progress_with_phase_elapsed": "Traitement : {phase} {pct}% - {elapsed}"
+  "upload.file_progress_since": "Traitement... {pct}% - commence a {started}",
+  "upload.file_progress_with_phase_since": "Traitement : {phase} {pct}% - commence a {started}"
 }

@@ -608,10 +608,20 @@ def render_upload_page(engine):
         job_id = job.id
 
         # Live progress widgets for this session.
-        # The clock belongs here and not only in the polling fragment: this is
-        # the bar somebody watches while the import runs, and a percentage
-        # alone does not say whether to wait or to go away.
-        _import_started = time.time()
+        #
+        # What goes under the bar is the time the import STARTED, not how long
+        # it has been running. The difference matters: this caption is only
+        # rewritten when the pipeline reports progress, and it reports nothing
+        # at all during a single long call to the model - four minutes can pass
+        # between two updates. An elapsed time written once then left alone
+        # says "26s" while four minutes go by, which is worse than saying
+        # nothing, because it is believed.
+        #
+        # A start time does not rot. The clock that actually ticks lives in the
+        # polling fragment, which refreshes itself every two seconds; making
+        # this one tick too means running the import off the main thread, and
+        # that is a change to the import path, not to a caption.
+        _import_started_at = datetime.now()
         _progress_bar = st.progress(0.0)
         _status_text  = st.empty()
         _counter_text = st.empty()
@@ -638,17 +648,17 @@ def render_upload_page(engine):
                     pct = start + (end - start) * p
                     _progress_bar.progress(min(pct, 1.0))
                     _status_text.text(f"File {fidx + 1}/{ftot} — {fname}")
-                    elapsed = _format_duration(time.time() - _import_started)
+                    started = _import_started_at.strftime("%H:%M")
                     if phase:
                         _counter_text.caption(
-                            t_fn("upload.file_progress_with_phase_elapsed",
+                            t_fn("upload.file_progress_with_phase_since",
                                  phase=t_fn(f"upload.phase.{phase}"),
-                                 pct=int(p * 100), elapsed=elapsed)
+                                 pct=int(p * 100), started=started)
                         )
                     else:
                         _counter_text.caption(
-                            t_fn("upload.file_progress_elapsed",
-                                 pct=int(p * 100), elapsed=elapsed)
+                            t_fn("upload.file_progress_since",
+                                 pct=int(p * 100), started=started)
                         )
                     now = time.time()
                     if now - _last[0] >= _DB_WRITE_INTERVAL:

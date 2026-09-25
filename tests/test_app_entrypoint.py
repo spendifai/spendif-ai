@@ -190,12 +190,22 @@ class TestImportClock:
         start = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
         assert _elapsed_text(start, start + timedelta(seconds=75)) == _format_duration(75)
 
-    def test_the_watched_bar_shows_the_clock(self):
-        """The caption during the import carries the elapsed time."""
+    def test_the_watched_bar_says_when_the_import_started(self):
+        """A start time, not an elapsed one, and the reason is the refresh.
+
+        This caption is rewritten only when the pipeline reports progress, and
+        it reports nothing during a single long call to the model. An elapsed
+        time written once and left alone reads "26s" while four minutes pass,
+        which is worse than saying nothing because it is believed. A start
+        time does not rot.
+        """
         import inspect
 
         from ui import upload_page
 
         source = inspect.getsource(upload_page)
-        assert "upload.file_progress_elapsed" in source
-        assert "upload.file_progress_with_phase_elapsed" in source
+        assert "upload.file_progress_since" in source
+        assert "upload.file_progress_with_phase_since" in source
+        assert "_format_duration(time.time()" not in source, (
+            "the caption is computing an elapsed time it cannot keep up to date"
+        )
