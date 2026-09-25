@@ -112,11 +112,19 @@ except Exception as _e:
 
 try:
     import webview  # pywebview
+    HAVE_NATIVE_WINDOW = True
     print(f"imported webview from: {getattr(webview, '__file__', '?')}", flush=True)
 except Exception:
-    print("FATAL: import webview failed", flush=True)
+    # Not fatal any more, and the reason is Linux. PyGObject publishes no
+    # wheels and pycairo publishes them for Windows only, so a bundled Python
+    # cannot use the distribution's python3-gi, which is compiled for the ABI
+    # of the distribution's own Python. Compiling PyGObject into the build
+    # image and hoping the GLib on the target machine agrees is the other
+    # option; opening the browser works everywhere by construction.
+    webview = None  # type: ignore[assignment]
+    HAVE_NATIVE_WINDOW = False
+    print("no native window available: the interface will open in the browser", flush=True)
     traceback.print_exc()
-    raise
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -614,6 +622,64 @@ if sys.platform != "win32":
 # Main
 # ---------------------------------------------------------------------------
 
+def _run_in_browser(app_dir: Path, port: int) -> None:
+    """Start the server and hand the interface to the default browser.
+
+    This is how the application runs where there is no native window, which
+    on Linux is everywhere: see the note next to the webview import.
+
+    It is deliberately plain. The window path shows a splash, waits for the
+    port and then injects an overlay so nobody sees Streamlit's own loading
+    state; a browser tab opens when the server is already answering, so none
+    of that applies.
+
+    HOW IT ENDS, and it is not obvious: closing the tab does not stop
+    anything. The browser is a viewer, not the application. This blocks on the
+    server process, so the application ends when that process does, and the
+    cleanup runs on the way out. Giving somebody a way to say "quit" from the
+    interface is a decision of its own and is not here.
+    """
+    import webbrowser
+
+    _bootstrap_env(app_dir)
+
+    from core.model_manager import MODELS_DIR
+
+    already_have_a_model = any(MODELS_DIR.glob("*.gguf")) if MODELS_DIR.exists() else False
+    if not already_have_a_model:
+        _write_status({
+            "pct": 0.0,
+            "msg": "Preparazione download modello AI...",
+            "elapsed_s": 0,
+            "eta_remaining_s": None,
+            "done": False,
+            "error": None,
+            "ts": time.time(),
+        })
+    Thread(target=_download_model_bg, args=(app_dir,), daemon=True).start()
+
+    print("_run_in_browser: starting Streamlit...", flush=True)
+    proc = _start_streamlit(port, app_dir)
+    _write_instance_lock(proc)
+
+    url = f"http://localhost:{port}"
+    if not _wait_for_port(port):
+        print(f"_run_in_browser: server did not answer on {port}", flush=True)
+        return
+
+    print(f"_run_in_browser: opening {url}", flush=True)
+    try:
+        webbrowser.open(url)
+    except Exception as exc:  # noqa: BLE001 - a browser that will not open is
+        # not a reason to stop: the address is on screen and in the log, and
+        # somebody can paste it.
+        print(f"_run_in_browser: could not open a browser ({exc}); open {url}", flush=True)
+
+    print(f"_run_in_browser: serving on {url}, waiting for the server to end", flush=True)
+    proc.wait()
+    print("_run_in_browser: server ended", flush=True)
+
+
 def main() -> None:
     print("main(): checking for stale instance lock...", flush=True)
     _SPENDIFAI_HOME.mkdir(parents=True, exist_ok=True)
@@ -634,6 +700,12 @@ def main() -> None:
 
     port = _get_free_port()
     print(f"main(): free port = {port}", flush=True)
+
+    if not HAVE_NATIVE_WINDOW:
+        print("main(): no native window, running in the browser", flush=True)
+        _run_in_browser(app_dir, port)
+        print("main(): browser session ended, exiting", flush=True)
+        return
 
     print(f"main(): splash HTML = {_SPLASH_HTML} (exists: {_SPLASH_HTML.exists()})", flush=True)
 
