@@ -28,6 +28,38 @@ plotly_datas = collect_data_files("plotly")
 # first model load with `Shared library with base name 'llama' not found`.
 llama_datas, llama_binaries, llama_hiddenimports = collect_all("llama_cpp")
 
+# The accelerator plugins, which nothing links to.
+#
+# Built with GGML_BACKEND_DL=ON, each backend is a plugin the library loads at
+# runtime rather than a link-time dependency. That is what lets one package
+# carry the processor and Vulkan together instead of shipping a second wheel.
+# The cost is exactly here: PyInstaller finds libraries by following link-time
+# dependencies, so it copies libggml, libggml-base and libggml-cpu, which
+# libllama needs, and leaves libggml-vulkan behind, which nobody names.
+#
+# Found on 2026-09-25 by the check in the build job, on the first run: the
+# wheel had the plugin, the bundle did not. Without that check the Linux
+# package would have shipped with no Vulkan and run on the processor without
+# saying so.
+try:
+    import llama_cpp as _llama_cpp
+
+    _llama_lib = Path(_llama_cpp.__file__).parent / "lib"
+    # As data, not as a binary, and the difference is the point. A binary goes
+    # through dependency analysis, which rewrites it and can drop it when
+    # something it names cannot be resolved on the build machine. A plugin
+    # loaded by path at runtime wants to arrive exactly as it was built, with
+    # its own dependency on the system's Vulkan loader resolved on the machine
+    # that has a driver, which is the user's and not ours.
+    _carried = sorted(_llama_lib.glob("libggml-*"))
+    for _plugin in _carried:
+        llama_datas.append((str(_plugin), "llama_cpp/lib"))
+    print(f"desktop.spec: carrying {len(_carried)} ggml files from {_llama_lib}: "
+          f"{', '.join(p.name for p in _carried)}")
+except Exception as _exc:  # noqa: BLE001 - a spec that cannot look is a spec
+    # that builds a package quietly missing its accelerators, so say it loudly.
+    print(f"desktop.spec: WARNING could not collect the ggml plugins ({_exc})")
+
 # ---------------------------------------------------------------------------
 # Application packages to bundle alongside the frozen launcher
 # ---------------------------------------------------------------------------

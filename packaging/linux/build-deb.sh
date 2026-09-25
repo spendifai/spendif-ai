@@ -7,41 +7,40 @@
 #
 #  DESIGN CHOICES:
 #
-#  • WHY a "repo + postinst" .deb instead of a fat PyInstaller bundle?
-#    The app has ~40 Python dependencies (pandas, streamlit, llama-cpp, etc.)
-#    totalling 500 MB+ when frozen. A repo-style .deb ships only the source
-#    code (~5 MB), then postinst runs `uv sync` to install deps into a local
-#    venv. This matches how VS Code, Signal, and other desktop apps package
-#    for Linux: the .deb is a thin wrapper that bootstraps the real install.
+#  • WHY a self-contained bundle now, and not source plus a first-launch sync?
+#    It used to ship the source and build an environment on first launch
+#    against the distribution's Python. That handed the product to the
+#    distribution: Arch ships 3.14 and Debian 12 ships 3.11, and on
+#    2026-09-23 we were outside the supported range on both sides on the same
+#    day. The bundle replaces a moving target with one number we choose, the
+#    glibc of the machine that built it, which is compatible forwards: built
+#    on 22.04 it reaches Debian 12, Ubuntu 22.04 and Mint 21 and everything
+#    newer, and where it does not reach it fails loudly.
+#
+#    The price is stated rather than hidden: the package goes from about
+#    600 KB to a few hundred megabytes, and the ability to swap in a
+#    different inference wheel at first launch is gone, so what the package
+#    carries is what it runs.
 #
 #  • WHY /opt/spendifai?
-#    FHS 3.0 designates /opt for "add-on application software packages" that
-#    are self-contained and don't integrate into /usr. Spendif.ai has its own
-#    venv, its own config, and its own data dir — /opt is the correct choice.
+#    FHS 3.0 designates /opt for add-on application software packages that
+#    are self-contained and do not integrate into /usr. This one is exactly
+#    that: its own Python, its own dependencies, its own data directory.
 #
-#  • WHY postinst and not preinst?
-#    postinst runs after dpkg has unpacked all files into /opt/spendifai.
-#    We need the code present to run `uv sync` (reads pyproject.toml).
-#    postinst also creates the .desktop file, downloads the model, and
-#    writes the .env — all of which need the code in place.
+#  • WHY almost no Depends?
+#    Because the bundle carries what it needs. The Python interpreter, the
+#    toolchain, the GTK stack and the tooling that installed dependencies at
+#    first launch are all gone from the dependency line, and with them the
+#    class of failure where a package installs cleanly and then cannot start.
+#    libvulkan1 is a Recommends and not a Depends: without it the application
+#    runs on the processor, which is slower and not broken.
 #
-#  • WHY is the C/C++ toolchain only a Recommends?
-#    Until 2026-09-22 llama-cpp-python was compiled on the user's machine at
-#    first launch, so a compiler was mandatory - and the Depends line listed
-#    `gcc, cmake` while the build needs `g++` and `make` too. The RPM spec had
-#    the full set; this one did not, and that single missing `g++` is why the
-#    package installed cleanly on Ubuntu and then never started: CMake stopped
-#    at "Could not find compiler set in environment variable CXX".
-#    The package now installs a prebuilt wheel (see [tool.uv.sources] in
-#    pyproject.toml), so nothing is compiled on the normal path. The toolchain
-#    stays as a Recommends - apt installs it by default, so the optional SSM
-#    build keeps working out of the box - but its absence can no longer keep
-#    the application from starting.
-#
-#  • WHY Depends: python3, git, curl (not uv)?
-#    uv is not in any distro repo. postinst installs it via the official
-#    bootstrap script (curl | sh). Declaring it as a Depends would make
-#    the package uninstallable.
+#  • WHY no native window?
+#    PyGObject publishes no wheels and pycairo publishes them for Windows
+#    only, so a bundled Python cannot use the distribution's python3-gi,
+#    which is built for the ABI of the distribution's own Python - the exact
+#    dependency this package exists to remove. The interface opens in the
+#    default browser instead, which works everywhere by construction.
 #
 #  USAGE:
 #    cd sw_artifacts
@@ -64,6 +63,7 @@ ARCH="amd64"
 # ── Parse args ───────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --bundle-dir)  BUNDLE_DIR="$2"; shift 2 ;;
     --version) VERSION="$2"; shift 2 ;;
     --arch)    ARCH="$2";    shift 2 ;;
     *)         echo "Unknown arg: $1"; exit 1 ;;
@@ -79,38 +79,6 @@ if [[ -z "$VERSION" ]]; then
   fi
 fi
 
-# ── Pinned uv ────────────────────────────────────────────────────────────────
-# The postinst used to run `curl -LsSf https://astral.sh/uv/install.sh | sh` as
-# root: remote code execution at install time, pinned to nothing, and a step no
-# Debian archive would accept. We now fetch one named asset and verify it
-# against a checksum committed HERE before anything is executed.
-#
-# The checksum must live in this file, not be downloaded next to the tarball:
-# an attacker who can serve you a tampered tarball can serve you its matching
-# .sha256 just as easily. A pin is only a pin when it is reviewed in a diff.
-#
-# To bump: change UV_VERSION, then read the new values from
-#   https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
-# and verify them against the tarball you actually downloaded.
-# A case, not an associative array: macOS still ships bash 3.2, and this script
-# is run by hand on the developer machine as well as by CI.
-UV_VERSION="0.12.17"
-case "${ARCH}" in
-  amd64)
-    UV_TRIPLE="x86_64-unknown-linux-gnu"
-    UV_SHA256="fa82fd8dde8e8eefdecada6aa0889666556cfceb690d06e0c3bca49eb3070a63"
-    ;;
-  arm64)
-    UV_TRIPLE="aarch64-unknown-linux-gnu"
-    UV_SHA256="d636d1b678e9e7f367ecb22b46bd1cabbed234d6bc3b4d96365d2b507f72f86c"
-    ;;
-  *)
-    echo "✖ No pinned uv checksum for architecture '${ARCH}'."
-    echo "  Add a branch to the case in packaging/linux/build-deb.sh before building."
-    exit 1
-    ;;
-esac
-
 echo "▸ Building spendifai_${VERSION}_${ARCH}.deb"
 
 # ── Build directory ──────────────────────────────────────────────────────────
@@ -124,24 +92,44 @@ mkdir -p "${PKG_ROOT}/DEBIAN"
 mkdir -p "${PKG_ROOT}/usr/share/applications"
 mkdir -p "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps"
 
-# ── Copy application code ────────────────────────────────────────────────────
-echo "▸ Copying application files..."
+# ── Copy the bundle ──────────────────────────────────────────────────────────
+# What ships is a self-contained bundle: its own Python, its own dependencies,
+# its own inference library with the accelerator plugins beside it.
+#
+# It used to ship the source and build an environment on first launch against
+# the distribution's Python. That handed the product to the distribution: Arch
+# ships 3.14 and Debian 12 ships 3.11, and on one day in September we were out
+# of range on both sides at once. The bundle replaces that moving target with
+# one number we choose, the glibc of the machine that built it.
+echo "▸ Copying the bundle..."
 
-# Copy only the directories and files needed at runtime
-APP_DIRS=(api config core db desktop nsi prompts reports services support ui)
-for d in "${APP_DIRS[@]}"; do
-  if [[ -d "${REPO_ROOT}/${d}" ]]; then
-    cp -r "${REPO_ROOT}/${d}" "${INSTALL_ROOT}/${d}"
-  fi
+if [[ -z "${BUNDLE_DIR:-}" ]]; then
+  BUNDLE_DIR="${REPO_ROOT}/dist/SpendifAi"
+fi
+
+if [[ ! -d "${BUNDLE_DIR}" ]]; then
+  echo "✖ No bundle at ${BUNDLE_DIR}."
+  echo "  Build one with:"
+  echo "    uv run --no-sync --extra desktop pyinstaller desktop.spec --noconfirm --clean"
+  echo "  or point at one with:  --bundle-dir <path>"
+  exit 1
+fi
+
+cp -a "${BUNDLE_DIR}/." "${INSTALL_ROOT}/"
+
+# The accelerators are plugins that nothing links to, so any tool copying this
+# payload can drop them without noticing, and the application then runs on the
+# processor and says nothing about it. This is one of those copies, so it is
+# checked here too.
+for lib in libggml-base.so libggml-cpu.so; do
+  find "${INSTALL_ROOT}" -name "${lib}" | grep -q . || {
+    echo "✖ ${lib} is not in the payload: the bundle is incomplete."
+    exit 1
+  }
 done
-
-# Top-level files
-for f in app.py pyproject.toml VERSION .env.example; do
-  [[ -f "${REPO_ROOT}/${f}" ]] && cp "${REPO_ROOT}/${f}" "${INSTALL_ROOT}/${f}"
-done
-
-# uv.lock for reproducible installs
-[[ -f "${REPO_ROOT}/uv.lock" ]] && cp "${REPO_ROOT}/uv.lock" "${INSTALL_ROOT}/uv.lock"
+if ! find "${INSTALL_ROOT}" -name "libggml-vulkan.so" | grep -q .; then
+  echo "⚠ No Vulkan backend in the payload: this package will run on the processor only."
+fi
 
 # Icon
 ICON_SRC="${REPO_ROOT}/packaging/macos/spendifai_256.png"
@@ -184,21 +172,28 @@ License: PolyForm-Noncommercial-1.0.0
  https://polyformproject.org/licenses/noncommercial/1.0.0/
 COPYRIGHT
 
-# ── Stamp build info ────────────────────────────────────────────────────────
-# WHY here and not in the repo: the macOS and Windows builders overwrite
-# core/_build_info.py in the working tree, which is fine for them because the
-# result gets committed at release time. The Linux packages used to ship
-# whatever value happened to be committed, so a .deb built from a tag whose
-# _build_info.py still held the previous version would report the wrong
-# version forever. That was invisible while the number was only decoration;
-# now the in-app update check compares against it, and a stale value means a
-# permanent false "update available" badge. Stamping into the staged copy gets
-# the right version into the package without dirtying the working tree.
-cat > "${INSTALL_ROOT}/core/_build_info.py" <<PYEOF
-# Generated at build time - do not edit manually.
-BUILD_TIME = "$(date -u '+%Y-%m-%d %H:%M UTC')"
-BUILD_VERSION = "${VERSION}"
-PYEOF
+# ── Build stamp ─────────────────────────────────────────────────────────────
+# Not written here any more, because the bundle already carries it: the stamp
+# is generated when the bundle is built and PyInstaller takes it along. This
+# script used to write it into the staged copy, at a path that exists in a
+# source tree and not in a bundle, where the application code lives under
+# _internal.
+#
+# It is checked instead, and the check is not ceremony. The version in that
+# file is what the in-app update check compares against, so a stale value is a
+# permanent false "update available" badge, and a missing one is a package that
+# cannot tell the user what it is.
+STAMP=$(find "${INSTALL_ROOT}" -name "_build_info.py" -print -quit)
+if [[ -z "${STAMP}" ]]; then
+  echo "✖ No build stamp in the bundle: it cannot say which version it is."
+  exit 1
+fi
+echo "▸ Build stamp found: $(grep BUILD_VERSION "${STAMP}" | head -1)"
+if ! grep -q "BUILD_VERSION = \"${VERSION}\"" "${STAMP}"; then
+  echo "⚠ The bundle was stamped with a different version than ${VERSION}:"
+  echo "  $(grep BUILD_VERSION "${STAMP}" | head -1)"
+  echo "  The package would report the bundle's version, not this one."
+fi
 
 echo "✔ Application files copied"
 
@@ -209,8 +204,9 @@ Version: ${VERSION}
 Section: misc
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.12), python3-venv, python3-dev, python3-gi, python3-cairo, gir1.2-webkit2-4.1, git, curl, pkgconf, zenity
-Recommends: g++, gcc, make, cmake
+Depends:
+Recommends: libvulkan1
+Suggests: mesa-vulkan-drivers
 Installed-Size: $(du -sk "${INSTALL_ROOT}" | cut -f1)
 Maintainer: Luigi Corsaro <lcorsaro69@gmail.com>
 Homepage: https://github.com/spendifai/spendif-ai
@@ -222,72 +218,22 @@ Description: Personal finance manager with local AI categorisation
 EOF
 
 # ── DEBIAN/postinst ──────────────────────────────────────────────────────────
-# Postinst runs as ROOT, with $HOME=/root. Anything user-specific (venv,
-# model download, ~/.spendifai) belongs in a script that runs at FIRST
-# USER LAUNCH instead — postinst here only installs uv system-wide so
-# every desktop user can use it. The .desktop Exec line spawns the
-# launch.sh wrapper which performs the per-user setup the first time.
+# Runs as root, with HOME=/root, so nothing user-specific belongs here. It
+# used to install a pinned uv system-wide and leave the rest to a sync at
+# first launch; the bundle carries its own Python and dependencies, so what
+# remains is desktop integration and a marker recording how this copy was
+# installed.
 {
-# The pinned values are the only part that varies per build, so they are
-# written as a prelude and the rest stays a quoted heredoc: no escaping, and
-# what you read below is exactly what ships.
-cat <<PRELUDE
+cat <<'POSTINST'
 #!/bin/bash
 # =============================================================================
 #  Spendif.ai - post-installation (root context, minimal)
-#  Only system-wide setup. Per-user setup runs at first launch via launch.sh.
 # =============================================================================
 set -e
-
-UV_VERSION="${UV_VERSION}"
-UV_TRIPLE="${UV_TRIPLE}"
-UV_SHA256="${UV_SHA256}"
-PRELUDE
-cat <<'POSTINST'
 
 echo ""
 echo "  Spendif.ai — post-install"
 echo ""
-
-# ── 1. System-wide uv install ───────────────────────────────────────────────
-# Place uv in /usr/local/bin so EVERY user (not just root) has it on PATH.
-#
-# One named asset, one checksum verified BEFORE anything runs. Nothing is
-# piped into a shell: this runs as root, and a compromised or merely changed
-# upstream install script would own the machine.
-if ! [ -x /usr/local/bin/uv ]; then
-  echo "  > Installing uv ${UV_VERSION} to /usr/local/bin..."
-  TMP_UV_DIR=$(mktemp -d)
-  UV_TARBALL="$TMP_UV_DIR/uv.tar.gz"
-  UV_URL="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_TRIPLE}.tar.gz"
-
-  if curl -fsSL -o "$UV_TARBALL" "$UV_URL"; then
-    ACTUAL=$(sha256sum "$UV_TARBALL" | awk '{print $1}')
-    if [ "$ACTUAL" = "$UV_SHA256" ]; then
-      tar -xzf "$UV_TARBALL" -C "$TMP_UV_DIR"
-      if install -m 0755 "$TMP_UV_DIR/uv-${UV_TRIPLE}/uv" /usr/local/bin/uv; then
-        install -m 0755 "$TMP_UV_DIR/uv-${UV_TRIPLE}/uvx" /usr/local/bin/uvx 2>/dev/null || true
-      fi
-    else
-      # Refuse, loudly, and do not fall back to anything. A mismatch is either
-      # a corrupted download or a substituted artefact, and we cannot tell
-      # which. launch.sh installs uv per-user on first launch, so the user is
-      # not stranded.
-      echo "  !! uv checksum mismatch - refusing to install it."
-      echo "     expected $UV_SHA256"
-      echo "     got      $ACTUAL"
-    fi
-  else
-    echo "  !! Could not download uv from $UV_URL"
-  fi
-
-  rm -rf "$TMP_UV_DIR"
-fi
-if [ -x /usr/local/bin/uv ]; then
-  echo "  ✔ uv: $(/usr/local/bin/uv --version 2>&1 | head -1)"
-else
-  echo "  ⚠ uv install failed — user will be prompted to install on first launch."
-fi
 
 # ── 1b. Record how this copy was installed ──────────────────────────────────
 # postinst runs as root and every user on the machine shares this install, so
@@ -305,8 +251,10 @@ fi
 
 echo ""
 echo "  ✔ Spendif.ai installed."
-echo "    On first launch the app will set up a per-user Python venv in"
-echo "    ~/.spendifai/.venv and download the recommended AI model (~3 GB)."
+echo "    Everything it needs is already installed: this package carries its"
+echo "    own Python and its own dependencies."
+echo "    On first launch it downloads the recommended AI model (about 3 GB)"
+echo "    and opens the interface in your browser."
 echo "    Launch: search 'Spendif' in Activities, or run /opt/spendifai/launch.sh"
 echo ""
 POSTINST
@@ -355,8 +303,13 @@ DESKTOP
 # ── Set permissions ──────────────────────────────────────────────────────────
 # /opt/spendifai is read-only source code; per-user venv lives in
 # ~/.spendifai/.venv (created by launch.sh on first run).
-find "${INSTALL_ROOT}" -type f -exec chmod 644 {} +
+# Directories readable, data files readable, and everything that has to run
+# left alone. A blanket 644 over a bundle strips the executable bit from the
+# launcher and from every shared library, and the package then installs
+# perfectly and cannot start.
 find "${INSTALL_ROOT}" -type d -exec chmod 755 {} +
+find "${INSTALL_ROOT}" -type f ! -perm -u+x ! -name "*.so*" -exec chmod 644 {} +
+find "${INSTALL_ROOT}" -type f \( -perm -u+x -o -name "*.so*" \) -exec chmod 755 {} +
 # launch.sh MUST be executable — it's the .desktop file's Exec target.
 # (The generic 0644 find above clobbers the chmod inside the heredoc.)
 chmod 0755 "${INSTALL_ROOT}/launch.sh"

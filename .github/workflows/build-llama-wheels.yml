@@ -1,0 +1,305 @@
+# Builds the inference library ourselves, with the accelerators as plugins.
+#
+# WHY WE BUILD IT AT ALL
+#   In the upstream wheels the backend is a link-time dependency of libllama,
+#   so adding an accelerator means shipping a second wheel rather than one more
+#   file. That is how the CUDA wheel comes to weigh 460 MB while the Vulkan
+#   plugin weighs four. Built with -DGGML_BACKEND_DL=ON the backends become
+#   plugins that live side by side, and one package can carry the processor and
+#   Vulkan together.
+#
+#   Vulkan is the one that pays: it covers AMD, Intel and NVIDIA with a single
+#   file. On NVIDIA it is slower than CUDA and far faster than the processor,
+#   so CUDA stays an optional extra for whoever wants it rather than a cost
+#   imposed on everybody.
+#
+# THE PRICE, SAID OUT LOUD
+#   From here on the wheels are an artefact of ours, with a build step that can
+#   fail and a version that can fall behind. If nobody remembers to rebuild
+#   them at a release, the package ships an old library and nothing looks
+#   wrong, because it works.
+#
+# WHAT THIS JOB CAN AND CANNOT PROVE
+#   It can prove the plugin was built and travels inside the wheel. It cannot
+#   prove a graphics card is used: a hosted runner has no Vulkan driver, so
+#   asking the library to enumerate devices here would report the processor
+#   and nothing else, whether or not the build is good. Device selection and
+#   the speed it buys are verified on a machine with a real card.
+#
+#   This distinction is the reason the verification below looks at the contents
+#   of the wheel rather than at a list of devices. A Vulkan build that silently
+#   falls back to the processor looks exactly like a working one.
+name: Build llama wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "llama-cpp-python version to build (must match uv.lock)"
+        required: true
+        default: "0.3.35"
+  pull_request:
+    paths:
+      - .github/workflows/build-llama-wheels.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x86_64:
+    # 22.04 on purpose: the glibc of the build machine decides how far the
+    # artefact reaches, and 2.35 covers Debian 12, Ubuntu 22.04 and Mint 21,
+    # which are exactly the ones a newer build leaves out.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build dependencies
+        # The shader compiler does not come from Ubuntu here. glslc and
+        # libshaderc-dev are absent from 22.04, and 22.04 is not negotiable:
+        # the glibc of the build machine is what decides how far the artefact
+        # reaches. The recipe recorded in the decision document was derived on
+        # a newer Ubuntu, where those packages exist; the two constraints meet
+        # only through the LunarG repository, which is the upstream publisher
+        # of the Vulkan SDK.
+        #
+        # This adds a third-party apt source to the build. It is pinned to the
+        # distribution codename and its signing key is fetched over https from
+        # the publisher, which is the same trust we already place in the
+        # distribution's own mirrors, and no more.
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential cmake wget ca-certificates
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc \
+            | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc > /dev/null
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends vulkan-sdk
+          echo "glslc: $(glslc --version | head -1)"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build the wheel
+        # The parallel level is a memory limit, not a speed choice: the first
+        # build died with cc1plus killed while compiling the shader unit, and
+        # two jobs is what fits.
+        env:
+          CMAKE_ARGS: "-DGGML_BACKEND_DL=ON -DGGML_VULKAN=ON -DGGML_NATIVE=OFF"
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+          VERSION: ${{ github.event.inputs.version || '0.3.35' }}
+        run: |
+          python -m pip install --upgrade pip build wheel
+          python -m pip wheel "llama-cpp-python==${VERSION}" \
+            --no-binary llama-cpp-python \
+            --no-deps \
+            -w dist/
+
+      - name: The plugins are in the wheel
+        # The shape of the failure this guards against: a build that quietly
+        # omits Vulkan produces a wheel that works, on the processor, and says
+        # nothing about it.
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/llama_cpp_python-*.whl)
+          echo "built: ${WHEEL}"
+          python - "$WHEEL" <<'PY'
+          import sys, zipfile
+          names = zipfile.ZipFile(sys.argv[1]).namelist()
+          libs = sorted(n.rsplit("/", 1)[-1] for n in names if "/lib/" in n and n.endswith(".so"))
+          print("libraries in the wheel:")
+          for lib in libs:
+              print("   ", lib)
+          missing = [n for n in ("libggml-base.so", "libggml-cpu.so", "libggml-vulkan.so")
+                     if n not in libs]
+          if missing:
+              raise SystemExit(f"missing from the wheel: {missing}")
+          print("processor and Vulkan backends both present")
+          PY
+
+      - name: It imports, and says what it registered
+        # Not an assertion about devices: on a runner without a driver the
+        # honest answer is the processor alone. Printed because the day it
+        # says something else, that is worth seeing in the log.
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/probe
+          /tmp/probe/bin/pip install --quiet dist/llama_cpp_python-*.whl
+          /tmp/probe/bin/python - <<'PY'
+          import ctypes, pathlib
+          import llama_cpp
+          import llama_cpp.llama_cpp as C
+
+          lib_dir = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          loader = C._lib.ggml_backend_load_all_from_path
+          loader.argtypes = [ctypes.c_char_p]
+          loader(str(lib_dir).encode())
+
+          count = C._lib.ggml_backend_dev_count
+          count.restype = ctypes.c_size_t
+          get = C._lib.ggml_backend_dev_get
+          get.argtypes = [ctypes.c_size_t]
+          get.restype = ctypes.c_void_p
+          name = C._lib.ggml_backend_dev_name
+          name.argtypes = [ctypes.c_void_p]
+          name.restype = ctypes.c_char_p
+
+          devices = [name(get(i)).decode() for i in range(count())]
+          print("registered on this runner:", ", ".join(devices) or "none")
+          PY
+
+      - name: Record what was built
+        run: |
+          cd dist
+          sha256sum llama_cpp_python-*.whl | tee SHA256SUMS
+          ls -lh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-wheel-linux-x86_64
+          path: |
+            dist/*.whl
+            dist/SHA256SUMS
+          retention-days: 14
+
+  linux-bundle:
+    # The self-contained Linux package, built where the wheel was built.
+    #
+    # WHY IT EXISTS
+    #   Today the Linux packages build their environment on first launch,
+    #   against the distribution's Python. That hands the product to the
+    #   distribution: Arch ships 3.14 and Debian 12 ships 3.11, and on
+    #   2026-09-23 we were out of range on both sides on the same day. A
+    #   bundle replaces that moving target with one number we choose.
+    #
+    #   The number is the glibc of this runner. It is compatible forwards, so
+    #   building on 22.04 (2.35) reaches Debian 12, Ubuntu 22.04 and Mint 21
+    #   as well as everything newer, and where it does not reach it says so
+    #   out loud instead of failing quietly.
+    needs: linux-x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: llama-wheel-linux-x86_64
+          path: wheel/
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies, then our own inference wheel over the pinned one
+        # Installed after the sync on purpose: uv.lock pins the wheel from a
+        # third-party index, and replacing it is the whole point, so it has to
+        # win.
+        #
+        # Everything after this point runs with --no-sync, and that is not
+        # caution. Without it the next uv run reconciles the environment with
+        # the lockfile, quietly puts the pinned wheel back, and the build
+        # produces a bundle with no accelerator in it. It happened on the
+        # first attempt: the wheel was installed, the spec then reported
+        # carrying six files and Vulkan was not among them.
+        run: |
+          set -euo pipefail
+          uv sync --extra desktop
+          uv pip install --reinstall wheel/llama_cpp_python-*.whl
+          uv run --no-sync python - <<'PY'
+          import pathlib
+          import llama_cpp
+          lib = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          found = sorted(p.name for p in lib.glob("libggml-*"))
+          print("installed backends:", ", ".join(found))
+          assert any("vulkan" in n for n in found), (
+              "our wheel is not the one installed: the environment was reconciled "
+              "with the lockfile and the pinned wheel came back"
+          )
+          PY
+
+      - name: Build the bundle
+        run: uv run --no-sync --extra desktop pyinstaller desktop.spec --noconfirm --clean
+
+      - name: The accelerators travel with it
+        # The same check as on the wheel, one step later: a bundle that leaves
+        # the plugins behind starts, runs on the processor, and says nothing.
+        run: |
+          set -euo pipefail
+          FOUND=$(find dist/SpendifAi -name "libggml*.so*" -printf "%f\n" | sort -u)
+          echo "backends inside the bundle:"
+          echo "${FOUND}" | sed "s/^/    /"
+          for lib in libggml-base.so libggml-cpu.so libggml-vulkan.so; do
+            echo "${FOUND}" | grep -qx "${lib}" || { echo "missing from the bundle: ${lib}"; exit 1; }
+          done
+
+      - name: What it weighs
+        run: du -sh dist/SpendifAi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle-x86_64
+          path: dist/SpendifAi
+          retention-days: 14
+
+  linux-deb:
+    # The package, and the only question that matters about it: does it run on
+    # a machine we have never had.
+    #
+    # Debian 12 is the test because it is the one today's package excludes. It
+    # ships Python 3.11, the project needs 3.12 or newer, and the old package
+    # built its environment against whatever Python the distribution had. A
+    # bundle carrying its own interpreter is the whole point, and this is
+    # where that claim is either true or not.
+    needs: linux-bundle
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-bundle-x86_64
+          path: bundle/
+
+      - name: Build the package
+        run: |
+          set -euo pipefail
+          chmod +x bundle/SpendifAi || true
+          bash packaging/linux/build-deb.sh --bundle-dir "$(pwd)/bundle"
+          ls -lh build/*.deb
+
+      - name: What it declares it needs
+        # The dependency line is the part that used to install cleanly and
+        # then fail to start. Printed so a change to it is visible in the log
+        # rather than discovered by a user.
+        run: dpkg-deb -I build/spendifai_*.deb | sed -n "1,25p"
+
+      - name: It installs and runs on Debian 12
+        # Debian 12 is the test because it is the distribution today's package
+        # excludes: it ships Python 3.11, the project needs 3.12 or newer, and
+        # the old package built its environment against whatever Python it
+        # found. A bundle carrying its own interpreter is the whole claim.
+        #
+        # The probe is written as one line, on the host. Passed as -c it must
+        # be unindented and unbroken, and nesting a multi-line program through
+        # YAML, docker and bash is how the first attempt died on an
+        # IndentationError in the test rather than in the product.
+        run: |
+          set -euo pipefail
+          printf '%s' 'import sys,pathlib,llama_cpp;lib=pathlib.Path(llama_cpp.__file__).parent/"lib";found=sorted(p.name for p in lib.glob("libggml-*"));print("python",sys.version.split()[0]);print("backends:",", ".join(found));assert any("vulkan" in n for n in found),"no Vulkan backend in the installed package"' > build/probe.txt
+          docker run --rm -v "$(pwd)/build:/pkg" debian:12 bash -euo pipefail -c '
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends /pkg/spendifai_*.deb
+            echo "--- the interpreter the package brought with it ---"
+            /opt/spendifai/SpendifAi -c "$(cat /pkg/probe.txt)"
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spendifai-deb
+          path: build/*.deb
+          retention-days: 14
