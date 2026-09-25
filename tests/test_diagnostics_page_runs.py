@@ -28,13 +28,25 @@ LEAKS = (
 )
 
 
-def _page(db_url: str, with_history: bool) -> None:
+def _page(db_url: str, with_history: bool, packaged: bool = False,
+          destination: str | None = None) -> None:
     """The script AppTest executes. Runs in the runtime, not in the test."""
+    from pathlib import Path as _Path
+
     from sqlalchemy import create_engine as _create_engine
     from sqlalchemy.orm import sessionmaker as _sessionmaker
 
     from db.models import Base as _Base, ImportJob as _Job, LlmUsageLog as _Usage
+    from ui.widgets import file_handoff as _handoff
+    from ui import diagnostics_page as _page_module
     from ui.diagnostics_page import render_diagnostics_page
+
+    # Both names are rebound: the page imported one of them into its own
+    # namespace, the helper reads the other as a module global.
+    _handoff.is_packaged = lambda: packaged
+    _page_module.is_packaged = lambda: packaged
+    if destination:
+        _handoff._destination = lambda: _Path(destination)
 
     engine = _create_engine(db_url)
     _Base.metadata.create_all(engine)
@@ -66,10 +78,23 @@ def db_url(tmp_path):
     return url
 
 
-def _run(db_url: str, with_history: bool) -> AppTest:
-    app = AppTest.from_function(_page, kwargs={"db_url": db_url, "with_history": with_history})
+def _run(db_url: str, with_history: bool, **kwargs) -> AppTest:
+    app = AppTest.from_function(
+        _page, kwargs={"db_url": db_url, "with_history": with_history, **kwargs}
+    )
     app.run(timeout=60)
     return app
+
+
+@pytest.fixture(autouse=True)
+def module_restored():
+    """The script rebinds these in this same process. Put them back."""
+    from ui import diagnostics_page as page_module
+    from ui.widgets import file_handoff as handoff
+
+    saved = (handoff.is_packaged, handoff._destination, page_module.is_packaged)
+    yield
+    handoff.is_packaged, handoff._destination, page_module.is_packaged = saved
 
 
 def test_the_page_renders_on_a_database_with_nothing_in_it(db_url):
@@ -140,3 +165,35 @@ def test_what_is_drawn_carries_nothing_personal(db_url):
     )
     for leak in LEAKS:
         assert leak not in drawn, f"the page draws {leak!r}"
+
+
+def test_in_the_packaged_window_the_report_is_written_not_downloaded(db_url, tmp_path):
+    """The defect reported on 2026-09-25, as the page now behaves.
+
+    A download button in that window navigates to the document instead of
+    saving it, so it must not be on the page at all.
+    """
+    app = _run(db_url, with_history=True, packaged=True, destination=str(tmp_path))
+
+    assert not app.exception
+    assert not app.get("download_button")
+
+    save = [b for b in app.button if b.label == "Salva il documento"]
+    assert save, "nothing offers to save the document"
+    save[0].click().run(timeout=60)
+
+    written = list(tmp_path.glob("spendifai-report-*.xml"))
+    assert written, "the document was not written"
+    assert "<spendifai_report" in written[0].read_text()
+
+
+def test_the_packaged_window_offers_to_write_the_message_itself(db_url, tmp_path):
+    """A mailto: link is as dead as a download in that window."""
+    app = _run(db_url, with_history=True, packaged=True, destination=str(tmp_path))
+
+    labels = [b.label for b in app.button]
+    assert "Scrivi all'assistenza" in labels
+
+    body = " ".join(m.value for m in app.markdown)
+    assert "mailto:" not in body, "the desktop text still points at a dead link"
+    assert "support@spendif.ai" in body

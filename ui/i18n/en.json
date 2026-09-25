@@ -1177,5 +1177,12 @@
   "diagnostics.download": "Save the document",
   "upload.progress_auto_elapsed": "Auto-refresh - {pct}% completed - {elapsed} elapsed",
   "upload.completed_in": "Completed in {elapsed}",
-  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest."
+  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest.",
+  "file.saved": "Saved to {path}",
+  "file.save_failed": "The file could not be saved: {error}",
+  "diagnostics.support_desktop": "**Need help?** Save the document above, then use the button to write to {address}: the message opens ready, and you attach the saved file. Describe what you were doing: the file says the rest.",
+  "diagnostics.mail.button": "Write to support",
+  "diagnostics.mail.body": "Describe what you were doing. Attach the technical document saved by the application.",
+  "diagnostics.mail.body_saved": "Describe what you were doing. Attach the technical document, which is here: {path}",
+  "diagnostics.mail.failed": "The mail program could not be opened. Write to {address} and attach the saved document."
 }

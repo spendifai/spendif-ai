@@ -23,6 +23,7 @@ from sqlalchemy.orm import sessionmaker
 from services.diagnostics_service import collect, to_xml
 from services.settings_service import SettingsService
 from ui.i18n import t
+from ui.widgets.file_handoff import is_packaged, offer_file, open_mail_client
 
 # The channel a non-technical user can actually use. The issue tracker stays
 # for the technical audience, on the website; it is a dead end for everyone
@@ -144,17 +145,34 @@ def render_diagnostics_page(engine) -> None:
     xml = to_xml(report, stars=stars or None)
     st.caption(t("diagnostics.document.caption"))
     st.code(xml, language="xml")
-    st.download_button(
+    saved = offer_file(
         t("diagnostics.download"),
-        data=xml,
-        file_name=f"spendifai-report-{app['version']}.xml",
-        mime="application/xml",
+        xml,
+        f"spendifai-report-{app['version']}.xml",
+        "application/xml",
+        key="diagnostics_report",
     )
 
     # Where it goes, once they have it. Saying so here is the difference
     # between a file in the Downloads folder and a support request: the page
     # produced something useful and then left the reader to guess who wants it.
-    st.markdown(t("diagnostics.support").format(
-        address=SUPPORT_ADDRESS,
-        mailto=f"mailto:{SUPPORT_ADDRESS}?subject=Spendif.ai%20{app['version']}",
-    ))
+    if is_packaged():
+        # The mailto: link below is dead in the desktop window, which follows
+        # it no more than it follows a download. The message is opened through
+        # the operating system instead, and it cannot carry the attachment, so
+        # it says where the file is and the person attaches it.
+        st.markdown(t("diagnostics.support_desktop").format(address=SUPPORT_ADDRESS))
+        if st.button(t("diagnostics.mail.button")):
+            body = (
+                t("diagnostics.mail.body_saved").format(path=saved)
+                if saved else t("diagnostics.mail.body")
+            )
+            if not open_mail_client(
+                SUPPORT_ADDRESS, f"Spendif.ai {app['version']}", body
+            ):
+                st.info(t("diagnostics.mail.failed").format(address=SUPPORT_ADDRESS))
+    else:
+        st.markdown(t("diagnostics.support").format(
+            address=SUPPORT_ADDRESS,
+            mailto=f"mailto:{SUPPORT_ADDRESS}?subject=Spendif.ai%20{app['version']}",
+        ))

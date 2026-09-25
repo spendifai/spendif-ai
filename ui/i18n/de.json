@@ -1177,5 +1177,12 @@
   "diagnostics.download": "Dokument speichern",
   "upload.progress_auto_elapsed": "Automatische Aktualisierung - {pct}% abgeschlossen - {elapsed} vergangen",
   "upload.completed_in": "Abgeschlossen in {elapsed}",
-  "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei."
+  "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei.",
+  "file.saved": "Gespeichert unter {path}",
+  "file.save_failed": "Die Datei konnte nicht gespeichert werden: {error}",
+  "diagnostics.support_desktop": "**Hilfe noetig?** Speichern Sie das Dokument oben und schreiben Sie dann ueber die Schaltflaeche an {address}: die Nachricht oeffnet sich fertig, die gespeicherte Datei haengen Sie an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei.",
+  "diagnostics.mail.button": "An den Support schreiben",
+  "diagnostics.mail.body": "Beschreiben Sie hier, was Sie gerade taten. Haengen Sie das von der Anwendung gespeicherte technische Dokument an.",
+  "diagnostics.mail.body_saved": "Beschreiben Sie hier, was Sie gerade taten. Haengen Sie das technische Dokument an, es liegt hier: {path}",
+  "diagnostics.mail.failed": "Das Mailprogramm konnte nicht geoeffnet werden. Schreiben Sie an {address} und haengen Sie das gespeicherte Dokument an."
 }

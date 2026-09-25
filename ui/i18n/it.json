@@ -1177,5 +1177,12 @@
   "diagnostics.download": "Salva il documento",
   "upload.progress_auto_elapsed": "Aggiornamento automatico - {pct}% completato - {elapsed} trascorsi",
   "upload.completed_in": "Completata in {elapsed}",
-  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file."
+  "diagnostics.support": "**Serve aiuto?** Salva il documento qui sopra e allegalo a un'email a [{address}]({mailto}). Descrivi cosa stavi facendo: il resto lo dice il file.",
+  "file.saved": "Salvato in {path}",
+  "file.save_failed": "Non e' stato possibile salvare il file: {error}",
+  "diagnostics.support_desktop": "**Serve aiuto?** Salva il documento qui sopra, poi usa il pulsante per scrivere a {address}: la mail si apre gia' pronta e tu allega il file salvato. Descrivi cosa stavi facendo: il resto lo dice il file.",
+  "diagnostics.mail.button": "Scrivi all'assistenza",
+  "diagnostics.mail.body": "Descrivi qui cosa stavi facendo. Allega il documento tecnico salvato dall'applicazione.",
+  "diagnostics.mail.body_saved": "Descrivi qui cosa stavi facendo. Allega il documento tecnico che trovi in: {path}",
+  "diagnostics.mail.failed": "Non e' stato possibile aprire il programma di posta. Scrivi a {address} allegando il documento salvato."
 }
