@@ -783,15 +783,22 @@ class TestClassifyDocument:
 # ─────────────────────────────────────────────────────────────────────────────
 # AI-149: deterministic sign decision by account-type prior
 # ─────────────────────────────────────────────────────────────────────────────
-class TestAccountTypeSignPrior:
+class TestDocTypeSignPrior:
+    """The prior comes from the document type read off the file.
+
+    It used to come from the account type the person had declared, which won
+    over the document. These cases are unchanged: every one of them already
+    drove the decision from doc_type, which is why the logic itself did not
+    move when the declaration was taken out of the chain.
+    """
 
     @staticmethod
-    def _apply(amounts, doc_type, account_type=None, debit_col=None, credit_col=None):
-        from core.classifier import _apply_account_type_sign_prior
+    def _apply(amounts, doc_type, debit_col=None, credit_col=None):
+        from core.classifier import _apply_doc_type_sign_prior
         df = pd.DataFrame({"Importo": [str(a) for a in amounts]})
         res = {"amount_col": "Importo", "debit_col": debit_col, "credit_col": credit_col,
                "doc_type": doc_type, "sign_convention": "debit_positive", "invert_sign": False}
-        return _apply_account_type_sign_prior(res, df, "test", account_type=account_type)
+        return _apply_doc_type_sign_prior(res, df, "test")
 
     def test_expected_dominant_sign_map(self):
         from core.classifier import _expected_dominant_sign

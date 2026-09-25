@@ -838,7 +838,7 @@ def process_file(
     skip_rows_override: Optional[int] = None,  # user-confirmed skip_rows from UI; takes precedence over schema
     history_cache=None,  # Optional[HistoryCache] — pre-loaded history for batch categorization
     taxonomy_map: Optional[dict] = None,  # C-08-cascade: {osm_tag: (category, subcategory)} or None
-    account_type_override: Optional[str] = None,  # AI-193 debugger: force account_type, bypass Account lookup
+    doc_type_override: Optional[str] = None,  # developer page only: force the document type to see where the signs move
     llm_trace: Optional[list] = None,  # AI-193 debugger: sink for raw LLM prompt/response per phase
 ) -> ImportResult:
     """
@@ -1014,27 +1014,20 @@ def process_file(
             doc_schema.debit_col = _step0.debit_col
             doc_schema.credit_col = _step0.credit_col
 
-    # Resolve account_type from the Account table when user selected an account
-    _account_type: str | None = None
-    if account_type_override and account_type_override.strip():
-        # AI-193 debugger: caller forces the account_type directly, bypassing
-        # the Account-table lookup — lets the same file be traced as bank_account
-        # vs prepaid_card vs credit_card to diagnose sign-convention bugs (AI-149).
-        _account_type = account_type_override.strip()
-    elif account_label_override and account_label_override.strip():
-        try:
-            from db.models import Account, get_engine, get_session
-            _session = get_session()
-            _acc_obj = (
-                _session.query(Account)
-                .filter(Account.name == account_label_override.strip())
-                .first()
-            )
-            if _acc_obj:
-                _account_type = _acc_obj.account_type
-            _session.close()
-        except Exception:
-            pass  # non-critical — account_type is a hint, not mandatory
+    # The document type is read from the file, never from the account the person
+    # picked. The lookup that used to happen here fetched the type they had
+    # declared when creating the account and handed it to the classifier, where
+    # it replaced the model's reading of the document and could flip the sign of
+    # every amount on its own. A label chosen months earlier in a form is not
+    # evidence about how a bank writes its files.
+    #
+    # What remains is the developer page's override, which forces the type on
+    # purpose to see where the signs move. It never comes from user data.
+    _doc_type_override: str | None = (
+        doc_type_override.strip()
+        if doc_type_override and doc_type_override.strip()
+        else None
+    )
 
     # Flow 2: classify document if no known schema
     if doc_schema is None:
@@ -1049,7 +1042,7 @@ def process_file(
             fallback_backend=fallback,
             amount_plausibility_cap=config.max_transaction_amount,
             header_certain=_preprocess_info.header_certain,
-            account_type=_account_type,
+            doc_type_override=_doc_type_override,
             classifier_mode=config.classifier_mode,
         )
         _progress(0.25, "classifying")
@@ -1272,7 +1265,7 @@ def process_file(
             fallback_backend=fallback,
             amount_plausibility_cap=config.max_transaction_amount,
             header_certain=_preprocess_info.header_certain,
-            account_type=_account_type,
+            doc_type_override=_doc_type_override,
             classifier_mode=config.classifier_mode,
         )
         if doc_schema is not None and _schema_is_usable(doc_schema):

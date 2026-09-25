@@ -70,13 +70,14 @@ def render_debugger_page(engine) -> None:
     col1, col2 = st.columns(2)
     with col1:
         account_choice = st.selectbox(
-            "Simula account_type (solo dev)",
+            "Simula tipo di documento (solo dev)",
             ["(come decide il sistema)"] + _ACCOUNT_TYPES,
-            help="NON è una scelta utente: in un import normale l'account_type è un "
-            "attributo fisso dell'account selezionato e il segno lo deduce il classifier. "
-            "Qui puoi forzarlo SOLO per diagnostica: vedere cosa produrrebbe la pipeline se "
-            "trattasse lo stesso file come tipo X, e isolare dove i segni si invertono (AI-149). "
-            "Lascia il default per osservare il comportamento reale del sistema.",
+            help="Non e' una scelta utente e non esiste nell'import normale: li' il tipo "
+            "di documento lo legge il sistema dal file, e il tipo di conto dichiarato non "
+            "entra piu' nella decisione del segno. Qui lo puoi forzare SOLO per diagnostica, "
+            "per vedere cosa produrrebbe la pipeline leggendo lo stesso file come tipo X e "
+            "isolare dove i segni si invertono. Lascia il default per osservare il "
+            "comportamento reale.",
         )
     with col2:
         n_sample = st.number_input(
@@ -86,7 +87,7 @@ def render_debugger_page(engine) -> None:
     run = st.button("▶ Esegui trace", type="primary", disabled=uploaded is None)
 
     if run and uploaded is not None:
-        account_type_override = None if account_choice.startswith("(come decide") else account_choice
+        doc_type_override = None if account_choice.startswith("(come decide") else account_choice
         raw_bytes = uploaded.getvalue()
         trace: list = []
         config = svc.build_config(test_mode=True)
@@ -97,7 +98,7 @@ def render_debugger_page(engine) -> None:
                     raw_bytes=raw_bytes,
                     filename=uploaded.name,
                     config=config,
-                    account_type_override=account_type_override,
+                    doc_type_override=doc_type_override,
                     existing_tx_ids_checker=lambda ids: set(),  # keep every sampled row
                     llm_trace=trace,
                 )
@@ -110,7 +111,7 @@ def render_debugger_page(engine) -> None:
         st.session_state["dbg_trace"] = trace
         st.session_state["dbg_meta"] = {
             "filename": uploaded.name,
-            "account_type_override": account_type_override,
+            "doc_type_override": doc_type_override,
             "confidence_threshold": config.confidence_threshold,
             "sample_n": int(n_sample),
         }
@@ -162,7 +163,7 @@ def _render_phase_summary(result, schema, meta) -> None:
             sd = schema.model_dump() if hasattr(schema, "model_dump") else dict(schema)
             st.json({
                 "needs_schema_review": result.needs_schema_review,
-                "account_type_forzato_dev": meta.get("account_type_override"),
+                "account_type_forzato_dev": meta.get("doc_type_override"),
                 "doc_type": str(sd.get("doc_type")),
                 "sign_convention": str(sd.get("sign_convention")),
                 "invert_sign": sd.get("invert_sign"),

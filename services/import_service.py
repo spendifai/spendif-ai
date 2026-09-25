@@ -225,7 +225,7 @@ class ImportService:
         progress_callback=None,
         account_label_override: str | None = None,
         skip_rows_override: int | None = None,
-        account_type_override: str | None = None,
+        doc_type_override: str | None = None,
         existing_tx_ids_checker=None,
         llm_trace: list | None = None,
     ) -> ImportResult:
@@ -236,8 +236,10 @@ class ImportService:
         from the caller.
 
         AI-193 (dev Debugger) hooks, all optional and no-ops in normal imports:
-          account_type_override: force the account_type, bypassing the Account
-            lookup (reproduce AI-149 across account types on the same file).
+          doc_type_override: force the document type instead of detecting it,
+            to see the same file read as a card, a bank account or cash and
+            find where the signs move. Never fed from anything the user
+            declared: the import path reads the document, not the account.
           existing_tx_ids_checker: override the duplicate checker — pass
             ``lambda ids: set()`` to keep every sampled row (nothing pre-skipped).
           llm_trace: sink list that collects the raw LLM prompt/response of each
@@ -270,7 +272,7 @@ class ImportService:
             skip_rows_override=skip_rows_override,
             history_cache=history_cache,
             taxonomy_map=taxonomy_map,
-            account_type_override=account_type_override,
+            doc_type_override=doc_type_override,
             llm_trace=llm_trace,
         )
 
