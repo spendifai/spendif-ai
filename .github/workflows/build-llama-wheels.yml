@@ -199,14 +199,31 @@ jobs:
         # Installed after the sync on purpose: uv.lock pins the wheel from a
         # third-party index, and replacing it is the whole point, so it has to
         # win.
+        #
+        # Everything after this point runs with --no-sync, and that is not
+        # caution. Without it the next uv run reconciles the environment with
+        # the lockfile, quietly puts the pinned wheel back, and the build
+        # produces a bundle with no accelerator in it. It happened on the
+        # first attempt: the wheel was installed, the spec then reported
+        # carrying six files and Vulkan was not among them.
         run: |
           set -euo pipefail
           uv sync --extra desktop
           uv pip install --reinstall wheel/llama_cpp_python-*.whl
-          uv run python -c "import llama_cpp, pathlib; print('inference library from', pathlib.Path(llama_cpp.__file__).parent)"
+          uv run --no-sync python - <<'PY'
+          import pathlib
+          import llama_cpp
+          lib = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          found = sorted(p.name for p in lib.glob("libggml-*"))
+          print("installed backends:", ", ".join(found))
+          assert any("vulkan" in n for n in found), (
+              "our wheel is not the one installed: the environment was reconciled "
+              "with the lockfile and the pinned wheel came back"
+          )
+          PY
 
       - name: Build the bundle
-        run: uv run --extra desktop pyinstaller desktop.spec --noconfirm --clean
+        run: uv run --no-sync --extra desktop pyinstaller desktop.spec --noconfirm --clean
 
       - name: The accelerators travel with it
         # The same check as on the wheel, one step later: a bundle that leaves
