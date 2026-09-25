@@ -162,3 +162,40 @@ class TestPageRouting:
         mod = importlib.import_module(module)
         assert hasattr(mod, func), f"{module} missing {func}"
         assert callable(getattr(mod, func))
+
+
+class TestImportClock:
+    """A percentage alone does not say whether to wait or to go away.
+
+    The clock existed only on the polling fragment, which is the display
+    somebody sees when they come back to a running import. The bar they watch
+    while it runs had none.
+    """
+
+    def test_one_way_of_writing_a_duration(self):
+        from ui.upload_page import _format_duration
+
+        assert _format_duration(0) == "0s"
+        assert _format_duration(9.6) == "9s"
+        assert _format_duration(75) == "1m 15s"
+        assert _format_duration(3700) == "1h 01m"
+        assert _format_duration(-5) == "0s", "a clock must not run backwards"
+
+    def test_the_two_displays_cannot_drift_apart(self):
+        """Both go through the same formatter, so they cannot disagree."""
+        from datetime import datetime, timedelta, timezone
+
+        from ui.upload_page import _elapsed_text, _format_duration
+
+        start = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert _elapsed_text(start, start + timedelta(seconds=75)) == _format_duration(75)
+
+    def test_the_watched_bar_shows_the_clock(self):
+        """The caption during the import carries the elapsed time."""
+        import inspect
+
+        from ui import upload_page
+
+        source = inspect.getsource(upload_page)
+        assert "upload.file_progress_elapsed" in source
+        assert "upload.file_progress_with_phase_elapsed" in source

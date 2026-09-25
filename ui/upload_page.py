@@ -51,6 +51,18 @@ logger = setup_logging()
 _DB_WRITE_INTERVAL = 1.5
 
 
+def _format_duration(total_seconds: float) -> str:
+    """One way of writing a duration, used by both progress displays."""
+    total = int(max(0, total_seconds))
+    hours, rest = divmod(total, 3600)
+    minutes, seconds = divmod(rest, 60)
+    if hours:
+        return f"{hours}h {minutes:02d}m"
+    if minutes:
+        return f"{minutes}m {seconds:02d}s"
+    return f"{seconds}s"
+
+
 def _elapsed_text(start, end=None) -> str:
     """How long an import has been running, or took.
 
@@ -72,14 +84,7 @@ def _elapsed_text(start, end=None) -> str:
     elif end.tzinfo is None:
         end = end.replace(tzinfo=timezone.utc)
 
-    total = int(max(0, (end - start).total_seconds()))
-    hours, rest = divmod(total, 3600)
-    minutes, seconds = divmod(rest, 60)
-    if hours:
-        return f"{hours}h {minutes:02d}m"
-    if minutes:
-        return f"{minutes}m {seconds:02d}s"
-    return f"{seconds}s"
+    return _format_duration((end - start).total_seconds())
 
 
 @st.fragment(run_every="2s")
@@ -602,7 +607,11 @@ def render_upload_page(engine):
         job = import_svc.create_job(n_files=total_files)
         job_id = job.id
 
-        # Live progress widgets for this session
+        # Live progress widgets for this session.
+        # The clock belongs here and not only in the polling fragment: this is
+        # the bar somebody watches while the import runs, and a percentage
+        # alone does not say whether to wait or to go away.
+        _import_started = time.time()
         _progress_bar = st.progress(0.0)
         _status_text  = st.empty()
         _counter_text = st.empty()
@@ -629,15 +638,17 @@ def render_upload_page(engine):
                     pct = start + (end - start) * p
                     _progress_bar.progress(min(pct, 1.0))
                     _status_text.text(f"File {fidx + 1}/{ftot} — {fname}")
+                    elapsed = _format_duration(time.time() - _import_started)
                     if phase:
                         _counter_text.caption(
-                            t_fn("upload.file_progress_with_phase",
+                            t_fn("upload.file_progress_with_phase_elapsed",
                                  phase=t_fn(f"upload.phase.{phase}"),
-                                 pct=int(p * 100))
+                                 pct=int(p * 100), elapsed=elapsed)
                         )
                     else:
                         _counter_text.caption(
-                            t_fn("upload.file_progress", pct=int(p * 100))
+                            t_fn("upload.file_progress_elapsed",
+                                 pct=int(p * 100), elapsed=elapsed)
                         )
                     now = time.time()
                     if now - _last[0] >= _DB_WRITE_INTERVAL:

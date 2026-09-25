@@ -1169,5 +1169,7 @@
   "diagnostics.download": "Save the document",
   "upload.progress_auto_elapsed": "Auto-refresh - {pct}% completed - {elapsed} elapsed",
   "upload.completed_in": "Completed in {elapsed}",
-  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest."
+  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest.",
+  "upload.file_progress_elapsed": "Processing... {pct}% - {elapsed}",
+  "upload.file_progress_with_phase_elapsed": "Processing: {phase} {pct}% - {elapsed}"
 }

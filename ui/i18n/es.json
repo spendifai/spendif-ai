@@ -1169,5 +1169,7 @@
   "diagnostics.download": "Guardar el documento",
   "upload.progress_auto_elapsed": "Actualizacion automatica - {pct}% completado - {elapsed} transcurridos",
   "upload.completed_in": "Completada en {elapsed}",
-  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo."
+  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo.",
+  "upload.file_progress_elapsed": "Procesando... {pct}% - {elapsed}",
+  "upload.file_progress_with_phase_elapsed": "Procesando: {phase} {pct}% - {elapsed}"
 }
