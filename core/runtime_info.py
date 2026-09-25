@@ -83,6 +83,24 @@ def _ggml_devices() -> list[str]:
         return []
 
 
+def accelerator_available() -> bool:
+    """Whether the inference library can put work on something other than the CPU.
+
+    Asked of the library, not of the machine. Having a graphics card and using
+    it are different facts, and the second one is a property of how the
+    inference library was built: a card is present on plenty of machines where
+    the build cannot address it, and setting layers on a card the build cannot
+    reach is how a model fails to load at all.
+
+    The caveat from _ggml_devices applies: a build with dynamic backends
+    registers nothing until a model has been loaded once, so this can answer
+    "no" too early. Answering "no" wrongly costs speed; answering "yes"
+    wrongly costs the application failing to start a model, which is the
+    failure this project has already shipped twice.
+    """
+    return any(d.upper() != "CPU" for d in _ggml_devices())
+
+
 def _emulated() -> bool:
     try:
         from core.platform_info import is_emulated_x64_on_arm

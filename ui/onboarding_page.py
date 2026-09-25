@@ -946,6 +946,16 @@ def _persist_choices(
         except Exception:
             _detected_ctx = None
 
+        # Same question, asked the same way, for the accelerator. What used to
+        # be here was a flat 0 with a note that the user could opt in through
+        # Settings; nothing told them the setting existed.
+        try:
+            from services.llm_service import recommended_gpu_layers
+
+            _detected_gpu_layers = recommended_gpu_layers()
+        except Exception:
+            _detected_gpu_layers = 0
+
         cfg_svc.set_bulk({
             "date_display_format":     loc["date_display_format"],
             "amount_decimal_sep":      loc["amount_decimal_sep"],
@@ -957,7 +967,7 @@ def _persist_choices(
             # ── Invisible LLM defaults ──────────────────────────────────────
             "llm_backend":             "local_llama_cpp",
             "cat_llm_backend":         "local_llama_cpp",
-            "llama_cpp_n_gpu_layers":  "0",      # CPU by default; user can opt-in via Settings
+            "llama_cpp_n_gpu_layers":  str(_detected_gpu_layers),
             # Il contesto lo calcola recommended_llama_cpp_context, la stessa
             # funzione che usa la pagina delle impostazioni quando scegli il
             # modello a mano: capacita' del file, con il tetto del benchmark.

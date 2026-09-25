@@ -124,6 +124,26 @@ def recommended_llama_cpp_context(model_path: str = "") -> int | None:
     return min(detected, LlamaCppBackend.DEFAULT_N_CTX_CAP)
 
 
+def recommended_gpu_layers() -> int:
+    """How many layers to put on the accelerator: all of them, or none.
+
+    Returns -1 (every layer on the accelerator) when the inference library has
+    an accelerator it can actually address, and 0 otherwise.
+
+    The onboarding used to write 0 flat, with a note saying the user could opt
+    in through Settings. Nothing told them the setting existed, so on a machine
+    with a working accelerator the first import ran on the processor and took
+    hours instead of minutes. Meanwhile the per-phase defaults all said -1, so
+    the two halves of the same configuration disagreed.
+
+    The context window is decided the same way two lines above: by asking,
+    once, in one place. This is that, for the accelerator.
+    """
+    from core import runtime_info
+
+    return -1 if runtime_info.accelerator_available() else 0
+
+
 def detect_ollama_context(model: str, base_url: str = "http://localhost:11434") -> int | None:
     """Query Ollama /api/show for the model's context length."""
     from core.llm_backends import OllamaBackend
