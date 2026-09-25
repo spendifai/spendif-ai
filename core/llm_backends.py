@@ -739,6 +739,78 @@ DEFAULT_GGUF_MODELS = {
 }
 
 
+_BACKENDS_LOADED = False
+
+
+def load_ggml_backend_plugins() -> list[str]:
+    """Register the accelerator plugins that sit next to the inference library.
+
+    Returns the devices registered afterwards, e.g. ["Vulkan0", "CPU"].
+
+    WHY THIS EXISTS AT ALL
+        Our own wheels are built with GGML_BACKEND_DL=ON, which turns each
+        accelerator into a plugin loaded at runtime instead of a library linked
+        at build time. That is what lets one package carry CPU and Vulkan side
+        by side: with link-time backends, adding an accelerator means shipping
+        a second wheel, and the Vulkan one alone would be 460 MB the way the
+        CUDA one is.
+
+        The catch is where ggml looks for those plugins: next to the
+        EXECUTABLE. For us the executable is python, so it finds none, and a
+        model that should run on the graphics card does not start at all.
+        Pointing it at the library's own lib directory is the whole fix, and
+        it has to happen before the first model is built.
+
+    On wheels whose backends are linked at build time, which is what we ship
+    today, there is nothing to load and this does nothing. It is here first so
+    that the wheels can change under it without a second change in the product.
+    """
+    global _BACKENDS_LOADED
+    if _BACKENDS_LOADED:
+        return _registered_devices()
+
+    try:
+        import ctypes
+        from pathlib import Path as _Path
+
+        import llama_cpp
+        import llama_cpp.llama_cpp as C
+
+        lib_dir = _Path(llama_cpp.__file__).parent / "lib"
+        loader = getattr(C._lib, "ggml_backend_load_all_from_path", None)
+        if loader is None or not lib_dir.is_dir():
+            # An older library, or a layout without a lib directory. Both mean
+            # link-time backends, which are already registered.
+            _BACKENDS_LOADED = True
+            return _registered_devices()
+
+        loader.argtypes = [ctypes.c_char_p]
+        loader.restype = None
+        loader(str(lib_dir).encode())
+        _BACKENDS_LOADED = True
+
+        devices = _registered_devices()
+        logger.info(
+            "ggml: plugins loaded from %s, devices registered: %s",
+            lib_dir.name, ", ".join(devices) or "none",
+        )
+        return devices
+    except Exception as exc:  # noqa: BLE001 - never stop a model from loading
+        logger.warning("ggml: could not load backend plugins (%s)", exc)
+        _BACKENDS_LOADED = True
+        return _registered_devices()
+
+
+def _registered_devices() -> list[str]:
+    """What ggml has registered right now. Empty when it cannot be asked."""
+    try:
+        from core import runtime_info
+
+        return runtime_info._ggml_devices()
+    except Exception:  # noqa: BLE001
+        return []
+
+
 class LlamaCppBackend(LLMBackend):
     """Local LLM backend using llama-cpp-python. No external service needed."""
 
@@ -776,6 +848,10 @@ class LlamaCppBackend(LLMBackend):
                 f"Modello non trovato in {model_path}. "
                 f"Scarica un modello GGUF dalla pagina Impostazioni (Scarica modello)."
             )
+        # Before the first model is built, not after: a backend registered
+        # later is a backend the model was not offered.
+        load_ggml_backend_plugins()
+
         if n_ctx == 0:
             detected = LlamaCppBackend.read_gguf_context_length(model_path) or 4096
             adaptive = self._adaptive_cap_from_db(model_path)
