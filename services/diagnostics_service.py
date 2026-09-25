@@ -196,6 +196,79 @@ def _log_summary() -> dict[str, Any]:
     return summary
 
 
+def _percentile(values: list[int], fraction: float) -> int:
+    """Order statistic, nearest rank. No interpolation, no library."""
+    if not values:
+        return 0
+    index = min(len(values) - 1, int(round(fraction * (len(values) - 1))))
+    return int(values[index])
+
+
+def _llm_observed(session: Any) -> list[dict[str, Any]]:
+    """What the model actually did on this machine, not how it is configured.
+
+    Every other figure about inference in this report is a setting. A setting
+    says what was asked for; these rows say what happened, and the two disagree
+    exactly when something is wrong. The call log is already written per call
+    (db.repository.log_llm_usage), so this reads and groups, it measures
+    nothing new.
+
+    CONTEXT PRESSURE IS THE REASON THIS SECTION EXISTS. On 2026-09-22 a saved
+    context of 4096 made every import fail with "all backends failed", and the
+    diagnosis took hours. prompt_tokens against n_ctx of the same call says it
+    in one line, on the machine where it happens.
+
+    Descriptive figures only: counts, median, p95, maximum. The log also
+    supports confidence intervals (db.repository.get_token_usage_stats); a
+    claim of that kind about a model's behaviour is not what a support document
+    is for, and it is not established by reading a machine's own call log.
+
+    source_name is a file name, so it names a bank and a period. It is the one
+    column here that must never be read.
+    """
+    from db.models import LlmUsageLog
+
+    try:
+        rows = session.query(LlmUsageLog).all()
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a query
+        logger.warning("diagnostics: cannot read the call log (%s)", exc)
+        return []
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for row in rows:
+        groups.setdefault(
+            (row.backend or "", _model_name(row.model_id), row.caller or ""), []
+        ).append(row)
+
+    observed: list[dict[str, Any]] = []
+    for (backend, model, caller), entries in sorted(groups.items()):
+        durations = sorted(int(e.duration_ms or 0) for e in entries)
+        prompts = sorted(int(e.prompt_tokens or 0) for e in entries)
+        contexts = [int(e.n_ctx) for e in entries if e.n_ctx]
+        smallest_context = min(contexts) if contexts else 0
+        largest_prompt = prompts[-1] if prompts else 0
+
+        observed.append({
+            "backend": backend,
+            "model": model,
+            "phase": caller,
+            "calls": len(entries),
+            "median_ms": _percentile(durations, 0.5),
+            "p95_ms": _percentile(durations, 0.95),
+            "median_prompt_tokens": _percentile(prompts, 0.5),
+            "max_prompt_tokens": largest_prompt,
+            "context": smallest_context,
+            # The answer, not the ingredients. A prompt that reaches the
+            # context window is the shape of a failure that reports itself as
+            # "all backends failed".
+            "context_pressure": bool(
+                smallest_context and largest_prompt >= 0.9 * smallest_context
+            ),
+        })
+
+    return observed
+
+
 def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
     """Assemble the report. Never raises: a diagnostic that crashes says nothing."""
     from core import runtime_info
@@ -256,6 +329,7 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         "ledger": _counts(session),
         "imports": _import_summary(session),
         "logs": _log_summary(),
+        "llm_observed": _llm_observed(session),
     }
 
 
@@ -290,6 +364,14 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
                     ET.SubElement(sub, "item").text = str(v)
             else:
                 ET.SubElement(node, key).text = str(value)
+
+    # A list of groups, not a mapping like every other section, so it is
+    # rendered here rather than bent into the loop above.
+    observed = ET.SubElement(root, "llm_observed")
+    for group in report.get("llm_observed", []):
+        node = ET.SubElement(observed, "call_group")
+        for key, value in group.items():
+            ET.SubElement(node, key).text = str(value)
 
     if stars is not None:
         ET.SubElement(root, "user_rating", {

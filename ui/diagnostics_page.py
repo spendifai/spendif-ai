@@ -78,6 +78,7 @@ def render_diagnostics_page(engine) -> None:
         t("diagnostics.field.devices"): ", ".join(graphics["inference_devices"]) or "-",
         t("diagnostics.field.install"): app["install_method"],
         t("diagnostics.field.build"): app["build_time"],
+        t("diagnostics.field.python"): system["python_version"],
     })
 
     st.subheader(t("diagnostics.section.inference"))
@@ -88,6 +89,31 @@ def render_diagnostics_page(engine) -> None:
         t("diagnostics.field.gpu_layers"): inference["n_gpu_layers"],
         t("diagnostics.field.library"): inference["llama_cpp_version"],
     })
+
+    # Settings say what was asked for. This says what happened, and the two
+    # disagree exactly when something is wrong.
+    st.subheader(t("diagnostics.section.observed"))
+    observed = report["llm_observed"]
+    if observed:
+        st.caption(t("diagnostics.observed.caption"))
+        st.table({
+            t("diagnostics.field.phase"): [g["phase"] for g in observed],
+            t("diagnostics.field.model"): [g["model"] for g in observed],
+            t("diagnostics.field.calls"): [g["calls"] for g in observed],
+            t("diagnostics.field.median_ms"): [g["median_ms"] for g in observed],
+            t("diagnostics.field.max_prompt"): [g["max_prompt_tokens"] for g in observed],
+            t("diagnostics.field.context"): [g["context"] for g in observed],
+        })
+        # The one row that explains an import failing on every file.
+        for group in observed:
+            if group["context_pressure"]:
+                st.warning(t("diagnostics.context_pressure").format(
+                    phase=group["phase"],
+                    prompt=group["max_prompt_tokens"],
+                    context=group["context"],
+                ))
+    else:
+        st.caption(t("diagnostics.observed.none"))
 
     st.subheader(t("diagnostics.section.imports"))
     imports = report["imports"]

@@ -156,3 +156,64 @@ def test_logs_are_described_and_not_quoted(session, settings, tmp_path, monkeypa
         assert value not in xml, f"the log section leaks {label}: {value!r}"
     assert "Traceback" not in xml
     assert "/Users/" not in xml
+
+
+def _usage(session, **kwargs):
+    from db.models import LlmUsageLog
+
+    defaults = dict(
+        backend="local_llama_cpp",
+        model_id=SENTINELS["home_path"],
+        caller="categorizer",
+        source_name=SENTINELS["source_file"],
+        n_ctx=4096,
+        duration_ms=100,
+        prompt_tokens=100,
+    )
+    defaults.update(kwargs)
+    session.add(LlmUsageLog(**defaults))
+    session.commit()
+
+
+def test_observed_calls_say_what_happened_without_naming_the_file(session, settings):
+    """The call log names the imported file. That column must never be read."""
+    _usage(session)
+    report = diagnostics.collect(session, settings)
+    xml = diagnostics.to_xml(report)
+
+    assert report["llm_observed"], "the call log was not read at all"
+    group = report["llm_observed"][0]
+    assert group["calls"] == 1
+    assert group["phase"] == "categorizer"
+    # The model by file name, as everywhere else in this document.
+    assert group["model"] == "gemma-3-12b.gguf"
+
+    for label, value in SENTINELS.items():
+        assert value not in xml, f"the observed section leaks {label}: {value!r}"
+
+
+def test_a_prompt_that_fills_the_context_is_reported_as_such(session, settings):
+    """The shape of the defect that reported itself as 'all backends failed'.
+
+    A context of 4096 with prompts arriving at 4000 is the one-line version of
+    a diagnosis that cost hours on 2026-09-22.
+    """
+    _usage(session, prompt_tokens=400, duration_ms=50)
+    _usage(session, prompt_tokens=4000, duration_ms=90)
+
+    group = diagnostics.collect(session, settings)["llm_observed"][0]
+
+    assert group["calls"] == 2
+    assert group["max_prompt_tokens"] == 4000
+    assert group["context"] == 4096
+    assert group["context_pressure"] is True
+
+
+def test_a_prompt_well_inside_the_context_is_not_flagged(session, settings):
+    _usage(session, prompt_tokens=400)
+    _usage(session, prompt_tokens=900)
+
+    group = diagnostics.collect(session, settings)["llm_observed"][0]
+
+    assert group["context_pressure"] is False
+    assert group["median_ms"] == 100
