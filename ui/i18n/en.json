@@ -1169,5 +1169,11 @@
   "diagnostics.download": "Save the document",
   "upload.progress_auto_elapsed": "Auto-refresh - {pct}% completed - {elapsed} elapsed",
   "upload.completed_in": "Completed in {elapsed}",
-  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest."
+  "diagnostics.support": "**Need help?** Save the document above and attach it to an email to [{address}]({mailto}). Describe what you were doing: the file says the rest.",
+  "sign.title": "One thing to check: money in and money out for this file",
+  "sign.explain": "In **{filename}** ({n} movements) it is not clear how this bank writes its expenses: they may have come out the wrong way round, with money spent counted as money received. Look at a couple of rows in the ledger and tell me. You are asked once: the answer is remembered for this bank's next files.",
+  "sign.flip": "They are the wrong way round, flip them",
+  "sign.keep": "They are right as they are",
+  "sign.flipped": "{n} movements turned round. The next files from this bank are handled this way without asking.",
+  "sign.kept": "Good. This bank's next files will not raise the question again."
 }

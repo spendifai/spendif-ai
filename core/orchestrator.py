@@ -249,6 +249,11 @@ class ImportResult:
     errors: list[str] = field(default_factory=list)
     flow_used: str = "unknown"  # "flow1" or "flow2"
     needs_schema_review: bool = False   # True when confidence is medium/low → user must confirm schema
+    # The direction of the amounts, asked about only when the two readings of
+    # it disagree. Not a confidence threshold: a threshold is a dial somebody
+    # has to tune, while a disagreement between two independent estimates is
+    # a fact. Stays False once the person has settled the format.
+    sign_needs_confirmation: bool = False
     available_columns: list[str] = field(default_factory=list)  # column names for review UI
     total_file_rows: int = 0          # total rows in the raw DataFrame (after header stripping)
     header_rows_skipped: int = 0      # rows stripped as header/pre-header
@@ -838,7 +843,7 @@ def process_file(
     skip_rows_override: Optional[int] = None,  # user-confirmed skip_rows from UI; takes precedence over schema
     history_cache=None,  # Optional[HistoryCache] — pre-loaded history for batch categorization
     taxonomy_map: Optional[dict] = None,  # C-08-cascade: {osm_tag: (category, subcategory)} or None
-    account_type_override: Optional[str] = None,  # AI-193 debugger: force account_type, bypass Account lookup
+    doc_type_override: Optional[str] = None,  # developer page only: force the document type to see where the signs move
     llm_trace: Optional[list] = None,  # AI-193 debugger: sink for raw LLM prompt/response per phase
 ) -> ImportResult:
     """
@@ -1014,27 +1019,20 @@ def process_file(
             doc_schema.debit_col = _step0.debit_col
             doc_schema.credit_col = _step0.credit_col
 
-    # Resolve account_type from the Account table when user selected an account
-    _account_type: str | None = None
-    if account_type_override and account_type_override.strip():
-        # AI-193 debugger: caller forces the account_type directly, bypassing
-        # the Account-table lookup — lets the same file be traced as bank_account
-        # vs prepaid_card vs credit_card to diagnose sign-convention bugs (AI-149).
-        _account_type = account_type_override.strip()
-    elif account_label_override and account_label_override.strip():
-        try:
-            from db.models import Account, get_engine, get_session
-            _session = get_session()
-            _acc_obj = (
-                _session.query(Account)
-                .filter(Account.name == account_label_override.strip())
-                .first()
-            )
-            if _acc_obj:
-                _account_type = _acc_obj.account_type
-            _session.close()
-        except Exception:
-            pass  # non-critical — account_type is a hint, not mandatory
+    # The document type is read from the file, never from the account the person
+    # picked. The lookup that used to happen here fetched the type they had
+    # declared when creating the account and handed it to the classifier, where
+    # it replaced the model's reading of the document and could flip the sign of
+    # every amount on its own. A label chosen months earlier in a form is not
+    # evidence about how a bank writes its files.
+    #
+    # What remains is the developer page's override, which forces the type on
+    # purpose to see where the signs move. It never comes from user data.
+    _doc_type_override: str | None = (
+        doc_type_override.strip()
+        if doc_type_override and doc_type_override.strip()
+        else None
+    )
 
     # Flow 2: classify document if no known schema
     if doc_schema is None:
@@ -1049,7 +1047,7 @@ def process_file(
             fallback_backend=fallback,
             amount_plausibility_cap=config.max_transaction_amount,
             header_certain=_preprocess_info.header_certain,
-            account_type=_account_type,
+            doc_type_override=_doc_type_override,
             classifier_mode=config.classifier_mode,
         )
         _progress(0.25, "classifying")
@@ -1272,7 +1270,7 @@ def process_file(
             fallback_backend=fallback,
             amount_plausibility_cap=config.max_transaction_amount,
             header_certain=_preprocess_info.header_certain,
-            account_type=_account_type,
+            doc_type_override=_doc_type_override,
             classifier_mode=config.classifier_mode,
         )
         if doc_schema is not None and _schema_is_usable(doc_schema):
@@ -1559,7 +1557,38 @@ def process_file(
         merged_count=_merge_count,
         internal_transfer_count=_giro_count,
         phase_durations_ms=_phase_durations_ms,
+        sign_needs_confirmation=_sign_needs_a_question(doc_schema),
     )
+
+
+def _sign_needs_a_question(schema) -> bool:
+    """Whether to interrupt somebody about the direction of their amounts.
+
+    Three sources decide that direction, in this order. The person's own
+    answer, once given, wins for ever: that is the seal, and re-asking after
+    it teaches people their answers do not stick. Otherwise two independent
+    readings are compared, the model's and the measurement on the data. When
+    they agree the file is imported in silence. Only their disagreement is
+    worth a question.
+
+    Deliberately not a confidence threshold. A threshold is a dial somebody
+    has to tune and defend; two estimators contradicting each other is a fact
+    that needs no tuning.
+    """
+    if schema is None:
+        return False
+    if getattr(schema, "user_confirmed", False):
+        return False
+
+    model_says = getattr(schema, "sign_llm_verdict", None)
+    data_says = getattr(schema, "sign_deterministic_verdict", None)
+    if model_says is None or data_says is None:
+        # One of them did not run: a reused schema, or a file whose layout
+        # carries the direction structurally. There is no disagreement to
+        # report, and inventing a question here would be noise.
+        return False
+
+    return model_says != data_says
 
 
 def process_files(

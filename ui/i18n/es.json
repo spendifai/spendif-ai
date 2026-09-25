@@ -1169,5 +1169,11 @@
   "diagnostics.download": "Guardar el documento",
   "upload.progress_auto_elapsed": "Actualizacion automatica - {pct}% completado - {elapsed} transcurridos",
   "upload.completed_in": "Completada en {elapsed}",
-  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo."
+  "diagnostics.support": "**Necesitas ayuda?** Guarda el documento de arriba y adjuntalo a un correo a [{address}]({mailto}). Describe que estabas haciendo: el resto lo dice el archivo.",
+  "sign.title": "Solo una cosa que comprobar: entradas y salidas de este archivo",
+  "sign.explain": "En **{filename}** ({n} movimientos) no esta claro como escribe los gastos este banco: podrian haber salido al reves, con las salidas contadas como entradas. Mira un par de filas en el registro y dimelo. Se pregunta una sola vez: la respuesta vale para los proximos archivos de este banco.",
+  "sign.flip": "Estan al reves, dale la vuelta a todo",
+  "sign.keep": "Estan bien asi",
+  "sign.flipped": "{n} movimientos invertidos. Los proximos archivos de este banco se tratan asi sin preguntar.",
+  "sign.kept": "Perfecto. Los proximos archivos de este banco ya no preguntaran."
 }

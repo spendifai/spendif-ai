@@ -1169,5 +1169,11 @@
   "diagnostics.download": "Dokument speichern",
   "upload.progress_auto_elapsed": "Automatische Aktualisierung - {pct}% abgeschlossen - {elapsed} vergangen",
   "upload.completed_in": "Abgeschlossen in {elapsed}",
-  "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei."
+  "diagnostics.support": "**Brauchen Sie Hilfe?** Speichern Sie das Dokument oben und haengen Sie es an eine E-Mail an [{address}]({mailto}) an. Beschreiben Sie, was Sie gerade taten: den Rest sagt die Datei.",
+  "sign.title": "Nur eines pruefen: Einnahmen und Ausgaben dieser Datei",
+  "sign.explain": "In **{filename}** ({n} Bewegungen) ist unklar, wie diese Bank ihre Ausgaben schreibt: moeglicherweise sind sie verdreht und Ausgaben zaehlen als Einnahmen. Schauen Sie sich ein paar Zeilen im Register an und sagen Sie es. Gefragt wird einmal: die Antwort gilt fuer die naechsten Dateien dieser Bank.",
+  "sign.flip": "Sie sind verdreht, alles umdrehen",
+  "sign.keep": "Sie stimmen so",
+  "sign.flipped": "{n} Bewegungen umgedreht. Die naechsten Dateien dieser Bank werden ohne Nachfrage so behandelt.",
+  "sign.kept": "Gut. Bei den naechsten Dateien dieser Bank kommt die Frage nicht wieder."
 }

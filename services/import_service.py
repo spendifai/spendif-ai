@@ -225,7 +225,7 @@ class ImportService:
         progress_callback=None,
         account_label_override: str | None = None,
         skip_rows_override: int | None = None,
-        account_type_override: str | None = None,
+        doc_type_override: str | None = None,
         existing_tx_ids_checker=None,
         llm_trace: list | None = None,
     ) -> ImportResult:
@@ -236,8 +236,10 @@ class ImportService:
         from the caller.
 
         AI-193 (dev Debugger) hooks, all optional and no-ops in normal imports:
-          account_type_override: force the account_type, bypassing the Account
-            lookup (reproduce AI-149 across account types on the same file).
+          doc_type_override: force the document type instead of detecting it,
+            to see the same file read as a card, a bank account or cash and
+            find where the signs move. Never fed from anything the user
+            declared: the import path reads the document, not the account.
           existing_tx_ids_checker: override the duplicate checker — pass
             ``lambda ids: set()`` to keep every sampled row (nothing pre-skipped).
           llm_trace: sink list that collects the raw LLM prompt/response of each
@@ -270,7 +272,7 @@ class ImportService:
             skip_rows_override=skip_rows_override,
             history_cache=history_cache,
             taxonomy_map=taxonomy_map,
-            account_type_override=account_type_override,
+            doc_type_override=doc_type_override,
             llm_trace=llm_trace,
         )
 
@@ -342,3 +344,33 @@ class ImportService:
             force_schema_import=settings.get("force_schema_import", "false").lower() == "true",
             cat_llm_backend=settings.get("cat_llm_backend", ""),
         )
+
+    # ── The direction of the amounts, once the person has settled it ────────
+
+    def confirm_sign(self, batch_sha256: str, source_identifier: str, flip: bool) -> int:
+        """Record the answer for this format, and apply it to what was imported.
+
+        Both answers seal the format, not only the one that changes something:
+        "it is already right" is an answer too, and asking again next month
+        would teach the person that answering is pointless.
+
+        Returns how many transactions were turned round.
+        """
+        from db import repository
+        from db.models import get_session
+
+        session = get_session(self.engine)
+        try:
+            moved = repository.invert_batch_amounts(session, batch_sha256) if flip else 0
+
+            schema = repository.get_document_schema(session, source_identifier)
+            if schema is not None:
+                if flip:
+                    schema.invert_sign = not schema.invert_sign
+                schema.user_confirmed = True
+                repository.upsert_document_schema(session, schema)
+
+            session.commit()
+            return moved
+        finally:
+            session.close()

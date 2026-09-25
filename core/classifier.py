@@ -125,7 +125,7 @@ class MultiStepDiagnostics:
     step2_date_col: str = ""
     step2_amount_col: str = ""
     step2_description_col: str = ""
-    step1_skipped: bool = False  # True when account_type used directly
+    step1_skipped: bool = False  # kept at False: Step 1 always runs now
     step2_fallback: bool = False  # True when Phase 0 fallback used
     step3_fallback: bool = False  # True when degraded defaults used
     # Phase 0 → LLM → merge traceability
@@ -148,7 +148,6 @@ def _classify_multi_step(
     llm_backend: LLMBackend,
     fallback_backend: LLMBackend | None,
     step0: "_Step0Result",
-    account_type: str | None = None,
 ) -> tuple[dict[str, Any] | None, MultiStepDiagnostics]:
     """Run 3-step sequential LLM classification for small models.
 
@@ -157,43 +156,33 @@ def _classify_multi_step(
     diag = MultiStepDiagnostics(classifier_mode="multi_step")
 
     # ── Step 1: Document Identity ────────────────────────────────────────
-    # If user specified account_type, use it directly (skip LLM for doc_type)
+    # The document says what it is. What the person called the account does
+    # not: "conto corrente" or "carta" is a banking distinction, and the
+    # answer often has nothing to do with how the file is written. Taking it
+    # as the document type used to skip this step entirely and decide the
+    # sign of every amount from it.
     t1 = time.time()
-    if account_type:
-        logger.info(
-            f"classify_document [{source_name}]: multi-step Step 1 — "
-            f"using user-specified account_type='{account_type}' as doc_type"
-        )
-        step1_result = {
-            "doc_type": account_type,
-            "encoding": "utf-8",
-            "delimiter": None,
-            "sheet_name": None,
-            "skip_rows": 0,
-        }
-        diag.step1_skipped = True
-    else:
-        logger.info(f"classify_document [{source_name}]: multi-step Step 1 — Document Identity")
-        step1_user = _PROMPTS["step1_user_template"].format(
-            source_name=source_name,
-            columns_list=columns_list,
-            step0_analysis=step0_text,
-            sample_json=sample_json,
-        )
-        step1_result, _ = call_with_fallback(
-            primary=llm_backend,
-            system_prompt=_PROMPTS["step1_system"],
-            user_prompt=step1_user,
-            json_schema=step1_json_schema(),
-            fallback=fallback_backend,
-            caller="classifier",
-            step="step1_identity",
-            source_name=source_name,
-        )
-        if step1_result is None:
-            logger.warning(f"classify_document [{source_name}]: multi-step Step 1 FAILED — aborting")
-            diag.step1_time_s = time.time() - t1
-            return None, diag
+    logger.info(f"classify_document [{source_name}]: multi-step Step 1: Document Identity")
+    step1_user = _PROMPTS["step1_user_template"].format(
+        source_name=source_name,
+        columns_list=columns_list,
+        step0_analysis=step0_text,
+        sample_json=sample_json,
+    )
+    step1_result, _ = call_with_fallback(
+        primary=llm_backend,
+        system_prompt=_PROMPTS["step1_system"],
+        user_prompt=step1_user,
+        json_schema=step1_json_schema(),
+        fallback=fallback_backend,
+        caller="classifier",
+        step="step1_identity",
+        source_name=source_name,
+    )
+    if step1_result is None:
+        logger.warning(f"classify_document [{source_name}]: multi-step Step 1 FAILED, aborting")
+        diag.step1_time_s = time.time() - t1
+        return None, diag
     diag.step1_time_s = time.time() - t1
     diag.step1_doc_type = step1_result.get("doc_type", "")
     logger.info(f"classify_document [{source_name}]: Step 1 OK — doc_type={diag.step1_doc_type} ({diag.step1_time_s:.1f}s)")
@@ -303,7 +292,7 @@ def classify_document(
     fallback_backend: LLMBackend | None = None,
     amount_plausibility_cap: float = _AMOUNT_PLAUSIBILITY_CAP_DEFAULT,
     header_certain: bool = True,
-    account_type: str | None = None,
+    doc_type_override: str | None = None,
     classifier_mode: str = "single",
 ) -> DocumentSchema | None:
     """
@@ -317,8 +306,12 @@ def classify_document(
         sanitize_config: PII sanitization configuration.
         fallback_backend: fallback LLM backend (must be local).
         header_certain: whether pre-load header detection was certain.
-        account_type: user-specified account type (e.g. 'credit_card'); used as
-            a constraint for doc_type inference and invert_sign logic.
+        doc_type_override: force the document type instead of detecting it.
+            FOR DIAGNOSIS ONLY, from the developer page: it answers "what would
+            the pipeline produce if it read this file as a credit card". It is
+            never fed from anything the user declared - that is precisely the
+            wiring removed here, because a label chosen months earlier in a
+            form could flip the sign of every amount in the file.
 
     Returns:
         DocumentSchema or None if classification failed.
@@ -406,27 +399,6 @@ def classify_document(
         step0 = _inspect_neutral_column_sign(step0, df_raw, source_name)
     step0_text = _format_step0_for_prompt(step0)
 
-    # Inject account_type constraint when the user has specified the account type
-    if account_type:
-        _type_to_doc = {
-            "credit_card": "credit_card",
-            "bank_account": "bank_account",
-            "debit_card": "debit_card",
-            "prepaid_card": "prepaid_card",
-            "savings_account": "savings_account",
-            "cash": "cash",
-        }
-        _doc_hint = _type_to_doc.get(account_type, account_type)
-        step0_text += (
-            f"\n\n## Account type constraint (user-specified)\n"
-            f"The user specified this account is a **{account_type}**. "
-            f"Set doc_type = '{_doc_hint}' unless the data clearly contradicts.\n"
-        )
-        logger.info(
-            f"classify_document [{source_name}]: account_type constraint "
-            f"'{account_type}' → doc_type hint '{_doc_hint}'"
-        )
-
     # ── Auto-detect classifier mode from model size ────────────────────
     if classifier_mode == "auto":
         _MULTI_STEP_THRESHOLD = 5 * 1024**3  # 5 GB
@@ -455,7 +427,6 @@ def classify_document(
             llm_backend=llm_backend,
             fallback_backend=fallback_backend,
             step0=step0,
-            account_type=account_type,
         )
         if result is None:
             logger.warning(f"classify_document: multi-step failed for {source_name}")
@@ -508,22 +479,39 @@ def classify_document(
     # Merge Phase 0 deterministic findings — Phase 0 wins for all resolved fields.
     result = _merge_step0_into_result(result, step0, source_name)
 
-    # Safety net: enforce account_type constraint (user-specified doc_type wins over LLM)
-    if account_type and result.get("doc_type") != account_type:
-        logger.info(
-            "classify_document [%s]: enforcing user account_type='%s' over LLM doc_type='%s'",
-            source_name, account_type, result.get("doc_type"),
-        )
-        result["doc_type"] = account_type
 
     # Safety net: re-enforce invert_sign after merge (catches any LLM re-override).
-    result = _apply_step0_invert_sign(result, source_name, account_type=account_type)
+    if doc_type_override:
+        logger.warning(
+            "classify_document [%s]: doc_type forced to '%s' for diagnosis "
+            "(detected: '%s')", source_name, doc_type_override, result.get("doc_type"),
+        )
+        result["doc_type"] = doc_type_override
 
-    # AI-149: deterministic sign decision driven by the account-type prior.
+    # What the model made of the direction, before anything deterministic
+    # touches it. Kept because the disagreement between the two is the only
+    # thing worth interrupting a person for.
+    _llm_verdict = bool(result.get("invert_sign"))
+
+    result = _apply_step0_invert_sign(result, source_name)
+
+    # AI-149: deterministic sign decision driven by the document-type prior.
     # On single-amount-column files this OVERRIDES the LLM's sign_convention/
-    # invert_sign/ratios — the direction of the sign is an accounting fact, not
+    # invert_sign/ratios: the direction of the sign is an accounting fact, not
     # a semantic guess. See documents/04_software_engineering/07_deterministic_pipeline.md.
-    result = _apply_account_type_sign_prior(result, df_raw, source_name, account_type=account_type)
+    result = _apply_doc_type_sign_prior(result, df_raw, source_name)
+
+    _prior_decided = bool(result.pop("sign_prior_applied", False))
+    result["sign_llm_verdict"] = _llm_verdict
+    result["sign_deterministic_verdict"] = (
+        bool(result.get("invert_sign")) if _prior_decided else None
+    )
+    if _prior_decided and _llm_verdict != result["sign_deterministic_verdict"]:
+        logger.info(
+            "classify_document [%s]: the two readings of the direction disagree "
+            "(model=%s, measured=%s)",
+            source_name, _llm_verdict, result["sign_deterministic_verdict"],
+        )
 
     # Compute deterministic confidence score from merged result
     score = compute_confidence_score(result, header_certain=header_certain)
@@ -1235,17 +1223,19 @@ def _merge_step0_into_result(result: dict, step0: _Step0Result, source_name: str
 
 
 def _apply_step0_invert_sign(
-    result: dict, source_name: str, account_type: str | None = None,
+    result: dict, source_name: str,
 ) -> dict:
-    """Post-merge safety net: re-enforce invert_sign from doc_type or account_type.
+    """Post-merge safety net: re-enforce invert_sign from the detected doc_type.
 
     Runs after _merge_step0_into_result so both the LLM's doc_type and Phase 0
     column findings are available.  Only applies when sign_convention == signed_single.
 
     Rule: credit_card doc_type → invert_sign=True always (positive=charge,
-    negative=payment).  If account_type == "credit_card", force invert_sign=True
-    regardless of doc_type.  All other role assignments come from the LLM (Phase 1)
-    — no language-dependent synonym matching here.
+    negative=payment).  What the person called the account is deliberately not
+    consulted: it used to force the inversion on its own, which is how a file
+    could have every amount flipped because of a label chosen months earlier in
+    a form.  All other role assignments come from the LLM (Phase 1): no
+    language-dependent synonym matching here.
     """
     out = dict(result)
 
@@ -1263,14 +1253,6 @@ def _apply_step0_invert_sign(
                 f"doc_type=credit_card → invert_sign=True"
             )
             out["invert_sign"] = True
-
-    # account_type constraint: credit_card → force invert_sign
-    if account_type == "credit_card" and not out.get("invert_sign"):
-        logger.info(
-            f"classify_document [{source_name}]: account_type=credit_card "
-            f"→ forcing invert_sign=True"
-        )
-        out["invert_sign"] = True
 
     return out
 
@@ -1311,8 +1293,8 @@ def _ordered_nonzero_amounts(df, amount_col: str) -> list[float]:
     return [float(v) for v in vals.tolist() if pd.notna(v) and float(v) != 0.0]
 
 
-def _apply_account_type_sign_prior(
-    result: dict, df_raw, source_name: str, account_type: str | None = None
+def _apply_doc_type_sign_prior(
+    result: dict, df_raw, source_name: str
 ) -> dict:
     """Deterministic sign decision for SINGLE-amount-column files (AI-149).
 
@@ -1350,10 +1332,9 @@ def _apply_account_type_sign_prior(
     out["positive_ratio"] = round(n_pos / n, 4)
     out["negative_ratio"] = round(n_neg / n, 4)
 
-    # Prior: user declaration (account_type) wins, else detected doc_type.
-    expected = _expected_dominant_sign(account_type) if account_type else None
-    if expected is None:
-        expected = _expected_dominant_sign(out.get("doc_type", ""))
+    # Prior: the detected document type, and only that. It used to be the
+    # user's declaration first, which meant a wrong label beat the file.
+    expected = _expected_dominant_sign(out.get("doc_type", ""))
     if expected is None:
         # No prior (bank_account/unknown) → leave invert_sign as decided upstream.
         return out
@@ -1367,9 +1348,12 @@ def _apply_account_type_sign_prior(
         basis = "S0-single-cycle"
 
     out["invert_sign"] = (measured != expected)
+    # This is what makes the two readings comparable: without it, "the
+    # deterministic one agrees" cannot be told apart from "it never ran".
+    out["sign_prior_applied"] = True
     logger.info(
         f"classify_document [{source_name}]: sign prior [{basis}] "
-        f"type={account_type or out.get('doc_type')} n_pos={n_pos} n_neg={n_neg} "
+        f"type={out.get('doc_type')} n_pos={n_pos} n_neg={n_neg} "
         f"measured={'+' if measured > 0 else '-'} expected={'+' if expected > 0 else '-'} "
         f"→ invert_sign={out['invert_sign']} (ratios {out['positive_ratio']}/{out['negative_ratio']})"
     )
