@@ -186,6 +186,10 @@ class CatDetailRow:
     is_fallback: bool
     source: str
     confidence: str
+    # Context: lets a single detail CSV hold mixed (model, scenario) runs
+    # without ambiguity. Populated by the run loop; default empty for
+    # backward compatibility.
+    scenario: str = ""
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -805,6 +809,7 @@ def _evaluate_file(
                 is_fallback=is_fb,
                 source=cr.source.value,
                 confidence=cr.confidence.value,
+                scenario=scenario,
             ))
 
         duration = time.time() - t_start
@@ -926,6 +931,10 @@ _CSV_HEADER = [
 
 _DETAIL_CSV_HEADER = [
     "run_id", "filename", "git_commit", "git_branch", "tx_index",
+    # Context columns added so multiple (model, scenario, provider) runs don't
+    # silently overlap in the detail file. Older rows are migrated by padding
+    # the new fields with empty strings.
+    "scenario", "provider", "model",
     "description", "amount",
     "expected_category", "actual_category", "actual_subcategory", "actual_full",
     "exact_match", "fuzzy_match", "is_fallback",
@@ -1021,6 +1030,11 @@ def _detail_to_row(d: CatDetailRow) -> list:
         _LLM_META.get("git_commit", ""),
         _LLM_META.get("git_branch", ""),
         d.tx_index,
+        # Context columns: keep the column order aligned with
+        # _DETAIL_CSV_HEADER (scenario, provider, model right after tx_index).
+        d.scenario,
+        _LLM_META.get("provider", ""),
+        _LLM_META.get("model", ""),
         d.description, d.amount,
         d.expected_category, d.actual_category, d.actual_subcategory, d.actual_full,
         d.exact_match, d.fuzzy_match, d.is_fallback,
@@ -1111,10 +1125,39 @@ def _migrate_csv_header(path: Path) -> None:
     print(f"[migrate] {path.name}: added {len(new_cols)} columns ({', '.join(c for _, c in new_cols)})")
 
 
+def _migrate_detail_csv_header(path: Path) -> None:
+    """If the existing cat_results_detail.csv has the legacy header (missing
+    scenario / provider / model), rewrite it by padding old rows with empty
+    strings in the new positions. Same shape as _migrate_csv_header."""
+    with open(path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        old_header = next(reader, None)
+        if old_header is None or old_header == _DETAIL_CSV_HEADER:
+            return
+        if len(old_header) >= len(_DETAIL_CSV_HEADER):
+            return
+        old_set = set(old_header)
+        new_cols = [(i, col) for i, col in enumerate(_DETAIL_CSV_HEADER) if col not in old_set]
+        if not new_cols:
+            return
+        rows = list(reader)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(_DETAIL_CSV_HEADER)
+        for row in rows:
+            padded = list(row)
+            for offset, (insert_idx, _) in enumerate(new_cols):
+                padded.insert(insert_idx, "")
+            writer.writerow(padded)
+    print(f"[migrate] {path.name}: added {len(new_cols)} columns ({', '.join(c for _, c in new_cols)})")
+
+
 def _write_detail_csv(all_details: list[CatDetailRow]) -> None:
     """Append new detail rows to detail CSV (creates with header if missing)."""
     path = _BENCHMARK_DIR / "cat_results_detail.csv"
     write_header = not path.exists() or path.stat().st_size == 0
+    if not write_header:
+        _migrate_detail_csv_header(path)
     with open(path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if write_header:
