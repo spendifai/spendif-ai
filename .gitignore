@@ -69,7 +69,7 @@ rsvd_docs
 
 .code_reader/
 
-# Marcatore di versione dei benchmark: lo riscrive l'hook post-commit a ogni
-# commit, quindi tracciarlo lascia il working tree sporco per costruzione.
-# Viaggia con il codice via USB/rsync, non via git.
+# Benchmark version marker: the post-commit hook rewrites it on every commit,
+# so tracking it leaves the working tree dirty by construction.
+# It travels with the code over USB/rsync, not through git.
 benchmark/.version
