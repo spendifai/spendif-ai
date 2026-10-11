@@ -138,6 +138,7 @@ hidden_imports = [
     "sqlalchemy.dialects.sqlite",
     "plotly",
     "openpyxl",
+    "xlrd",  # imported by pandas only when it opens a .xls
     "chardet",
     "yaml",
     "dotenv",
