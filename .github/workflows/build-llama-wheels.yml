@@ -177,7 +177,7 @@ jobs:
           ls -l /usr/lib/*-linux-gnu/libvulkan.so.1
           find "${VK_PREFIX}" -iname "SPIRV-HeadersConfig.cmake"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -304,7 +304,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -520,7 +520,7 @@ jobs:
           echo "glslc: $(glslc --version | head -1)"
           ls -l "${VULKAN_SDK}/Lib/vulkan-1.lib"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -626,7 +626,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
