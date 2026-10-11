@@ -208,6 +208,10 @@ def upsert_document_schema(session: Session, schema: DocumentSchema) -> Document
     row.sign_convention = schema.sign_convention.value if hasattr(schema.sign_convention, 'value') else schema.sign_convention
     row.is_zero_sum = schema.is_zero_sum
     row.invert_sign = schema.invert_sign
+    # Never cleared by a later import: the seal outlives the classification
+    # that happened to run today.
+    if getattr(schema, "user_confirmed", False):
+        row.user_confirmed = True
     row.internal_transfer_patterns = json.dumps(schema.internal_transfer_patterns)
     row.footer_patterns = json.dumps(getattr(schema, 'footer_patterns', []) or [])
     row.has_borders = getattr(schema, 'has_borders', False)
@@ -242,6 +246,7 @@ def _row_to_schema(row: DocumentSchemaModel) -> DocumentSchema:
         sign_convention=SignConvention(row.sign_convention or "signed_single"),
         is_zero_sum=bool(row.is_zero_sum),
         invert_sign=bool(row.invert_sign) if row.invert_sign is not None else False,
+        user_confirmed=bool(getattr(row, "user_confirmed", False)),
         internal_transfer_patterns=json.loads(row.internal_transfer_patterns or "[]"),
         footer_patterns=json.loads(getattr(row, 'footer_patterns', None) or "[]"),
         has_borders=bool(getattr(row, 'has_borders', False)),
@@ -2110,3 +2115,40 @@ def get_counterpart_stats(
         )
 
     return stats
+
+
+# ── The direction of one import, settled by the person who owns the money ────
+
+_FLIPPED_TX_TYPE = {
+    "expense": "income",
+    "income": "expense",
+    "internal_out": "internal_in",
+    "internal_in": "internal_out",
+}
+
+
+def invert_batch_amounts(session: Session, batch_sha256: str) -> int:
+    """Turn one import's amounts the other way round, and say how many moved.
+
+    The direction of the amounts is a convention of the file, not a property
+    of each row: a statement does not write some of its expenses positive and
+    others negative. So this flips the whole import in one go rather than
+    asking about rows one at a time.
+
+    tx_type travels with the amount. Leaving it behind would produce rows
+    labelled an expense holding a positive number, which every later
+    reading - totals, budgets, the report - would then disagree about.
+    """
+    batch = get_import_batch(session, batch_sha256)
+    if batch is None:
+        return 0
+
+    rows = session.query(Transaction).filter(Transaction.batch_id == batch.id).all()
+    for row in rows:
+        if row.amount is not None:
+            row.amount = -row.amount
+        if row.tx_type in _FLIPPED_TX_TYPE:
+            row.tx_type = _FLIPPED_TX_TYPE[row.tx_type]
+
+    session.flush()
+    return len(rows)

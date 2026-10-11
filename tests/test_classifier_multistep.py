@@ -145,13 +145,21 @@ class TestMultiStepHappyPath:
         assert expected_keys.issubset(set(result.keys()))
 
 
-# ── account_type shortcut ────────────────────────────────────────────────
+# ── the document decides what it is ──────────────────────────────────────
 
-class TestAccountTypeShortcut:
+class TestDocumentIdentityIsAlwaysRead:
+    """Step 1 used to be skipped when the person had declared an account type.
+
+    The declared type became the document type, and from there it decided the
+    sign of every amount in the file. A label chosen months earlier in a form
+    is not evidence about how a bank writes its files, so it was taken out of
+    the chain: the model reads the document, every time.
+    """
 
     @patch("core.classifier.call_with_fallback")
-    def test_skips_step1_when_account_type_set(self, mock_cwf):
+    def test_step_one_runs_even_though_an_account_type_exists(self, mock_cwf):
         mock_cwf.side_effect = [
+            (STEP1_OK, "mock"),
             (STEP2_OK, "mock"),
             (STEP3_OK, "mock"),
         ]
@@ -163,30 +171,18 @@ class TestAccountTypeShortcut:
             llm_backend=MagicMock(),
             fallback_backend=None,
             step0=_make_step0(),
-            account_type="bank_account",
         )
         assert result is not None
-        assert result["doc_type"] == "bank_account"
-        assert diag.step1_skipped is True
-        assert mock_cwf.call_count == 2  # only step 2 and 3
+        assert diag.step1_skipped is False
+        assert mock_cwf.call_count == 3, "the document identity step was skipped"
 
-    @patch("core.classifier.call_with_fallback")
-    def test_account_type_propagates_to_doc_type(self, mock_cwf):
-        mock_cwf.side_effect = [
-            (STEP2_OK, "mock"),
-            (STEP3_OK, "mock"),
-        ]
-        result, _ = _classify_multi_step(
-            sample_json=SAMPLE_JSON,
-            columns_list=COLUMNS_LIST,
-            step0_text="",
-            source_name="test.csv",
-            llm_backend=MagicMock(),
-            fallback_backend=None,
-            step0=_make_step0(),
-            account_type="credit_card",
-        )
-        assert result["doc_type"] == "credit_card"
+    def test_the_classifier_no_longer_accepts_a_declared_account_type(self):
+        """The wiring is gone, not merely unused: passing it is an error."""
+        import inspect
+
+        from core.classifier import _classify_multi_step as fn
+
+        assert "account_type" not in inspect.signature(fn).parameters
 
 
 # ── Degradation paths ────────────────────────────────────────────────────

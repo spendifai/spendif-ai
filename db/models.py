@@ -211,6 +211,7 @@ def create_tables(engine=None):
     _migrate_add_user_settings(engine)
     _migrate_add_import_job(engine)
     _migrate_add_invert_sign(engine)
+    _migrate_add_user_confirmed(engine)
     _migrate_add_taxonomy_default(engine)   # must run before _migrate_add_taxonomy
     _migrate_add_taxonomy(engine)
     _migrate_add_accounts(engine)
@@ -354,6 +355,11 @@ class DocumentSchemaModel(Base):
     confidence = Column(String(10))
     confidence_score = Column(Float, nullable=True)  # 0.0-1.0 deterministic score
     header_sha256 = Column(String(64), nullable=True, index=True)
+    # The seal. Set when the person answered the question about the direction
+    # of the amounts for this format. Once set, the answer is applied in
+    # silence for ever after: asking twice is how a product teaches people
+    # that their answers do not stick.
+    user_confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
 
@@ -881,6 +887,22 @@ def _migrate_add_invert_sign(engine) -> None:
         try:
             conn.execute(_text(
                 'ALTER TABLE document_schema ADD COLUMN invert_sign BOOLEAN DEFAULT 0'
+            ))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" in str(exc).lower():
+                pass  # column already exists
+            else:
+                raise
+
+
+def _migrate_add_user_confirmed(engine) -> None:
+    """Add user_confirmed to document_schema if not present (idempotent)."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                'ALTER TABLE document_schema ADD COLUMN user_confirmed BOOLEAN DEFAULT 0'
             ))
             conn.commit()
         except Exception as exc:
