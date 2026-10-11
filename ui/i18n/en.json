@@ -1175,5 +1175,11 @@
   "sign.flip": "They are the wrong way round, flip them",
   "sign.keep": "They are right as they are",
   "sign.flipped": "{n} movements turned round. The next files from this bank are handled this way without asking.",
-  "sign.kept": "Good. This bank's next files will not raise the question again."
+  "sign.kept": "Good. This bank's next files will not raise the question again.",
+  "diagnostics.last_job": "Last import on its own ({rows} rows): compare it after running the same file on the processor and on the graphics card.",
+  "diagnostics.open_issue": "Send as a test report on GitHub",
+  "diagnostics.open_issue_help": "Opens a public form on GitHub with this document already filled in. Nothing is sent until you submit it. It needs a GitHub account; if you do not have one, use the email below.",
+  "diagnostics.open_issue_paste": "The document is too long to fill in the form automatically: copy it from the box above and paste it into the form.",
+  "diagnostics.open_mail": "Without a GitHub account: [send the test report by email]({mailto}), with the saved document attached.",
+  "diagnostics.mail_body_intro": "Attach the saved document and put an x in the brackets of each step that went through, like [x]:"
 }

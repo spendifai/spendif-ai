@@ -1,0 +1,35 @@
+name: Test report
+description: The technical report from the Diagnostics page, and how the installation went. It adds your machine to the compatibility table.
+title: "Test report: "
+labels: ["test-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open Spendif.ai, go to **Diagnostics** and press **Send as a test report on GitHub**: this form opens with the document already filled in.
+        The document carries facts about the machine and nothing about you: no file names, no paths, no transactions. It is shown in full on the Diagnostics page before you send it.
+  - type: textarea
+    id: report
+    attributes:
+      label: Report
+      description: The XML document from the Diagnostics page.
+      render: xml
+    validations:
+      required: true
+  - type: checkboxes
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Tick what worked. Leave unticked what failed or was not tried.
+      options:
+        - label: Installed
+        - label: Started from the application menu or icon
+        - label: Imported a statement
+        - label: Uninstalled cleanly
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything that went wrong, or that surprised you.
+    validations:
+      required: false

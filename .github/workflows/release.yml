@@ -157,23 +157,25 @@ jobs:
   #   blueprint/sw_artifacts/tools/codesign/sign_windows.sh
   # ─────────────────────────────────────────────────────────────────────────
   build-windows:
+    # Packs the bundle the shared workflow built, with our inference wheel and
+    # the Vulkan plugin inside, instead of running PyInstaller again here. A
+    # second PyInstaller run would install the dependencies from the lockfile,
+    # whose inference wheel has no accelerator, and the MSIX would run on the
+    # processor without saying so.
     name: Build Windows MSIX
-    needs: prepare
+    needs: [prepare, build-deb]
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+      - name: The bundle from the shared workflow
+        uses: actions/download-artifact@v4
         with:
-          version: "latest"
-          enable-cache: true
+          name: windows-bundle-x64
+          path: dist/SpendifAi
 
-      - name: Install dependencies (with desktop extras)
-        run: uv sync --extra desktop
-
-      - name: Build MSIX (PyInstaller + makeappx)
+      - name: Build MSIX (makeappx, from the bundle)
         env:
           # X.500 subject of the code signing certificate. Personal data of the
           # certificate holder, so it lives in a repository secret and never in
@@ -182,7 +184,7 @@ jobs:
           MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
         run: |
           $version = "${{ needs.prepare.outputs.version }}"
-          .\packaging\windows\build-msix.ps1 -Version $version -Production
+          .\packaging\windows\build-msix.ps1 -Version $version -Production -SkipPyInstaller
 
       - name: Verify MSIX
         run: |
@@ -204,57 +206,19 @@ jobs:
   # Linux — .deb + .rpm
   # ─────────────────────────────────────────────────────────────────────────
   build-deb:
-    name: Build .deb (${{ matrix.arch }})
+    # The .deb now carries a self-contained bundle: its own Python and our own
+    # inference wheel with the Vulkan plugin beside it. The shared workflow
+    # rebuilds the wheel, builds the bundle and the package on a native runner
+    # for each architecture, and installs and starts it on Debian 12 before
+    # anything is published. Rebuilding the wheel here, at every release, is
+    # what keeps a release from shipping an old library unnoticed.
+    #
+    # The same workflow builds the Windows bundle that build-windows packs.
+    name: Build .deb and the Windows bundle
     needs: prepare
-    runs-on: ubuntu-latest
-    strategy:
-      # The .deb content is pure Python source — `uv sync` in postinst
-      # compiles native deps on the target machine, so we ship the same
-      # bytes for every Linux architecture. We still build two .deb files
-      # with the right `Architecture:` declaration so apt installs cleanly
-      # on both amd64 desktops and arm64 (Apple Silicon VMs, Raspberry Pi).
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Install fakeroot
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fakeroot
-
-      - name: Build .deb package
-        run: bash packaging/linux/build-deb.sh --version ${{ needs.prepare.outputs.version }} --arch ${{ matrix.arch }}
-
-      - name: Verify .deb
-        run: ls -lh build/spendifai_*_${{ matrix.arch }}.deb
-
-      - name: Smoke test — install in clean container
-        # Only run the container smoke test on amd64. The arm64 .deb has
-        # the same bytes — declaring it arm64 only sets the dpkg metadata.
-        if: matrix.arch == 'amd64'
-        run: |
-          docker run --rm \
-            -v "$PWD/build:/packages:ro" \
-            ubuntu:24.04 \
-            bash -c '
-              set -e
-              apt-get update -qq
-              apt-get install -y -qq /packages/spendifai_*_amd64.deb 2>&1 | tail -5
-              dpkg -l spendifai | grep -q "^ii"
-              echo "✅ .deb installed"
-              test -f /opt/spendifai/app.py
-              echo "✅ app.py found"
-              apt-get remove -y spendifai
-              echo "✅ removed cleanly"
-            '
-
-      - name: Upload .deb artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: deb-package-${{ matrix.arch }}
-          path: build/spendifai_*_${{ matrix.arch }}.deb
-          retention-days: 30
+    uses: ./.github/workflows/build-llama-wheels.yml
+    with:
+      app_version: ${{ needs.prepare.outputs.version }}
 
   build-rpm:
     name: Build .rpm (Fedora)

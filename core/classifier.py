@@ -53,6 +53,10 @@ _PROMPTS = _load_prompts()
 # Configurable via user_settings key "max_transaction_amount" (default: 1 000 000).
 _AMOUNT_PLAUSIBILITY_CAP_DEFAULT = 1_000_000
 
+# Score ceiling when one column is assigned to two roles: "medium", below the
+# 0.80 auto-import threshold, so the schema always goes to user review.
+ROLE_CONFLICT_SCORE_CAP = 0.5
+
 
 def compute_confidence_score(schema_dict: dict, header_certain: bool = True) -> float:
     """Compute a deterministic confidence score (0.0-1.0) from schema fields.
@@ -100,6 +104,18 @@ def compute_confidence_score(schema_dict: dict, header_certain: bool = True) -> 
     account_label = schema_dict.get("account_label")
     if account_label is not None and account_label != "":
         score += 0.10
+
+    # One column cannot play two roles: a date column taken as description
+    # (or as amount) means the mapping is wrong however complete it looks.
+    # Cap below the auto-import threshold so the user reviews it.
+    roles = [
+        schema_dict.get(k)
+        for k in ("date_col", "date_accounting_col", "amount_col",
+                  "debit_col", "credit_col", "description_col")
+    ]
+    assigned = [r for r in roles if r]
+    if len(assigned) != len(set(assigned)):
+        score = min(score, ROLE_CONFLICT_SCORE_CAP)
 
     return round(min(score, 1.0), 2)
 

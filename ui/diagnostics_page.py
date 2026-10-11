@@ -20,7 +20,7 @@ from __future__ import annotations
 import streamlit as st
 from sqlalchemy.orm import sessionmaker
 
-from services.diagnostics_service import collect, to_xml
+from services.diagnostics_service import collect, issue_url, mail_url, report_filename, to_xml
 from services.settings_service import SettingsService
 from ui.i18n import t
 
@@ -71,7 +71,7 @@ def render_diagnostics_page(engine) -> None:
 
     st.subheader(t("diagnostics.section.system"))
     st.write({
-        t("diagnostics.field.os"): system["os_version"],
+        t("diagnostics.field.os"): system.get("os_name") or system["os_version"],
         t("diagnostics.field.arch"): system["arch"],
         t("diagnostics.field.ram"): f"{system['ram_gb']} GB",
         t("diagnostics.field.gpu"): graphics["gpu"],
@@ -103,6 +103,15 @@ def render_diagnostics_page(engine) -> None:
             t("diagnostics.field.phase"): list(imports["per_row_seconds"].keys()),
             t("diagnostics.field.seconds_per_row"): list(imports["per_row_seconds"].values()),
         })
+        last = imports.get("last_job") or {}
+        if last.get("per_row_seconds"):
+            # Shown apart from the average: comparing two runs of the same file,
+            # one on the processor and one on the graphics card, is read here.
+            st.caption(t("diagnostics.last_job").format(rows=last["rows"]))
+            st.table({
+                t("diagnostics.field.phase"): list(last["per_row_seconds"].keys()),
+                t("diagnostics.field.seconds_per_row"): list(last["per_row_seconds"].values()),
+            })
     else:
         st.caption(t("diagnostics.no_imports"))
 
@@ -121,9 +130,22 @@ def render_diagnostics_page(engine) -> None:
     st.download_button(
         t("diagnostics.download"),
         data=xml,
-        file_name=f"spendifai-report-{app['version']}.xml",
+        file_name=report_filename(report),
         mime="application/xml",
     )
+
+    # A test report goes to the public form that builds the compatibility
+    # table. The button only opens the browser on a filled-in form: sending it
+    # is still the reader's own act, as with the email below.
+    url, fits = issue_url(report, xml)
+    st.link_button(t("diagnostics.open_issue"), url, help=t("diagnostics.open_issue_help"))
+    if not fits:
+        st.caption(t("diagnostics.open_issue_paste"))
+    # The same report without a GitHub account: an email whose body is the
+    # checklist, with the saved document attached by hand.
+    st.markdown(t("diagnostics.open_mail").format(
+        mailto=mail_url(report, t("diagnostics.mail_body_intro")),
+    ))
 
     # Where it goes, once they have it. Saying so here is the difference
     # between a file in the Downloads folder and a support request: the page

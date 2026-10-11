@@ -1,0 +1,12 @@
+[
+  {"label": "Debian 12", "os": "debian-12", "arch": "amd64", "package": "deb"},
+  {"label": "Debian 13", "os": "debian-13", "arch": "amd64", "package": "deb"},
+  {"label": "Debian 13", "os": "debian-13", "arch": "arm64", "package": "deb"},
+  {"label": "Ubuntu 24.04", "os": "ubuntu-24.04", "arch": "amd64", "package": "deb"},
+  {"label": "Ubuntu 24.04", "os": "ubuntu-24.04", "arch": "arm64", "package": "deb"},
+  {"label": "Fedora 42", "os": "fedora-42", "arch": "arm64", "package": "bundle"},
+  {"label": "Arch Linux, NVIDIA", "os": "arch", "arch": "amd64", "package": "bundle", "gpu": ["nvidia", "quadro", "geforce", "rtx"]},
+  {"label": "Arch Linux, AMD", "os": "arch", "arch": "amd64", "package": "bundle", "gpu": ["amd", "radeon"]},
+  {"label": "Windows 11, NVIDIA", "os": "windows-11", "arch": "amd64", "package": "bundle", "gpu": ["nvidia", "quadro", "geforce", "rtx"]},
+  {"label": "Windows 11, AMD", "os": "windows-11", "arch": "amd64", "package": "bundle", "gpu": ["amd", "radeon"]}
+]

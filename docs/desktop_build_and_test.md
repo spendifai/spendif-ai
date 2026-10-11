@@ -81,9 +81,13 @@ gh run download <RUN_ID> --name windows-msix --dir dist/
 # Available artefact names per run:
 #   windows-msix   →  SpendifAi-<ver>.msix
 #   macos-dmg      →  SpendifAi-<ver>-arm64.dmg
-#   deb-package    →  spendifai_<ver>_amd64.deb
+#   spendifai-deb-amd64  →  spendifai_<ver>_amd64.deb
+#   spendifai-deb-arm64  →  spendifai_<ver>_arm64.deb
+#   windows-bundle-x64   →  SpendifAi/ folder, start SpendifAi.exe (no install, no signature)
 #   rpm-package    →  spendifai-<ver>-1.x86_64.rpm  (currently failing — see §6)
 ```
+
+Test builds from `develop`, with download and launch commands for every system and how to send the test report: [test_builds.md](test_builds.md).
 
 ---
 

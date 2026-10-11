@@ -124,3 +124,73 @@ def test_acceleration_is_reported_as_its_own_answer(session, settings):
     # from the first.
     assert "acceleration_active" in graphics
     assert isinstance(graphics["acceleration_active"], bool)
+
+
+def _report(**over):
+    """A report shaped like collect() output, with only what the name reads."""
+    base = {
+        "generated_at": "2026-10-10 14:32:07 UTC",
+        "application": {"version": "0.3.1"},
+        "system": {"os": "Linux", "os_id": "debian-13", "arch": "aarch64"},
+        "graphics": {"gpu": "unknown", "acceleration_active": False,
+                     "inference_devices": ["CPU"]},
+    }
+    for key, value in over.items():
+        base[key] = {**base[key], **value}
+    return base
+
+
+def test_file_name_says_what_is_inside():
+    # Several reports from several machines land in one folder or one thread:
+    # the name alone has to tell them apart.
+    assert diagnostics.report_filename(_report()) == (
+        "spendifai-report_0.3.1_debian-13_arm64_cpu_20261010-1432.xml"
+    )
+
+
+def test_file_name_names_the_backend_and_the_card_when_accelerated():
+    name = diagnostics.report_filename(_report(
+        system={"os_id": "arch", "arch": "x86_64"},
+        graphics={"gpu": "AMD Radeon RX 6700 XT", "acceleration_active": True,
+                  "inference_devices": ["Vulkan0", "CPU"]},
+    ))
+    assert name == "spendifai-report_0.3.1_arch_amd64_vulkan-radeon-rx-6700-xt_20261010-1432.xml"
+
+
+def test_file_name_carries_nothing_personal(session, settings):
+    name = diagnostics.report_filename(diagnostics.collect(session, settings))
+    for label, value in SENTINELS.items():
+        assert value not in name, f"the file name leaks {label}"
+    assert "mario" not in name
+    assert name.startswith("spendifai-report_") and name.endswith(".xml")
+    assert all(c.isalnum() or c in "._-" for c in name)
+
+
+def test_last_import_is_reported_apart_from_the_average(session, settings):
+    session.add(ImportJob(status="completed", n_transactions=100, n_files=1,
+                          ms_categorizing=5000))
+    session.commit()
+    imports = diagnostics.collect(session, settings)["imports"]
+    # The average blends both runs; the last one alone is what a CPU against
+    # GPU comparison reads.
+    assert imports["last_job"]["rows"] == 100
+    assert imports["last_job"]["per_row_seconds"] == {"categorizing": pytest.approx(0.05)}
+    assert "header_detection" in imports["per_row_seconds"]
+    assert "<last_job>" in diagnostics.to_xml(diagnostics.collect(session, settings))
+
+
+def test_issue_link_carries_the_document_when_it_fits():
+    report = _report()
+    url, fits = diagnostics.issue_url(report, "<spendifai_report schema=\"2\">\n  <a>1</a>\n</spendifai_report>")
+    assert fits
+    assert url.startswith(diagnostics.ISSUE_FORM_URL)
+    assert "template=test_report.yml" in url
+    assert "report=" in url
+    assert "debian-13_arm64_cpu" in url
+
+
+def test_issue_link_drops_the_document_rather_than_break():
+    url, fits = diagnostics.issue_url(_report(), "<x>" + "a" * 20000 + "</x>")
+    assert not fits
+    assert "report=" not in url
+    assert len(url) < 1000

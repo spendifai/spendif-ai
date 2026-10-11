@@ -1175,5 +1175,11 @@
   "sign.flip": "Sie sind verdreht, alles umdrehen",
   "sign.keep": "Sie stimmen so",
   "sign.flipped": "{n} Bewegungen umgedreht. Die naechsten Dateien dieser Bank werden ohne Nachfrage so behandelt.",
-  "sign.kept": "Gut. Bei den naechsten Dateien dieser Bank kommt die Frage nicht wieder."
+  "sign.kept": "Gut. Bei den naechsten Dateien dieser Bank kommt die Frage nicht wieder.",
+  "diagnostics.last_job": "Letzter Import allein ({rows} Zeilen): vergleichen Sie ihn, nachdem Sie dieselbe Datei auf dem Prozessor und auf der Grafikkarte importiert haben.",
+  "diagnostics.open_issue": "Als Testbericht auf GitHub senden",
+  "diagnostics.open_issue_help": "Öffnet ein öffentliches Formular auf GitHub, in das dieses Dokument bereits eingetragen ist. Es wird nichts gesendet, bevor Sie es abschicken. Sie brauchen ein GitHub-Konto; ohne Konto nutzen Sie die E-Mail unten.",
+  "diagnostics.open_issue_paste": "Das Dokument ist zu lang, um das Formular automatisch auszufüllen: Kopieren Sie es aus dem Feld oben und fügen Sie es in das Formular ein.",
+  "diagnostics.open_mail": "Ohne GitHub-Konto: [den Testbericht per E-Mail senden]({mailto}), mit dem gespeicherten Dokument im Anhang.",
+  "diagnostics.mail_body_intro": "Haengen Sie das gespeicherte Dokument an und setzen Sie bei jedem gelungenen Schritt ein x in die Klammern, so: [x]"
 }
