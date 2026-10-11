@@ -126,7 +126,7 @@ jobs:
 
       - name: Shader compiler and Vulkan headers, from cache
         id: vk-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.VK_PREFIX }}
           key: vk-r${{ env.VK_RECIPE }}-${{ matrix.runner }}-shaderc-${{ env.SHADERC_TAG }}-headers-${{ env.VULKAN_HEADERS_TAG }}
