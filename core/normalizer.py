@@ -559,6 +559,50 @@ _DATE_FORMATS_FALLBACK = [
     "%d/%m/%Y %H:%M",    "%d-%m-%Y %H:%M",
 ]
 
+# Month names as banks write them in the app's languages, full and abbreviated,
+# mapped to the English name strptime understands. %B and %b only match the C
+# locale (English), so "02 settembre 2026" never parsed with "%d %B %Y".
+_MONTHS = {
+    1: "gennaio gen janvier janv enero ene januar jan",
+    2: "febbraio feb fevrier février fevr févr febrero februar",
+    3: "marzo mar mars märz marz mär mrz",
+    4: "aprile apr avril avr abril abr april",
+    5: "maggio mag mai mayo may",
+    6: "giugno giu juin junio juni jun",
+    7: "luglio lug juillet juil julio juli jul",
+    8: "agosto ago aout août august aug",
+    9: "settembre set septembre sept septiembre setiembre september sep",
+    10: "ottobre ott octobre octubre oktober okt oct",
+    11: "novembre novembre noviembre november nov",
+    12: "dicembre dic decembre décembre déc dec diciembre dezember dez",
+}
+_EN_MONTHS = ("January February March April May June July August September "
+              "October November December").split()
+_MONTH_TO_EN = {
+    name: _EN_MONTHS[num - 1]
+    for num, names in _MONTHS.items()
+    for name in names.split()
+}
+_TEXT_DATE_FORMATS = ["%d %B %Y", "%d %B %y", "%B %d %Y"]
+
+
+def _english_month_date(value: str) -> Optional[str]:
+    """Rewrite a date with a written month as "02 September 2026"-style text.
+
+    Separators (space, comma, dot, dash, slash) collapse to single spaces.
+    Returns None when no token is a known month name.
+    """
+    tokens = [t for t in re.split(r"[\s,./-]+", value.strip().lower()) if t]
+    found = False
+    out = []
+    for tok in tokens:
+        if tok in _MONTH_TO_EN:
+            out.append(_MONTH_TO_EN[tok])
+            found = True
+        else:
+            out.append(tok)
+    return " ".join(out) if found else None
+
 
 def parse_date_safe(value: str, fmt: str) -> Optional[date]:
     """Parse a date string. Tries fmt first, then common Italian/ISO fallbacks."""
@@ -580,6 +624,15 @@ def parse_date_safe(value: str, fmt: str) -> Optional[date]:
             return datetime.datetime.strptime(v, fallback).date()
         except ValueError:
             continue
+    # Written month in any of the app's languages
+    if re.search(r"[^\W\d_]", v):
+        text = _english_month_date(v)
+        if text:
+            for candidate in _TEXT_DATE_FORMATS:
+                try:
+                    return datetime.datetime.strptime(text, candidate).date()
+                except ValueError:
+                    continue
     return None
 
 

@@ -1307,6 +1307,47 @@ def process_file(
                 phase_durations_ms=_phase_durations_ms,
             )
 
+    # ── Auto-import parse-rate guard ─────────────────────────────────────────
+    # A fresh schema can look complete (score 1.0) and still parse almost
+    # nothing, e.g. a date format the parser cannot read. Auto-importing then
+    # stores the broken schema and reports success with zero movements. Below
+    # half the rows parsed, hand the schema to the user instead.
+    _AUTO_IMPORT_MIN_PARSE_RATE = 0.50
+    if (
+        flow_used == "flow2"
+        and not config.force_schema_import
+        and _total_file_rows > 0
+        and len(transactions) / _total_file_rows < _AUTO_IMPORT_MIN_PARSE_RATE
+    ):
+        logger.warning(
+            "process_file: Flow 2 schema for %s parsed %d/%d rows (%.0f%%), below %.0f%% "
+            "→ stopping for user schema review instead of auto-importing",
+            filename, len(transactions), _total_file_rows,
+            100 * len(transactions) / _total_file_rows,
+            100 * _AUTO_IMPORT_MIN_PARSE_RATE,
+        )
+        _finalize_phase_timings()
+        return ImportResult(
+            batch_sha256=batch_sha256,
+            source_name=filename,
+            transactions=[],
+            doc_schema=doc_schema,
+            reconciliations=[],
+            transfer_links=[],
+            errors=[
+                f"The detected columns read only {len(transactions)} of "
+                f"{_total_file_rows} rows. Check the column mapping and the "
+                "date format before importing."
+            ],
+            flow_used=flow_used,
+            total_file_rows=_total_file_rows,
+            header_rows_skipped=_header_rows_skipped,
+            skipped_rows=_norm_skipped,
+            needs_schema_review=True,
+            available_columns=list(df_raw.columns),
+            phase_durations_ms=_phase_durations_ms,
+        )
+
     # Case 5: remove within-file card balance/totale summary row (double-counting guard)
     _doc_str = doc_schema.doc_type.value if hasattr(doc_schema.doc_type, 'value') else str(doc_schema.doc_type)
     if _doc_str in {t.value for t in CARD_TYPES} and transactions:
