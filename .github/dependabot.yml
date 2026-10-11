@@ -3,6 +3,8 @@ updates:
   # Python dependencies (pyproject.toml / uv.lock)
   - package-ecosystem: "pip"
     directory: "/"
+    # Updates are work, and work lands on develop; main only moves at a release.
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -14,6 +16,7 @@ updates:
   # GitHub Actions versions (prevents stale action references like trivy-action)
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -25,6 +28,7 @@ updates:
   # Docker base image (python:3.13-slim)
   - package-ecosystem: "docker"
     directory: "/docker"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     labels: ["docker", "SW"]
