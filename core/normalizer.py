@@ -408,17 +408,28 @@ def detect_header_row_excel(
 
     # ── Phase B: Density-only fallback ─────────────────────────────
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(_io.BytesIO(raw_bytes), read_only=True, data_only=True)
-        sheet_name = detect_best_sheet(wb)
-        ws = wb[sheet_name]
+        if filename.lower().endswith(".xls"):
+            # openpyxl cannot open the legacy binary format: read the first
+            # sheet through pandas (xlrd) and scan the same 50 rows.
+            head = pd.read_excel(_io.BytesIO(raw_bytes), sheet_name=0, header=None, nrows=50)
+            head_rows = [
+                tuple(None if pd.isna(v) else v for v in r)
+                for r in head.itertuples(index=False)
+            ]
+            wb = None
+            sheet_name = 0
+        else:
+            import openpyxl
+            wb = openpyxl.load_workbook(_io.BytesIO(raw_bytes), read_only=True, data_only=True)
+            sheet_name = detect_best_sheet(wb)
+            head_rows = wb[sheet_name].iter_rows(values_only=True, max_row=50)
 
         best_idx = 0
         best_density = 0.0
         best_text_count = 0
 
         logger.info("── detect_header_row_excel (density): sheet='%s' ──", sheet_name)
-        for i, row in enumerate(ws.iter_rows(values_only=True, max_row=50)):
+        for i, row in enumerate(head_rows):
             fields = [str(v).strip() if v is not None else "" for v in row]
             density = _row_density(fields)
             text_count = _row_non_numeric_count(fields)
@@ -435,7 +446,8 @@ def detect_header_row_excel(
                 best_density = density
                 best_text_count = text_count
 
-        wb.close()
+        if wb is not None:
+            wb.close()
         certain = best_density >= 0.5 and best_text_count >= 2
         logger.info(
             "── detect_header_row_excel result: row=%d density=%.2f text_count=%d certain=%s ──",
