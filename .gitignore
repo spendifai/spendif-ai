@@ -51,6 +51,8 @@ benchmark/logs/
 *.xls
 *.xlsx
 !benchmark/generated_files/*.xlsx
+# Exception: synthetic .xls fixture (invented rows, no real statement)
+!tests/fixtures/*.xls
 *.tmp
 my_secrets.py
 # Local databases (runtime data, never commit)
@@ -68,3 +70,8 @@ rsvd_docs
 .sestante/
 
 .code_reader/
+
+# Benchmark version marker: the post-commit hook rewrites it on every commit,
+# so tracking it leaves the working tree dirty by construction.
+# It travels with the code over USB/rsync, not through git.
+benchmark/.version

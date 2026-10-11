@@ -1184,5 +1184,13 @@
   "diagnostics.mail.button": "Scrivi all'assistenza",
   "diagnostics.mail.body": "Descrivi qui cosa stavi facendo. Allega il documento tecnico salvato dall'applicazione.",
   "diagnostics.mail.body_saved": "Descrivi qui cosa stavi facendo. Allega il documento tecnico che trovi in: {path}",
-  "diagnostics.mail.failed": "Non e' stato possibile aprire il programma di posta. Scrivi a {address} allegando il documento salvato."
+  "diagnostics.mail.failed": "Non e' stato possibile aprire il programma di posta. Scrivi a {address} allegando il documento salvato.",
+  "diagnostics.last_job": "Ultima importazione da sola ({rows} righe): confrontala dopo aver importato lo stesso file sul processore e sulla scheda grafica.",
+  "diagnostics.open_issue": "Invia come resoconto di prova su GitHub",
+  "diagnostics.open_issue_help": "Apre un modulo pubblico su GitHub con questo documento gia' inserito. Non parte niente finche' non lo invii tu. Serve un account GitHub; se non ce l'hai, usa l'email qui sotto.",
+  "diagnostics.open_issue_paste": "Il documento e' troppo lungo per compilare il modulo da solo: copialo dal riquadro qui sopra e incollalo nel modulo.",
+  "diagnostics.open_mail": "Senza un account GitHub: [manda il resoconto di prova via email]({mailto}), con il documento salvato in allegato.",
+  "diagnostics.open_mail_desktop": "Senza un account GitHub puoi mandare il resoconto di prova via email, con il documento salvato in allegato.",
+  "diagnostics.open_mail_button": "Manda il resoconto di prova via email",
+  "diagnostics.mail_body_intro": "Allega il documento salvato e metti una x tra le parentesi di ogni passo riuscito, cosi': [x]"
 }

@@ -182,7 +182,7 @@ def test_in_the_packaged_window_the_report_is_written_not_downloaded(db_url, tmp
     assert save, "nothing offers to save the document"
     save[0].click().run(timeout=60)
 
-    written = list(tmp_path.glob("spendifai-report-*.xml"))
+    written = list(tmp_path.glob("spendifai-report_*.xml"))
     assert written, "the document was not written"
     assert "<spendifai_report" in written[0].read_text()
 
@@ -193,6 +193,8 @@ def test_the_packaged_window_offers_to_write_the_message_itself(db_url, tmp_path
 
     labels = [b.label for b in app.button]
     assert "Scrivi all'assistenza" in labels
+    # The test report email too: in this window it opens through the system.
+    assert "Manda il resoconto di prova via email" in labels
 
     body = " ".join(m.value for m in app.markdown)
     assert "mailto:" not in body, "the desktop text still points at a dead link"

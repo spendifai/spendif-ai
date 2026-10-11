@@ -1184,5 +1184,13 @@
   "diagnostics.mail.button": "Ecrire a l'assistance",
   "diagnostics.mail.body": "Decrivez ici ce que vous faisiez. Joignez le document technique enregistre par l'application.",
   "diagnostics.mail.body_saved": "Decrivez ici ce que vous faisiez. Joignez le document technique, qui se trouve ici : {path}",
-  "diagnostics.mail.failed": "Impossible d'ouvrir le logiciel de messagerie. Ecrivez a {address} en joignant le document enregistre."
+  "diagnostics.mail.failed": "Impossible d'ouvrir le logiciel de messagerie. Ecrivez a {address} en joignant le document enregistre.",
+  "diagnostics.last_job": "Dernier import seul ({rows} lignes) : comparez-le après avoir importé le même fichier sur le processeur et sur la carte graphique.",
+  "diagnostics.open_issue": "Envoyer comme rapport de test sur GitHub",
+  "diagnostics.open_issue_help": "Ouvre un formulaire public sur GitHub avec ce document déjà rempli. Rien n'est envoyé tant que vous ne l'envoyez pas. Il faut un compte GitHub ; sinon, utilisez l'e-mail ci-dessous.",
+  "diagnostics.open_issue_paste": "Le document est trop long pour remplir le formulaire automatiquement : copiez-le depuis le cadre ci-dessus et collez-le dans le formulaire.",
+  "diagnostics.open_mail": "Sans compte GitHub : [envoyez le rapport de test par email]({mailto}), avec le document enregistre en piece jointe.",
+  "diagnostics.open_mail_desktop": "Sans compte GitHub, vous pouvez envoyer le rapport de test par email, avec le document enregistre en piece jointe.",
+  "diagnostics.open_mail_button": "Envoyer le rapport de test par email",
+  "diagnostics.mail_body_intro": "Joignez le document enregistre et mettez un x entre les crochets de chaque etape reussie, ainsi : [x]"
 }

@@ -1184,5 +1184,13 @@
   "diagnostics.mail.button": "Write to support",
   "diagnostics.mail.body": "Describe what you were doing. Attach the technical document saved by the application.",
   "diagnostics.mail.body_saved": "Describe what you were doing. Attach the technical document, which is here: {path}",
-  "diagnostics.mail.failed": "The mail program could not be opened. Write to {address} and attach the saved document."
+  "diagnostics.mail.failed": "The mail program could not be opened. Write to {address} and attach the saved document.",
+  "diagnostics.last_job": "Last import on its own ({rows} rows): compare it after running the same file on the processor and on the graphics card.",
+  "diagnostics.open_issue": "Send as a test report on GitHub",
+  "diagnostics.open_issue_help": "Opens a public form on GitHub with this document already filled in. Nothing is sent until you submit it. It needs a GitHub account; if you do not have one, use the email below.",
+  "diagnostics.open_issue_paste": "The document is too long to fill in the form automatically: copy it from the box above and paste it into the form.",
+  "diagnostics.open_mail": "Without a GitHub account: [send the test report by email]({mailto}), with the saved document attached.",
+  "diagnostics.open_mail_desktop": "Without a GitHub account you can send the test report by email, with the saved document attached.",
+  "diagnostics.open_mail_button": "Send the test report by email",
+  "diagnostics.mail_body_intro": "Attach the saved document and put an x in the brackets of each step that went through, like [x]:"
 }

@@ -42,10 +42,10 @@ ENTRY_POINT = "app.py"
 
 # Every copy of the list, and how to read it. packaging/linux/arch/build/ is
 # absent on purpose: it is generated from packaging/linux/arch/PKGBUILD by
-# make-pkgbuild.sh, so it cannot drift on its own.
+# make-pkgbuild.sh, so it cannot drift on its own. build-deb.sh is absent too:
+# it copies the PyInstaller bundle whole, so its contents are desktop.spec's.
 MANIFESTS = (
     "desktop.spec",
-    "packaging/linux/build-deb.sh",
     "packaging/linux/build-rpm.sh",
     "packaging/linux/arch/PKGBUILD",
 )

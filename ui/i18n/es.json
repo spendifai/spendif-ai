@@ -1184,5 +1184,13 @@
   "diagnostics.mail.button": "Escribir a soporte",
   "diagnostics.mail.body": "Describe aqui que estabas haciendo. Adjunta el documento tecnico guardado por la aplicacion.",
   "diagnostics.mail.body_saved": "Describe aqui que estabas haciendo. Adjunta el documento tecnico, que esta aqui: {path}",
-  "diagnostics.mail.failed": "No se ha podido abrir el programa de correo. Escribe a {address} adjuntando el documento guardado."
+  "diagnostics.mail.failed": "No se ha podido abrir el programa de correo. Escribe a {address} adjuntando el documento guardado.",
+  "diagnostics.last_job": "Última importación por separado ({rows} filas): compárala después de importar el mismo archivo con el procesador y con la tarjeta gráfica.",
+  "diagnostics.open_issue": "Enviar como informe de prueba en GitHub",
+  "diagnostics.open_issue_help": "Abre un formulario público en GitHub con este documento ya incluido. No se envía nada hasta que lo envíes tú. Necesitas una cuenta de GitHub; si no la tienes, usa el correo de abajo.",
+  "diagnostics.open_issue_paste": "El documento es demasiado largo para rellenar el formulario automáticamente: cópialo del recuadro de arriba y pégalo en el formulario.",
+  "diagnostics.open_mail": "Sin cuenta de GitHub: [envia el informe de prueba por correo]({mailto}), con el documento guardado adjunto.",
+  "diagnostics.open_mail_desktop": "Sin cuenta de GitHub puedes enviar el informe de prueba por correo, con el documento guardado adjunto.",
+  "diagnostics.open_mail_button": "Enviar el informe de prueba por correo",
+  "diagnostics.mail_body_intro": "Adjunta el documento guardado y pon una x entre los corchetes de cada paso que salio bien, asi: [x]"
 }

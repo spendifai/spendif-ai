@@ -1,0 +1,161 @@
+# Publishes a test build of develop at fixed download addresses.
+#
+# WHY IT EXISTS
+#   Build artifacts can be downloaded only by a signed-in GitHub user, through
+#   the browser or the gh command, and their address changes with every run.
+#   A tester on five machines would install gh five times to fetch one file.
+#   A release asset has an address that never changes and needs no account:
+#
+#     https://github.com/spendifai/spendif-ai/releases/download/test-build/<file>
+#
+#   So the newest test build lives in one pre-release, tagged test-build, whose
+#   files are replaced each time this runs.
+#
+# WHY IT CANNOT REACH USERS
+#   - The update check asks GitHub for the latest release, and GitHub never
+#     answers that with a pre-release.
+#   - The workflows that publish on a release (the Homebrew tap, the Docker
+#     image) are not started at all: an event caused by the workflow token
+#     starts no other workflow. Both also skip pre-releases, in case that ever
+#     changes.
+#   - The tag is not a version tag, so the release workflow ignores it.
+#
+# WHY A WORKFLOW OF ITS OWN
+#   Replacing release files needs write access to the repository. The shared
+#   build workflow is also called by pull requests and by the APT archive check
+#   and stays read-only; only this job writes, and only from develop.
+name: Publish test build
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_run:
+        description: "Reuse the packages of this Build llama wheels run instead of building again (run id)"
+        type: string
+        default: ""
+  push:
+    # The first publication happens when this file lands on develop.
+    branches: [develop]
+    paths:
+      - .github/workflows/publish-test-build.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-test-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    # Compared as text: on a push there are no inputs, and the expression
+    # language would read a missing value and an empty one alike anyway.
+    if: format('{0}', inputs.from_run) == ''
+    uses: ./.github/workflows/build-llama-wheels.yml
+
+  publish:
+    name: Publish the test-build pre-release
+    needs: build
+    # Runs after a build, or on its own when a finished run is reused.
+    if: >-
+      always() && github.ref == 'refs/heads/develop' &&
+      (needs.build.result == 'success' ||
+       (needs.build.result == 'skipped' && format('{0}', inputs.from_run) != ''))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      FROM_RUN: ${{ inputs.from_run }}
+    steps:
+      - name: The packages, from this run
+        if: format('{0}', inputs.from_run) == ''
+        uses: actions/download-artifact@v4
+        with:
+          path: dl/
+
+      - name: The packages, from the run named
+        if: format('{0}', inputs.from_run) != ''
+        uses: actions/download-artifact@v4
+        with:
+          path: dl/
+          run-id: ${{ inputs.from_run }}
+          github-token: ${{ github.token }}
+
+      - name: What was built, and from which commit
+        # The version is read from the bundle itself, which carries the stamp
+        # the build wrote, so the release title cannot disagree with what the
+        # application reports about itself.
+        id: what
+        run: |
+          set -euo pipefail
+          ls dl
+          if [ -n "${FROM_RUN}" ]; then
+            SHA=$(gh run view "${FROM_RUN}" -R "${REPO}" --json headSha -q .headSha)
+            BRANCH=$(gh run view "${FROM_RUN}" -R "${REPO}" --json headBranch -q .headBranch)
+            [ "${BRANCH}" = "develop" ] || { echo "run ${FROM_RUN} built ${BRANCH}, not develop"; exit 1; }
+          else
+            SHA="${GITHUB_SHA}"
+          fi
+          STAMP=$(find dl/linux-bundle-amd64 -path "*core/_build_info.py" | head -1)
+          VERSION=$(sed -n 's/^BUILD_VERSION = "\(.*\)"$/\1/p' "${STAMP}")
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "built ${VERSION} from ${SHA}"
+
+      - name: Files with names that never change
+        # The folders go into archives that keep the executable bit, which a
+        # download of a build artifact loses. Each archive opens into a single
+        # SpendifAi folder.
+        run: |
+          set -euo pipefail
+          mkdir -p out stage
+          for arch in amd64 arm64; do
+            cp dl/spendifai-deb-${arch}/spendifai_*_${arch}.deb "out/spendifai-test_${arch}.deb"
+            rm -rf stage/SpendifAi && cp -r "dl/linux-bundle-${arch}" stage/SpendifAi
+            chmod +x stage/SpendifAi/SpendifAi
+            tar -C stage -czf "out/SpendifAi-test-linux-${arch}.tar.gz" SpendifAi
+          done
+          rm -rf stage/SpendifAi && cp -r dl/windows-bundle-x64 stage/SpendifAi
+          (cd stage && zip -qr ../out/SpendifAi-test-windows-x64.zip SpendifAi)
+          (cd out && sha256sum * > SHA256SUMS)
+          ls -lh out
+          cat out/SHA256SUMS
+
+      - name: Replace the pre-release
+        # Deleted and created again rather than edited, so the tag always
+        # points at the commit these files were built from. The addresses are
+        # the same before and after; for a few seconds in between they answer
+        # 404.
+        env:
+          SHA: ${{ steps.what.outputs.sha }}
+          VERSION: ${{ steps.what.outputs.version }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<EOF
+          Test build of \`develop\` at ${SHA}, version \`${VERSION}\`.
+
+          **Not a release.** Not signed, not supported, replaced by the next test build without notice. The application never offers it as an update.
+
+          How to install it on each system and how to send the test report: [docs/test_builds.md](https://github.com/${REPO}/blob/develop/docs/test_builds.md).
+
+          | System | File |
+          |---|---|
+          | Debian, Ubuntu, Linux Mint (amd64) | \`spendifai-test_amd64.deb\` |
+          | Debian, Ubuntu (arm64) | \`spendifai-test_arm64.deb\` |
+          | Fedora, Arch Linux, other distributions (amd64) | \`SpendifAi-test-linux-amd64.tar.gz\` |
+          | Fedora, Arch Linux, other distributions (arm64) | \`SpendifAi-test-linux-arm64.tar.gz\` |
+          | Windows 10 and 11 (x64) | \`SpendifAi-test-windows-x64.zip\` |
+          EOF
+          gh release delete test-build -R "${REPO}" --cleanup-tag --yes 2>/dev/null || true
+          gh release create test-build -R "${REPO}" \
+            --prerelease --latest=false \
+            --target "${SHA}" \
+            --title "Test build ${VERSION}" \
+            --notes-file notes.md \
+            out/*
+          gh release view test-build -R "${REPO}" --json tagName,isPrerelease,assets \
+            -q '"\(.tagName) prerelease=\(.isPrerelease)", (.assets[] | "  \(.name)")'

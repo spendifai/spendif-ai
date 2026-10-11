@@ -6,6 +6,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-11
+
+### Fixed
+- Legacy Excel statements (`.xls`) import in the installed application. The upload accepted them, but the library that reads that format was neither a dependency nor bundled, so every `.xls` stopped with an error. Finding the header row needed a second fix: it scanned the first rows with a reader that cannot open `.xls`, and took the bank's title line as the header
+- Dates with the month written out ("02 settembre 2026") are read in Italian, English, French, German and Spanish, full or abbreviated. Before, only English month names parsed, so a statement written that way lost every row
+- An import that read almost nothing no longer reports success. A new column mapping that reads fewer than half the rows now stops for review with the reason, instead of being saved and announced as imported with zero movements
+- A column mapped to two roles, such as the date column also taken as the description, now sends the mapping to review instead of passing as certain
+- The model-based detection of footer rows (totals, balances, notes at the end of a statement) had never run: its prompt raised an error on every call and the statistical fallback always took over. It now runs, with the fallback kept for when the model fails
+- Five dependencies moved past their published vulnerabilities: pyjwt, urllib3, fsspec, oauthlib and setuptools
+- On macOS both channels install the same bundle, `/Applications/SpendifAi.app`. Homebrew used to install `Spendif.ai.app` and the disk image `SpendifAi.app`, so after replacing one with the other brew refused to upgrade
+
+### Added
+- The Debian and Ubuntu package (`.deb`) carries its own Python and the inference library with Vulkan as a plugin, on amd64 and arm64: graphics card acceleration on AMD, Intel and NVIDIA without installing anything else, and nothing compiled on the user's machine. The `.rpm` and Arch packages still use the previous build and get acceleration in a later release
+- The import status shows how long it has been running, and on completion how long it took, which is roughly what the next import on the same machine will cost
+- support@spendif.ai on the landing and install pages, in every language, for people without a GitHub account. The diagnostics page says where to send its report
+- Test reports build the compatibility table on their own. The Diagnostics page opens a GitHub form already filled in with its technical report, and a workflow reads the report, adds the machine to `docs/compatibility.md` (and `docs/compatibility.it.md`) and proposes the change as a pull request. Nobody copies operating system, graphics card or timings by hand. The form is public, so the report is read as untrusted data: only named fields, capped in length, and nothing that can become a link or HTML in the table
+- The technical report names the distribution ("Debian GNU/Linux 13 (trixie)") instead of the kernel, and shows the last import on its own next to the average, so a run on the processor and one on the graphics card can be compared. The saved file says what is inside: `spendifai-report_0.3.1_debian-13_arm64_cpu_20261010-1432.xml`
+- A test matrix in `docs/compatibility.md` lists the configurations tested before a release and ticks each one from the reports that match it: done when a report says all four steps went through, partly done when some did not. The tick is computed, never typed. `docs/test_builds.md` gives the download and launch commands for every system
+- Test reports can also arrive by email, for testers without a GitHub account. The Diagnostics page offers an email whose body is the checklist of the four steps, with the saved document attached, and the saved email goes into the table through the same parser and the same checks as the form
+- Windows gets graphics card acceleration through Vulkan, as Linux already does, from one bundle that covers AMD, Intel and NVIDIA. The application also finds the inference library's plugins on Windows: it looked for the loader in a library that, on Windows, does not export it, so it would have loaded none and listed no device
+
 ## [0.3.1] - 2026-09-23
 
 ### Fixed
