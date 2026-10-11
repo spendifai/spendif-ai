@@ -68,3 +68,8 @@ rsvd_docs
 .sestante/
 
 .code_reader/
+
+# Benchmark version marker: the post-commit hook rewrites it on every commit,
+# so tracking it leaves the working tree dirty by construction.
+# It travels with the code over USB/rsync, not through git.
+benchmark/.version
