@@ -14,6 +14,7 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display, format_date_display, strftime_to_momentjs
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.file_handoff import offer_file
 
 
 # ── Colonne della tabella ────────────────────────────────────────────────────
@@ -611,14 +612,14 @@ def render_registry_page(engine):
     ec1, ec2 = st.columns(2)
     with ec1:
         csv_bytes = tx_svc.export_csv(filters=filters)
-        st.download_button(
+        offer_file(
             t("ledger.export_csv"), csv_bytes, "spendifai_export.csv", "text/csv",
-            use_container_width=True,
+            key="ledger_csv", use_container_width=True,
         )
     with ec2:
         xlsx_bytes = tx_svc.export_xlsx(filters=filters)
-        st.download_button(
+        offer_file(
             t("ledger.export_xlsx"), xlsx_bytes, "spendifai_export.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
+            key="ledger_xlsx", use_container_width=True,
         )

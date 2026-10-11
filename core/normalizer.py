@@ -208,6 +208,14 @@ def _cell_has_border(cell) -> bool:
     return False
 
 
+# A bordered rectangle whose cells are mostly empty is a frame around
+# letterhead, not a table. Measured on the reproduction of 2026-09-25: a framed
+# logo block scored 0.33, a genuinely bordered movements table scored 1.00. The
+# two are not close, so the threshold sits between them and does not pretend to
+# be finer than the evidence.
+_MIN_BORDERED_REGION_FILL = 0.6
+
+
 def detect_bordered_region(
     raw_bytes: bytes,
     filename: str = "",
@@ -243,14 +251,20 @@ def detect_bordered_region(
             wb.close()
             return None
 
-        # has_border[r][c] — 0-based
+        # has_border[r][c] and the value in the same cell, both 0-based. The
+        # values are read here because borders alone cannot tell a table from
+        # a frame drawn around three lines of letterhead.
         grid: list[list[bool]] = []
+        values: list[list[object]] = []
         for r_idx in range(1, max_row + 1):
             row_borders: list[bool] = []
+            row_values: list[object] = []
             for c_idx in range(1, max_col + 1):
                 cell = ws.cell(row=r_idx, column=c_idx)
                 row_borders.append(_cell_has_border(cell))
+                row_values.append(cell.value)
             grid.append(row_borders)
+            values.append(row_values)
 
         wb.close()
 
@@ -280,38 +294,70 @@ def detect_bordered_region(
                 return None
             return best_start, best_end
 
-        # Find first row with a bordered run >= 3 columns
-        region_r1: Optional[int] = None
-        region_c1: int = 0
-        region_c2: int = 0
-
-        for r, row_bools in enumerate(grid):
-            run = _bordered_run(row_bools)
-            if run and (run[1] - run[0] + 1) >= 3:
-                region_r1 = r
-                region_c1, region_c2 = run
-                break
-
-        if region_r1 is None:
-            return None
-
-        # Extend downward: intersect column range
-        region_r2 = region_r1
-        for r in range(region_r1 + 1, len(grid)):
+        # ── Every candidate, not the first one ───────────────────
+        # Taking the topmost bordered rectangle meant a framed letterhead
+        # above the movements won, and it won even when the movements
+        # themselves were bordered: the scan stopped before reaching them.
+        candidates: list[tuple[int, int, int, int]] = []
+        r = 0
+        while r < len(grid):
             run = _bordered_run(grid[r])
-            if run is None:
-                break
-            # Intersect with current column range
-            new_c1 = max(region_c1, run[0])
-            new_c2 = min(region_c2, run[1])
-            if new_c2 - new_c1 + 1 < 3:
-                break  # intersection too narrow
-            region_c1, region_c2 = new_c1, new_c2
-            region_r2 = r
+            if run is None or (run[1] - run[0] + 1) < 3:
+                r += 1
+                continue
 
-        # Validate: minimum 3 rows × 3 columns
-        if (region_r2 - region_r1 + 1) < 3:
+            c1, c2 = run
+            r2 = r
+            for rr in range(r + 1, len(grid)):
+                run_below = _bordered_run(grid[rr])
+                if run_below is None:
+                    break
+                new_c1 = max(c1, run_below[0])
+                new_c2 = min(c2, run_below[1])
+                if new_c2 - new_c1 + 1 < 3:
+                    break  # intersection too narrow
+                c1, c2, r2 = new_c1, new_c2, rr
+
+            if (r2 - r + 1) >= 3:   # minimum 3 rows x 3 columns
+                candidates.append((r, r2, c1, c2))
+            r = r2 + 1
+
+        if not candidates:
             return None
+
+        # ── A frame around text is an empty table ────────────────
+        def _fill(region: tuple[int, int, int, int]) -> tuple[int, float]:
+            rr1, rr2, cc1, cc2 = region
+            filled = total = 0
+            for rr in range(rr1, rr2 + 1):
+                for cc in range(cc1, cc2 + 1):
+                    total += 1
+                    value = values[rr][cc]
+                    if value is not None and str(value).strip():
+                        filled += 1
+            return filled, (filled / total if total else 0.0)
+
+        scored = []
+        for region in candidates:
+            filled, density = _fill(region)
+            logger.info(
+                "   candidate rows=%d..%d cols=%d..%d filled=%d density=%.2f",
+                region[0], region[1], region[2], region[3], filled, density,
+            )
+            if density < _MIN_BORDERED_REGION_FILL:
+                continue
+            scored.append((filled, region))
+
+        if not scored:
+            # Bordered, but nothing inside worth calling a table. Better to say
+            # nothing and let the density scan decide than to be confidently
+            # wrong: downstream, certainty disables the second look.
+            return None
+
+        # The fullest wins, which is the movements table even when the
+        # letterhead above it is bordered too.
+        _best_filled, best = max(scored, key=lambda item: item[0])
+        region_r1, region_r2, region_c1, region_c2 = best
 
         logger.info(
             "── detect_bordered_region: found region rows=%d..%d cols=%d..%d (%d×%d) ──",
@@ -408,17 +454,28 @@ def detect_header_row_excel(
 
     # ── Phase B: Density-only fallback ─────────────────────────────
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(_io.BytesIO(raw_bytes), read_only=True, data_only=True)
-        sheet_name = detect_best_sheet(wb)
-        ws = wb[sheet_name]
+        if filename.lower().endswith(".xls"):
+            # openpyxl cannot open the legacy binary format: read the first
+            # sheet through pandas (xlrd) and scan the same 50 rows.
+            head = pd.read_excel(_io.BytesIO(raw_bytes), sheet_name=0, header=None, nrows=50)
+            head_rows = [
+                tuple(None if pd.isna(v) else v for v in r)
+                for r in head.itertuples(index=False)
+            ]
+            wb = None
+            sheet_name = 0
+        else:
+            import openpyxl
+            wb = openpyxl.load_workbook(_io.BytesIO(raw_bytes), read_only=True, data_only=True)
+            sheet_name = detect_best_sheet(wb)
+            head_rows = wb[sheet_name].iter_rows(values_only=True, max_row=50)
 
         best_idx = 0
         best_density = 0.0
         best_text_count = 0
 
         logger.info("── detect_header_row_excel (density): sheet='%s' ──", sheet_name)
-        for i, row in enumerate(ws.iter_rows(values_only=True, max_row=50)):
+        for i, row in enumerate(head_rows):
             fields = [str(v).strip() if v is not None else "" for v in row]
             density = _row_density(fields)
             text_count = _row_non_numeric_count(fields)
@@ -435,7 +492,8 @@ def detect_header_row_excel(
                 best_density = density
                 best_text_count = text_count
 
-        wb.close()
+        if wb is not None:
+            wb.close()
         certain = best_density >= 0.5 and best_text_count >= 2
         logger.info(
             "── detect_header_row_excel result: row=%d density=%.2f text_count=%d certain=%s ──",
@@ -559,6 +617,50 @@ _DATE_FORMATS_FALLBACK = [
     "%d/%m/%Y %H:%M",    "%d-%m-%Y %H:%M",
 ]
 
+# Month names as banks write them in the app's languages, full and abbreviated,
+# mapped to the English name strptime understands. %B and %b only match the C
+# locale (English), so "02 settembre 2026" never parsed with "%d %B %Y".
+_MONTHS = {
+    1: "gennaio gen janvier janv enero ene januar jan",
+    2: "febbraio feb fevrier février fevr févr febrero februar",
+    3: "marzo mar mars märz marz mär mrz",
+    4: "aprile apr avril avr abril abr april",
+    5: "maggio mag mai mayo may",
+    6: "giugno giu juin junio juni jun",
+    7: "luglio lug juillet juil julio juli jul",
+    8: "agosto ago aout août august aug",
+    9: "settembre set septembre sept septiembre setiembre september sep",
+    10: "ottobre ott octobre octubre oktober okt oct",
+    11: "novembre novembre noviembre november nov",
+    12: "dicembre dic decembre décembre déc dec diciembre dezember dez",
+}
+_EN_MONTHS = ("January February March April May June July August September "
+              "October November December").split()
+_MONTH_TO_EN = {
+    name: _EN_MONTHS[num - 1]
+    for num, names in _MONTHS.items()
+    for name in names.split()
+}
+_TEXT_DATE_FORMATS = ["%d %B %Y", "%d %B %y", "%B %d %Y"]
+
+
+def _english_month_date(value: str) -> Optional[str]:
+    """Rewrite a date with a written month as "02 September 2026"-style text.
+
+    Separators (space, comma, dot, dash, slash) collapse to single spaces.
+    Returns None when no token is a known month name.
+    """
+    tokens = [t for t in re.split(r"[\s,./-]+", value.strip().lower()) if t]
+    found = False
+    out = []
+    for tok in tokens:
+        if tok in _MONTH_TO_EN:
+            out.append(_MONTH_TO_EN[tok])
+            found = True
+        else:
+            out.append(tok)
+    return " ".join(out) if found else None
+
 
 def parse_date_safe(value: str, fmt: str) -> Optional[date]:
     """Parse a date string. Tries fmt first, then common Italian/ISO fallbacks."""
@@ -580,6 +682,15 @@ def parse_date_safe(value: str, fmt: str) -> Optional[date]:
             return datetime.datetime.strptime(v, fallback).date()
         except ValueError:
             continue
+    # Written month in any of the app's languages
+    if re.search(r"[^\W\d_]", v):
+        text = _english_month_date(v)
+        if text:
+            for candidate in _TEXT_DATE_FORMATS:
+                try:
+                    return datetime.datetime.strptime(text, candidate).date()
+                except ValueError:
+                    continue
     return None
 
 

@@ -20,9 +20,18 @@ from __future__ import annotations
 import streamlit as st
 from sqlalchemy.orm import sessionmaker
 
-from services.diagnostics_service import collect, to_xml
+from services.diagnostics_service import (
+    REPORT_MAIL_ADDRESS,
+    collect,
+    issue_url,
+    mail_parts,
+    mail_url,
+    report_filename,
+    to_xml,
+)
 from services.settings_service import SettingsService
 from ui.i18n import t
+from ui.widgets.file_handoff import is_packaged, offer_file, open_mail_client
 
 # The channel a non-technical user can actually use. The issue tracker stays
 # for the technical audience, on the website; it is a dead end for everyone
@@ -71,13 +80,14 @@ def render_diagnostics_page(engine) -> None:
 
     st.subheader(t("diagnostics.section.system"))
     st.write({
-        t("diagnostics.field.os"): system["os_version"],
+        t("diagnostics.field.os"): system.get("os_name") or system["os_version"],
         t("diagnostics.field.arch"): system["arch"],
         t("diagnostics.field.ram"): f"{system['ram_gb']} GB",
         t("diagnostics.field.gpu"): graphics["gpu"],
         t("diagnostics.field.devices"): ", ".join(graphics["inference_devices"]) or "-",
         t("diagnostics.field.install"): app["install_method"],
         t("diagnostics.field.build"): app["build_time"],
+        t("diagnostics.field.python"): system["python_version"],
     })
 
     st.subheader(t("diagnostics.section.inference"))
@@ -88,6 +98,31 @@ def render_diagnostics_page(engine) -> None:
         t("diagnostics.field.gpu_layers"): inference["n_gpu_layers"],
         t("diagnostics.field.library"): inference["llama_cpp_version"],
     })
+
+    # Settings say what was asked for. This says what happened, and the two
+    # disagree exactly when something is wrong.
+    st.subheader(t("diagnostics.section.observed"))
+    observed = report["llm_observed"]
+    if observed:
+        st.caption(t("diagnostics.observed.caption"))
+        st.table({
+            t("diagnostics.field.phase"): [g["phase"] for g in observed],
+            t("diagnostics.field.model"): [g["model"] for g in observed],
+            t("diagnostics.field.calls"): [g["calls"] for g in observed],
+            t("diagnostics.field.median_ms"): [g["median_ms"] for g in observed],
+            t("diagnostics.field.max_prompt"): [g["max_prompt_tokens"] for g in observed],
+            t("diagnostics.field.context"): [g["context"] for g in observed],
+        })
+        # The one row that explains an import failing on every file.
+        for group in observed:
+            if group["context_pressure"]:
+                st.warning(t("diagnostics.context_pressure").format(
+                    phase=group["phase"],
+                    prompt=group["max_prompt_tokens"],
+                    context=group["context"],
+                ))
+    else:
+        st.caption(t("diagnostics.observed.none"))
 
     st.subheader(t("diagnostics.section.imports"))
     imports = report["imports"]
@@ -103,6 +138,15 @@ def render_diagnostics_page(engine) -> None:
             t("diagnostics.field.phase"): list(imports["per_row_seconds"].keys()),
             t("diagnostics.field.seconds_per_row"): list(imports["per_row_seconds"].values()),
         })
+        last = imports.get("last_job") or {}
+        if last.get("per_row_seconds"):
+            # Shown apart from the average: comparing two runs of the same file,
+            # one on the processor and one on the graphics card, is read here.
+            st.caption(t("diagnostics.last_job").format(rows=last["rows"]))
+            st.table({
+                t("diagnostics.field.phase"): list(last["per_row_seconds"].keys()),
+                t("diagnostics.field.seconds_per_row"): list(last["per_row_seconds"].values()),
+            })
     else:
         st.caption(t("diagnostics.no_imports"))
 
@@ -118,17 +162,55 @@ def render_diagnostics_page(engine) -> None:
     xml = to_xml(report, stars=stars or None)
     st.caption(t("diagnostics.document.caption"))
     st.code(xml, language="xml")
-    st.download_button(
+    saved = offer_file(
         t("diagnostics.download"),
         data=xml,
-        file_name=f"spendifai-report-{app['version']}.xml",
+        file_name=report_filename(report),
         mime="application/xml",
+        key="diagnostics_report",
     )
+
+    # A test report goes to the public form that builds the compatibility
+    # table. The button only opens the browser on a filled-in form: sending it
+    # is still the reader's own act, as with the email below.
+    url, fits = issue_url(report, xml)
+    st.link_button(t("diagnostics.open_issue"), url, help=t("diagnostics.open_issue_help"))
+    if not fits:
+        st.caption(t("diagnostics.open_issue_paste"))
+    # The same report without a GitHub account: an email whose body is the
+    # checklist, with the saved document attached by hand. In the desktop
+    # window a mailto: link is dead, so the message opens through the
+    # operating system instead, as the support message below does.
+    if is_packaged():
+        st.markdown(t("diagnostics.open_mail_desktop"))
+        if st.button(t("diagnostics.open_mail_button")):
+            if not open_mail_client(*mail_parts(report, t("diagnostics.mail_body_intro"))):
+                st.info(t("diagnostics.mail.failed").format(address=REPORT_MAIL_ADDRESS))
+    else:
+        st.markdown(t("diagnostics.open_mail").format(
+            mailto=mail_url(report, t("diagnostics.mail_body_intro")),
+        ))
 
     # Where it goes, once they have it. Saying so here is the difference
     # between a file in the Downloads folder and a support request: the page
     # produced something useful and then left the reader to guess who wants it.
-    st.markdown(t("diagnostics.support").format(
-        address=SUPPORT_ADDRESS,
-        mailto=f"mailto:{SUPPORT_ADDRESS}?subject=Spendif.ai%20{app['version']}",
-    ))
+    if is_packaged():
+        # The mailto: link below is dead in the desktop window, which follows
+        # it no more than it follows a download. The message is opened through
+        # the operating system instead, and it cannot carry the attachment, so
+        # it says where the file is and the person attaches it.
+        st.markdown(t("diagnostics.support_desktop").format(address=SUPPORT_ADDRESS))
+        if st.button(t("diagnostics.mail.button")):
+            body = (
+                t("diagnostics.mail.body_saved").format(path=saved)
+                if saved else t("diagnostics.mail.body")
+            )
+            if not open_mail_client(
+                SUPPORT_ADDRESS, f"Spendif.ai {app['version']}", body
+            ):
+                st.info(t("diagnostics.mail.failed").format(address=SUPPORT_ADDRESS))
+    else:
+        st.markdown(t("diagnostics.support").format(
+            address=SUPPORT_ADDRESS,
+            mailto=f"mailto:{SUPPORT_ADDRESS}?subject=Spendif.ai%20{app['version']}",
+        ))

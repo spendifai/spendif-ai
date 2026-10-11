@@ -235,6 +235,53 @@ def _render_last_import_summary():
                     )
 
 
+
+def _render_sign_confirmation(import_svc: ImportService) -> None:
+    """One question, asked once, only when the two readings disagree.
+
+    The application has two independent ways of telling money going out from
+    money coming in: reading the document, and measuring the amounts. When
+    they agree the import happens in silence. When they contradict each other
+    somebody has to settle it, and the only person who knows is the one whose
+    money it is.
+
+    The answer is remembered against the format, so the same bank never asks
+    twice - including the answer "it is already right", which is an answer.
+    """
+    pending = st.session_state.get("_pending_sign_confirmations") or []
+    if not pending:
+        return
+
+    for entry in pending:
+        key = entry["batch_sha256"]
+        with st.container(border=True):
+            st.warning(t_fn("sign.title"))
+            st.markdown(t_fn("sign.explain").format(
+                filename=entry["filename"], n=entry["n_transactions"],
+            ))
+            c1, c2 = st.columns(2)
+            if c1.button(t_fn("sign.flip"), key=f"sign_flip_{key}", type="primary",
+                         use_container_width=True):
+                moved = import_svc.confirm_sign(
+                    entry["batch_sha256"], entry["source_identifier"], flip=True,
+                )
+                st.session_state["_pending_sign_confirmations"] = [
+                    e for e in pending if e["batch_sha256"] != key
+                ]
+                st.success(t_fn("sign.flipped").format(n=moved))
+                st.rerun()
+            if c2.button(t_fn("sign.keep"), key=f"sign_keep_{key}",
+                         use_container_width=True):
+                import_svc.confirm_sign(
+                    entry["batch_sha256"], entry["source_identifier"], flip=False,
+                )
+                st.session_state["_pending_sign_confirmations"] = [
+                    e for e in pending if e["batch_sha256"] != key
+                ]
+                st.success(t_fn("sign.kept"))
+                st.rerun()
+
+
 def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -> bool:
     """Show editable schema form for files with medium/low confidence.
     Returns True if the user confirmed and re-import was triggered."""
@@ -760,6 +807,21 @@ def render_upload_page(engine):
 
         st.session_state["llm_in_progress"] = False
         st.session_state["last_import_results"] = [r for r in results if not r.needs_schema_review]
+        # The direction of the amounts, asked about only where the two readings
+        # of it disagreed. One entry per format, not per file.
+        st.session_state["_pending_sign_confirmations"] = [
+            {
+                "filename": r.source_name,
+                "batch_sha256": r.batch_sha256,
+                "source_identifier": getattr(r.doc_schema, "source_identifier", ""),
+                "n_transactions": len(r.transactions),
+            }
+            for r in results
+            if r.sign_needs_confirmation and r.doc_schema is not None
+        ]
+
+    # The direction of the amounts, when the two readings disagreed.
+    _render_sign_confirmation(import_svc)
 
     # Schema review gate
     if st.session_state.get("_pending_schema_reviews"):

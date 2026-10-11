@@ -1,0 +1,734 @@
+# Builds the inference library ourselves, with the accelerators as plugins,
+# and carries it all the way to a Linux package that runs on a machine we have
+# never had, and to a Windows bundle built the same way.
+#
+# WHY WE BUILD IT AT ALL
+#   In the upstream wheels the backend is a link-time dependency of libllama,
+#   so adding an accelerator means shipping a second wheel rather than one more
+#   file. That is how the CUDA wheel comes to weigh 460 MB while the Vulkan
+#   plugin weighs four. Built with -DGGML_BACKEND_DL=ON the backends become
+#   plugins that live side by side, and one package can carry the processor and
+#   Vulkan together.
+#
+#   Vulkan is the one that pays: it covers AMD, Intel and NVIDIA with a single
+#   file. On NVIDIA it is slower than CUDA and far faster than the processor,
+#   so CUDA stays an optional extra for whoever wants it rather than a cost
+#   imposed on everybody.
+#
+# THE PRICE, SAID OUT LOUD
+#   From here on the wheels are an artefact of ours, with a build step that can
+#   fail and a version that can fall behind. That is why this workflow is also
+#   called by the release and by the APT archive check: the wheel is rebuilt
+#   every time a package is made, so a release cannot ship an old library
+#   because somebody forgot to rebuild it.
+#
+# TWO ARCHITECTURES, ONE RECIPE
+#   amd64 and arm64 are built the same way, each on a native runner. Both use
+#   Ubuntu 22.04, because the glibc of the build machine decides how far the
+#   artefact reaches: 2.35 covers Debian 12, Ubuntu 22.04 and Mint 21 as well
+#   as everything newer.
+#
+#   22.04 has no shader compiler in its archive, and the LunarG repository that
+#   filled the gap publishes amd64 only and stopped updating in May 2025. The
+#   compiler is therefore built here from Google's own sources, at a pinned
+#   tag, and the Vulkan headers come from Khronos the same way. No third-party
+#   binary enters the build, and the result is cached, so the cost is paid once
+#   per tag and architecture.
+#
+# WHAT THIS WORKFLOW CAN AND CANNOT PROVE
+#   It can prove the plugin was built, travels inside the wheel, survives into
+#   the bundle and the package, and that the package installs and starts on
+#   Debian 12. It cannot prove a graphics card is used: a hosted runner has no
+#   Vulkan driver, so asking the library to enumerate devices here would report
+#   the processor and nothing else, whether or not the build is good. Device
+#   selection and the speed it buys are verified on a machine with a real card.
+#
+#   This distinction is the reason the verification below looks at the contents
+#   of each artefact rather than at a list of devices. A Vulkan build that
+#   silently falls back to the processor looks exactly like a working one.
+#
+# WINDOWS
+#   x64 only. On Windows on ARM the local model does not run at all (illegal
+#   instruction, 0xc000001d, seen with 0.3.0), so there is nothing to
+#   accelerate there. The toolchain is the LunarG SDK, pinned by version and
+#   checksum: on Windows it is current and installs without anything else,
+#   which is what it stopped being on Linux.
+name: Build llama wheels
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "llama-cpp-python version to build (must match uv.lock)"
+        type: string
+        default: "0.3.35"
+      app_version:
+        description: "Version written into the packages (default: the VERSION file plus the commit)"
+        type: string
+        default: ""
+      windows:
+        description: "Also build the Windows wheel and bundle"
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "llama-cpp-python version to build (must match uv.lock)"
+        required: true
+        default: "0.3.35"
+  pull_request:
+    paths:
+      - .github/workflows/build-llama-wheels.yml
+      - desktop.spec
+      - packaging/linux/build-deb.sh
+      - packaging/linux/launch.sh
+
+permissions:
+  contents: read
+
+env:
+  # Bumped together, by hand, and the cache key follows them. VK_RECIPE goes
+  # up when what gets installed into the prefix changes without a new tag.
+  VK_RECIPE: "2"
+  SHADERC_TAG: v2026.4
+  VULKAN_HEADERS_TAG: v1.4.365
+  VK_PREFIX: /opt/vk
+  # The Windows SDK, pinned by version and by the checksum LunarG publishes for
+  # that file, so a replaced download fails the build instead of entering it.
+  VULKAN_SDK_VERSION: "1.4.363.0"
+  VULKAN_SDK_SHA256: 94a82d378f7a5e3e54c9db7d2fb7016af136e14ac0a18dbf0f2f67a36352d141
+
+jobs:
+  linux-wheel:
+    name: linux-wheel (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build dependencies
+        # libvulkan1 is the loader, linked by its soname. The development
+        # headers of 22.04 are not installed on purpose: they are 1.3.204,
+        # older than what the Vulkan backend compiles against, and leaving
+        # them out means the build cannot pick them up by accident.
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build git python3 wget ca-certificates libvulkan1
+
+      - name: Shader compiler and Vulkan headers, from cache
+        id: vk-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VK_PREFIX }}
+          key: vk-r${{ env.VK_RECIPE }}-${{ matrix.runner }}-shaderc-${{ env.SHADERC_TAG }}-headers-${{ env.VULKAN_HEADERS_TAG }}
+
+      - name: Shader compiler and Vulkan headers, from source
+        if: steps.vk-cache.outputs.cache-hit != 'true'
+        # git-sync-deps fetches glslang, SPIRV-Tools and SPIRV-Headers at the
+        # revisions shaderc pins in its DEPS file for this tag, so the tag
+        # alone decides the whole toolchain. Only the glslc target is built:
+        # the library, the tests and the examples are not needed here.
+        #
+        # SPIRV-Headers is installed into the prefix as well, from the copy
+        # shaderc pinned: the Vulkan backend looks it up with find_package, and
+        # it was the LunarG SDK that used to provide it.
+        run: |
+          set -euo pipefail
+          sudo mkdir -p "${VK_PREFIX}/bin" && sudo chown -R "$(id -u)" "${VK_PREFIX}"
+
+          git clone --depth 1 --branch "${VULKAN_HEADERS_TAG}" \
+            https://github.com/KhronosGroup/Vulkan-Headers /tmp/vulkan-headers
+          cmake -S /tmp/vulkan-headers -B /tmp/vulkan-headers/build \
+            -DCMAKE_INSTALL_PREFIX="${VK_PREFIX}"
+          cmake --install /tmp/vulkan-headers/build
+
+          git clone --depth 1 --branch "${SHADERC_TAG}" \
+            https://github.com/google/shaderc /tmp/shaderc
+          python3 /tmp/shaderc/utils/git-sync-deps
+          cmake -S /tmp/shaderc -B /tmp/shaderc/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSHADERC_SKIP_TESTS=ON \
+            -DSHADERC_SKIP_EXAMPLES=ON \
+            -DSHADERC_SKIP_COPYRIGHT_CHECK=ON \
+            -DSPIRV_SKIP_TESTS=ON \
+            -DSPIRV_SKIP_EXECUTABLES=ON \
+            -DENABLE_GLSLANG_BINARIES=OFF
+          cmake --build /tmp/shaderc/build --target glslc_exe
+          cp /tmp/shaderc/build/glslc/glslc "${VK_PREFIX}/bin/glslc"
+
+          cmake -S /tmp/shaderc/third_party/spirv-headers -B /tmp/spirv-headers-build \
+            -DCMAKE_INSTALL_PREFIX="${VK_PREFIX}" -DSPIRV_HEADERS_ENABLE_TESTS=OFF
+          cmake --install /tmp/spirv-headers-build
+
+      - name: The toolchain answers
+        run: |
+          set -euo pipefail
+          echo "glslc: $("${VK_PREFIX}/bin/glslc" --version | head -1)"
+          grep -m1 "VK_HEADER_VERSION " "${VK_PREFIX}/include/vulkan/vulkan_core.h"
+          ls -l /usr/lib/*-linux-gnu/libvulkan.so.1
+          find "${VK_PREFIX}" -iname "SPIRV-HeadersConfig.cmake"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build the wheel
+        # The parallel level is a memory limit, not a speed choice: the first
+        # build died with cc1plus killed while compiling the shader unit, and
+        # two jobs is what fits.
+        #
+        # The three Vulkan paths are given explicitly rather than left to
+        # FindVulkan: the headers live outside the system prefix, and the
+        # loader has no unversioned .so without the development package.
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+          VERSION: ${{ inputs.version || '0.3.35' }}
+        run: |
+          set -euo pipefail
+          LOADER=$(ls /usr/lib/*-linux-gnu/libvulkan.so.1)
+          export CMAKE_ARGS="-DGGML_BACKEND_DL=ON -DGGML_VULKAN=ON -DGGML_NATIVE=OFF \
+            -DVulkan_INCLUDE_DIR=${VK_PREFIX}/include \
+            -DVulkan_LIBRARY=${LOADER} \
+            -DVulkan_GLSLC_EXECUTABLE=${VK_PREFIX}/bin/glslc \
+            -DCMAKE_PREFIX_PATH=${VK_PREFIX}"
+          python -m pip install --upgrade pip build wheel
+          python -m pip wheel "llama-cpp-python==${VERSION}" \
+            --no-binary llama-cpp-python \
+            --no-deps \
+            -w dist/
+
+      - name: The plugins are in the wheel
+        # The shape of the failure this guards against: a build that quietly
+        # omits Vulkan produces a wheel that works, on the processor, and says
+        # nothing about it.
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/llama_cpp_python-*.whl)
+          echo "built: ${WHEEL}"
+          python - "$WHEEL" <<'PY'
+          import sys, zipfile
+          names = zipfile.ZipFile(sys.argv[1]).namelist()
+          libs = sorted(n.rsplit("/", 1)[-1] for n in names if "/lib/" in n and n.endswith(".so"))
+          print("libraries in the wheel:")
+          for lib in libs:
+              print("   ", lib)
+          missing = [n for n in ("libggml-base.so", "libggml-cpu.so", "libggml-vulkan.so")
+                     if n not in libs]
+          if missing:
+              raise SystemExit(f"missing from the wheel: {missing}")
+          print("processor and Vulkan backends both present")
+          PY
+
+      - name: It imports, and says what it registered
+        # Not an assertion about devices: on a runner without a driver the
+        # honest answer is the processor alone. Printed because the day it
+        # says something else, that is worth seeing in the log.
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/probe
+          /tmp/probe/bin/pip install --quiet dist/llama_cpp_python-*.whl
+          /tmp/probe/bin/python - <<'PY'
+          import ctypes, pathlib
+          import llama_cpp
+          import llama_cpp.llama_cpp as C
+
+          lib_dir = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          loader = C._lib.ggml_backend_load_all_from_path
+          loader.argtypes = [ctypes.c_char_p]
+          loader(str(lib_dir).encode())
+
+          count = C._lib.ggml_backend_dev_count
+          count.restype = ctypes.c_size_t
+          get = C._lib.ggml_backend_dev_get
+          get.argtypes = [ctypes.c_size_t]
+          get.restype = ctypes.c_void_p
+          name = C._lib.ggml_backend_dev_name
+          name.argtypes = [ctypes.c_void_p]
+          name.restype = ctypes.c_char_p
+
+          devices = [name(get(i)).decode() for i in range(count())]
+          print("registered on this runner:", ", ".join(devices) or "none")
+          PY
+
+      - name: Record what was built
+        run: |
+          cd dist
+          sha256sum llama_cpp_python-*.whl | tee SHA256SUMS
+          ls -lh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-wheel-linux-${{ matrix.arch }}
+          path: |
+            dist/*.whl
+            dist/SHA256SUMS
+          retention-days: 14
+
+  linux-bundle:
+    # The self-contained Linux package, built where the wheel was built.
+    #
+    # WHY IT EXISTS
+    #   The Linux packages used to build their environment on first launch,
+    #   against the distribution's Python. That handed the product to the
+    #   distribution: Arch ships 3.14 and Debian 12 ships 3.11, and on
+    #   2026-09-23 we were out of range on both sides on the same day. A
+    #   bundle replaces that moving target with one number we choose, the
+    #   glibc of this runner.
+    name: linux-bundle (${{ matrix.arch }})
+    needs: linux-wheel
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: llama-wheel-linux-${{ matrix.arch }}
+          path: wheel/
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies, then our own inference wheel
+        # The pinned inference wheel is not installed at all: uv.lock takes it
+        # from a third-party index that has no arm64 build, where uv would
+        # fall back to compiling it from source, only for us to replace it.
+        #
+        # Everything after this point runs with --no-sync, and that is not
+        # caution. Without it the next uv run reconciles the environment with
+        # the lockfile, quietly puts the pinned wheel back, and the build
+        # produces a bundle with no accelerator in it. It happened on the
+        # first attempt: the wheel was installed, the spec then reported
+        # carrying six files and Vulkan was not among them.
+        run: |
+          set -euo pipefail
+          uv sync --extra desktop --no-install-package llama-cpp-python
+          uv pip install --reinstall wheel/llama_cpp_python-*.whl
+          uv run --no-sync python - <<'PY'
+          import pathlib
+          import llama_cpp
+          lib = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          found = sorted(p.name for p in lib.glob("libggml-*"))
+          print("installed backends:", ", ".join(found))
+          assert any("vulkan" in n for n in found), (
+              "our wheel is not the one installed: the environment was reconciled "
+              "with the lockfile and the pinned wheel came back"
+          )
+          PY
+
+      - name: Stamp the build
+        # The stamp is what the sidebar, the update check and the Diagnostics
+        # report call the version. Left alone, the bundle carries whatever
+        # core/_build_info.py says in the tree, which is the last release made
+        # by hand: the first packages from this workflow reported themselves as
+        # 0.3.1 built on 2026-09-23, and a test report from them would have
+        # landed in the compatibility table under the wrong release.
+        #
+        # Outside a release the commit is appended. It tells a test build from
+        # the release it follows, and it keeps the update check quiet, since a
+        # version that is not plain digits is never offered an upgrade.
+        shell: bash
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APP_VERSION}" ]; then
+            V="${APP_VERSION}"
+          else
+            V="$(tr -d '[:space:]' < VERSION)+g${GITHUB_SHA::7}"
+          fi
+          TS="$(date -u '+%Y-%m-%d %H:%M') UTC"
+          printf '# Generated at build time - do not edit manually.\nBUILD_TIME = "%s"\nBUILD_VERSION = "%s"\n' "${TS}" "${V}" > core/_build_info.py
+          cat core/_build_info.py
+
+      - name: Build the bundle
+        run: uv run --no-sync --extra desktop pyinstaller desktop.spec --noconfirm --clean
+
+      - name: No library search path that points at this runner
+        # The interpreter from setup-python is built with a RUNPATH into the
+        # runner's tool cache, /opt/hostedtoolcache/..., and PyInstaller copies
+        # it into every extension module. On a user's machine that directory
+        # does not exist, so nothing breaks; but a search path into /opt that
+        # nobody controls is one more place the loader looks for a library,
+        # and lintian rightly fails the package on it.
+        #
+        # patchelf only edits the dynamic section here. It does not move
+        # segments, which is what strip did to the manylinux libraries.
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends patchelf
+          fixed=0
+          while IFS= read -r -d '' f; do
+            rp=$(patchelf --print-rpath "$f" 2>/dev/null) || continue
+            case "$rp" in
+              *hostedtoolcache*) patchelf --remove-rpath "$f"; fixed=$((fixed + 1)) ;;
+            esac
+          done < <(find dist/SpendifAi -type f \( -name "*.so" -o -name "*.so.*" -o -perm -u+x \) -print0)
+          echo "search paths removed from ${fixed} files"
+          while IFS= read -r -d '' f; do
+            if patchelf --print-rpath "$f" 2>/dev/null | grep -q hostedtoolcache; then
+              echo "still points at the runner: $f"; exit 1
+            fi
+          done < <(find dist/SpendifAi -type f \( -name "*.so" -o -name "*.so.*" -o -perm -u+x \) -print0)
+
+      - name: The accelerators travel with it
+        # The same check as on the wheel, one step later: a bundle that leaves
+        # the plugins behind starts, runs on the processor, and says nothing.
+        run: |
+          set -euo pipefail
+          FOUND=$(find dist/SpendifAi -name "libggml*.so*" -printf "%f\n" | sort -u)
+          echo "backends inside the bundle:"
+          echo "${FOUND}" | sed "s/^/    /"
+          for lib in libggml-base.so libggml-cpu.so libggml-vulkan.so; do
+            echo "${FOUND}" | grep -qx "${lib}" || { echo "missing from the bundle: ${lib}"; exit 1; }
+          done
+
+      - name: What it weighs
+        run: du -sh dist/SpendifAi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle-${{ matrix.arch }}
+          path: dist/SpendifAi
+          retention-days: 14
+
+  linux-deb:
+    # The package, and the only question that matters about it: does it run on
+    # a machine we have never had.
+    #
+    # Debian 12 is the test because it is the floor: it ships Python 3.11, the
+    # project needs 3.12 or newer, and the old package built its environment
+    # against whatever Python the distribution had. A bundle carrying its own
+    # interpreter is the whole point, and this is where that claim is either
+    # true or not. Each architecture is tested on its own native runner.
+    name: linux-deb (${{ matrix.arch }})
+    needs: linux-bundle
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-bundle-${{ matrix.arch }}
+          path: bundle/
+
+      - name: Build the package
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+          chmod +x bundle/SpendifAi || true
+          VERSION_ARGS=()
+          [ -n "${APP_VERSION}" ] && VERSION_ARGS=(--version "${APP_VERSION}")
+          bash packaging/linux/build-deb.sh --bundle-dir "$(pwd)/bundle" \
+            --arch "${{ matrix.arch }}" "${VERSION_ARGS[@]}"
+          ls -lh build/*.deb
+
+      - name: What it declares it needs
+        # The dependency line is the part that used to install cleanly and
+        # then fail to start. Printed so a change to it is visible in the log
+        # rather than discovered by a user.
+        run: dpkg-deb -I build/spendifai_*.deb | sed -n "1,25p"
+
+      - name: It installs and runs on Debian 12
+        # The probe is written as one line, on the host. Passed as -c it must
+        # be unindented and unbroken, and nesting a multi-line program through
+        # YAML, docker and bash is how the first attempt died on an
+        # IndentationError in the test rather than in the product.
+        run: |
+          set -euo pipefail
+          printf '%s' 'import sys,pathlib,llama_cpp;lib=pathlib.Path(llama_cpp.__file__).parent/"lib";found=sorted(p.name for p in lib.glob("libggml-*"));print("python",sys.version.split()[0]);print("backends:",", ".join(found));assert any("vulkan" in n for n in found),"no Vulkan backend in the installed package"' > build/probe.txt
+          docker run --rm -v "$(pwd)/build:/pkg" debian:12 bash -euo pipefail -c '
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends /pkg/spendifai_*.deb
+            echo "--- the interpreter the package brought with it ---"
+            /opt/spendifai/SpendifAi -c "$(cat /pkg/probe.txt)"
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spendifai-deb-${{ matrix.arch }}
+          path: build/*.deb
+          retention-days: 14
+
+  windows-wheel:
+    # The same wheel as on Linux, built on Windows: the processor and Vulkan
+    # side by side as plugins, so one bundle covers AMD, Intel and NVIDIA.
+    name: windows-wheel (x64)
+    # Compared as text on purpose. Started by a pull request or by hand there
+    # are no inputs, and the expression language turns both a missing value
+    # and false into 0: "inputs.windows != false" skipped the job exactly
+    # when it was meant to run. format() gives '' for missing, 'false' only
+    # when a caller said so.
+    if: format('{0}', inputs.windows) != 'false'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vulkan SDK
+        # Waited on explicitly: the installer is a GUI program, and a shell
+        # that does not wait moves on while it is still unpacking.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $file = "vulkansdk-windows-X64-$env:VULKAN_SDK_VERSION.exe"
+          $dest = Join-Path $env:RUNNER_TEMP $file
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/$file" -OutFile $dest
+          $sha = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
+          if ($sha -ne $env:VULKAN_SDK_SHA256) { throw "checksum mismatch for ${file}: $sha" }
+          $p = Start-Process -FilePath $dest -Wait -PassThru -NoNewWindow `
+            -ArgumentList "--accept-licenses", "--default-answer", "--confirm-command", "install"
+          if ($p.ExitCode -ne 0) { throw "Vulkan SDK installer exited with $($p.ExitCode)" }
+          $root = "C:\VulkanSDK\$env:VULKAN_SDK_VERSION"
+          "VULKAN_SDK=$root" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "$root\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: The toolchain answers
+        run: |
+          set -euo pipefail
+          echo "VULKAN_SDK=${VULKAN_SDK}"
+          echo "glslc: $(glslc --version | head -1)"
+          ls -l "${VULKAN_SDK}/Lib/vulkan-1.lib"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build the wheel
+        # FindVulkan reads VULKAN_SDK, so the paths need not be spelled out as
+        # they are on Linux. Two parallel jobs for the same reason as there:
+        # the shader unit is what runs out of memory first.
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+          CMAKE_ARGS: "-DGGML_BACKEND_DL=ON -DGGML_VULKAN=ON -DGGML_NATIVE=OFF"
+          VERSION: ${{ inputs.version || '0.3.35' }}
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip build wheel
+          python -m pip wheel "llama-cpp-python==${VERSION}" \
+            --no-binary llama-cpp-python \
+            --no-deps \
+            -w dist/
+
+      - name: The plugins are in the wheel
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/llama_cpp_python-*.whl)
+          echo "built: ${WHEEL}"
+          python - "$WHEEL" <<'PY'
+          import sys, zipfile
+          names = zipfile.ZipFile(sys.argv[1]).namelist()
+          libs = sorted(n.rsplit("/", 1)[-1] for n in names if "/lib/" in n and n.endswith(".dll"))
+          print("libraries in the wheel:")
+          for lib in libs:
+              print("   ", lib)
+          missing = [n for n in ("ggml-base.dll", "ggml-cpu.dll", "ggml-vulkan.dll")
+                     if n not in libs]
+          if missing:
+              raise SystemExit(f"missing from the wheel: {missing}")
+          print("processor and Vulkan backends both present")
+          PY
+
+      - name: It imports, and says what it registered
+        run: |
+          set -euo pipefail
+          python -m venv "${RUNNER_TEMP}/probe"
+          "${RUNNER_TEMP}/probe/Scripts/pip" install --quiet dist/llama_cpp_python-*.whl
+          # Asked of ggml.dll and ggml-base.dll, not of llama.dll: on Windows a
+          # DLL answers only for what it exports itself, and the loader and the
+          # device functions live in the two ggml libraries.
+          "${RUNNER_TEMP}/probe/Scripts/python" - <<'PY'
+          import ctypes, pathlib
+          import llama_cpp
+          from llama_cpp._ggml import libggml
+
+          lib_dir = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          base = ctypes.CDLL(str(lib_dir / "ggml-base.dll"))
+          loader = libggml.ggml_backend_load_all_from_path
+          loader.argtypes = [ctypes.c_char_p]
+          loader(str(lib_dir).encode())
+
+          count = libggml.ggml_backend_dev_count
+          count.restype = ctypes.c_size_t
+          get = libggml.ggml_backend_dev_get
+          get.argtypes = [ctypes.c_size_t]
+          get.restype = ctypes.c_void_p
+          name = base.ggml_backend_dev_name
+          name.argtypes = [ctypes.c_void_p]
+          name.restype = ctypes.c_char_p
+
+          devices = [name(get(i)).decode() for i in range(count())]
+          print("registered on this runner:", ", ".join(devices) or "none")
+          PY
+
+      - name: Record what was built
+        run: |
+          cd dist
+          sha256sum llama_cpp_python-*.whl | tee SHA256SUMS
+          ls -lh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-wheel-windows-x64
+          path: |
+            dist/*.whl
+            dist/SHA256SUMS
+          retention-days: 14
+
+  windows-bundle:
+    # The folder PyInstaller makes, uploaded as it is. Unzipped anywhere, it
+    # starts with SpendifAi.exe and needs no signature, which is all a test of
+    # the accelerator needs. The MSIX is made from this same folder by the
+    # release, where it is signed.
+    name: windows-bundle (x64)
+    needs: windows-wheel
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: llama-wheel-windows-x64
+          path: wheel/
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies, then our own inference wheel
+        # --no-sync from here on, for the reason given in linux-bundle: the
+        # next plain uv run would put the pinned wheel back.
+        run: |
+          set -euo pipefail
+          uv sync --extra desktop --no-install-package llama-cpp-python
+          uv pip install --reinstall wheel/llama_cpp_python-*.whl
+          uv run --no-sync python - <<'PY'
+          import pathlib
+          import llama_cpp
+          lib = pathlib.Path(llama_cpp.__file__).parent / "lib"
+          found = sorted(p.name for p in lib.glob("ggml-*"))
+          print("installed backends:", ", ".join(found))
+          assert any("vulkan" in n for n in found), (
+              "our wheel is not the one installed: the environment was reconciled "
+              "with the lockfile and the pinned wheel came back"
+          )
+          PY
+
+      - name: Stamp the build
+        shell: bash
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APP_VERSION}" ]; then
+            V="${APP_VERSION}"
+          else
+            V="$(tr -d '[:space:]' < VERSION)+g${GITHUB_SHA::7}"
+          fi
+          TS="$(date -u '+%Y-%m-%d %H:%M') UTC"
+          printf '# Generated at build time - do not edit manually.\nBUILD_TIME = "%s"\nBUILD_VERSION = "%s"\n' "${TS}" "${V}" > core/_build_info.py
+          cat core/_build_info.py
+
+      - name: Build the bundle
+        run: uv run --no-sync --extra desktop pyinstaller desktop.spec --noconfirm --clean
+
+      - name: The accelerators travel with it
+        run: |
+          set -euo pipefail
+          FOUND=$(find dist/SpendifAi -iname "ggml*.dll" -printf "%f\n" | sort -u)
+          echo "backends inside the bundle:"
+          echo "${FOUND}" | sed "s/^/    /"
+          for lib in ggml-base.dll ggml-cpu.dll ggml-vulkan.dll; do
+            echo "${FOUND}" | grep -qx "${lib}" || { echo "missing from the bundle: ${lib}"; exit 1; }
+          done
+
+      - name: It starts, and finds its backends
+        # The probe goes through the product's own loader, not a copy of it:
+        # that is the code that failed to find the plugins on Windows, and the
+        # processor must come out registered. With the backends as plugins,
+        # no CPU device means no model can be built at all.
+        #
+        # The executable is built without a console, so it has no stdout to
+        # print to: the probe writes its answer to a file and the step reads
+        # it. Every failure leaves through os._exit, because an exception that
+        # escaped would open an error dialog and hold the job until timeout.
+        #
+        # MSYS2_ARG_CONV_EXCL stops the shell from rewriting the program text
+        # as if it were a path on the way to a Windows executable.
+        timeout-minutes: 5
+        env:
+          MSYS2_ARG_CONV_EXCL: "*"
+        run: |
+          set -euo pipefail
+          OUT="$(cygpath -w "${RUNNER_TEMP}/probe-out.txt")"
+          cat > "${RUNNER_TEMP}/probe.py" <<'PY'
+          import os, sys
+          out = sys.argv[1]
+          try:
+              import pathlib, platform
+              import llama_cpp
+              from core import llm_backends
+              lib = pathlib.Path(llama_cpp.__file__).parent.joinpath('lib')
+              found = sorted(p.name for p in lib.glob('ggml-*'))
+              devices = llm_backends.load_ggml_backend_plugins()
+              ok = any('vulkan' in n for n in found) and any(d.upper() == 'CPU' for d in devices)
+              with open(out, 'w') as f:
+                  f.write('python ' + platform.python_version() + '\n')
+                  f.write('backends: ' + ', '.join(found) + '\n')
+                  f.write('registered on this runner: ' + (', '.join(devices) or 'none') + '\n')
+                  if not ok:
+                      f.write('expected the Vulkan plugin in the bundle and the processor registered\n')
+              os._exit(0 if ok else 1)
+          except BaseException as exc:
+              with open(out, 'w') as f:
+                  f.write('failed: ' + repr(exc) + '\n')
+              os._exit(1)
+          PY
+          rc=0
+          ./dist/SpendifAi/SpendifAi.exe -c "$(cat "${RUNNER_TEMP}/probe.py")" "${OUT}" || rc=$?
+          cat "${RUNNER_TEMP}/probe-out.txt" 2>/dev/null || echo "the probe wrote nothing"
+          exit "${rc}"
+
+      - name: What it weighs
+        run: du -sh dist/SpendifAi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle-x64
+          path: dist/SpendifAi
+          retention-days: 14

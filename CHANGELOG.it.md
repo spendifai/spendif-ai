@@ -8,6 +8,31 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-11
+
+### Corretto
+- La pagina Chat funziona nell'applicazione installata. Era rotta in ogni pacchetto mai pubblicato, su tutti i sistemi: il suo modulo non stava in nessuno degli elenchi di cio' che entra nel pacchetto, quindi aprire la Chat dava errore. Un test ora fallisce se un elenco dimentica un modulo che l'applicazione importa, o ne nomina uno che il repository non contiene
+- Il segno degli importi lo decide il documento, non il tipo di conto scelto in un modulo. Un'etichetta impostata alla creazione del conto poteva trasformare un mese di spese della carta in entrate. Ora gli importi vengono misurati e confrontati con cio' che ha letto il modello: se le due letture concordano l'importazione prosegue, se non concordano l'applicazione chiede una volta in che verso vanno gli importi e ricorda la risposta per quel formato
+- Un'intestazione disegnata con i bordi delle celle (logo, periodo, intestatario) non viene piu' scambiata per la tabella dei movimenti. Il rilevamento prendeva il primo riquadro bordato e si dichiarava certo; ora scarta le cornici quasi vuote e sceglie la tabella piu' piena. Le immagini in un foglio di calcolo non influiscono sulla lettura, e un test lo verifica
+- Un crash lascia la sua traccia nel registro dell'applicazione. L'unica copia stava nel registro di avvio, riscritto a ogni partenza, quindi riavviare dopo un crash la cancellava. Il resoconto tecnico dice se un crash e' stato registrato, senza copiarne il testo, che contiene percorsi personali
+- Gli estratti conto Excel nel vecchio formato (`.xls`) si importano nell'applicazione installata. Il caricamento li accettava, ma la libreria che legge quel formato non era fra le dipendenze ne' nel pacchetto, quindi ogni `.xls` si fermava con un errore. Per trovare la riga di intestazione serviva una seconda correzione: le prime righe venivano lette con uno strumento che i `.xls` non li apre, e il titolo della banca finiva preso per intestazione
+- Le date con il mese scritto per esteso ("02 settembre 2026") si leggono in italiano, inglese, francese, tedesco e spagnolo, per esteso o abbreviate. Prima si leggevano solo i mesi in inglese, e un estratto conto scritto cosi' perdeva tutte le righe
+- Un'importazione che non ha letto quasi niente non si dichiara piu' riuscita. Una nuova mappatura delle colonne che legge meno di meta' delle righe si ferma per la revisione con il motivo, invece di essere salvata e annunciata come importata con zero movimenti
+- Una colonna assegnata a due ruoli, per esempio la data presa anche come descrizione, manda la mappatura in revisione invece di passare come certa
+- Il riconoscimento con il modello delle righe di fondo (totali, saldi, note in coda all'estratto conto) non era mai partito: il suo prompt dava errore a ogni chiamata e subentrava sempre il metodo statistico. Ora parte, e il metodo statistico resta per quando il modello non risponde
+- Cinque dipendenze aggiornate oltre le vulnerabilita' pubblicate: pyjwt, urllib3, fsspec, oauthlib e setuptools
+- Su macOS i due canali installano lo stesso pacchetto, `/Applications/SpendifAi.app`. Homebrew installava `Spendif.ai.app` e l'immagine disco `SpendifAi.app`, quindi dopo aver sostituito l'uno con l'altro brew si rifiutava di aggiornare
+
+### Aggiunto
+- Il pacchetto per Debian e Ubuntu (`.deb`) porta con se' il proprio Python e la libreria di inferenza con Vulkan come plugin, su amd64 e arm64: accelerazione sulla scheda grafica AMD, Intel e NVIDIA senza installare altro, e niente da compilare sulla macchina dell'utente. I pacchetti `.rpm` e Arch usano ancora la costruzione precedente e avranno l'accelerazione in una release successiva
+- Lo stato dell'importazione mostra da quanto tempo e' in corso e, alla fine, quanto e' durata: piu' o meno quanto costera' la prossima sulla stessa macchina
+- support@spendif.ai sulle pagine iniziale e di installazione, in tutte le lingue, per chi non ha un account GitHub. La pagina Diagnostica dice dove mandare il suo resoconto
+- I resoconti di prova costruiscono da soli la tabella di compatibilita'. La pagina Informazioni tecniche apre un modulo GitHub gia' compilato con il suo resoconto, e un workflow lo legge, aggiunge il computer a `docs/compatibility.md` (e `docs/compatibility.it.md`) e propone la modifica come pull request. Nessuno ricopia a mano sistema operativo, scheda grafica o tempi. Il modulo e' pubblico, quindi il resoconto e' trattato come dato non fidato: solo campi nominati, di lunghezza limitata, e niente che nella tabella possa diventare un link o HTML
+- Il resoconto tecnico nomina la distribuzione ("Debian GNU/Linux 13 (trixie)") invece del kernel, e mostra l'ultima importazione da sola accanto alla media, cosi' si confrontano una corsa sul processore e una sulla scheda grafica. Il file salvato dice cosa contiene: `spendifai-report_0.3.1_debian-13_arm64_cpu_20261010-1432.xml`
+- Una matrice di prova in `docs/compatibility.it.md` elenca le configurazioni provate prima di una release e spunta ciascuna dai resoconti che le corrispondono: fatta quando un resoconto dice che tutti e quattro i passi sono riusciti, fatta in parte quando qualcuno no. La spunta si calcola, non si scrive a mano. `docs/test_builds.it.md` riporta i comandi per scaricare e avviare su ogni sistema
+- I resoconti di prova possono arrivare anche via email, per chi non ha un account GitHub. La pagina Diagnostica offre un'email con nel corpo l'elenco dei quattro passi da spuntare e il documento salvato in allegato, e l'email salvata entra in tabella con lo stesso lettore e gli stessi controlli del modulo
+- Windows riceve l'accelerazione sulla scheda grafica con Vulkan, come gia' Linux, da un solo bundle che copre AMD, Intel e NVIDIA. L'applicazione trova anche i plugin della libreria di inferenza su Windows: cercava il caricatore in una libreria che su Windows non lo esporta, quindi non ne avrebbe caricato nessuno e non avrebbe elencato alcun dispositivo
+
 ## [0.3.1] - 2026-09-23
 
 ### Corretto

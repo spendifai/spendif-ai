@@ -37,8 +37,10 @@ from __future__ import annotations
 import logging
 import os
 import platform
+import re
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import quote, urlencode
 from xml.etree import ElementTree as ET
 
 logger = logging.getLogger("SPENDIFY")
@@ -47,7 +49,37 @@ logger = logging.getLogger("SPENDIFY")
 # sender happens to run: without this, two documents cannot be compared, which
 # is precisely when they are needed - a defect that appears on some machines
 # only.
-SCHEMA_VERSION = "1"
+#
+# 2: the operating system by name (os_name, os_id) and the last import on its
+#    own, next to the average over the last twenty.
+SCHEMA_VERSION = "2"
+
+# Where test reports are filed. The form behind it reads the document and adds
+# the machine to the compatibility table, so nobody copies a value by hand.
+ISSUE_FORM_URL = "https://github.com/spendifai/spendif-ai/issues/new"
+ISSUE_TEMPLATE = "test_report.yml"
+
+# A browser and GitHub both accept a few thousand characters in an address,
+# not an unlimited number. Past this the form opens empty and the page says to
+# paste the document, rather than producing a link that fails on some systems.
+_MAX_ISSUE_URL = 7500
+
+# The same address the page offers for help. A test report sent there is read
+# by the same script as one filed on GitHub, from the saved email.
+REPORT_MAIL_ADDRESS = "support@spendif.ai"
+
+# The steps a tester ticks, worded exactly as in the issue form: the script
+# that reads reports matches these labels, in the form and in an email alike,
+# so they stay in English whatever the language of the page.
+TEST_OUTCOMES = (
+    "Installed",
+    "Started from the application menu or icon",
+    "Imported a statement",
+    "Uninstalled cleanly",
+)
+
+_PHASE_COLUMNS = ("header_detection", "classifying", "footer_detection",
+                  "extracting", "cleaning", "categorizing")
 
 # Settings that describe how inference is configured. Listed rather than
 # discovered, because user_settings also holds things that are none of a
@@ -111,14 +143,31 @@ def _import_summary(session: Any) -> dict[str, Any]:
     summary["jobs"] = len(jobs)
     summary["files"] = sum(int(j.n_files or 0) for j in jobs)
     summary["rows"] = rows
+    summary["per_row_seconds"] = _per_row_seconds(jobs, rows)
 
-    if rows:
-        for phase in ("header_detection", "classifying", "footer_detection",
-                      "extracting", "cleaning", "categorizing"):
-            total_ms = sum(int(getattr(j, f"ms_{phase}", 0) or 0) for j in jobs)
-            if total_ms:
-                summary["per_row_seconds"][phase] = round(total_ms / 1000.0 / rows, 4)
+    # The last import on its own. The average blends every run of the last
+    # twenty, and a test that compares the processor with the graphics card
+    # runs the same file twice: averaged, the difference it exists to measure
+    # disappears.
+    if jobs:
+        last = jobs[0]
+        last_rows = int(last.n_transactions or 0)
+        summary["last_job"] = {
+            "rows": last_rows,
+            "per_row_seconds": _per_row_seconds([last], last_rows),
+        }
     return summary
+
+
+def _per_row_seconds(jobs: list[Any], rows: int) -> dict[str, float]:
+    out: dict[str, float] = {}
+    if not rows:
+        return out
+    for phase in _PHASE_COLUMNS:
+        total_ms = sum(int(getattr(j, f"ms_{phase}", 0) or 0) for j in jobs)
+        if total_ms:
+            out[phase] = round(total_ms / 1000.0 / rows, 4)
+    return out
 
 
 def _counts(session: Any) -> dict[str, int]:
@@ -137,6 +186,136 @@ def _counts(session: Any) -> dict[str, int]:
             logger.warning("diagnostics: cannot count %s (%s)", label, exc)
             out[label] = -1
     return out
+
+
+def _log_summary() -> dict[str, Any]:
+    """What the logs would say, without saying it.
+
+    The contents stay out of this document on purpose. A log line carries
+    absolute paths, and every absolute path on this machine contains the
+    account name of whoever is running the application; it can also carry the
+    name of an imported statement, which names a bank and a period. What a
+    support request needs first is not the text: it is whether a trace exists
+    at all, and in which file, so it can be asked for deliberately.
+
+    Both locations are reported, because they answer different questions. The
+    application log is written by the application; the launcher log is the
+    redirect of stdout and stderr, and it is where a failure that happens
+    before the application is running ends up.
+    """
+    from support.logging import _resolve_log_dir
+
+    summary: dict[str, Any] = {
+        "app_log_files": 0,
+        "latest_app_log": "",
+        "unhandled_exception_recorded": False,
+        "launcher_log_present": False,
+        "launcher_log_previous_present": False,
+    }
+
+    try:
+        log_dir = _resolve_log_dir()
+        app_logs = sorted(log_dir.glob("app_*.log"))
+        summary["app_log_files"] = len(app_logs)
+        if app_logs:
+            latest = app_logs[-1]
+            # The file name is a timestamp, which is the one part of a path
+            # that describes nobody.
+            summary["latest_app_log"] = latest.name
+            text = latest.read_text(errors="replace")
+            summary["unhandled_exception_recorded"] = "Unhandled exception" in text
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a read
+        logger.warning("diagnostics: cannot inspect application logs (%s)", exc)
+
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        launcher_dir = (
+            _Path.home() / "Library" / "Logs"
+            if _sys.platform == "darwin"
+            else _Path.home() / ".spendifai"
+        )
+        launcher_log = launcher_dir / "spendifai-launcher.log"
+        summary["launcher_log_present"] = launcher_log.exists()
+        summary["launcher_log_previous_present"] = launcher_log.with_suffix(".log.1").exists()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diagnostics: cannot inspect launcher log (%s)", exc)
+
+    return summary
+
+
+def _percentile(values: list[int], fraction: float) -> int:
+    """Order statistic, nearest rank. No interpolation, no library."""
+    if not values:
+        return 0
+    index = min(len(values) - 1, int(round(fraction * (len(values) - 1))))
+    return int(values[index])
+
+
+def _llm_observed(session: Any) -> list[dict[str, Any]]:
+    """What the model actually did on this machine, not how it is configured.
+
+    Every other figure about inference in this report is a setting. A setting
+    says what was asked for; these rows say what happened, and the two disagree
+    exactly when something is wrong. The call log is already written per call
+    (db.repository.log_llm_usage), so this reads and groups, it measures
+    nothing new.
+
+    CONTEXT PRESSURE IS THE REASON THIS SECTION EXISTS. On 2026-09-22 a saved
+    context of 4096 made every import fail with "all backends failed", and the
+    diagnosis took hours. prompt_tokens against n_ctx of the same call says it
+    in one line, on the machine where it happens.
+
+    Descriptive figures only: counts, median, p95, maximum. The log also
+    supports confidence intervals (db.repository.get_token_usage_stats); a
+    claim of that kind about a model's behaviour is not what a support document
+    is for, and it is not established by reading a machine's own call log.
+
+    source_name is a file name, so it names a bank and a period. It is the one
+    column here that must never be read.
+    """
+    from db.models import LlmUsageLog
+
+    try:
+        rows = session.query(LlmUsageLog).all()
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a query
+        logger.warning("diagnostics: cannot read the call log (%s)", exc)
+        return []
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for row in rows:
+        groups.setdefault(
+            (row.backend or "", _model_name(row.model_id), row.caller or ""), []
+        ).append(row)
+
+    observed: list[dict[str, Any]] = []
+    for (backend, model, caller), entries in sorted(groups.items()):
+        durations = sorted(int(e.duration_ms or 0) for e in entries)
+        prompts = sorted(int(e.prompt_tokens or 0) for e in entries)
+        contexts = [int(e.n_ctx) for e in entries if e.n_ctx]
+        smallest_context = min(contexts) if contexts else 0
+        largest_prompt = prompts[-1] if prompts else 0
+
+        observed.append({
+            "backend": backend,
+            "model": model,
+            "phase": caller,
+            "calls": len(entries),
+            "median_ms": _percentile(durations, 0.5),
+            "p95_ms": _percentile(durations, 0.95),
+            "median_prompt_tokens": _percentile(prompts, 0.5),
+            "max_prompt_tokens": largest_prompt,
+            "context": smallest_context,
+            # The answer, not the ingredients. A prompt that reaches the
+            # context window is the shape of a failure that reports itself as
+            # "all backends failed".
+            "context_pressure": bool(
+                smallest_context and largest_prompt >= 0.9 * smallest_context
+            ),
+        })
+
+    return observed
 
 
 def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
@@ -172,6 +351,8 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         },
         "system": {
             "os": hw.get("os", platform.system()),
+            "os_name": rt.get("os_name", ""),
+            "os_id": rt.get("os_id", ""),
             "os_version": rt["os_version"],
             "arch": hw.get("arch", platform.machine()),
             "ram_gb": hw.get("ram_gb", 0),
@@ -198,6 +379,8 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         },
         "ledger": _counts(session),
         "imports": _import_summary(session),
+        "logs": _log_summary(),
+        "llm_observed": _llm_observed(session),
     }
 
 
@@ -213,7 +396,8 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
         "generated_at": report["generated_at"],
     })
 
-    for section in ("application", "system", "graphics", "inference", "ledger", "imports"):
+    for section in ("application", "system", "graphics", "inference", "ledger",
+                    "imports", "logs"):
         node = ET.SubElement(root, section)
         for key, value in report.get(section, {}).items():
             if isinstance(value, dict):
@@ -232,6 +416,14 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
             else:
                 ET.SubElement(node, key).text = str(value)
 
+    # A list of groups, not a mapping like every other section, so it is
+    # rendered here rather than bent into the loop above.
+    observed = ET.SubElement(root, "llm_observed")
+    for group in report.get("llm_observed", []):
+        node = ET.SubElement(observed, "call_group")
+        for key, value in group.items():
+            ET.SubElement(node, key).text = str(value)
+
     if stars is not None:
         ET.SubElement(root, "user_rating", {
             "stars": str(int(stars)),
@@ -241,3 +433,99 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
 
     ET.indent(root, space="  ")
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
+
+
+def _slug(value: str, limit: int = 40) -> str:
+    """Lower case, letters, digits and dots, joined by single dashes."""
+    text = re.sub(r"[^a-z0-9.]+", "-", str(value).lower()).strip("-.")
+    return text[:limit].rstrip("-.") or "unknown"
+
+
+def _arch(value: str) -> str:
+    """One name per architecture: the same machine reports x86_64 or AMD64."""
+    v = str(value).lower()
+    if v in ("x86_64", "amd64", "x64"):
+        return "amd64"
+    if v in ("aarch64", "arm64", "armv8"):
+        return "arm64"
+    return _slug(v, 16)
+
+
+def _acceleration(report: dict[str, Any]) -> str:
+    """What runs the model: "cpu", or the backend and the card, "vulkan-quadro-p2000"."""
+    graphics = report.get("graphics", {})
+    if not graphics.get("acceleration_active"):
+        return "cpu"
+    devices = [d for d in graphics.get("inference_devices", []) if str(d).upper() != "CPU"]
+    backend = re.sub(r"\d+$", "", str(devices[0])) if devices else "gpu"
+    gpu = graphics.get("gpu", "")
+    # Vendor words add length and nothing a reader cannot infer from the model.
+    gpu = re.sub(r"(?i)\b(nvidia|amd|ati|intel|corporation|\(r\)|\(tm\))\b", " ", str(gpu))
+    parts = [_slug(backend, 12)]
+    if gpu.strip() and gpu.strip().lower() != "unknown":
+        parts.append(_slug(gpu, 28))
+    return "-".join(parts)
+
+
+def report_filename(report: dict[str, Any]) -> str:
+    """A name that says what is inside without opening the file.
+
+    spendifai-report_0.3.1_debian-13_arm64_cpu_20261010-1432.xml
+
+    Version, operating system, architecture, what runs the model and when.
+    Several reports from several machines end up in the same folder or
+    attached to the same thread, and a name that only carries the version makes
+    them indistinguishable. Nothing in it names the person or the machine: no
+    host name, no account name.
+    """
+    app = report.get("application", {})
+    system = report.get("system", {})
+    stamp = str(report.get("generated_at", ""))
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})", stamp)
+    when = f"{m[1]}{m[2]}{m[3]}-{m[4]}{m[5]}" if m else "undated"
+    parts = [
+        "spendifai-report",
+        _slug(app.get("version", "unknown"), 20),
+        _slug(system.get("os_id") or system.get("os", "unknown"), 24),
+        _arch(system.get("arch", "unknown")),
+        _acceleration(report),
+        when,
+    ]
+    return "_".join(parts) + ".xml"
+
+
+def issue_url(report: dict[str, Any], xml: str) -> tuple[str, bool]:
+    """The address of the test report form, filled in with this document.
+
+    Returns the address and whether the document fits in it. When it does not,
+    the address opens the form with the title only, and the caller tells the
+    reader to paste the document, which the page shows in full anyway.
+    """
+    title = "Test report: " + report_filename(report).removesuffix(".xml")
+    base = {"template": ISSUE_TEMPLATE, "title": title}
+    compact = re.sub(r">\s+<", "><", xml)
+    full = f"{ISSUE_FORM_URL}?{urlencode({**base, 'report': compact})}"
+    if len(full) <= _MAX_ISSUE_URL:
+        return full, True
+    return f"{ISSUE_FORM_URL}?{urlencode(base)}", False
+
+
+def mail_parts(report: dict[str, Any], intro: str) -> tuple[str, str, str]:
+    """Address, subject and body of the email that sends a test report.
+
+    The subject carries the same self-describing name as the file, and the
+    body the four steps as a checklist in the format the issue form produces,
+    so the saved email can be read into the compatibility table as it is.
+    The document itself travels as an attachment: a mail link cannot attach
+    a file, and a whole report in the body is past what mail clients accept.
+    """
+    subject = "Test report: " + report_filename(report).removesuffix(".xml")
+    body = intro + "\n\n" + "\n".join(f"- [ ] {label}" for label in TEST_OUTCOMES) + "\n"
+    return REPORT_MAIL_ADDRESS, subject, body
+
+
+def mail_url(report: dict[str, Any], intro: str) -> str:
+    """The same email as a mailto link, for a page running in a browser."""
+    address, subject, body = mail_parts(report, intro)
+    return f"mailto:{address}?subject={quote(subject)}&body={quote(body)}"
+

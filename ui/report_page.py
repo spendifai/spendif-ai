@@ -13,6 +13,7 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.file_handoff import offer_file
 
 logger = setup_logging()
 
@@ -362,7 +363,7 @@ def render_report_page(engine):
     if date_to:
         period_label += date_to.strftime("%Y%m%d")
 
-    st.download_button(
+    offer_file(
         t("report.export_btn"),
         xlsx_bytes,
         f"spendifai_report_{period_label}.xlsx",
