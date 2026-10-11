@@ -66,14 +66,19 @@ except Exception as _exc:  # noqa: BLE001 - a spec that cannot look is a spec
 # ---------------------------------------------------------------------------
 # Application packages to bundle alongside the frozen launcher
 # ---------------------------------------------------------------------------
+# nsi/ is deliberately absent. It is the generation input for
+# core/static_rules.json, and core/static_rules.json is what runs
+# (core/nsi_lookup.py reads it). Listing nsi/ here shipped 16 MB into
+# locally built artifacts and nothing into CI ones, because the directory
+# is gitignored: same artifact name, different contents per builder.
 APP_PACKAGES = [
     "app.py",
     "api",
+    "chat_bot",
     "config",
     "core",
     "db",
     "desktop",
-    "nsi",
     "prompts",
     "reports",
     "services",

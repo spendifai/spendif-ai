@@ -17,6 +17,7 @@ from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.tree_filter import render_tree_filter, build_full_tree_data
+from ui.widgets.file_handoff import offer_file
 
 logger = setup_logging()
 
@@ -577,7 +578,7 @@ def render_analysis_page(engine):
         date_from=filters.get("date_from"),
         date_to=filters.get("date_to"),
     )
-    st.download_button(
+    offer_file(
         t("analytics.download_html_report"),
         html_str.encode("utf-8"),
         "spendifai_report.html",

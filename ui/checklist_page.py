@@ -15,6 +15,7 @@ from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.file_handoff import offer_file
 
 logger = setup_logging()
 
@@ -201,9 +202,9 @@ def render_checklist_page(engine) -> None:
         )
 
     csv = display_df.reset_index().to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="⬇️ Scarica CSV",
-        data=csv,
-        file_name=f"checklist_{today.strftime('%Y%m%d')}.csv",
-        mime="text/csv",
+    offer_file(
+        "⬇️ Scarica CSV",
+        csv,
+        f"checklist_{today.strftime('%Y%m%d')}.csv",
+        "text/csv",
     )

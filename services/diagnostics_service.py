@@ -188,6 +188,136 @@ def _counts(session: Any) -> dict[str, int]:
     return out
 
 
+def _log_summary() -> dict[str, Any]:
+    """What the logs would say, without saying it.
+
+    The contents stay out of this document on purpose. A log line carries
+    absolute paths, and every absolute path on this machine contains the
+    account name of whoever is running the application; it can also carry the
+    name of an imported statement, which names a bank and a period. What a
+    support request needs first is not the text: it is whether a trace exists
+    at all, and in which file, so it can be asked for deliberately.
+
+    Both locations are reported, because they answer different questions. The
+    application log is written by the application; the launcher log is the
+    redirect of stdout and stderr, and it is where a failure that happens
+    before the application is running ends up.
+    """
+    from support.logging import _resolve_log_dir
+
+    summary: dict[str, Any] = {
+        "app_log_files": 0,
+        "latest_app_log": "",
+        "unhandled_exception_recorded": False,
+        "launcher_log_present": False,
+        "launcher_log_previous_present": False,
+    }
+
+    try:
+        log_dir = _resolve_log_dir()
+        app_logs = sorted(log_dir.glob("app_*.log"))
+        summary["app_log_files"] = len(app_logs)
+        if app_logs:
+            latest = app_logs[-1]
+            # The file name is a timestamp, which is the one part of a path
+            # that describes nobody.
+            summary["latest_app_log"] = latest.name
+            text = latest.read_text(errors="replace")
+            summary["unhandled_exception_recorded"] = "Unhandled exception" in text
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a read
+        logger.warning("diagnostics: cannot inspect application logs (%s)", exc)
+
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        launcher_dir = (
+            _Path.home() / "Library" / "Logs"
+            if _sys.platform == "darwin"
+            else _Path.home() / ".spendifai"
+        )
+        launcher_log = launcher_dir / "spendifai-launcher.log"
+        summary["launcher_log_present"] = launcher_log.exists()
+        summary["launcher_log_previous_present"] = launcher_log.with_suffix(".log.1").exists()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diagnostics: cannot inspect launcher log (%s)", exc)
+
+    return summary
+
+
+def _percentile(values: list[int], fraction: float) -> int:
+    """Order statistic, nearest rank. No interpolation, no library."""
+    if not values:
+        return 0
+    index = min(len(values) - 1, int(round(fraction * (len(values) - 1))))
+    return int(values[index])
+
+
+def _llm_observed(session: Any) -> list[dict[str, Any]]:
+    """What the model actually did on this machine, not how it is configured.
+
+    Every other figure about inference in this report is a setting. A setting
+    says what was asked for; these rows say what happened, and the two disagree
+    exactly when something is wrong. The call log is already written per call
+    (db.repository.log_llm_usage), so this reads and groups, it measures
+    nothing new.
+
+    CONTEXT PRESSURE IS THE REASON THIS SECTION EXISTS. On 2026-09-22 a saved
+    context of 4096 made every import fail with "all backends failed", and the
+    diagnosis took hours. prompt_tokens against n_ctx of the same call says it
+    in one line, on the machine where it happens.
+
+    Descriptive figures only: counts, median, p95, maximum. The log also
+    supports confidence intervals (db.repository.get_token_usage_stats); a
+    claim of that kind about a model's behaviour is not what a support document
+    is for, and it is not established by reading a machine's own call log.
+
+    source_name is a file name, so it names a bank and a period. It is the one
+    column here that must never be read.
+    """
+    from db.models import LlmUsageLog
+
+    try:
+        rows = session.query(LlmUsageLog).all()
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a query
+        logger.warning("diagnostics: cannot read the call log (%s)", exc)
+        return []
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for row in rows:
+        groups.setdefault(
+            (row.backend or "", _model_name(row.model_id), row.caller or ""), []
+        ).append(row)
+
+    observed: list[dict[str, Any]] = []
+    for (backend, model, caller), entries in sorted(groups.items()):
+        durations = sorted(int(e.duration_ms or 0) for e in entries)
+        prompts = sorted(int(e.prompt_tokens or 0) for e in entries)
+        contexts = [int(e.n_ctx) for e in entries if e.n_ctx]
+        smallest_context = min(contexts) if contexts else 0
+        largest_prompt = prompts[-1] if prompts else 0
+
+        observed.append({
+            "backend": backend,
+            "model": model,
+            "phase": caller,
+            "calls": len(entries),
+            "median_ms": _percentile(durations, 0.5),
+            "p95_ms": _percentile(durations, 0.95),
+            "median_prompt_tokens": _percentile(prompts, 0.5),
+            "max_prompt_tokens": largest_prompt,
+            "context": smallest_context,
+            # The answer, not the ingredients. A prompt that reaches the
+            # context window is the shape of a failure that reports itself as
+            # "all backends failed".
+            "context_pressure": bool(
+                smallest_context and largest_prompt >= 0.9 * smallest_context
+            ),
+        })
+
+    return observed
+
+
 def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
     """Assemble the report. Never raises: a diagnostic that crashes says nothing."""
     from core import runtime_info
@@ -249,6 +379,8 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         },
         "ledger": _counts(session),
         "imports": _import_summary(session),
+        "logs": _log_summary(),
+        "llm_observed": _llm_observed(session),
     }
 
 
@@ -264,7 +396,8 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
         "generated_at": report["generated_at"],
     })
 
-    for section in ("application", "system", "graphics", "inference", "ledger", "imports"):
+    for section in ("application", "system", "graphics", "inference", "ledger",
+                    "imports", "logs"):
         node = ET.SubElement(root, section)
         for key, value in report.get(section, {}).items():
             if isinstance(value, dict):
@@ -282,6 +415,14 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
                     ET.SubElement(sub, "item").text = str(v)
             else:
                 ET.SubElement(node, key).text = str(value)
+
+    # A list of groups, not a mapping like every other section, so it is
+    # rendered here rather than bent into the loop above.
+    observed = ET.SubElement(root, "llm_observed")
+    for group in report.get("llm_observed", []):
+        node = ET.SubElement(observed, "call_group")
+        for key, value in group.items():
+            ET.SubElement(node, key).text = str(value)
 
     if stars is not None:
         ET.SubElement(root, "user_rating", {
@@ -369,16 +510,22 @@ def issue_url(report: dict[str, Any], xml: str) -> tuple[str, bool]:
     return f"{ISSUE_FORM_URL}?{urlencode(base)}", False
 
 
-def mail_url(report: dict[str, Any], intro: str) -> str:
-    """A mailto address for sending a test report without a GitHub account.
+def mail_parts(report: dict[str, Any], intro: str) -> tuple[str, str, str]:
+    """Address, subject and body of the email that sends a test report.
 
     The subject carries the same self-describing name as the file, and the
     body the four steps as a checklist in the format the issue form produces,
     so the saved email can be read into the compatibility table as it is.
-    The document itself travels as an attachment: a mailto link cannot attach
+    The document itself travels as an attachment: a mail link cannot attach
     a file, and a whole report in the body is past what mail clients accept.
     """
     subject = "Test report: " + report_filename(report).removesuffix(".xml")
     body = intro + "\n\n" + "\n".join(f"- [ ] {label}" for label in TEST_OUTCOMES) + "\n"
-    return f"mailto:{REPORT_MAIL_ADDRESS}?subject={quote(subject)}&body={quote(body)}"
+    return REPORT_MAIL_ADDRESS, subject, body
+
+
+def mail_url(report: dict[str, Any], intro: str) -> str:
+    """The same email as a mailto link, for a page running in a browser."""
+    address, subject, body = mail_parts(report, intro)
+    return f"mailto:{address}?subject={quote(subject)}&body={quote(body)}"
 
