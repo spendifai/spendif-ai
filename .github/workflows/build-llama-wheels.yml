@@ -302,7 +302,7 @@ jobs:
           name: llama-wheel-linux-${{ matrix.arch }}
           path: wheel/
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -624,7 +624,7 @@ jobs:
           name: llama-wheel-windows-x64
           path: wheel/
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
 
       - uses: actions/setup-python@v5
         with:
