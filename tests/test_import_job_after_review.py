@@ -51,7 +51,7 @@ def _review_script(db_path: str, job_ids: list) -> None:
             return []
 
         def process_file_single(self, *a, **k):
-            return SimpleNamespace(transactions=[object()] * 35, skipped_count=0)
+            return SimpleNamespace(transactions=[object()] * 35, skipped_count=2)
 
         def persist_result(self, result):
             pass
@@ -93,8 +93,9 @@ def test_confirming_completes_every_job_that_paused(tmp_path):
     auto = svc.create_job(n_files=1)
     svc.update_job(auto.id, status="completed", status_message="auto", n_transactions=66)
 
+    # A job deleted in the meantime is skipped, not an error.
     app = AppTest.from_function(
-        _review_script, kwargs={"db_path": str(db_path), "job_ids": paused},
+        _review_script, kwargs={"db_path": str(db_path), "job_ids": paused + [9999]},
     )
     app.run(timeout=30)
     assert not app.exception, app.exception
@@ -109,5 +110,6 @@ def test_confirming_completes_every_job_that_paused(tmp_path):
     for jid in paused:
         assert jobs[jid].n_transactions == 35
         assert jobs[jid].status_message.startswith("✅")
+        assert " · 2 " in jobs[jid].status_message  # duplicates skipped, reported
     assert jobs[auto.id].status_message == "auto"
     assert jobs[auto.id].n_transactions == 66
