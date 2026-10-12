@@ -829,6 +829,7 @@
   "upload.schema.invert_sign": "Inverti segno",
   "upload.schema.normalized_preview": "**Anteprima normalizzata**",
   "upload.schema.no_rows_parsed": "Nessuna riga interpretabile con questo schema.",
+  "upload.schema.role_conflict": "La colonna \"{column}\" è scelta per più ruoli ({roles}). Ogni colonna può averne uno solo: cambia la scelta per poter importare.",
   "upload.schema.confirm_btn": "✅ Conferma schema e importa",
   "upload.owner_names_missing": "⚠️ I nomi dei titolari non sono configurati. Vai nelle Impostazioni per aggiungerli prima di importare.",
   "upload.job_running": "⏳ Un'importazione è già in corso. Attendi il completamento.",
