@@ -8,6 +8,10 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Modificato
+- Home e Report si aprono sui tre mesi che finiscono con l'ultimo movimento caricato, invece che su un periodo che finisce oggi. Dopo settimane senza importare i grafici non si aprono più vuoti: mostrano dove eri rimasto, e un avviso dice fino a quando sei arrivato e rimanda alla Lista di controllo. Nella Home è la nuova scelta predefinita, "Ultimi 3 mesi caricati"; gli altri periodi non cambiano
+- La didascalia del periodo nella Home non dice più "Ultimi 12 mesi" qualunque periodo sia selezionato
+
 ### Corretto
 - Una controparte confermata non torna più "mista" dopo l'import successivo. Confermare una controparte, o applicare una regola ai movimenti già importati, registrava quei movimenti come modificati a mano, mentre l'import registra i nuovi come categorizzati dalla regola: stessa categoria, due origini, e la controparte risultava mista finché non si riapplicavano le regole. I movimenti categorizzati attraverso una regola ora risultano tali. Una controparte è mista solo quando hai cambiato a mano uno dei suoi movimenti, che è un'eccezione vera alla regola
 

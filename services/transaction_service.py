@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import date
 
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 
-from db.models import Transaction
 from db import repository
+from db.models import Transaction
 
 
 class TransactionService:
@@ -35,6 +37,16 @@ class TransactionService:
         """
         with self._session() as s:
             return s.query(Transaction.id).limit(1).first() is not None
+
+    def get_last_movement_date(self) -> date | None:
+        """Date of the most recent movement, or None on an empty DB.
+
+        Anchors the default period of Home and Report to where the user
+        left off instead of today (see core.guided_flow.reference_period).
+        """
+        with self._session() as s:
+            last = s.query(func.max(Transaction.date)).scalar()
+        return date.fromisoformat(last) if last else None
 
     def get_recent_for_home(self, since_iso: str) -> list[tuple]:
         """Return rows since *since_iso* with only the columns the Home
@@ -335,7 +347,7 @@ class TransactionService:
         Cascades deletion of ReconciliationLink and InternalTransferLink rows.
         Returns the total number of transactions deleted.
         """
-        from db.models import ReconciliationLink, InternalTransferLink
+        from db.models import InternalTransferLink, ReconciliationLink
         deleted = 0
         with self._session() as s:
             for g in groups:

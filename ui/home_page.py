@@ -1,6 +1,8 @@
 """Home page — landing dashboard with income trend + income→expense Sankey.
 
-Two charts, rolling 12-month window:
+Two charts. The default period is the three months ending with the last
+imported movement, so a user who has not imported for a while sees where
+they left off instead of an empty window:
 
   1. Stacked bar of monthly income (categories stacked, only `income` tx_type;
      `internal_in` excluded — transfers between own accounts are not income).
@@ -21,6 +23,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 
+from services.guided_flow_service import GuidedFlowService
 from services.transaction_service import TransactionService
 from ui.i18n import t
 
@@ -40,12 +43,14 @@ _EXPENSE_TYPE = "expense"
 # ── Date range helpers ───────────────────────────────────────────────────────
 
 # Preset keys used both in session_state and in the i18n labels.
-_PRESET_CURRENT_YEAR  = "current_year"   # default
+_PRESET_LAST_LOADED  = "last_loaded"    # default: where the user left off
+_PRESET_CURRENT_YEAR  = "current_year"
 _PRESET_CURRENT_QTR   = "current_quarter"
 _PRESET_CURRENT_MONTH = "current_month"
 _PRESET_LAST_12M      = "last_12_months"
 _PRESET_CUSTOM        = "custom"
 PRESETS_ORDERED = [
+    _PRESET_LAST_LOADED,
     _PRESET_CURRENT_YEAR,
     _PRESET_CURRENT_QTR,
     _PRESET_CURRENT_MONTH,
@@ -70,14 +75,19 @@ def _resolve_period(
     today: Optional[date] = None,
     custom_from: Optional[date] = None,
     custom_to: Optional[date] = None,
+    landing: Optional[tuple[date, date]] = None,
 ) -> tuple[date, date]:
     """Return the (date_from, date_to) tuple for the chosen preset.
 
-    For all built-in presets `date_to` is `today` (data in the future has
-    no meaning for a personal-finance dashboard). The "custom" preset is
-    the only one that honours `custom_to`.
+    "last_loaded" returns `landing`, the three months ending with the last
+    movement (GuidedFlowService.landing_period); without it, the last 12
+    months. For the other built-in presets `date_to` is `today` (data in
+    the future has no meaning for a personal-finance dashboard). The
+    "custom" preset is the only one that honours `custom_to`.
     """
     today = today or date.today()
+    if preset == _PRESET_LAST_LOADED:
+        return landing or (_twelve_months_ago(today), today)
     if preset == _PRESET_CURRENT_YEAR:
         return date(today.year, 1, 1), today
     if preset == _PRESET_CURRENT_QTR:
@@ -345,13 +355,13 @@ def render_home_page(engine) -> None:
     today = date.today()
 
     # ── Period selector ─────────────────────────────────────────────────────
-    # Default = current year. Choice is sticky across reruns via
-    # session_state. "Custom" reveals two date_input widgets.
+    # Default = the three months up to the last movement. Choice is sticky
+    # across reruns via session_state. "Custom" reveals two date_input widgets.
     _SESS_PRESET = "_home_period_preset"
     _SESS_CUSTOM_FROM = "_home_period_custom_from"
     _SESS_CUSTOM_TO = "_home_period_custom_to"
     if _SESS_PRESET not in st.session_state:
-        st.session_state[_SESS_PRESET] = _PRESET_CURRENT_YEAR
+        st.session_state[_SESS_PRESET] = _PRESET_LAST_LOADED
     if _SESS_CUSTOM_FROM not in st.session_state:
         st.session_state[_SESS_CUSTOM_FROM] = _twelve_months_ago(today)
     if _SESS_CUSTOM_TO not in st.session_state:
@@ -386,12 +396,18 @@ def render_home_page(engine) -> None:
                 key="_home_period_to",
             )
 
+    flow_svc = GuidedFlowService(engine)
     since, until = _resolve_period(
         preset,
         today=today,
         custom_from=st.session_state[_SESS_CUSTOM_FROM],
         custom_to=st.session_state[_SESS_CUSTOM_TO],
+        landing=flow_svc.landing_period(),
     )
+
+    stopped_at = flow_svc.stopped_at(today)
+    if stopped_at is not None:
+        st.info(_t("guided.stopped_at", date=stopped_at.strftime("%d/%m/%Y")))
 
     st.caption(_t("home.range_caption",
                   date_from=since.strftime("%d/%m/%Y"),

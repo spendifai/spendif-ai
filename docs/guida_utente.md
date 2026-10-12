@@ -307,6 +307,7 @@ Pulsante per scaricare un file `.xlsx` con tre tipi di foglio:
 ### Filtri disponibili
 
 - **Periodo:** date range picker con pulsanti rapidi — *Mese*, *3 mesi*, *Anno*, *Tutto*
+  All'apertura il periodo è già impostato sui tre mesi che finiscono con l'ultimo movimento caricato, non con oggi: se non importi da un po', vedi dove eri rimasto invece di una pagina vuota. Se manca il mese scorso, un avviso ti ricorda fino a quando sei arrivato e ti manda alla Lista di controllo.
 - **Conti:** multiselect per filtrare uno o più conti
 
 > **Esempio pratico:** Vuoi sapere quanto hai speso in "Alimentari" negli ultimi 3 mesi. Apri Report, clicca "3 mesi", guarda la riga Alimentari nella tabella pivot. Poi passa alla Vista 2 per vedere se la spesa è in crescita o in calo.

@@ -307,6 +307,7 @@ A button to download an `.xlsx` file with three types of sheets:
 ### Available filters
 
 - **Period:** date range picker with quick buttons — *Month*, *3 months*, *Year*, *All*
+  When the page opens, the period is already set to the three months ending with the last transaction loaded, not with today: if you have not imported for a while, you see where you left off instead of an empty page. If last month is missing, a notice tells you how far you got and points you to the Checklist.
 - **Accounts:** multiselect to filter one or more accounts
 
 > **Practical example:** You want to know how much you spent on "Alimentari" (Food) in the last 3 months. Open Report, click "3 months", look at the Alimentari row in the pivot table. Then switch to View 2 to see if spending is trending up or down.
