@@ -66,6 +66,21 @@ class TransactionService:
             s.commit()
             return result
 
+    def apply_rule_category(
+        self, tx_id: str, category: str, subcategory: str, origin: str = "unknown"
+    ) -> bool:
+        """Like update_category, for a rule applied to existing movements.
+
+        The movement is recorded as categorized by the rule, not by hand,
+        so it agrees with the movements the same rule matches at import.
+        """
+        with self._session() as s:
+            result = repository.update_transaction_category(
+                s, tx_id, category, subcategory, origin=origin, source="rule"
+            )
+            s.commit()
+            return result
+
     def get_correction_benchmark(self) -> list[dict]:
         with self._session() as s:
             return repository.get_correction_benchmark(s)

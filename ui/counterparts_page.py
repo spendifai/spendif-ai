@@ -287,7 +287,7 @@ def render_counterparts_page(engine) -> None:
                     if r["set_category"]:
                         txs = tx_svc.get_by_rule_pattern(r["description"], "exact")
                         for tx in txs:
-                            tx_svc.update_category(
+                            tx_svc.apply_rule_category(
                                 tx.id, r["new_cat"], r["new_sub"], origin="counterparts"
                             )
                         applied += len(txs)

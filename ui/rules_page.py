@@ -219,7 +219,7 @@ def render_rules_page(engine):
                             )
                         if not new_giro:
                             for tx in affected:
-                                tx_svc.update_category(tx.id, new_cat, new_sub, origin="rule_apply")
+                                tx_svc.apply_rule_category(tx.id, new_cat, new_sub, origin="rule_apply")
                                 if new_ctx:
                                     tx_svc.update_context(tx.id, new_ctx)
                     if ok:
@@ -332,7 +332,7 @@ def render_rules_page(engine):
                 )
             elif nr_also_apply and _nr_preview_txs:
                 for _tx in _nr_preview_txs:
-                    tx_svc.update_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
+                    tx_svc.apply_rule_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
                     if nr_ctx:
                         tx_svc.update_context(_tx.id, nr_ctx)
                 logger.info(

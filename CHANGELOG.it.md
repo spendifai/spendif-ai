@@ -8,6 +8,9 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Corretto
+- Una controparte confermata non torna più "mista" dopo l'import successivo. Confermare una controparte, o applicare una regola ai movimenti già importati, registrava quei movimenti come modificati a mano, mentre l'import registra i nuovi come categorizzati dalla regola: stessa categoria, due origini, e la controparte risultava mista finché non si riapplicavano le regole. I movimenti categorizzati attraverso una regola ora risultano tali. Una controparte è mista solo quando hai cambiato a mano uno dei suoi movimenti, che è un'eccezione vera alla regola
+
 ## [0.3.5] - 2026-10-12
 
 ### Aggiunto
