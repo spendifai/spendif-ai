@@ -184,6 +184,53 @@ def is_stale(last_movement: date, today: date) -> bool:
     return _ym(last_movement) < _shift(_ym(today), -1)
 
 
+# ── Counterparts: how much of the spending the user has checked ─────────────
+
+# Share of the period's spending the workflow suggests checking. Said to the
+# user in words ("8 euros out of 10"), never as a percentage.
+CHECK_GOAL_SHARE = 0.8
+
+
+@dataclass(frozen=True)
+class CheckProgress:
+    """Spending checked so far against the goal, in money.
+
+    `missing` is how much spending is still to check to reach the goal and
+    `needed` how many unchecked counterparts, largest first, cover it.
+    Both are 0 once the goal is reached.
+    """
+    total: float
+    checked: float
+    missing: float
+    needed: int
+
+    @property
+    def reached(self) -> bool:
+        return self.missing <= 0
+
+
+def check_progress(
+    counterparts: list[tuple[float, bool]], share: float = CHECK_GOAL_SHARE,
+) -> CheckProgress:
+    """Progress over (period total, checked) pairs, one per counterpart.
+
+    Ticking the largest unchecked counterparts first reaches the goal with
+    the fewest ticks, so `needed` counts them in that order.
+    """
+    total = sum(amount for amount, _ in counterparts)
+    checked = sum(amount for amount, ok in counterparts if ok)
+    goal = total * share
+    missing = max(goal - checked, 0.0)
+    needed = 0
+    covered = checked
+    for amount in sorted((a for a, ok in counterparts if not ok), reverse=True):
+        if covered >= goal:
+            break
+        covered += amount
+        needed += 1
+    return CheckProgress(total=total, checked=checked, missing=missing, needed=needed)
+
+
 # ── Resume ───────────────────────────────────────────────────────────────────
 
 # Steps of the first version, in order. The transfers step ("are the money

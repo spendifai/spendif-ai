@@ -2128,12 +2128,21 @@ def get_adaptive_n_ctx_cap(
 def get_counterpart_stats(
     session: Session,
     tx_types: tuple[str, ...] = ("expense", "income"),
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> list[dict]:
     """Aggregate transactions by description to produce per-counterpart stats.
 
     Returns a list of dicts with keys:
-      description, tx_count, avg_amount, modal_category, modal_subcategory,
-      variability_pct, source_mode, human_checked, is_giroconto
+      description, tx_count, avg_amount, total_amount, modal_category,
+      modal_subcategory, variability_pct, source_mode, human_checked,
+      is_giroconto
+
+    With `date_from`/`date_to` (ISO dates, inclusive) the figures cover the
+    movements of that period only, and counterparts without movements in it
+    are left out. `human_checked` still looks at every movement: a
+    counterpart confirmed months ago stays confirmed when the new movements
+    came in through its rule.
 
     is_giroconto is True when most of the counterpart's movements are internal
     transfers (only possible when tx_types includes internal_out/internal_in).
@@ -2149,6 +2158,7 @@ def get_counterpart_stats(
             Transaction.subcategory,
             Transaction.category_source,
             Transaction.validated_at,
+            Transaction.date,
         )
         .filter(
             Transaction.description.isnot(None),
@@ -2168,11 +2178,19 @@ def get_counterpart_stats(
         groups[key].append(row)
         display.setdefault(key, row.description)
 
+    def _in_period(row) -> bool:
+        d = row.date or ""
+        return (date_from is None or d >= date_from) and (date_to is None or d <= date_to)
+
     stats = []
-    for key, txs in groups.items():
+    for key, all_txs in groups.items():
+        txs = [t for t in all_txs if _in_period(t)]
+        if not txs:
+            continue
         desc = display[key]
         tx_count = len(txs)
-        avg_amount = sum(abs(float(t.amount or 0)) for t in txs) / tx_count
+        total_amount = sum(abs(float(t.amount or 0)) for t in txs)
+        avg_amount = total_amount / tx_count
 
         cat_counts: Counter = Counter(t.category for t in txs if t.category)
         if cat_counts:
@@ -2194,7 +2212,7 @@ def get_counterpart_stats(
             source_mode = "unknown"
 
         human_checked = any(
-            t.validated_at is not None or t.category_source == "manual" for t in txs
+            t.validated_at is not None or t.category_source == "manual" for t in all_txs
         )
         n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
 
@@ -2203,6 +2221,7 @@ def get_counterpart_stats(
                 "description": desc,
                 "tx_count": tx_count,
                 "avg_amount": avg_amount,
+                "total_amount": total_amount,
                 "modal_category": modal_cat,
                 "modal_subcategory": modal_sub,
                 "variability_pct": variability_pct,

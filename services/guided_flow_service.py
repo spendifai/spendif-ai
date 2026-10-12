@@ -9,8 +9,10 @@ from datetime import date
 
 from core.guided_flow import (
     STEPS,
+    CheckProgress,
     Guidance,
     GuidanceKind,
+    check_progress,
     checklist_guidance,
     is_stale,
     reference_period,
@@ -19,7 +21,7 @@ from core.guided_flow import (
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 
-__all__ = ["STEPS", "Guidance", "GuidanceKind", "GuidedFlowService"]
+__all__ = ["STEPS", "CheckProgress", "Guidance", "GuidanceKind", "GuidedFlowService"]
 
 # Saved in the DB, not in the session: the workflow resumes after a restart.
 _STEP_SETTING = "guided_flow_step"
@@ -50,12 +52,16 @@ class GuidedFlowService:
     def closed_steps(self, today: date | None = None) -> set[str]:
         """Steps the data has already closed.
 
-        Nothing to load means both the Check List and the import are done.
-        Counterparts, rules and report close only when the user moves on.
+        Nothing to load means both the Check List and the import are done;
+        the counterparts close once the spending checked reaches the goal.
+        Rules and report close only when the user moves on.
         """
+        closed: set[str] = set()
         if self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
-            return {"checklist", "import"}
-        return set()
+            closed |= {"checklist", "import"}
+        if self.check_progress().reached:
+            closed.add("counterparts")
+        return closed
 
     def resume(self, today: date | None = None) -> str:
         """The step to open when the user comes back to the workflow."""
@@ -84,3 +90,27 @@ class GuidedFlowService:
         if last is None:
             return None
         return last if is_stale(last, today or date.today()) else None
+
+    # ── Counterparts step ────────────────────────────────────────────────────
+
+    def expense_counterparts(self) -> list[dict]:
+        """Spending counterparts of the landing period, largest total first.
+
+        Expenses only: one salary would otherwise cover most of the money
+        without a single expense checked. Empty on an empty DB.
+        """
+        period = self.landing_period()
+        if period is None:
+            return []
+        stats = self._tx.get_counterpart_stats(
+            tx_types=("expense",),
+            date_from=period[0].isoformat(),
+            date_to=period[1].isoformat(),
+        )
+        return sorted(stats, key=lambda s: -s["total_amount"])
+
+    def check_progress(self) -> CheckProgress:
+        """Spending of the landing period checked so far, against the goal."""
+        return check_progress([
+            (s["total_amount"], s["human_checked"]) for s in self.expense_counterparts()
+        ])

@@ -10,11 +10,13 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Aggiunto
 - Flusso di lavoro: una nuova voce in cima al menu accompagna l'utente un passo alla volta, a schermo pulito come l'onboarding, da cosa caricare all'import, alle controparti, alle regole fino al quadro del periodo. Uscendo il passo si salva, e la volta dopo si riprende da lì, saltando i passi già fatti nel frattempo. Dopo l'onboarding, "Carica ora" lo apre al passo dell'import
+- Flusso di lavoro, passo delle controparti: solo le controparti di spesa ancora da controllare, dalla più grande. Basta una spunta per controparte, e i prossimi import non la richiedono. In alto spiega l'obiettivo, le controparti che fanno 8 euro su 10 delle spese del periodo, e dice quanto è controllato, quanto manca e quante controparti bastano. L'obiettivo è un suggerimento: Avanti funziona sempre
 
 ### Modificato
 - La Lista di controllo ora dice cosa scaricare, con le date esatte, sopra la griglia: prima il conto più indietro con un pulsante verso l'import, poi gli altri conti e i mesi vuoti in mezzo. Se non c'è ancora nessun conto chiede solo il nome; la prima volta suggerisce un mese solo, così il primo giro resta breve
 - Home e Report si aprono sui tre mesi che finiscono con l'ultimo movimento caricato, invece che su un periodo che finisce oggi. Dopo settimane senza importare i grafici non si aprono più vuoti: mostrano dove eri rimasto, e un avviso dice fino a quando sei arrivato e rimanda alla Lista di controllo. Nella Home è la nuova scelta predefinita, "Ultimi 3 mesi caricati"; gli altri periodi non cambiano
 - La didascalia del periodo nella Home non dice più "Ultimi 12 mesi" qualunque periodo sia selezionato
+- Nella pagina Controparti una controparte si può spuntare come controllata quando la sua categoria è già giusta: la categoria mostrata diventa una regola per tutti i suoi movimenti, passati e futuri. Prima una controparte risultava controllata solo cambiandole categoria
 
 ### Corretto
 - Una controparte confermata non torna più "mista" dopo l'import successivo. Confermare una controparte, o applicare una regola ai movimenti già importati, registrava quei movimenti come modificati a mano, mentre l'import registra i nuovi come categorizzati dalla regola: stessa categoria, due origini, e la controparte risultava mista finché non si riapplicavano le regole. I movimenti categorizzati attraverso una regola ora risultano tali. Una controparte è mista solo quando hai cambiato a mano uno dei suoi movimenti, che è un'eccezione vera alla regola

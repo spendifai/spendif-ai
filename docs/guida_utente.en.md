@@ -393,6 +393,8 @@ For each category with a defined target:
 **Situation:** You want to check at a glance whether you are regularly importing all your transaction files, without gaps of months.
 
 > **Workflow.** The **🧭 Workflow** entry, at the top of the menu, takes you one step at a time on a clean screen: what to load (this page), the import, the counterparts, the rules for the exceptions and finally the period at a glance. At the top you see which step you are on, with *Back*, *Next* and *Leave the workflow*. If you leave, next time it picks up where you left off, skipping the steps you have done in the meantime. After the onboarding, *Upload now* takes you straight to the import step.
+>
+> **The counterparts step.** It shows only the spending counterparts still to check, largest first. Tick *Always like this* when a counterpart always has the category shown: once is enough, from then on its movements, including those of future imports, get that category on their own. The suggested goal is to check the counterparts that make 8 euros out of 10 of the period's spending: at the top you see how much you have checked, how much is missing and how many counterparts are enough. It is a suggestion: you can move on whenever you want.
 
 At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". The *Upload the file* button takes you to the import. Below it you find the other accounts to complete, including empty months in between. If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
 

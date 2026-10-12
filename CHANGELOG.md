@@ -8,11 +8,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Workflow: a new entry at the top of the menu takes the user one step at a time, on a clean screen like the onboarding, from what to load through the import, the counterparts and the rules to the period at a glance. Leaving saves the step, and the next visit picks up there, skipping steps already done in the meantime. After the onboarding, "Upload now" opens it at the import step
+- Workflow, counterparts step: only the spending counterparts still to check, largest first. One tick per counterpart is enough, and later imports do not ask again. At the top it explains the goal, the counterparts that make 8 euros out of 10 of the period's spending, and says how much has been checked, how much is missing and how many counterparts are enough. The goal is a suggestion: Next always works
 
 ### Changed
 - The Checklist now says what to download next, with the exact dates, above the grid: the account furthest behind comes first with a button to the import, then the other accounts and the empty months in between. With no account yet it asks only for a name; the first time it suggests a single month, so the first round stays short
 - Home and Report open on the three months ending with the last transaction loaded, instead of a window ending today. After weeks without importing, the charts no longer open empty: they show where you left off, and a notice says how far you got and points to the Checklist. On Home this is the new default choice, "Last 3 months loaded"; the other periods are unchanged
 - The Home period caption no longer says "Last 12 months" whatever period is selected
+- On the counterparts page a counterpart can be ticked as checked when its category is already right: the category shown becomes a rule for every movement of the counterpart, past and future. Before, a counterpart became checked only by changing its category
 
 ### Fixed
 - A counterpart you confirmed no longer turns "mixed" after the next import. Confirming a counterpart, or applying a rule to the movements already imported, recorded those movements as changed by hand, while the import records the new ones as categorized by the rule: same category, two sources, and the counterpart looked mixed until the rules were applied again. Movements categorized through a rule are now recorded as such. A counterpart is mixed only when you changed one of its movements by hand, which is a real exception to the rule

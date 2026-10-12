@@ -336,10 +336,15 @@ class TransactionService:
             return result
 
     def get_counterpart_stats(
-        self, tx_types: tuple[str, ...] = ("expense", "income")
+        self,
+        tx_types: tuple[str, ...] = ("expense", "income"),
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> list[dict]:
         with self._session() as s:
-            return repository.get_counterpart_stats(s, tx_types=tx_types)
+            return repository.get_counterpart_stats(
+                s, tx_types=tx_types, date_from=date_from, date_to=date_to,
+            )
 
     def delete_duplicate_groups(self, groups: list[list]) -> int:
         """Delete all but the first transaction in each duplicate group.

@@ -393,6 +393,8 @@ Per ogni categoria con obiettivo definito:
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
 > **Flusso di lavoro.** La voce **🧭 Flusso di lavoro**, in cima al menu, ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le controparti, le regole per le eccezioni e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Dopo l'onboarding, *Carica ora* ti porta direttamente al passo dell'import.
+>
+> **Il passo delle controparti.** Mostra solo le controparti di spesa ancora da controllare, dalla più grande. Spunta *Sempre così* quando una controparte ha sempre la categoria indicata: basta una volta, da lì i suoi movimenti, anche quelli dei prossimi import, prendono quella categoria da soli. L'obiettivo suggerito è controllare le controparti che fanno 8 euro su 10 delle spese del periodo: in alto vedi quanto hai controllato, quanto manca e quante controparti bastano. È un suggerimento: puoi andare avanti quando vuoi.
 
 In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Il pulsante *Carica il file* ti porta all'import. Sotto trovi gli altri conti da completare, compresi i mesi vuoti in mezzo. Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
 
