@@ -656,9 +656,18 @@ def get_category_rules(session: Session) -> list[CoreCategoryRule]:
             context=row.context or None,
             doc_type=row.doc_type,
             priority=row.priority or 0,
+            is_giroconto=bool(row.is_giroconto),
         )
         for row in rows
     ]
+
+
+def _make_giroconto(tx: Transaction) -> bool:
+    """Turn a movement into a giroconto, out or in by its sign. True if changed."""
+    if tx.tx_type in ("internal_out", "internal_in"):
+        return False
+    tx.tx_type = "internal_in" if float(tx.amount or 0) >= 0 else "internal_out"
+    return True
 
 
 def apply_rules_to_review_transactions(
@@ -685,6 +694,11 @@ def apply_rules_to_review_transactions(
         desc = tx.description or ""
         for rule in rules:
             if rule.matches(desc, tx.doc_type):
+                if rule.is_giroconto:
+                    _make_giroconto(tx)
+                    tx.to_review = False
+                    updated += 1
+                    break
                 tx.category = rule.category
                 tx.subcategory = rule.subcategory
                 if rule.context:
@@ -726,6 +740,13 @@ def apply_all_rules_to_all_transactions(
         desc = tx.description or ""
         for rule in rules:
             if rule.matches(desc, tx.doc_type):
+                if rule.is_giroconto:
+                    if _make_giroconto(tx):
+                        n_matched += 1
+                    if tx.to_review:
+                        tx.to_review = False
+                        n_cleared += 1
+                    break
                 tx.category            = rule.category
                 tx.subcategory         = rule.subcategory
                 if rule.context:
@@ -754,6 +775,7 @@ def create_category_rule(
     context: Optional[str] = None,
     doc_type: Optional[str] = None,
     priority: int = 0,
+    is_giroconto: bool = False,
 ) -> tuple[CategoryRule, bool]:
     """Create or update a category rule.
 
@@ -787,6 +809,7 @@ def create_category_rule(
         existing.subcategory = subcategory
         existing.context = context or None
         existing.priority = priority
+        existing.is_giroconto = is_giroconto
         session.flush()
         return existing, False
 
@@ -798,6 +821,7 @@ def create_category_rule(
         context=context or None,
         doc_type=doc_type,
         priority=priority,
+        is_giroconto=is_giroconto,
     )
     session.add(rule)
     session.flush()
@@ -813,6 +837,7 @@ def update_category_rule(
     subcategory: Optional[str] = None,
     context: Optional[str] = _SENTINEL,   # type: ignore[assignment]
     priority: Optional[int] = None,
+    is_giroconto: Optional[bool] = None,
 ) -> bool:
     rule = session.get(CategoryRule, rule_id)
     if rule is None:
@@ -831,6 +856,8 @@ def update_category_rule(
         rule.context = context or None
     if priority is not None:
         rule.priority = priority
+    if is_giroconto is not None:
+        rule.is_giroconto = is_giroconto
     session.flush()
     return True
 
@@ -867,6 +894,44 @@ def get_transactions_by_rule_pattern(
             except re.error:
                 pass
     return result
+
+
+def set_giroconto_by_rule_pattern(
+    session: Session, pattern: str, match_type: str, make_giroconto: bool,
+) -> int:
+    """Mark (or unmark) as giroconto every movement the rule pattern matches.
+
+    Unmarking gives back income or expense by sign. Returns how many changed.
+    """
+    changed = 0
+    for tx in get_transactions_by_rule_pattern(session, pattern, match_type):
+        if make_giroconto:
+            changed += _make_giroconto(tx)
+        elif tx.tx_type in ("internal_out", "internal_in"):
+            tx.tx_type = "income" if float(tx.amount or 0) >= 0 else "expense"
+            changed += 1
+    if changed:
+        session.flush()
+    return changed
+
+
+def delete_giroconto_rule(session: Session, pattern: str, match_type: str) -> bool:
+    """Delete the giroconto rule with this pattern, if any. True if deleted."""
+    from sqlalchemy import func
+    rule = (
+        session.query(CategoryRule)
+        .filter(
+            func.upper(CategoryRule.pattern) == pattern.upper(),
+            CategoryRule.match_type == match_type,
+            CategoryRule.is_giroconto.is_(True),
+        )
+        .first()
+    )
+    if rule is None:
+        return False
+    session.delete(rule)
+    session.flush()
+    return True
 
 
 # ── Persistence of ImportResult ───────────────────────────────────────────────
@@ -2055,7 +2120,10 @@ def get_counterpart_stats(
 
     Returns a list of dicts with keys:
       description, tx_count, avg_amount, modal_category, modal_subcategory,
-      variability_pct, source_mode, human_checked
+      variability_pct, source_mode, human_checked, is_giroconto
+
+    is_giroconto is True when most of the counterpart's movements are internal
+    transfers (only possible when tx_types includes internal_out/internal_in).
     """
     from collections import Counter, defaultdict
 
@@ -2063,6 +2131,7 @@ def get_counterpart_stats(
         session.query(
             Transaction.description,
             Transaction.amount,
+            Transaction.tx_type,
             Transaction.category,
             Transaction.subcategory,
             Transaction.category_source,
@@ -2114,6 +2183,7 @@ def get_counterpart_stats(
         human_checked = any(
             t.validated_at is not None or t.category_source == "manual" for t in txs
         )
+        n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
 
         stats.append(
             {
@@ -2125,6 +2195,7 @@ def get_counterpart_stats(
                 "variability_pct": variability_pct,
                 "source_mode": source_mode,
                 "human_checked": human_checked,
+                "is_giroconto": n_internal * 2 > tx_count,
             }
         )
 

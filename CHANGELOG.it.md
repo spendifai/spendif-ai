@@ -8,6 +8,15 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-10-12
+
+### Aggiunto
+- Una controparte si può segnare come giroconto invece di darle una categoria. Nella pagina Controparti una colonna con la spunta la segna, a scelta anche sui movimenti già importati; da lì ogni import trasforma i suoi movimenti in giroconti e li lascia fuori dalla categorizzazione. Togliendo la spunta tornano spese o entrate. La pagina Regole mostra queste regole e permette di crearne o modificarne una
+
+### Corretto
+- La pagina Controparti parla in modo semplice: movimenti, importo medio, chi ha scelto la categoria, controllata da te. Un'etichetta diceva il contrario di quello che misurava: la colonna chiamata variabilità è la quota di movimenti con la categoria più usata, e il filtro "bassa variabilità" mostrava in realtà le controparti con categorie miste. Ora si chiama "solo categorie miste"
+- Le controparti già segnate come giroconto non spariscono più dalla pagina Controparti
+
 ## [0.3.4] - 2026-10-12
 
 ### Corretto

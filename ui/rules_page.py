@@ -74,7 +74,9 @@ def render_rules_page(engine):
                 "ID": r.id,
                 "Pattern": r.pattern,
                 t("rules.col_type"): label_from_type.get(r.match_type, r.match_type),
-                t("rules.col_category"): r.category,
+                t("rules.col_category"): (
+                    t("rules.giroconto_value") if r.is_giroconto else r.category
+                ),
                 t("rules.col_subcategory"): r.subcategory or "",
                 t("rules.col_context"): r.context or "",
                 t("rules.col_priority"): r.priority,
@@ -143,7 +145,12 @@ def render_rules_page(engine):
         # ── Modifica / Elimina regola ────────────────────────────────────
         st.subheader(t("rules.edit_delete_title"))
 
-        rule_opts = {f"[{r.id}] {r.pattern[:60]}  →  {r.category} / {r.subcategory or '—'}": r
+        def _rule_target(r) -> str:
+            if r.is_giroconto:
+                return t("rules.giroconto_value")
+            return f"{r.category} / {r.subcategory or '-'}"
+
+        rule_opts = {f"[{r.id}] {r.pattern[:60]}  →  {_rule_target(r)}": r
                      for r in sorted(rules, key=lambda x: x.pattern.casefold())}
         selected_label = st.selectbox(t("rules.select_rule"), list(rule_opts.keys()),
                                       key="rules_select")
@@ -162,11 +169,17 @@ def render_rules_page(engine):
                                          index=_edit_labels.index(_edit_label),
                                          key=f"rule_edit_match_{rid}")
                 new_match = match_labels[new_match_label]
-                all_idx = all_categories.index(sel_rule.category) if sel_rule.category in all_categories else 0
-                new_cat = st.selectbox(t("rules.category"), all_categories, index=all_idx,
-                                       key=f"rule_edit_cat_{rid}")
-                new_sub = _subcategory_widget(taxonomy, new_cat,
-                                              sel_rule.subcategory or "", f"rule_edit_sub_{rid}")
+                new_giro = st.checkbox(t("rules.giroconto_check"), value=sel_rule.is_giroconto,
+                                       help=t("rules.giroconto_help"),
+                                       key=f"rule_edit_giro_{rid}")
+                if new_giro:
+                    new_cat, new_sub = "", ""
+                else:
+                    all_idx = all_categories.index(sel_rule.category) if sel_rule.category in all_categories else 0
+                    new_cat = st.selectbox(t("rules.category"), all_categories, index=all_idx,
+                                           key=f"rule_edit_cat_{rid}")
+                    new_sub = _subcategory_widget(taxonomy, new_cat,
+                                                  sel_rule.subcategory or "", f"rule_edit_sub_{rid}")
                 _cur_ctx = sel_rule.context or _NO_CONTEXT
                 _ctx_idx = _ctx_options.index(_cur_ctx) if _cur_ctx in _ctx_options else 0
                 new_ctx_raw = st.selectbox(
@@ -197,12 +210,18 @@ def render_rules_page(engine):
                         subcategory=new_sub,
                         context=new_ctx,
                         priority=new_prio,
+                        is_giroconto=new_giro,
                     )
                     if ok and also_fix_txs and n_affected > 0:
-                        for tx in affected:
-                            tx_svc.update_category(tx.id, new_cat, new_sub, origin="rule_apply")
-                            if new_ctx:
-                                tx_svc.update_context(tx.id, new_ctx)
+                        if new_giro or sel_rule.is_giroconto:
+                            tx_svc.set_giroconto_by_rule_pattern(
+                                new_pattern, new_match, make_giroconto=new_giro,
+                            )
+                        if not new_giro:
+                            for tx in affected:
+                                tx_svc.update_category(tx.id, new_cat, new_sub, origin="rule_apply")
+                                if new_ctx:
+                                    tx_svc.update_context(tx.id, new_ctx)
                     if ok:
                         msg = t("rules.rule_updated")
                         if also_fix_txs and n_affected > 0:
@@ -243,12 +262,17 @@ def render_rules_page(engine):
                                key="new_rule_pattern")
     _nr_match_label = st.selectbox(t("rules.match_type"), list(match_labels.keys()), key="new_rule_match")
     nr_match = match_labels[_nr_match_label]
-    nr_cat = st.selectbox(t("rules.category"), all_categories, key="new_rule_cat")
-    nr_subs = taxonomy.valid_subcategories(nr_cat)
-    if nr_subs:
-        nr_sub = st.selectbox(t("rules.subcategory"), nr_subs, key=f"new_rule_sub__{nr_cat}")
+    nr_giro = st.checkbox(t("rules.giroconto_check"), help=t("rules.giroconto_help"),
+                          key="new_rule_giro")
+    if nr_giro:
+        nr_cat, nr_sub = "", ""
     else:
-        nr_sub = st.text_input(t("rules.subcategory"), key=f"new_rule_sub__{nr_cat}")
+        nr_cat = st.selectbox(t("rules.category"), all_categories, key="new_rule_cat")
+        nr_subs = taxonomy.valid_subcategories(nr_cat)
+        if nr_subs:
+            nr_sub = st.selectbox(t("rules.subcategory"), nr_subs, key=f"new_rule_sub__{nr_cat}")
+        else:
+            nr_sub = st.text_input(t("rules.subcategory"), key=f"new_rule_sub__{nr_cat}")
     nr_ctx_raw = st.selectbox(
         t("rules.context_optional"), _ctx_options, index=0, key="new_rule_ctx",
         help=t("rules.context_help"),
@@ -291,7 +315,10 @@ def render_rules_page(engine):
                 subcategory=nr_sub,
                 context=nr_ctx,
                 priority=nr_prio,
+                is_giroconto=nr_giro,
             )
+            if nr_giro:
+                nr_cat = t("rules.giroconto_value")
             ctx_label = f" · {t('rules.col_context').lower()}: {nr_ctx}" if nr_ctx else ""
             if created:
                 st.success(t("rules.created", pattern=nr_pattern, cat=nr_cat, sub=nr_sub) + ctx_label)
@@ -299,7 +326,11 @@ def render_rules_page(engine):
             else:
                 st.warning(t("rules.existing_updated", pattern=nr_pattern, cat=nr_cat, sub=nr_sub) + ctx_label)
                 logger.info(f"rules_page: updated existing rule pattern={nr_pattern!r} cat={nr_cat!r} ctx={nr_ctx!r}")
-            if nr_also_apply and _nr_preview_txs:
+            if nr_also_apply and _nr_preview_txs and nr_giro:
+                tx_svc.set_giroconto_by_rule_pattern(
+                    nr_pattern.strip(), nr_match, make_giroconto=True,
+                )
+            elif nr_also_apply and _nr_preview_txs:
                 for _tx in _nr_preview_txs:
                     tx_svc.update_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
                     if nr_ctx:

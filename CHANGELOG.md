@@ -6,6 +6,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-10-12
+
+### Added
+- A counterpart can be ruled an internal transfer instead of being given a category. On the counterparts page a tick column marks it, optionally also on the transactions already imported; from then on every import turns its transactions into internal transfers and leaves them out of categorization. Unticking gives them back as expenses or income. The rules page shows these rules and can create or edit one
+
+### Fixed
+- The counterparts page speaks plainly: transactions, average amount, who chose the category, checked by you. One label said the opposite of what it measured: the column called variability is the share of transactions with the most used category, and the "low variability" filter actually lists the counterparts whose categories are mixed. It is now called "mixed categories only"
+- Counterparts already marked as internal transfers no longer disappear from the counterparts page
+
 ## [0.3.4] - 2026-10-12
 
 ### Fixed

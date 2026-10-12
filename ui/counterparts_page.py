@@ -1,4 +1,4 @@
-"""Counterparts page — per-vendor stats grid with inline rule creation."""
+"""Counterparts page: per-counterpart stats grid with inline rule creation."""
 from __future__ import annotations
 
 import pandas as pd
@@ -13,12 +13,13 @@ from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
 
 logger = setup_logging()
 
-_SOURCE_EMOJI = {
-    "llm": "🤖",
-    "rule": "📏",
-    "manual": "✋",
-    "mixed": "🔀",
-    "unknown": "❓",
+# Who chose the category, in the user's words (the stored value is internal).
+_SOURCE_LABEL_KEY = {
+    "llm": "counterparts.filter_source_llm",
+    "rule": "counterparts.filter_source_rule",
+    "manual": "counterparts.filter_source_manual",
+    "mixed": "counterparts.filter_source_mixed",
+    "unknown": "counterparts.source_unknown",
 }
 
 _VARIABILITY_WARN = 80.0
@@ -28,7 +29,7 @@ def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
     rows = []
     for s in stats:
         src = s["source_mode"]
-        src_label = f"{_SOURCE_EMOJI.get(src, '')} {src}"
+        src_label = t(_SOURCE_LABEL_KEY.get(src, "counterparts.source_unknown"))
         var = s["variability_pct"]
         combined = join_cat_sub(s["modal_category"], s["modal_subcategory"])
         rows.append(
@@ -37,11 +38,13 @@ def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
                 t("counterparts.col_tx_count"): s["tx_count"],
                 t("counterparts.col_avg_amount"): round(s["avg_amount"], 2),
                 t("counterparts.col_cat_sub"): combined,
+                t("counterparts.col_giroconto"): s["is_giroconto"],
                 t("counterparts.col_source"): src_label,
                 t("counterparts.col_variability"): f"{var:.0f}%",
                 t("counterparts.col_checked"): s["human_checked"],
                 "_description": s["description"],
                 "_orig_cat_sub": combined,
+                "_orig_giroconto": s["is_giroconto"],
             }
         )
     return pd.DataFrame(rows)
@@ -86,7 +89,10 @@ def render_counterparts_page(engine) -> None:
     taxonomy = cfg_svc.get_taxonomy()
     cat_options = build_cat_options(taxonomy, include_empty=True)
 
-    stats = tx_svc.get_counterpart_stats()
+    # Giroconti too, so a counterpart marked as one stays here and can be unmarked.
+    stats = tx_svc.get_counterpart_stats(
+        tx_types=("expense", "income", "internal_out", "internal_in"),
+    )
     if not stats:
         st.info(t("counterparts.empty"))
         return
@@ -143,13 +149,14 @@ def render_counterparts_page(engine) -> None:
     _col_tx          = t("counterparts.col_tx_count")
     _col_avg         = t("counterparts.col_avg_amount")
     _col_cat_sub     = t("counterparts.col_cat_sub")
+    _col_giro        = t("counterparts.col_giroconto")
     _col_src         = t("counterparts.col_source")
     _col_var         = t("counterparts.col_variability")
     _col_chk         = t("counterparts.col_checked")
 
     display_cols = [
         _col_counterpart, _col_tx, _col_avg,
-        _col_cat_sub,
+        _col_cat_sub, _col_giro,
         _col_src, _col_var, _col_chk,
     ]
 
@@ -169,11 +176,14 @@ def render_counterparts_page(engine) -> None:
             required=False,
             width="large",
         ),
+        _col_giro: st.column_config.CheckboxColumn(
+            _col_giro, help=t("counterparts.col_giroconto_help"), width="small"
+        ),
         _col_src: st.column_config.TextColumn(
             _col_src, disabled=True, width="small"
         ),
         _col_var: st.column_config.TextColumn(
-            _col_var, disabled=True, width="small"
+            _col_var, help=t("counterparts.col_variability_help"), disabled=True, width="small"
         ),
         _col_chk: st.column_config.CheckboxColumn(
             _col_chk, disabled=True, width="small"
@@ -192,20 +202,29 @@ def render_counterparts_page(engine) -> None:
     )
 
     # ── Detect changes ────────────────────────────────────────────────────────
+    # One rule per counterpart: giroconto, or a category. Ticking giroconto
+    # wins over a category picked in the same row.
     changed_rows = []
     for idx in range(len(df)):
         orig = df.at[idx, "_orig_cat_sub"]
         new_val = edited.at[idx, _col_cat_sub]
-        if new_val and new_val != orig:
-            new_cat, new_sub = split_cat_sub(new_val)
-            changed_rows.append(
-                {
-                    "description": df.at[idx, "_description"],
-                    "new_cat": new_cat,
-                    "new_sub": new_sub,
-                    "orig": orig,
-                }
-            )
+        orig_giro = bool(df.at[idx, "_orig_giroconto"])
+        new_giro = bool(edited.at[idx, _col_giro])
+        cat_changed = bool(new_val) and new_val != orig
+        if new_giro == orig_giro and not cat_changed:
+            continue
+        new_cat, new_sub = split_cat_sub(new_val) if new_val else ("", "")
+        changed_rows.append(
+            {
+                "description": df.at[idx, "_description"],
+                "giroconto": new_giro,
+                "unmark_giroconto": orig_giro and not new_giro,
+                "new_cat": new_cat,
+                "new_sub": new_sub,
+                "set_category": cat_changed and not new_giro,
+                "orig": orig,
+            }
+        )
 
     if changed_rows:
         st.info(t("counterparts.changes_pending", n=len(changed_rows)))
@@ -225,25 +244,53 @@ def render_counterparts_page(engine) -> None:
             saved = 0
             applied = 0
             for r in changed_rows:
-                _, created = rule_svc.create_rule(
-                    pattern=r["description"],
-                    match_type="exact",
-                    category=r["new_cat"],
-                    subcategory=r["new_sub"],
-                    priority=10,
-                )
-                saved += 1
-                logger.info(
-                    f"counterparts_page: {'created' if created else 'updated'} rule"
-                    f" pattern={r['description']!r} → {r['new_cat']!r}/{r['new_sub']!r}"
-                )
-                if retroapply:
-                    txs = tx_svc.get_by_rule_pattern(r["description"], "exact")
-                    for tx in txs:
-                        tx_svc.update_category(
-                            tx.id, r["new_cat"], r["new_sub"], origin="counterparts"
+                if r["giroconto"]:
+                    _, created = rule_svc.create_rule(
+                        pattern=r["description"],
+                        match_type="exact",
+                        category="",
+                        subcategory="",
+                        priority=10,
+                        is_giroconto=True,
+                    )
+                    saved += 1
+                    logger.info(
+                        f"counterparts_page: {'created' if created else 'updated'} giroconto"
+                        f" rule pattern={r['description']!r}"
+                    )
+                elif r["set_category"]:
+                    _, created = rule_svc.create_rule(
+                        pattern=r["description"],
+                        match_type="exact",
+                        category=r["new_cat"],
+                        subcategory=r["new_sub"],
+                        priority=10,
+                    )
+                    saved += 1
+                    logger.info(
+                        f"counterparts_page: {'created' if created else 'updated'} rule"
+                        f" pattern={r['description']!r} → {r['new_cat']!r}/{r['new_sub']!r}"
+                    )
+                elif r["unmark_giroconto"]:
+                    # No category chosen: the giroconto rule just goes away.
+                    if rule_svc.delete_giroconto_rule(r["description"], "exact"):
+                        saved += 1
+                        logger.info(
+                            f"counterparts_page: deleted giroconto rule"
+                            f" pattern={r['description']!r}"
                         )
-                    applied += len(txs)
+                if retroapply:
+                    if r["giroconto"] or r["unmark_giroconto"]:
+                        applied += tx_svc.set_giroconto_by_rule_pattern(
+                            r["description"], "exact", make_giroconto=r["giroconto"],
+                        )
+                    if r["set_category"]:
+                        txs = tx_svc.get_by_rule_pattern(r["description"], "exact")
+                        for tx in txs:
+                            tx_svc.update_category(
+                                tx.id, r["new_cat"], r["new_sub"], origin="counterparts"
+                            )
+                        applied += len(txs)
 
             msg = t("counterparts.saved_ok", n=saved)
             if retroapply and applied:
