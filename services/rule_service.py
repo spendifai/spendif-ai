@@ -37,10 +37,12 @@ class RuleService:
         context: str | None = None,
         doc_type: str | None = None,
         priority: int = 0,
+        is_giroconto: bool = False,
     ) -> tuple:
         with self._session() as s:
             result = repository.create_category_rule(
-                s, pattern, match_type, category, subcategory, context, doc_type, priority
+                s, pattern, match_type, category, subcategory, context, doc_type, priority,
+                is_giroconto=is_giroconto,
             )
             s.commit()
             return result
@@ -48,6 +50,12 @@ class RuleService:
     def update_rule(self, rule_id: int, **kwargs) -> bool:
         with self._session() as s:
             result = repository.update_category_rule(s, rule_id, **kwargs)
+            s.commit()
+            return result
+
+    def delete_giroconto_rule(self, pattern: str, match_type: str) -> bool:
+        with self._session() as s:
+            result = repository.delete_giroconto_rule(s, pattern, match_type)
             s.commit()
             return result
 

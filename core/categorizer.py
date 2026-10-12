@@ -60,6 +60,9 @@ class CategoryRule:
     doc_type: Optional[str]
     priority: int = 0
     context: Optional[str] = None  # se impostato, viene applicato alle transazioni
+    # A giroconto rule makes the movement an internal transfer; it never
+    # gives a category.
+    is_giroconto: bool = False
 
     _compiled: re.Pattern = field(init=False, repr=False)
 
@@ -220,6 +223,8 @@ def _try_deterministic(
     """
     # Step 0: user-defined rules (sorted by priority desc)
     for rule in sorted(user_rules, key=lambda r: r.priority, reverse=True):
+        if rule.is_giroconto:
+            continue
         if rule.matches(description, doc_type):
             rule_cat = rule.category
             rule_sub = rule.subcategory or ""
