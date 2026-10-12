@@ -1,4 +1,4 @@
-"""Counterparts page — per-vendor stats grid with inline rule creation."""
+"""Counterparts page: per-counterpart stats grid with inline rule creation."""
 from __future__ import annotations
 
 import pandas as pd
@@ -13,12 +13,13 @@ from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
 
 logger = setup_logging()
 
-_SOURCE_EMOJI = {
-    "llm": "🤖",
-    "rule": "📏",
-    "manual": "✋",
-    "mixed": "🔀",
-    "unknown": "❓",
+# Who chose the category, in the user's words (the stored value is internal).
+_SOURCE_LABEL_KEY = {
+    "llm": "counterparts.filter_source_llm",
+    "rule": "counterparts.filter_source_rule",
+    "manual": "counterparts.filter_source_manual",
+    "mixed": "counterparts.filter_source_mixed",
+    "unknown": "counterparts.source_unknown",
 }
 
 _VARIABILITY_WARN = 80.0
@@ -28,7 +29,7 @@ def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
     rows = []
     for s in stats:
         src = s["source_mode"]
-        src_label = f"{_SOURCE_EMOJI.get(src, '')} {src}"
+        src_label = t(_SOURCE_LABEL_KEY.get(src, "counterparts.source_unknown"))
         var = s["variability_pct"]
         combined = join_cat_sub(s["modal_category"], s["modal_subcategory"])
         rows.append(
@@ -182,7 +183,7 @@ def render_counterparts_page(engine) -> None:
             _col_src, disabled=True, width="small"
         ),
         _col_var: st.column_config.TextColumn(
-            _col_var, disabled=True, width="small"
+            _col_var, help=t("counterparts.col_variability_help"), disabled=True, width="small"
         ),
         _col_chk: st.column_config.CheckboxColumn(
             _col_chk, disabled=True, width="small"
