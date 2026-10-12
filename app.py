@@ -112,23 +112,9 @@ _cfg_check = _SvcCheck(engine)
 # step 6, so the user can finish choosing between "upload now" vs "skip".
 _in_step6 = st.session_state.get("_ob_step") == 6
 if not _cfg_check.is_onboarding_done() or _in_step6:
-    # Hide chrome — full-screen immersive look while onboarding.
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="stHeader"] { display: none !important; }
-        [data-testid="stToolbar"] { display: none !important; }
-        section[data-testid="stSidebarUserContent"] { display: none !important; }
-        .main .block-container {
-            max-width: 820px;
-            padding-top: 2rem;
-            padding-bottom: 4rem;
-        }
-        /* Streamlit injects a small "Manage app"/"Deploy" button — hide it too.
-           Both the legacy class and the current testid (Streamlit rinomina spesso). */
-        .stDeployButton, [data-testid="stAppDeployButton"] { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
+    # Hide chrome: full-screen immersive look while onboarding.
+    from ui.widgets.immersive import hide_chrome
+    hide_chrome()
 
     # Live download status (banner-only, sits above the wizard).
     from ui.widgets.model_download_banner import render_model_download_banner
@@ -259,6 +245,11 @@ def _route(page: str, engine) -> None:
     elif page == "chat":
         from ui.chat_page import render_chat_page
         render_chat_page(engine)
+
+    elif page == "guided":
+        # The workflow renders the regular pages through this same router.
+        from ui.guided_page import render_guided_page
+        render_guided_page(engine, _route)
 
     elif _DEV_MODE and page == "debugger":
         from ui.debugger_page import render_debugger_page

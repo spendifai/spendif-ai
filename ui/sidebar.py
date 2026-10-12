@@ -4,6 +4,7 @@ import streamlit as st
 
 from ui.i18n import t
 from ui.components.update_checker import render_update_warning
+from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
 
 # Navigation entries: (i18n_key_suffix, page_key)
 _NAV_KEYS = [
@@ -59,6 +60,20 @@ def render_sidebar() -> str:
         # While confirmation is pending, still show nav but don't process clicks
         _render_build_info()
         return st.session_state["page"]
+
+    # Guided workflow first, apart from the rest: it reopens where it was left.
+    if st.sidebar.button(
+        t("nav.guided"), key="nav_guided", width="stretch", type="primary",
+        help=t("nav.guided.desc"),
+    ):
+        if llm_running:
+            st.session_state["_pending_nav_target"] = GUIDED_PAGE
+        else:
+            st.session_state[GUIDED_RETURN] = st.session_state["page"]
+            st.session_state.pop(GUIDED_STEP, None)
+            st.session_state["page"] = GUIDED_PAGE
+        st.rerun()
+    st.sidebar.divider()
 
     for nav_suffix, key in _NAV_KEYS:
         label = t(f"nav.{nav_suffix}")

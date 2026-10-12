@@ -839,7 +839,7 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
     `onboarding_done=true` at the end of step 5, so closing the app here
     does NOT replay the wizard on the next launch. Two buttons:
 
-      • "Carica ora"   → lands on the Import page.
+      • "Carica ora"   → opens the guided workflow at its import step.
       • "Lo faccio dopo" → lands on the Home (today still routed to Import
                             until the Home page lands in a follow-up).
 
@@ -859,7 +859,9 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
             key="_ob_fi_upload",
             help=t("onboarding.first_import.upload_now_help"),
         ):
-            _exit_onboarding(target_page="import")
+            # "Upload now" opens the guided workflow at its import step.
+            st.session_state["_guided_step"] = "import"
+            _exit_onboarding(target_page="guided")
     with col_skip:
         if st.button(
             t("onboarding.first_import.skip_for_now"),

@@ -186,6 +186,12 @@ def is_stale(last_movement: date, today: date) -> bool:
 
 # ── Resume ───────────────────────────────────────────────────────────────────
 
+# Steps of the first version, in order. The transfers step ("are the money
+# moves between your accounts consistent?") comes in a second phase, after
+# "import"; the UI numbers only the steps listed here.
+STEPS: list[str] = ["checklist", "import", "counterparts", "rules", "report"]
+
+
 def resume_step(steps: list[str], saved: str | None, closed: set[str]) -> str:
     """The step to open when the user comes back to the workflow.
 

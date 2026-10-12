@@ -8,16 +8,21 @@ from __future__ import annotations
 from datetime import date
 
 from core.guided_flow import (
+    STEPS,
     Guidance,
     GuidanceKind,
     checklist_guidance,
     is_stale,
     reference_period,
+    resume_step,
 )
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 
-__all__ = ["Guidance", "GuidanceKind", "GuidedFlowService"]
+__all__ = ["STEPS", "Guidance", "GuidanceKind", "GuidedFlowService"]
+
+# Saved in the DB, not in the session: the workflow resumes after a restart.
+_STEP_SETTING = "guided_flow_step"
 
 
 class GuidedFlowService:
@@ -41,6 +46,28 @@ class GuidedFlowService:
     def add_account(self, name: str) -> None:
         """Register an account by name only: the bank comes with the file."""
         self._cfg.create_account(name.strip(), "")
+
+    def closed_steps(self, today: date | None = None) -> set[str]:
+        """Steps the data has already closed.
+
+        Nothing to load means both the Check List and the import are done.
+        Counterparts, rules and report close only when the user moves on.
+        """
+        if self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
+            return {"checklist", "import"}
+        return set()
+
+    def resume(self, today: date | None = None) -> str:
+        """The step to open when the user comes back to the workflow."""
+        return resume_step(STEPS, self.saved_step(), self.closed_steps(today))
+
+    def saved_step(self) -> str | None:
+        return self._cfg.get(_STEP_SETTING)
+
+    def save_step(self, step: str) -> None:
+        if step not in STEPS:
+            raise ValueError(f"unknown step: {step}")
+        self._cfg.set(_STEP_SETTING, step)
 
     def landing_period(self) -> tuple[date, date] | None:
         """Three months ending with the last movement, None on an empty DB."""

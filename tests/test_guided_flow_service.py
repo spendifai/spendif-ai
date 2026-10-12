@@ -136,3 +136,30 @@ def test_every_sentence_is_translated_and_filled(lang, code, g):
     assert "{" not in text                      # every placeholder filled
     if g.account:
         assert "BBVA" in text
+
+
+# ── Steps: persistence and resume ────────────────────────────────────────────
+
+def test_resume_on_empty_db_starts_from_checklist(engine):
+    SettingsService(engine).create_account("BancaX", "")
+    assert GuidedFlowService(engine).resume(TODAY) == "checklist"
+
+
+def test_saved_step_survives_a_new_service(engine):
+    SettingsService(engine).create_account("BancaX", "")
+    GuidedFlowService(engine).save_step("rules")
+    assert GuidedFlowService(engine).resume(TODAY) == "rules"
+
+
+def test_up_to_date_skips_checklist_and_import(engine):
+    SettingsService(engine).create_account("BancaX", "")
+    _seed(engine, ["2026-09-20"])
+    svc = GuidedFlowService(engine)
+    assert svc.closed_steps(TODAY) == {"checklist", "import"}
+    svc.save_step("checklist")
+    assert svc.resume(TODAY) == "counterparts"
+
+
+def test_save_step_rejects_unknown_step(engine):
+    with pytest.raises(ValueError):
+        GuidedFlowService(engine).save_step("transfers")

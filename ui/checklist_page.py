@@ -17,6 +17,7 @@ from services.transaction_service import TransactionService
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.immersive import go_to
 
 logger = setup_logging()
 
@@ -156,8 +157,7 @@ def _render_guidance(flow_svc: GuidedFlowService) -> bool:
         if first.kind is not GuidanceKind.up_to_date and st.button(
             t("guided.checklist.go_import"), type="primary", key="guided_go_import",
         ):
-            st.session_state["page"] = "import"
-            st.rerun()
+            go_to("import")
         if len(guidance) > 1:
             st.caption(t("guided.checklist.also"))
             for g in guidance[1:]:
