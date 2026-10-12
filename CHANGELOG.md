@@ -6,6 +6,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- A counterpart you confirmed no longer turns "mixed" after the next import. Confirming a counterpart, or applying a rule to the movements already imported, recorded those movements as changed by hand, while the import records the new ones as categorized by the rule: same category, two sources, and the counterpart looked mixed until the rules were applied again. Movements categorized through a rule are now recorded as such. A counterpart is mixed only when you changed one of its movements by hand, which is a real exception to the rule
+
 ## [0.3.5] - 2026-10-12
 
 ### Added

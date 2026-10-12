@@ -348,8 +348,21 @@ def update_transaction_category(
     category: str,
     subcategory: str,
     origin: str = "unknown",
+    source: str = "manual",
 ) -> bool:
+    """Set the category of one movement on the user's behalf.
+
+    `source` says how the user decided: "manual" for this movement only,
+    "rule" when the category comes from a rule applied to the movements
+    already in the ledger. Recording a rule application as manual makes a
+    counterpart look "mixed" as soon as the next import adds rule-matched
+    movements, even when the category is the same. Either way the movement
+    counts as seen by the user and a changed category is logged as a
+    correction of the previous source.
+    """
     from datetime import datetime, timezone
+    if source not in ("manual", "rule"):
+        raise ValueError(f"unknown category source: {source}")
     tx = session.get(Transaction, tx_id)
     if tx is None:
         return False
@@ -378,7 +391,7 @@ def update_transaction_category(
     tx.category = category
     tx.subcategory = subcategory
     tx.category_confidence = "high"
-    tx.category_source = "manual"
+    tx.category_source = source
     tx.category_model = None
     tx.to_review = False
     tx.human_validated = True
