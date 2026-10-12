@@ -1,4 +1,4 @@
-"""Tests for the landing period: service layer and the Home "last loaded" preset."""
+"""Tests for the guided workflow service: landing period, Home preset, Check List guidance."""
 from __future__ import annotations
 
 from datetime import date
@@ -8,9 +8,12 @@ import pytest
 from sqlalchemy import create_engine
 
 from db.models import Transaction, create_tables, get_session
-from services.guided_flow_service import GuidedFlowService
+from services.guided_flow_service import Guidance, GuidanceKind, GuidedFlowService
+from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
+from ui.checklist_page import _fmt_date, _guidance_sentence
 from ui.home_page import _PRESET_LAST_LOADED, _resolve_period
+from ui.i18n import get_language, set_language
 
 TODAY = date(2026, 10, 12)
 
@@ -72,3 +75,64 @@ def test_home_last_loaded_preset_uses_landing():
 
 def test_home_last_loaded_preset_without_data_falls_back_to_12_months():
     assert _resolve_period(_PRESET_LAST_LOADED, today=TODAY) == (date(2025, 10, 12), TODAY)
+
+
+# ── Check List guidance ──────────────────────────────────────────────────────
+
+
+def test_guidance_asks_for_accounts_on_empty_db(engine):
+    result = GuidedFlowService(engine).checklist_guidance(TODAY)
+    assert result == [Guidance(GuidanceKind.no_accounts)]
+
+
+def test_add_account_by_name_only(engine):
+    GuidedFlowService(engine).add_account("  BBVA  ")
+    assert [a.name for a in SettingsService(engine).get_accounts()] == ["BBVA"]
+    result = GuidedFlowService(engine).checklist_guidance(TODAY)
+    assert [(g.kind, g.account) for g in result] == [(GuidanceKind.nothing_imported, "BBVA")]
+
+
+def test_guidance_reads_months_from_movements(engine):
+    SettingsService(engine).create_account("BancaX", "")
+    _seed(engine, ["2026-07-10", "2026-08-14"])
+    result = GuidedFlowService(engine).checklist_guidance(TODAY)
+    assert result == [Guidance(
+        GuidanceKind.behind, "BancaX",
+        date_from=date(2026, 9, 1), date_to=TODAY, last_loaded=date(2026, 8, 1),
+    )]
+
+
+@pytest.fixture
+def lang():
+    before = get_language()
+    yield set_language
+    set_language(before)
+
+
+@pytest.mark.parametrize("code, expected", [
+    ("it", "1 settembre 2026"),
+    ("en", "1 September 2026"),
+    ("fr", "1 septembre 2026"),
+    ("de", "1. September 2026"),
+    ("es", "1 de septiembre de 2026"),
+])
+def test_long_date_per_language(lang, code, expected):
+    lang(code)
+    assert _fmt_date(date(2026, 9, 1)) == expected
+
+
+@pytest.mark.parametrize("code", ["it", "en", "fr", "de", "es"])
+@pytest.mark.parametrize("g", [
+    Guidance(GuidanceKind.nothing_imported, "BBVA", date(2026, 9, 1), date(2026, 9, 30)),
+    Guidance(GuidanceKind.never_loaded, "BBVA", date(2026, 9, 1), date(2026, 9, 30)),
+    Guidance(GuidanceKind.behind, "BBVA", date(2026, 9, 1), TODAY, date(2026, 8, 1)),
+    Guidance(GuidanceKind.gap, "BBVA", date(2026, 3, 1), date(2026, 3, 31), date(2026, 9, 1)),
+    Guidance(GuidanceKind.up_to_date, last_loaded=date(2026, 9, 1)),
+], ids=lambda g: g.kind.value)
+def test_every_sentence_is_translated_and_filled(lang, code, g):
+    lang(code)
+    text = _guidance_sentence(g)
+    assert not text.startswith("guided.")       # key not missing
+    assert "{" not in text                      # every placeholder filled
+    if g.account:
+        assert "BBVA" in text

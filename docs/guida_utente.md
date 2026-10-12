@@ -392,6 +392,8 @@ Per ogni categoria con obiettivo definito:
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
+In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Il pulsante *Carica il file* ti porta all'import. Sotto trovi gli altri conti da completare, compresi i mesi vuoti in mezzo. Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
+
 Vai su **✅ Check List**. Trovi una tabella con:
 - **Una riga per ogni mese**, dal mese corrente in poi verso il passato
 - **Una colonna per ogni conto** che hai configurato in Impostazioni

@@ -7,6 +7,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- The Checklist now says what to download next, with the exact dates, above the grid: the account furthest behind comes first with a button to the import, then the other accounts and the empty months in between. With no account yet it asks only for a name; the first time it suggests a single month, so the first round stays short
 - Home and Report open on the three months ending with the last transaction loaded, instead of a window ending today. After weeks without importing, the charts no longer open empty: they show where you left off, and a notice says how far you got and points to the Checklist. On Home this is the new default choice, "Last 3 months loaded"; the other periods are unchanged
 - The Home period caption no longer says "Last 12 months" whatever period is selected
 

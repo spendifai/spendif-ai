@@ -7,13 +7,40 @@ from __future__ import annotations
 
 from datetime import date
 
-from core.guided_flow import is_stale, reference_period
+from core.guided_flow import (
+    Guidance,
+    GuidanceKind,
+    checklist_guidance,
+    is_stale,
+    reference_period,
+)
+from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
+
+__all__ = ["Guidance", "GuidanceKind", "GuidedFlowService"]
 
 
 class GuidedFlowService:
     def __init__(self, engine) -> None:
         self._tx = TransactionService(engine)
+        self._cfg = SettingsService(engine)
+
+    def checklist_guidance(self, today: date | None = None) -> list[Guidance]:
+        """What to download next, most urgent first (never empty).
+
+        Declared accounts come first in their own order; labels found only
+        in the movements are appended, as the Check List grid does.
+        """
+        accounts = [a.name for a in self._cfg.get_accounts()]
+        loaded: dict[str, set[str]] = {}
+        for row in self._tx.get_monthly_tx_counts():
+            if row.year_month and row.account_label and row.tx_count:
+                loaded.setdefault(row.account_label, set()).add(row.year_month)
+        return checklist_guidance(accounts, loaded, today or date.today())
+
+    def add_account(self, name: str) -> None:
+        """Register an account by name only: the bank comes with the file."""
+        self._cfg.create_account(name.strip(), "")
 
     def landing_period(self) -> tuple[date, date] | None:
         """Three months ending with the last movement, None on an empty DB."""

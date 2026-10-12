@@ -392,6 +392,8 @@ For each category with a defined target:
 
 **Situation:** You want to check at a glance whether you are regularly importing all your transaction files, without gaps of months.
 
+At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". The *Upload the file* button takes you to the import. Below it you find the other accounts to complete, including empty months in between. If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
+
 Go to **✅ Checklist**. You'll find a table with:
 - **One row for each month**, from the current month going back into the past
 - **One column for each account** you have configured in Settings

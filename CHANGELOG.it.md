@@ -9,6 +9,7 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Modificato
+- La Lista di controllo ora dice cosa scaricare, con le date esatte, sopra la griglia: prima il conto più indietro con un pulsante verso l'import, poi gli altri conti e i mesi vuoti in mezzo. Se non c'è ancora nessun conto chiede solo il nome; la prima volta suggerisce un mese solo, così il primo giro resta breve
 - Home e Report si aprono sui tre mesi che finiscono con l'ultimo movimento caricato, invece che su un periodo che finisce oggi. Dopo settimane senza importare i grafici non si aprono più vuoti: mostrano dove eri rimasto, e un avviso dice fino a quando sei arrivato e rimanda alla Lista di controllo. Nella Home è la nuova scelta predefinita, "Ultimi 3 mesi caricati"; gli altri periodi non cambiano
 - La didascalia del periodo nella Home non dice più "Ultimi 12 mesi" qualunque periodo sia selezionato
 

@@ -11,6 +11,7 @@ from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
+from services.guided_flow_service import GuidanceKind, GuidedFlowService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.logging import setup_logging
@@ -99,9 +100,77 @@ def _build_pivot(
     return df
 
 
+# ── Guidance: what to download next ──────────────────────────────────────────
+
+def _fmt_date(d: date) -> str:
+    return t("common.date_long", d=d.day, month=t(f"common.month.{d.month}"), y=d.year)
+
+
+def _fmt_month(d: date) -> str:
+    return t("common.month_year", month=t(f"common.month.{d.month}"), y=d.year)
+
+
+def _guidance_sentence(g) -> str:
+    """One sentence that says what to download, with the exact dates."""
+    if g.kind is GuidanceKind.up_to_date:
+        return t("guided.checklist.up_to_date")
+    return t(
+        f"guided.checklist.{g.kind.value}",
+        account=g.account,
+        date_from=_fmt_date(g.date_from),
+        date_to=_fmt_date(g.date_to),
+        month=_fmt_month(g.last_loaded) if g.last_loaded else "",
+    )
+
+
+def _render_guidance(flow_svc: GuidedFlowService) -> bool:
+    """Render the sentence above the grid. False when there is nothing
+    else to show (no account yet): the grid would be empty."""
+    guidance = flow_svc.checklist_guidance()
+    first = guidance[0]
+
+    if first.kind is GuidanceKind.no_accounts:
+        with st.container(border=True):
+            st.markdown(t("guided.checklist.no_accounts"))
+            with st.form("guided_add_account", clear_on_submit=True):
+                col_name, col_btn = st.columns([4, 1], vertical_alignment="bottom")
+                name = col_name.text_input(t("guided.checklist.add_account_label"))
+                if col_btn.form_submit_button(t("guided.checklist.add_account_btn"), width="stretch"):
+                    if name.strip():
+                        try:
+                            flow_svc.add_account(name)
+                            st.session_state["_guided_account_added"] = name.strip()
+                            st.rerun()
+                        except ValueError as e:
+                            st.error(str(e))
+                    else:
+                        st.warning(t("settings.account_name_empty"))
+        return False
+
+    added = st.session_state.pop("_guided_account_added", None)
+    if added:
+        st.success(t("guided.checklist.account_added", account=added))
+
+    with st.container(border=True):
+        st.markdown(_guidance_sentence(first))
+        if first.kind is not GuidanceKind.up_to_date and st.button(
+            t("guided.checklist.go_import"), type="primary", key="guided_go_import",
+        ):
+            st.session_state["page"] = "import"
+            st.rerun()
+        if len(guidance) > 1:
+            st.caption(t("guided.checklist.also"))
+            for g in guidance[1:]:
+                st.markdown(f"- {_guidance_sentence(g)}")
+    return True
+
+
 def render_checklist_page(engine) -> None:
     st.header(t("checklist.title"))
     st.caption(t("checklist.caption"))
+
+    if not _render_guidance(GuidedFlowService(engine)):
+        return
 
     cfg_svc = SettingsService(engine)
     tx_svc  = TransactionService(engine)
