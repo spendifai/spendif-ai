@@ -373,7 +373,7 @@
   "taxonomy.cat_name_empty": "Category name cannot be empty.",
   "taxonomy.cat_exists": "Category '{name}' already exists.",
   "taxonomy.cat_created": "Category '{name}' created with {n} subcategories.",
-  "checklist.title": "✅ Checklist — Transactions by month and account",
+  "checklist.title": "✅ Checklist: transactions by month and account",
   "checklist.caption": "One row per month (current at the top), one column per account. The value is the transaction count; **—** means no transactions for that month.",
   "checklist.no_data": "No accounts and no transactions found. Add accounts from **Settings** and import movement files.",
   "checklist.total_tx": "Total transactions",

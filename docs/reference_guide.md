@@ -16,7 +16,7 @@
 | **Regole** | Gestione regole deterministiche di categorizzazione |
 | **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
 | **Impostazioni** | Backend LLM, API key, formati data/importo, lingua |
-| **Check List** | Tabella pivot mese × conto: presenza e quantità delle transazioni |
+| **Lista di controllo** | Tabella pivot mese × conto: presenza e quantità delle transazioni |
 | **Assistente** | Chatbot di supporto adattivo (RAG cloud/locale o FAQ deterministico) |
 
 ---
@@ -246,9 +246,9 @@ Permette di eliminare in blocco transazioni selezionate tramite filtri combinabi
 
 ---
 
-## Check List — pagina dedicata
+## Lista di controllo: pagina dedicata
 
-La pagina **✅ Check List** mostra una tabella pivot **mese × conto** con il numero di transazioni presenti per ogni combinazione.
+La pagina **✅ Lista di controllo** mostra una tabella pivot **mese × conto** con il numero di transazioni presenti per ogni combinazione.
 
 ### Layout
 

@@ -13,22 +13,12 @@ _MODE_LABELS = {
     ChatMode.FAQ_MATCH: "FAQ",
 }
 
-# Maps page_ref keys → human-readable nav label (same keys as sidebar _NAV_KEYS)
-_PAGE_LABELS = {
-    "import":           "📥 Import",
-    "history":          "📜 Storico import",
-    "ledger":           "📋 Ledger",
-    "bulk_edit":        "✏️ Modifiche massive",
-    "analytics":        "📊 Analytics",
-    "report":           "📋 Report",
-    "budget":           "💰 Budget",
-    "budget_vs_actual": "📊 Budget vs Actual",
-    "review":           "🔍 Review",
-    "rules":            "📏 Regole",
-    "taxonomy":         "🗂️ Tassonomia",
-    "settings":         "⚙️ Impostazioni",
-    "checklist":        "✅ Check List",
-}
+# Pages a chat answer can point to (same keys as sidebar _NAV_KEYS); the
+# label is the menu's own, in the user's language.
+_PAGE_REFS = frozenset({
+    "import", "history", "ledger", "bulk_edit", "analytics", "report", "budget",
+    "budget_vs_actual", "review", "rules", "taxonomy", "settings", "checklist",
+})
 
 
 _CHAT_CSS = """
@@ -194,8 +184,8 @@ def _format_source(src: str) -> str:
     """
     if not src:
         return ""
-    if src in _PAGE_LABELS:
-        return f"→ {_PAGE_LABELS[src]}"
+    if src in _PAGE_REFS:
+        return f"→ {t_fn(f'nav.{src}')}"
     if src.endswith((".md", ".txt", ".pdf")):
         return f"📄 {src}"
     return ""

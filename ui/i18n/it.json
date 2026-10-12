@@ -373,7 +373,7 @@
   "taxonomy.cat_name_empty": "Il nome categoria non può essere vuoto.",
   "taxonomy.cat_exists": "Categoria '{name}' già presente.",
   "taxonomy.cat_created": "Categoria '{name}' creata con {n} sottocategorie.",
-  "checklist.title": "✅ Check List — Presenza transazioni per mese e conto",
+  "checklist.title": "✅ Lista di controllo: movimenti per mese e conto",
   "checklist.caption": "Una riga per ogni mese (dal corrente in poi verso il passato), una colonna per ogni conto. Il valore è il numero di transazioni; **—** indica nessuna transazione per quel mese.",
   "checklist.no_data": "Nessun conto e nessuna transazione trovati. Aggiungi conti dalla pagina **Impostazioni** e importa i file movimenti.",
   "checklist.total_tx": "Transazioni totali",

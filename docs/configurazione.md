@@ -72,7 +72,7 @@ Il tipo conto viene usato come vincolo nella classificazione dello schema file: 
 ### Perché definire i conti
 
 - Nella pagina Import puoi **associare ogni file a un conto specifico** invece di affidarti al rilevamento automatico.
-- Il nome del conto viene salvato con ogni transazione (`account_label`) ed è la chiave usata per la **Check List** (pivot mese × conto).
+- Il nome del conto viene salvato con ogni transazione (`account_label`) ed è la chiave usata per la **Lista di controllo** (pivot mese × conto).
 - Migliora la **deduplicazione**: transazioni dello stesso conto importate in sessioni diverse vengono riconosciute correttamente.
 
 ### Note operative

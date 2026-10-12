@@ -406,7 +406,7 @@ Go to **✅ Checklist**. You'll find a table with:
 
 Each cell shows the number of transactions imported for that month and account. If the number is **—** (grey), you have no transactions for that combination.
 
-> **Practical example:** You have three accounts — Conto Corrente, Carta Visa, Conto Deposito. You look at the check list and see that July 2024 shows "—" for Conto Deposito. This means you never imported the transactions file for that deposit account for that month. Go download it from the bank and import it.
+> **Practical example:** You have three accounts: Conto Corrente, Carta Visa, Conto Deposito. You look at the Checklist and see that July 2024 shows "—" for Conto Deposito. This means you never imported the transactions file for that deposit account for that month. Go download it from the bank and import it.
 
 **How to read the colours:**
 - **—** grey = no transactions
