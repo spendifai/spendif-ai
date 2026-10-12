@@ -177,4 +177,5 @@ def test_ticking_always_makes_the_category_a_rule_for_every_movement(ledger):
             tx = s.get(Transaction, tx_id)
             assert tx.category == "Casa"
             assert tx.validated_at is not None
+            assert tx.category_source == "rule"
     assert GuidedFlowService(eng).check_progress().reached

@@ -43,7 +43,7 @@ def _always(desc: str, cat_sub: str, tx_svc: TransactionService, rule_svc: RuleS
     rule_svc.create_rule(pattern=desc, match_type="exact", category=cat, subcategory=sub, priority=10)
     txs = tx_svc.get_by_rule_pattern(desc, "exact")
     for tx in txs:
-        tx_svc.update_category(tx.id, cat, sub, origin="mixed")
+        tx_svc.apply_rule_category(tx.id, cat, sub, origin="mixed")
     logger.info(f"mixed_page: rule pattern={desc!r} -> {cat!r}/{sub!r}, {len(txs)} movements")
 
 

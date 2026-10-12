@@ -147,6 +147,7 @@ def test_always_this_makes_a_rule_for_every_movement(ledger):
             ("PASTICCERIA X", "Ristorazione", "Bar / caffè"),
         ]
         assert {s.get(Transaction, i).category for i in ("p1", "p2")} == {"Ristorazione"}
+        assert {s.get(Transaction, i).category_source for i in ("p1", "p2")} == {"rule"}
     assert any("No counterpart" in m.value for m in app.success)
 
 
@@ -160,4 +161,5 @@ def test_one_by_one_marks_the_movements_seen(ledger):
     with get_session(eng) as s:
         assert all(s.get(Transaction, i).validated_at for i in ("p1", "p2"))
         assert s.get(Transaction, "p1").category == "Alimentari"   # left as it was
+        assert s.get(Transaction, "p2").category_source == "manual"  # one-off, not a rule
     assert GuidedFlowService(eng).mixed_counterparts() == []
