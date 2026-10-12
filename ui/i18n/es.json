@@ -1271,5 +1271,7 @@
   "mixed.col_date": "Fecha",
   "mixed.col_amount": "Importe",
   "mixed.col_category": "Categoría / Subcategoría",
-  "mixed.done_btn": "Hecho, los he mirado"
+  "mixed.done_btn": "Hecho, los he mirado",
+  "upload.guided.next_hint": "Importación terminada. Si tienes más archivos que cargar, cárgalos ahora; si no, pasa a revisar las contrapartes.",
+  "upload.guided.next_btn": "Continuar: revisar las contrapartes"
 }

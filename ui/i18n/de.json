@@ -1271,5 +1271,7 @@
   "mixed.col_date": "Datum",
   "mixed.col_amount": "Betrag",
   "mixed.col_category": "Kategorie / Unterkategorie",
-  "mixed.done_btn": "Fertig, angesehen"
+  "mixed.done_btn": "Fertig, angesehen",
+  "upload.guided.next_hint": "Import fertig. Wenn du weitere Dateien laden willst, lade sie jetzt; sonst geh weiter zur Prüfung der Gegenparteien.",
+  "upload.guided.next_btn": "Weiter: Gegenparteien prüfen"
 }

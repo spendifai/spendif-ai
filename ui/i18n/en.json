@@ -1271,5 +1271,7 @@
   "mixed.col_date": "Date",
   "mixed.col_amount": "Amount",
   "mixed.col_category": "Category / Subcategory",
-  "mixed.done_btn": "Done, I looked at them"
+  "mixed.done_btn": "Done, I looked at them",
+  "upload.guided.next_hint": "Import done. If you have more files to load, load them now; otherwise move on to checking the counterparts.",
+  "upload.guided.next_btn": "Continue: check the counterparts"
 }

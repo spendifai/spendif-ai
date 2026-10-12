@@ -1271,5 +1271,7 @@
   "mixed.col_date": "Date",
   "mixed.col_amount": "Montant",
   "mixed.col_category": "Catégorie / Sous-catégorie",
-  "mixed.done_btn": "Fait, je les ai regardés"
+  "mixed.done_btn": "Fait, je les ai regardés",
+  "upload.guided.next_hint": "Import terminé. Si vous avez d'autres fichiers à charger, chargez-les maintenant ; sinon passez à la vérification des contreparties.",
+  "upload.guided.next_btn": "Continuer : vérifier les contreparties"
 }

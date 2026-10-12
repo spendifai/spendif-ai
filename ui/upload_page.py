@@ -45,6 +45,7 @@ from services.import_service import (
 from services.settings_service import SettingsService
 from support.logging import setup_logging
 from ui.i18n import t as t_fn
+from ui.widgets.immersive import GUIDED_PAGE, go_to
 
 logger = setup_logging()
 
@@ -135,6 +136,26 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
         if was_running:
             st.session_state["_upload_job_was_running"] = False
             st.rerun()
+
+
+def _render_guided_continue(import_svc: ImportService) -> None:
+    """Inside the workflow, once the import is done: one button to the next step.
+
+    Shown only when nothing waits for the user here (no import running, no
+    direction of the amounts to confirm), so the button never skips a
+    question the import still has.
+    """
+    if st.session_state.get("page") != GUIDED_PAGE:
+        return
+    if st.session_state.get("_pending_sign_confirmations"):
+        return
+    job = import_svc.get_latest_job()
+    if job is None or job.status != "completed":
+        return
+    st.divider()
+    st.markdown(t_fn("upload.guided.next_hint"))
+    if st.button(t_fn("upload.guided.next_btn"), type="primary", key="guided_import_continue"):
+        go_to("counterparts")
 
 
 def _skip_reason_labels() -> dict[str, str]:
@@ -877,3 +898,4 @@ def render_upload_page(engine):
 
     _render_job_status_poll(import_svc)
     _render_last_import_summary()
+    _render_guided_continue(import_svc)
