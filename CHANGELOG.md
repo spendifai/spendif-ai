@@ -6,6 +6,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-12
+
+### Fixed
+- Statements with two date columns written with the month in full ("02 settembre 2026") import with their dates as dates. Both columns used to be taken for text and merged into the description, so every movement carried its dates in the description and the date column held two roles. The column types are now decided by the same date reader the import uses
+- The column review no longer saves a column chosen for two roles, such as the same column as amount and as income. It names the column and its roles, and the import waits until the choice is changed
+
 ## [0.3.2] - 2026-10-11
 
 ### Fixed
