@@ -8,6 +8,12 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-12
+
+### Corretto
+- Gli estratti conto con due colonne di date scritte con il mese per esteso ("02 settembre 2026") vengono importati con le date come date. Prima entrambe le colonne erano prese per testo e unite alla descrizione: ogni movimento portava le date nella descrizione e la colonna della data aveva due ruoli. Il tipo delle colonne ora lo decide lo stesso lettore di date usato dall'import
+- La revisione delle colonne non salva più una colonna scelta per due ruoli, per esempio la stessa colonna come importo e come entrate. Indica la colonna e i suoi ruoli, e l'import attende finché la scelta non cambia
+
 ## [0.3.2] - 2026-10-11
 
 ### Corretto
