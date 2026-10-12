@@ -974,6 +974,20 @@ def update_import_job(session: Session, job_id: int, **kwargs) -> None:
     session.commit()
 
 
+def add_import_job_transactions(session: Session, job_id: int, n_new: int) -> Optional[int]:
+    """Add movements imported later (after a schema review) to a finished job.
+
+    Returns the job's new total, or None when the job no longer exists.
+    """
+    job = session.get(ImportJob, job_id)
+    if job is None:
+        return None
+    job.n_transactions = (job.n_transactions or 0) + n_new
+    session.flush()
+    session.commit()
+    return job.n_transactions
+
+
 def get_latest_import_job(session: Session) -> Optional[ImportJob]:
     return session.query(ImportJob).order_by(ImportJob.id.desc()).first()
 

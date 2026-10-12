@@ -8,6 +8,11 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-12
+
+### Corretto
+- La schermata di import non resta più su "in attesa di revisione schema" dopo la conferma della revisione. Ogni import che si era fermato per la revisione risulta completato, con i movimenti confermati aggiunti al suo conteggio, e un import che non aveva bisogno di revisione non riporta più i file in attesa di uno precedente
+
 ## [0.3.3] - 2026-10-12
 
 ### Corretto
