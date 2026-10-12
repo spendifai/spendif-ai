@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-12
+
+### Fixed
+- The import screen no longer stays on "waiting for schema review" after the review is confirmed. Every import that paused for the review now shows as completed, with the confirmed movements added to its count, and an import that needed no review no longer reports files still waiting from an earlier one
+
 ## [0.3.3] - 2026-10-12
 
 ### Fixed
