@@ -27,7 +27,7 @@ import pandas as pd
 
 from core.llm_backends import LLMBackend, SanitizationRequiredError, call_with_fallback
 from core.models import Confidence, INVERT_SIGN_TYPES, NO_INVERT_TYPES
-from core.normalizer import compute_columns_key
+from core.normalizer import compute_columns_key, parse_date_safe
 from core.sanitizer import SanitizationConfig, sanitize_dataframe_descriptions
 from core.schemas import (
     DocumentSchema, fill_llm_defaults,
@@ -56,6 +56,22 @@ _AMOUNT_PLAUSIBILITY_CAP_DEFAULT = 1_000_000
 # Score ceiling when one column is assigned to two roles: "medium", below the
 # 0.80 auto-import threshold, so the schema always goes to user review.
 ROLE_CONFLICT_SCORE_CAP = 0.5
+
+# Schema fields that each name one column with one meaning.
+ROLE_FIELDS = (
+    "date_col", "date_accounting_col", "amount_col",
+    "debit_col", "credit_col", "description_col",
+)
+
+
+def role_conflicts(schema_dict: dict) -> dict[str, list[str]]:
+    """Return {column: [roles]} for every column assigned to more than one role."""
+    by_col: dict[str, list[str]] = {}
+    for field in ROLE_FIELDS:
+        col = schema_dict.get(field)
+        if col:
+            by_col.setdefault(col, []).append(field)
+    return {col: roles for col, roles in by_col.items() if len(roles) > 1}
 
 
 def compute_confidence_score(schema_dict: dict, header_certain: bool = True) -> float:
@@ -108,13 +124,7 @@ def compute_confidence_score(schema_dict: dict, header_certain: bool = True) -> 
     # One column cannot play two roles: a date column taken as description
     # (or as amount) means the mapping is wrong however complete it looks.
     # Cap below the auto-import threshold so the user reviews it.
-    roles = [
-        schema_dict.get(k)
-        for k in ("date_col", "date_accounting_col", "amount_col",
-                  "debit_col", "credit_col", "description_col")
-    ]
-    assigned = [r for r in roles if r]
-    if len(assigned) != len(set(assigned)):
+    if role_conflicts(schema_dict):
         score = min(score, ROLE_CONFLICT_SCORE_CAP)
 
     return round(min(score, 1.0), 2)
@@ -486,6 +496,10 @@ def classify_document(
 
     # Validate that column names returned by the LLM actually exist in the DataFrame.
     result = _coerce_column_names(result, list(df_raw.columns), source_name)
+    logger.info(
+        "classify_document [%s]: model proposal before merge: %s",
+        source_name, {f: result.get(f) for f in ROLE_FIELDS},
+    )
 
     # ── Capture LLM decisions BEFORE merge (for diagnostic traceability) ──
     _llm_debit = result.get("debit_col", "") or ""
@@ -748,7 +762,13 @@ def _classify_column_content(
     if n >= 5 and samples.nunique() == 1:
         return "text"
 
-    date_hits   = samples.apply(lambda v: bool(_CONTENT_DATE_RE.match(v))).sum()
+    # Same notion of a date as the import itself: numeric dates match the
+    # regex, written months ("02 settembre 2026") only the import parser.
+    # Without the parser such columns were typed as text and merged into
+    # the description.
+    date_hits   = samples.apply(
+        lambda v: bool(_CONTENT_DATE_RE.match(v)) or parse_date_safe(v, "") is not None
+    ).sum()
     amount_hits = samples.apply(lambda v: bool(_CONTENT_AMOUNT_RE.match(v))).sum()
 
     if date_hits / n >= _CONTENT_MIN_RATIO:

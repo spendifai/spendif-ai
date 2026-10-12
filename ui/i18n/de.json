@@ -829,6 +829,7 @@
   "upload.schema.invert_sign": "Vorzeichen umkehren",
   "upload.schema.normalized_preview": "**Normalisierte Vorschau**",
   "upload.schema.no_rows_parsed": "Keine Zeile mit diesem Schema interpretierbar.",
+  "upload.schema.role_conflict": "Die Spalte \"{column}\" ist für mehrere Rollen gewählt ({roles}). Jede Spalte kann nur eine haben: ändern Sie die Auswahl, um zu importieren.",
   "upload.schema.confirm_btn": "✅ Schema bestätigen und importieren",
   "upload.owner_names_missing": "⚠️ Die Inhabernamen sind nicht konfiguriert. Gehe zu den Einstellungen, um sie vor dem Import hinzuzufügen.",
   "upload.job_running": "⏳ Ein Import läuft bereits. Warte auf den Abschluss.",
@@ -1196,7 +1197,7 @@
   "diagnostics.open_issue_help": "Öffnet ein öffentliches Formular auf GitHub, in das dieses Dokument bereits eingetragen ist. Es wird nichts gesendet, bevor Sie es abschicken. Sie brauchen ein GitHub-Konto; ohne Konto nutzen Sie die E-Mail unten.",
   "diagnostics.open_issue_paste": "Das Dokument ist zu lang, um das Formular automatisch auszufüllen: Kopieren Sie es aus dem Feld oben und fügen Sie es in das Formular ein.",
   "diagnostics.open_mail": "Ohne GitHub-Konto: [den Testbericht per E-Mail senden]({mailto}), mit dem gespeicherten Dokument im Anhang.",
-  "diagnostics.open_mail_desktop": "Ohne GitHub-Konto koennen Sie den Testbericht per E-Mail senden, mit dem gespeicherten Dokument im Anhang.",
+  "diagnostics.open_mail_desktop": "Ohne GitHub-Konto können Sie den Testbericht per E-Mail senden, mit dem gespeicherten Dokument im Anhang.",
   "diagnostics.open_mail_button": "Testbericht per E-Mail senden",
   "diagnostics.mail_body_intro": "Haengen Sie das gespeicherte Dokument an und setzen Sie bei jedem gelungenen Schritt ein x in die Klammern, so: [x]"
 }

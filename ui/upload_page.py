@@ -40,6 +40,7 @@ from services.import_service import (
     ImportService,
     ProcessingConfig,
     SignConvention,
+    role_conflicts,
 )
 from services.settings_service import SettingsService
 from support.logging import setup_logging
@@ -300,6 +301,7 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
     none_option = t_fn("upload.schema.none_option")
 
     confirmed_schemas: dict[str, DocumentSchema] = {}
+    has_role_conflict = False
 
     for _idx, entry in enumerate(pending):
         filename = entry["filename"]
@@ -422,6 +424,33 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
                 "header_sha256":    entry.get("header_sha256", ""),
             })
 
+            # One column, one role. A field the form does not show yields to
+            # the person's visible choice; a clash between visible fields is
+            # theirs to resolve, so the import waits until they do.
+            _chosen = confirmed_schemas[filename]
+            _visible = {
+                _chosen.amount_col, _chosen.date_col, _chosen.description_col,
+                _chosen.debit_col, _chosen.credit_col,
+            } - {None, ""}
+            if _chosen.date_accounting_col in _visible:
+                confirmed_schemas[filename] = _chosen = _chosen.model_copy(
+                    update={"date_accounting_col": None}
+                )
+            _role_label = {
+                "date_col":        t_fn("upload.schema.date_col"),
+                "amount_col":      t_fn("upload.schema.amount_col"),
+                "debit_col":       t_fn("upload.schema.debit_col"),
+                "credit_col":      t_fn("upload.schema.credit_col"),
+                "description_col": t_fn("upload.schema.description_col"),
+            }
+            for _col, _roles in role_conflicts(_chosen.model_dump()).items():
+                has_role_conflict = True
+                st.error(t_fn(
+                    "upload.schema.role_conflict",
+                    column=_col,
+                    roles=", ".join(_role_label.get(r, r) for r in _roles),
+                ))
+
             # Normalised preview
             st.markdown(t_fn("upload.schema.normalized_preview"))
             try:
@@ -466,7 +495,9 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
             except Exception as e:
                 st.caption(t_fn("upload.schema.preview_unavailable", error=e))
 
-    if st.button(t_fn("upload.schema.confirm_btn"), type="primary"):
+    if st.button(
+        t_fn("upload.schema.confirm_btn"), type="primary", disabled=has_role_conflict,
+    ):
         results = []
         prog = st.progress(0.0)
         for i, entry in enumerate(pending):

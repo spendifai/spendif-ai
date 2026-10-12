@@ -21,6 +21,7 @@ from core.normalizer import (
     load_raw_head as _load_raw_head,
 )
 from core.history_engine import HistoryCache
+from core.classifier import role_conflicts  # noqa: F401 - re-exported for UI
 from services.nsi_taxonomy_service import NsiTaxonomyService
 from core.orchestrator import (
     ImportResult,

@@ -111,7 +111,7 @@ jobs:
             runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build dependencies
         # libvulkan1 is the loader, linked by its soname. The development
@@ -126,7 +126,7 @@ jobs:
 
       - name: Shader compiler and Vulkan headers, from cache
         id: vk-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.VK_PREFIX }}
           key: vk-r${{ env.VK_RECIPE }}-${{ matrix.runner }}-shaderc-${{ env.SHADERC_TAG }}-headers-${{ env.VULKAN_HEADERS_TAG }}
@@ -177,7 +177,7 @@ jobs:
           ls -l /usr/lib/*-linux-gnu/libvulkan.so.1
           find "${VK_PREFIX}" -iname "SPIRV-HeadersConfig.cmake"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -295,16 +295,16 @@ jobs:
             runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v4
         with:
           name: llama-wheel-linux-${{ matrix.arch }}
           path: wheel/
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -432,7 +432,7 @@ jobs:
             runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v4
         with:
@@ -493,7 +493,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Vulkan SDK
         # Waited on explicitly: the installer is a GUI program, and a shell
@@ -520,7 +520,7 @@ jobs:
           echo "glslc: $(glslc --version | head -1)"
           ls -l "${VULKAN_SDK}/Lib/vulkan-1.lib"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -617,16 +617,16 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v4
         with:
           name: llama-wheel-windows-x64
           path: wheel/
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 

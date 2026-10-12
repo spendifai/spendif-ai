@@ -829,6 +829,7 @@
   "upload.schema.invert_sign": "Invert sign",
   "upload.schema.normalized_preview": "**Normalized preview**",
   "upload.schema.no_rows_parsed": "No rows could be parsed with this schema.",
+  "upload.schema.role_conflict": "The column \"{column}\" is chosen for more than one role ({roles}). Each column can have only one: change the choice to import.",
   "upload.schema.confirm_btn": "✅ Confirm schema and import",
   "upload.owner_names_missing": "⚠️ Owner names are not configured. Go to Settings to add them before importing.",
   "upload.job_running": "⏳ An import is already running. Please wait for it to complete.",
