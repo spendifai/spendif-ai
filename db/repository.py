@@ -2136,7 +2136,12 @@ def get_counterpart_stats(
     Returns a list of dicts with keys:
       description, tx_count, avg_amount, total_amount, modal_category,
       modal_subcategory, variability_pct, source_mode, human_checked,
-      is_giroconto
+      is_giroconto, categories, unchecked_count
+
+    `categories` lists (category, movements) most used first; `unchecked_count`
+    is how many movements the user has not seen yet (neither validated nor
+    changed by hand), so a counterpart already worked through shows only
+    what the last import added.
 
     With `date_from`/`date_to` (ISO dates, inclusive) the figures cover the
     movements of that period only, and counterparts without movements in it
@@ -2214,6 +2219,9 @@ def get_counterpart_stats(
         human_checked = any(
             t.validated_at is not None or t.category_source == "manual" for t in all_txs
         )
+        unchecked_count = sum(
+            1 for t in txs if t.validated_at is None and t.category_source != "manual"
+        )
         n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
 
         stats.append(
@@ -2228,6 +2236,8 @@ def get_counterpart_stats(
                 "source_mode": source_mode,
                 "human_checked": human_checked,
                 "is_giroconto": n_internal * 2 > tx_count,
+                "categories": cat_counts.most_common(),
+                "unchecked_count": unchecked_count,
             }
         )
 

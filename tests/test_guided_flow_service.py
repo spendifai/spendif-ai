@@ -147,15 +147,16 @@ def test_resume_on_empty_db_starts_from_checklist(engine):
 
 def test_saved_step_survives_a_new_service(engine):
     SettingsService(engine).create_account("BancaX", "")
-    GuidedFlowService(engine).save_step("rules")
-    assert GuidedFlowService(engine).resume(TODAY) == "rules"
+    GuidedFlowService(engine).save_step("report")
+    assert GuidedFlowService(engine).resume(TODAY) == "report"
 
 
 def test_up_to_date_skips_checklist_and_import(engine):
     SettingsService(engine).create_account("BancaX", "")
     _seed(engine, ["2026-09-20"])
     svc = GuidedFlowService(engine)
-    assert svc.closed_steps(TODAY) == {"checklist", "import"}
+    # No counterpart with mixed categories either: that step is closed too.
+    assert svc.closed_steps(TODAY) == {"checklist", "import", "mixed"}
     svc.save_step("checklist")
     assert svc.resume(TODAY) == "counterparts"
 

@@ -18,6 +18,7 @@ from core.guided_flow import (
     reference_period,
     resume_step,
 )
+from services.rule_service import RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 
@@ -31,6 +32,7 @@ class GuidedFlowService:
     def __init__(self, engine) -> None:
         self._tx = TransactionService(engine)
         self._cfg = SettingsService(engine)
+        self._rules = RuleService(engine)
 
     def checklist_guidance(self, today: date | None = None) -> list[Guidance]:
         """What to download next, most urgent first (never empty).
@@ -53,14 +55,17 @@ class GuidedFlowService:
         """Steps the data has already closed.
 
         Nothing to load means both the Check List and the import are done;
-        the counterparts close once the spending checked reaches the goal.
-        Rules and report close only when the user moves on.
+        the counterparts close once the spending checked reaches the goal,
+        the mixed categories once none is left to look at. The report
+        closes only when the user moves on.
         """
         closed: set[str] = set()
         if self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
             closed |= {"checklist", "import"}
         if self.check_progress().reached:
             closed.add("counterparts")
+        if not self.mixed_counterparts():
+            closed.add("mixed")
         return closed
 
     def resume(self, today: date | None = None) -> str:
@@ -114,3 +119,37 @@ class GuidedFlowService:
         return check_progress([
             (s["total_amount"], s["human_checked"]) for s in self.expense_counterparts()
         ])
+
+    def rule_categorized_spending(self) -> tuple[int, float]:
+        """(movements, total) of the period's spending the rules already took care of."""
+        period = self.landing_period()
+        if period is None:
+            return 0, 0.0
+        return self._tx.get_rule_categorized_spending(period[0].isoformat(), period[1].isoformat())
+
+    # ── Mixed categories step ────────────────────────────────────────────────
+
+    def mixed_counterparts(self) -> list[dict]:
+        """Spending counterparts with movements in more than one category.
+
+        Only those no rule covers (a rule gives every movement the same
+        category) and with movements the user has not seen yet: a
+        counterpart already worked through comes back only with what the
+        last import added. Largest total first.
+        """
+        rules = self._rules.get_rules()
+        return [
+            s for s in self.expense_counterparts()
+            if len(s["categories"]) > 1
+            and s["unchecked_count"] > 0
+            and not any(r.matches(s["description"]) for r in rules)
+        ]
+
+    def unchecked_movements(self, description: str) -> list:
+        """Movements of the counterpart in the period that the user has not seen."""
+        period = self.landing_period()
+        if period is None:
+            return []
+        return self._tx.get_counterpart_movements(
+            description, period[0].isoformat(), period[1].isoformat(),
+        )

@@ -236,7 +236,7 @@ def check_progress(
 # Steps of the first version, in order. The transfers step ("are the money
 # moves between your accounts consistent?") comes in a second phase, after
 # "import"; the UI numbers only the steps listed here.
-STEPS: list[str] = ["checklist", "import", "counterparts", "rules", "report"]
+STEPS: list[str] = ["checklist", "import", "counterparts", "mixed", "report"]
 
 
 def resume_step(steps: list[str], saved: str | None, closed: set[str]) -> str:

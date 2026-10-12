@@ -202,6 +202,10 @@ def _route(page: str, engine) -> None:
         from ui.report_page import render_report_page
         render_report_page(engine)
 
+    elif page == "mixed":
+        from ui.mixed_page import render_mixed_page
+        render_mixed_page(engine)
+
     elif page == "budget":
         from ui.budget_page import render_budget_page
         render_budget_page(engine)

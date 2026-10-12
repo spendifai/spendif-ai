@@ -98,6 +98,10 @@ def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
         "counterparts.guided.criterion",
         date_from=_fmt_date(period[0]), date_to=_fmt_date(period[1]),
     ))
+    # What earlier ticks already spared: movements the rules categorized alone.
+    n_saved, saved = flow_svc.rule_categorized_spending()
+    if n_saved:
+        st.caption(t("counterparts.guided.saved", n=n_saved, amount=fmt(saved)))
     amounts = {"checked": fmt(progress.checked), "total": fmt(progress.total)}
     if progress.reached:
         st.success(t("counterparts.guided.reached", **amounts))
