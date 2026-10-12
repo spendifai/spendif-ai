@@ -1508,6 +1508,26 @@ def process_file(
                     ),
                 })
 
+    # Giroconto rules set by the user: the movement is an internal transfer,
+    # so it leaves the categorization below. Same cleaned description the
+    # category rules match on.
+    _giro_rules = [r for r in (user_rules or []) if r.is_giroconto]
+    if _giro_rules:
+        _turnable = {
+            TransactionType.expense.value, TransactionType.income.value,
+            TransactionType.card_tx.value, TransactionType.unknown.value,
+        }
+        for _i, _row in tx_df.iterrows():
+            if _row["tx_type"] not in _turnable:
+                continue
+            _desc = str(_row.get("description") or "")
+            if any(r.matches(_desc, _row.get("doc_type")) for r in _giro_rules):
+                tx_df.at[_i, "tx_type"] = (
+                    TransactionType.internal_out.value
+                    if Decimal(str(_row["amount"])) < 0
+                    else TransactionType.internal_in.value
+                )
+
     # Categorization cascade (skip internal/settlement rows)
     categorizable_types = {
         TransactionType.expense.value,

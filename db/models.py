@@ -219,6 +219,7 @@ def create_tables(engine=None):
     _migrate_add_context(engine)
     _migrate_add_description_rules(engine)
     _migrate_add_rule_context(engine)
+    _migrate_add_rule_giroconto(engine)
     _migrate_add_header_sha256(engine)
     _migrate_add_confidence_score(engine)
     _migrate_add_transaction_updated_at(engine)
@@ -435,6 +436,9 @@ class CategoryRule(Base):
     context = Column(String(64))               # optional — None means "don't set"
     doc_type = Column(String(32))
     priority = Column(Integer, default=0)
+    # A giroconto rule marks the movement as an internal transfer instead of
+    # giving it a category; category stays empty.
+    is_giroconto = Column(Boolean, default=False, nullable=False, server_default="0")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -926,6 +930,22 @@ def _migrate_add_description_rules(engine) -> None:
             'UNIQUE(raw_pattern, match_type))'
         ))
         conn.commit()
+
+
+def _migrate_add_rule_giroconto(engine) -> None:
+    """Add is_giroconto column to category_rule if not present (idempotent)."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                'ALTER TABLE category_rule ADD COLUMN is_giroconto BOOLEAN NOT NULL DEFAULT 0'
+            ))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" in str(exc).lower():
+                pass
+            else:
+                raise
 
 
 def _migrate_add_rule_context(engine) -> None:

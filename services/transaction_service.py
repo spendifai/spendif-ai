@@ -298,6 +298,16 @@ class TransactionService:
             s.commit()
             return updated
 
+    def set_giroconto_by_rule_pattern(
+        self, pattern: str, match_type: str, make_giroconto: bool,
+    ) -> int:
+        with self._session() as s:
+            result = repository.set_giroconto_by_rule_pattern(
+                s, pattern, match_type, make_giroconto,
+            )
+            s.commit()
+            return result
+
     def get_counterpart_stats(
         self, tx_types: tuple[str, ...] = ("expense", "income")
     ) -> list[dict]:
