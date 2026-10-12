@@ -309,6 +309,10 @@ class ImportService:
         with self._session() as s:
             repository.update_import_job(s, job_id, **kwargs)
 
+    def add_job_transactions(self, job_id: int, n_new: int) -> int | None:
+        with self._session() as s:
+            return repository.add_import_job_transactions(s, job_id, n_new)
+
     def get_latest_job(self):
         with self._session() as s:
             return repository.get_latest_import_job(s)

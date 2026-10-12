@@ -498,7 +498,14 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
     if st.button(
         t_fn("upload.schema.confirm_btn"), type="primary", disabled=has_role_conflict,
     ):
+        # Every job that paused for this review, also those whose file was a
+        # duplicate dropped above: each one must stop saying "waiting".
+        all_pending = st.session_state.get("_pending_schema_reviews", [])
+        paused_jobs = {e["job_id"] for e in all_pending if e.get("job_id") is not None}
+
         results = []
+        added_per_job: dict[int, int] = {}
+        skipped_per_job: dict[int, int] = {}
         prog = st.progress(0.0)
         for i, entry in enumerate(pending):
             raw_bytes = entry["raw_bytes"]
@@ -515,19 +522,25 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
             )
             import_svc.persist_result(result)
             results.append(result)
+            if entry.get("job_id") is not None:
+                jid = entry["job_id"]
+                added_per_job[jid] = added_per_job.get(jid, 0) + len(result.transactions)
+                skipped_per_job[jid] = skipped_per_job.get(jid, 0) + result.skipped_count
 
         st.session_state["_pending_schema_reviews"] = []
         existing = st.session_state.get("last_import_results", [])
         st.session_state["last_import_results"] = existing + results
 
-        # Update job status so the banner shows ✅ instead of ⏸️
-        _pending_job_id = st.session_state.pop("_pending_schema_job_id", None)
-        if _pending_job_id:
-            n_confirmed = sum(len(r.transactions) for r in results)
-            import_svc.update_job(
-                _pending_job_id,
-                status_message=t_fn("upload.completed_tx", n=f"{n_confirmed:,}"),
-            )
+        # Update job status so the banner shows ✅ instead of ⏸️. The total
+        # includes the movements the job had already imported on its own.
+        for jid in paused_jobs:
+            n_total = import_svc.add_job_transactions(jid, added_per_job.get(jid, 0))
+            if n_total is None:
+                continue
+            msg = t_fn("upload.completed_tx", n=f"{n_total:,}")
+            if skipped_per_job.get(jid):
+                msg += t_fn("upload.already_present_skipped", n=skipped_per_job[jid])
+            import_svc.update_job(jid, status_message=msg)
 
         st.rerun()
 
@@ -777,9 +790,9 @@ def render_upload_page(engine):
                     "result":                 result,
                     "account_label_override": _file_account_map.get(filename),
                     "header_sha256":          file_header_sha256.get(filename, ""),
+                    "job_id":                 job_id,
                 })
                 st.session_state["_pending_schema_reviews"] = pending
-                st.session_state["_pending_schema_job_id"]  = job_id
             else:
                 import_svc.persist_result(result)
                 # Show auto-import success for high-confidence Flow 2 files
@@ -796,7 +809,8 @@ def render_upload_page(engine):
             _progress_bar.progress(file_end)
             import_svc.update_job(job_id, progress=file_end)
 
-        n_pending = len(st.session_state.get("_pending_schema_reviews", []))
+        # Only this job's files: reviews left over from earlier jobs are theirs.
+        n_pending = sum(1 for r in results if r.needs_schema_review)
         n_tx      = sum(len(r.transactions) for r in results if not r.needs_schema_review)
         n_skipped = sum(r.skipped_count for r in results)
 
