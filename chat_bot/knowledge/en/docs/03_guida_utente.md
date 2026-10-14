@@ -14,14 +14,16 @@ You download your transaction files from the bank, drag them into Spendif.ai, it
 
 **Situation:** You've just installed Spendif.ai and are launching it for the first time.
 
-The app automatically shows the **onboarding wizard** (4 steps). No need to look for any menu.
+The app automatically shows the **onboarding wizard** (4 steps). No need to look for any menu. *In parallel* the desktop launcher kicks off the download of the LLM model best suited for your hardware: a banner at the top of every step shows the progress ("📚 78% · ~3 min").
 
-1. **Step 1 — Language:** choose the taxonomy language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
-2. **Step 2 — Holders:** enter your name (and the variants used by the bank — e.g. `Mario Rossi, ROSSI MARIO`). These names are used to protect your privacy in LLM prompts and to detect internal transfers.
-3. **Step 3 — Accounts:** add your bank accounts (name + bank + account type). The account type is mandatory and indicates the financial instrument: *Bank account*, *Credit card*, *Debit card*, *Prepaid card*, *Savings account* or *Cash*. You can skip this step and add them later from Settings.
-4. **Step 4 — Confirm:** review the summary and click **Start!** — data is saved only at this point.
+1. **Step 1 (Language):** choose the taxonomy language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
+2. **Step 2 (Holders):** enter your name (and the variants used by the bank, e.g. `Mario Rossi, ROSSI MARIO`). These names are used to protect your privacy in LLM prompts and to detect internal transfers.
+3. **Step 3 (Accounts):** add your bank accounts (name + bank + account type). The account type is mandatory and indicates the financial instrument: *Bank account*, *Credit card*, *Debit card*, *Prepaid card*, *Savings account* or *Cash*. At least one account is required.
+4. **Step 4 (Summary and Start):** review the summary and click **Start**. The button is disabled until the AI model is 100% downloaded (live indicator "⏳ Waiting for AI model - 78% · ~3 min"): this guarantees the Import page works immediately after the wizard. Data is saved only at this point.
 
-> **Updating from a previous version?** The wizard does not appear if the database already has data — the app opens normally.
+> **Invisible LLM defaults:** the wizard also writes `llm_backend=local_llama_cpp`, the downloaded model path, and inference parameters (4096-token context, CPU by default). All editable later from **⚙️ Settings**.
+
+> **Updating from a previous version?** The wizard is only skipped when ALL four prerequisites the wizard itself would set are already present (UI language, holders, at least one account, llm_backend). If any is missing, the wizard appears even on an existing DB to complete the setup.
 
 ---
 
@@ -45,8 +47,8 @@ The app automatically shows the **onboarding wizard** (4 steps). No need to look
 
 Spendif.ai analyses the structure of each file and computes a **confidence score** (from 0 to 100%) on how well it understood the format.
 
-- **Confidence >= 80%** — import proceeds automatically, with no user interaction needed.
-- **Confidence < 80%** — a review form appears where you can verify the detected columns (date, amount, description, document type) and correct them if needed. After manual confirmation, the confidence is set to 100%.
+- **Confidence >= 80%**: import proceeds automatically, with no user interaction needed.
+- **Confidence < 80%**: a review form appears where you can verify the detected columns (date, amount, description, document type) and correct them if needed. After manual confirmation, the confidence is set to 100%.
 
 Once a file's schema is confirmed, all subsequent imports of the same format will be automatic — Spendif.ai remembers the structure.
 
@@ -64,6 +66,8 @@ If automatic detection **fails** (unusual format, fully numeric, no text headers
 
 Once the file schema is confirmed, you won't see this field on subsequent imports — Spendif.ai remembers it automatically.
 
+**How long it takes.** Before starting, the import tells you the estimated time, worked out from the rows in the files and the speed of the previous imports on this computer. The first time it is an initial estimate, corrected as soon as the import starts; during the import, next to the percentage, you see how much is left.
+
 ### Import summary
 
 After processing, a detailed summary is shown for each imported file:
@@ -77,10 +81,10 @@ After processing, a detailed summary is shown for each imported file:
 | **Discarded** | Rows that could not be imported |
 
 If there are discarded rows, a warning shows the reason for each:
-- **Missing date** — the date cell is empty
-- **Unparseable date** — the date format doesn't match the schema
-- **Unparseable amount** — the amount value is not recognisable
-- **Amount: both Debit/Credit columns empty** — in files with separate debit and credit columns, neither column has a value for that row
+- **Missing date**: the date cell is empty
+- **Unparseable date**: the date format doesn't match the schema
+- **Unparseable amount**: the amount value is not recognisable
+- **Amount: both Debit/Credit columns empty**: in files with separate debit and credit columns, neither column has a value for that row
 
 You can expand the detail to see the original data of each discarded row, useful for understanding whether there's a problem with the file or the schema.
 
@@ -109,7 +113,7 @@ Go to **Ledger**. You'll find the complete list in chronological order, with fil
 
 **Checkbox columns (after the emoji columns):**
 - **Validato ☐** (Validated) — clickable checkbox to validate/unvalidate a transaction. Saves immediately on click (no need to press Save). When you validate, the ⚠️ flag is automatically cleared. When you unvalidate, `human_validated` is set back to False.
-- **🔄 Giroconto ☐** — clickable checkbox to mark/unmark an internal transfer (saves with the Save button)
+- **🔄 Giroconto ☐**: clickable checkbox to mark/unmark an internal transfer (saves with the Save button)
 
 **Column order (right side of the grid):**
 `... | Fonte | ⚠️ | ✅ | 🔄 | Validato ☐ | 🔄 Giroconto ☐`
@@ -217,7 +221,7 @@ Go to **✏️ Bulk Edit**. The page is divided into two main areas.
 4. Type **`ELIMINA`** in the confirmation field — only then does the button become enabled
 5. Click the red button
 
-> ⚠️ **Deletion is irreversible.** Always make a backup of the `ledger.db` file before deleting large amounts of data (see the Deployment guide).
+> ⚠️ **Deletion is irreversible.** Always make a backup of the `ledger.db` file before deleting large amounts of data (see section 16, *Backing up and moving your data*).
 
 > **Example:** You accidentally imported the transactions file of an account that isn't yours. You filter by account, see 200 transactions in the preview, type ELIMINA, and remove them all at once.
 
@@ -264,7 +268,7 @@ In the Analytics section you will also find the **Counterpart associations** vie
 For each counterpart it shows:
 - **Category/Subcategory** most frequent among validated transactions
 - **Count** of validated occurrences
-- **Homogeneity** — a 0-to-1 indicator measuring how "stable" the counterpart's classification is:
+- **Homogeneity**: a 0-to-1 indicator measuring how "stable" the counterpart's classification is:
   - 🟢 **>= 0.90** — auto-categorisable (e.g. ESSELUNGA: always Food)
   - 🟡 **0.50–0.89** — mixed (e.g. ROSSOPOMODORO: almost always Dining, sometimes Holidays)
   - 🔴 **< 0.50** — heterogeneous (e.g. AMAZON: Technology, Food, Clothing...)
@@ -299,12 +303,13 @@ Interactive charts (Plotly) showing:
 
 A button to download an `.xlsx` file with three types of sheets:
 - **Riepilogo** (Summary) — the complete pivot table
-- **Trend** — monthly data by category
-- **One sheet per context** — transaction details
+- **Trend**: monthly data by category
+- **One sheet per context**: transaction details
 
 ### Available filters
 
 - **Period:** date range picker with quick buttons — *Month*, *3 months*, *Year*, *All*
+  When the page opens, the period is already set to the three months ending with the last transaction loaded, not with today: if you have not imported for a while, you see where you left off instead of an empty page. If last month is missing, a notice tells you how far you got and points you to the Checklist.
 - **Accounts:** multiselect to filter one or more accounts
 
 > **Practical example:** You want to know how much you spent on "Alimentari" (Food) in the last 3 months. Open Report, click "3 months", look at the Alimentari row in the pivot table. Then switch to View 2 to see if spending is trending up or down.
@@ -389,13 +394,25 @@ For each category with a defined target:
 
 **Situation:** You want to check at a glance whether you are regularly importing all your transaction files, without gaps of months.
 
+> **Workflow.** The **🧭 Workflow** entry, at the top of the menu, takes you one step at a time on a clean screen: what to load (this page), the import, the counterparts, the mixed categories and finally the period at a glance. At the top you see which step you are on, with *Back*, *Next* and *Leave the workflow*. If you leave, next time it picks up where you left off, skipping the steps you have done in the meantime. After the onboarding, *Upload now* takes you straight to the import step.
+>
+> **The counterparts step.** It shows only the spending counterparts still to check, largest first. Tick *Always like this* when a counterpart always has the category shown: once is enough, from then on its movements, including those of future imports, get that category on their own. The suggested goal is to check the counterparts that make 8 euros out of 10 of the period's spending: at the top you see how much you have checked, how much is missing and how many counterparts are enough. It is a suggestion: you can move on whenever you want.
+>
+> **The mixed categories step.** It shows the spending counterparts with movements in more than one category. If it is a mistake (the pastry shop half groceries, half bar), choose the right category and press *It is always this*: it becomes a rule. If it depends on what you bought (the supermarket where you also buy electronics), press *It depends: one by one* and sort out each movement: no rule can tell them apart, since the name is the same. Movements you have already looked at are not asked again: next time you see only those that came with the last import.
+
+At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". Each account has its own row, with what is missing and two buttons. *Upload the file* lets you pick that account's files and sets them aside, already assigned to the account: you can prepare several accounts, then press *Import N files* and the import starts with the accounts already fixed. The import page only keeps the header and footer adjustment, the progress and the report. *I no longer use it* closes the account (see below). If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
+
+**How far back we ask.** The list only looks at the last 4 complete months: a quarter plus a month to catch up. Periods without transactions older than that are not asked for: a line at the bottom counts them, so you know they are there. If an account has had no transactions since before those 4 months, we suggest *I no longer use it*; if you still use it, you resume from the day after the last month loaded, so no new gap opens, since you have probably closed it.
+
+**An account you no longer use.** If you closed a card or an account, press *I no longer use it* under its name and pick the closing date (we suggest the end of the last month with transactions). From then on the Checklist stops asking for it, including the missing months before closing: you find them summed up in *Closed accounts*, where you can also press *Reopen*. Transactions already loaded stay, in the reports too, and its column in the table is marked as closed. You can also close and reopen an account from **Settings**, in the account list.
+
 Go to **✅ Checklist**. You'll find a table with:
 - **One row for each month**, from the current month going back into the past
 - **One column for each account** you have configured in Settings
 
 Each cell shows the number of transactions imported for that month and account. If the number is **—** (grey), you have no transactions for that combination.
 
-> **Practical example:** You have three accounts — Conto Corrente, Carta Visa, Conto Deposito. You look at the check list and see that July 2024 shows "—" for Conto Deposito. This means you never imported the transactions file for that deposit account for that month. Go download it from the bank and import it.
+> **Practical example:** You have three accounts: Conto Corrente, Carta Visa, Conto Deposito. You look at the Checklist and see that July 2024 shows "—" for Conto Deposito. This means you never imported the transactions file for that deposit account for that month. Go download it from the bank and import it.
 
 **How to read the colours:**
 - **—** grey = no transactions
@@ -423,8 +440,8 @@ Click **💬 Assistant** in the sidebar. A chat opens where you can type your qu
 The chatbot adapts automatically to the LLM backend you configured in Settings:
 
 - **If you use a cloud service** (OpenAI, Claude, etc.) — the chatbot searches FAQ and documentation, then generates an answer with AI. Answers are more natural and flexible.
-- **If you use Ollama or vLLM** — same behaviour, but the model runs on your computer.
-- **If you use llama.cpp or haven't configured any LLM** — the chatbot uses a deterministic system that finds the most similar question in pre-built FAQ. No LLM involved, works on any hardware.
+- **If you use Ollama or vLLM**: same behaviour, but the model runs on your computer.
+- **If you use llama.cpp or haven't configured any LLM**: the chatbot uses a deterministic system that finds the most similar question in pre-built FAQ. No LLM involved, works on any hardware.
 
 ### Suggested questions
 
@@ -509,7 +526,7 @@ For any backend (llama.cpp, Ollama, OpenAI, Claude, Compatible):
 
 Spendif.ai sends a test prompt ("PAGAMENTO POS FARMACIA") and shows:
 - The model's response (category + confidence level)
-- **📐 Context window** — configured tokens and the model's native maximum (e.g. `📐 configured: 8192 tokens · model max: 131072 tokens`)
+- **📐 Context window**: configured tokens and the model's native maximum (e.g. `📐 configured: 8192 tokens · model max: 131072 tokens`)
 
 The context window is detected automatically when you change model for all backends. If something is wrong, the error message indicates whether the problem is the connection, the API key, or the model.
 
@@ -525,14 +542,64 @@ Spendif.ai remembers the structure of each imported file (columns, date format, 
 
 > **When to use:** if the import summary shows discarded rows with reason "Importo non parsabile" for income (or expense) rows, the saved schema probably uses the wrong sign convention. Clear and re-import.
 
+> **Auto-invalidation:** Spendif.ai automatically detects broken schemas. If a file imported with a cached schema produces fewer than 10% parseable transactions, the schema is deleted and the file is re-analysed from scratch using the LLM, no manual intervention needed.
+
+---
+
+## 16. Backing up and moving your data to another computer
+
+**Situation:** You are switching computers, or you want to use Spendif.ai on both your laptop and your desktop, and you want to bring along all your transactions, rules and settings.
+
+All your data lives in **a single file** (`ledger.db`) inside a hidden folder in your user home, called `.spendifai`:
+
+| Operating system | Where to find it |
+|------------------|------------------|
+| **macOS** | `/Users/<yourname>/.spendifai/`: in Finder press `Cmd+Shift+.` to show hidden folders |
+| **Linux** | `/home/<yourname>/.spendifai/`: in your file manager press `Ctrl+H` |
+| **Windows** | `C:\Users\<yourname>\.spendifai\` |
+
+### How to transfer your data (works across any combination: Windows, Mac, Linux)
+
+1. **Close Spendif.ai** on the source computer (quit completely).
+2. Open the `.spendifai` folder and copy these files onto a USB stick or the cloud:
+   - `ledger.db`: your data (required)
+   - `.env`: your settings and AI keys (⚠️ contains the keys in clear text: treat it like a password)
+   - `system_settings.yaml`: only if present
+3. **Install Spendif.ai** on the new computer and **launch it once**, then close it (so it creates the `.spendifai` folder).
+4. **Paste** the copied files into the `.spendifai` folder on the new computer, overwriting.
+5. **Restart Spendif.ai**: you get everything back as it was.
+
+> Your data file is **portable**: you can go from Windows to Mac, Mac to Mac, Linux to Windows: it always works, with no conversion.
+
+> **The AI models** (the `models/` folder) do not need to be copied: they are re-downloaded at first launch on the new computer. Copy them only if the new computer will stay **offline**.
+
+> **Backup tip:** even if you are not switching computers, copy the `ledger.db` file to a safe place every now and then. It is the one file that holds all your work. Technical details and automatic backups: the **Database management** guide (`database.md`).
+
+---
+
+## 17. Diagnostics: when something goes wrong
+
+**Situation:** The import stops with an error, the analysis is very slow or the application does not do what you expect, and you want to ask for help.
+
+Go to **Diagnostics** in the menu. The **Technical information** page gathers a summary of your computer and of how the application is set up: operating system, memory, graphics card, model in use, timings of the last imports. **It contains none of your transaction data** and is sent nowhere: you save it and you decide whether to attach it.
+
+What to do:
+1. Press **Save the document**: it is exactly what you see in the box.
+2. Press **Write to support**: your mail program opens with a message already set up. Describe what you were doing and attach the saved document. If the mail program does not open, the page tells you which address to write to.
+3. If you have a GitHub account you can use **Send as a test report on GitHub** instead: it opens a public form with the document already filled in, and nothing is sent until you send it.
+
+The page also warns you on its own about two common problems: a computer with a graphics card the application is not using (the analysis runs on the processor and is slower), and text sent to the model that is getting close to the available space (when the space runs out the analysis fails).
+
+> **Example:** The import of a statement stops halfway. You go to Diagnostics, save the document, press Write to support and in the message write "import of the September file of the BBVA account, stops at 60%". With the document attached, whoever answers sees model, memory and timings straight away, without having to ask you.
+
 ---
 
 ## Benchmark tools (for advanced users)
 
 Spendif.ai includes two benchmark scripts in the `benchmark/` folder:
 
-- **`benchmark_classifier.py`** — measures schema detection quality (header, columns, date format, sign convention).
-- **`benchmark_categorizer.py`** — measures LLM categorisation quality in isolation (no database, no user rules, no history). Metrics: exact accuracy, fuzzy accuracy (top-level category), fallback rate.
+- **`benchmark_classifier.py`**: measures schema detection quality (header, columns, date format, sign convention).
+- **`benchmark_categorizer.py`**: measures LLM categorisation quality in isolation (no database, no user rules, no history). Metrics: exact accuracy, fuzzy accuracy (top-level category), fallback rate.
 
 Both support the same CLI arguments: `--runs`, `--files`, `--backend`, `--model`, `--model-path`. Useful for comparing different models before choosing which one to use in production.
 
@@ -554,3 +621,17 @@ In Analytics you'll find the **Esporta** button which generates HTML, CSV, or XL
 
 **I changed the Taxonomy but the old transactions haven't updated.**
 Old categories stay as they are. You can reprocess them manually from the Review page or by re-applying the rules.
+
+---
+
+## What's coming next
+
+Spendif.ai is in alpha. The features we add next are decided together with the people using the app today: no speculative work, no roadmap dictated from above.
+
+Features under evaluation based on alpha-tester feedback:
+
+- **Cash tracking**: log cash purchases manually, with no bank statement attached
+- **Investment performance**: see at a glance how the instruments in your portfolio are doing
+- **Companion mobile app**: capture cash on the fly from your phone and sync with the desktop
+
+Would one of these help you? Tell us in [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.

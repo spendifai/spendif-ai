@@ -1,6 +1,8 @@
 """Chat page — Spendif.ai support chatbot."""
 from __future__ import annotations
 
+import re
+
 import streamlit as st
 
 from chat_bot.engine import ChatBotEngine, ChatMode
@@ -18,7 +20,38 @@ _MODE_LABELS = {
 _PAGE_REFS = frozenset({
     "import", "history", "ledger", "bulk_edit", "analytics", "report", "budget",
     "budget_vs_actual", "review", "rules", "taxonomy", "settings", "checklist",
+    "home", "guided", "counterparts", "mixed", "llm_models", "diagnostics",
 })
+# Pages whose label is not a menu entry (reached from the workflow).
+_PAGE_LABEL_KEY = {"mixed": "mixed.title"}
+# Sources come best match first; the best page is enough, more is noise.
+_MAX_PAGE_LINKS = 1
+
+
+def page_label(page: str) -> str:
+    return t_fn(_PAGE_LABEL_KEY.get(page, f"nav.{page}"))
+
+
+def _named_page(text: str) -> str | None:
+    """The page the answer tells the user to open: the first menu label found
+    in the text (the longest one when two start at the same place, so "Budget
+    vs Consuntivo" wins over "Budget")."""
+    found = []
+    for page in _PAGE_REFS:
+        name = re.sub(r"^\W+", "", page_label(page)).strip()   # without the icon
+        m = re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.IGNORECASE)
+        if m:
+            found.append((m.start(), -len(name), page))
+    return min(found)[2] if found else None
+
+
+def pages_to_link(sources: list[str], text: str) -> list[str]:
+    """The page named in the answer, else the best-matching source page: a link
+    must lead where the text says to go."""
+    named = _named_page(text)
+    if named:
+        return [named]
+    return [s for s in sources if s in _PAGE_REFS][:_MAX_PAGE_LINKS]
 
 
 _CHAT_CSS = """
@@ -96,17 +129,20 @@ def render_chat_page(engine) -> None:
     mode_label = _MODE_LABELS.get(bot.mode, bot.mode.value)
     st.caption(t_fn("chat.mode_label").format(mode=mode_label))
 
-    # suggested questions (only when history is empty)
-    if not st.session_state["chat_history"]:
-        st.markdown(f"*{t_fn('chat.welcome')}*")
-        _render_suggestions(bot, lang)
+    # suggested questions (only when history is empty). The container is there
+    # in every run so the messages below keep their place: otherwise, after the
+    # first answer, the reply being computed shows the previous one faded.
+    with st.container():
+        if not st.session_state["chat_history"]:
+            st.markdown(f"*{t_fn('chat.welcome')}*")
+            _render_suggestions(bot, lang)
 
     # render conversation history
-    for msg in st.session_state["chat_history"]:
+    for n, msg in enumerate(st.session_state["chat_history"]):
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             if msg.get("sources"):
-                _render_sources_caption(msg["sources"])
+                _render_sources(msg["sources"], msg["content"], key=f"h{n}")
 
     # chat input
     if user_input := st.chat_input(t_fn("chat.placeholder")):
@@ -117,12 +153,15 @@ def render_chat_page(engine) -> None:
 
         # get bot response (pass history excluding the just-added user message)
         history_so_far = st.session_state["chat_history"][:-1]
-        with st.chat_message("assistant"):
-            with st.spinner(t_fn("chat.thinking")):
-                response = bot.ask(user_input, history=history_so_far or None)
-            st.markdown(response.text)
-            if response.sources:
-                _render_sources_caption(response.sources)
+        # A fresh slot: whatever an earlier run left in this place is cleared
+        # before the spinner shows.
+        with st.empty().container():
+            with st.chat_message("assistant"):
+                with st.spinner(t_fn("chat.thinking")):
+                    response = bot.ask(user_input, history=history_so_far or None)
+                st.markdown(response.text)
+                if response.sources:
+                    _render_sources(response.sources, response.text, key="new")
 
         st.session_state["chat_history"].append({
             "role": "assistant",
@@ -168,11 +207,21 @@ def _get_suggestions(lang: str) -> list[str]:
     return [t(f"chat.suggestion.{k}") for k in ("import", "formats", "category")]
 
 
-def _render_sources_caption(sources: list[str]) -> None:
-    """Render sources as a subtle single-line caption below a message."""
-    labels = [_format_source(s) for s in sources if _format_source(s)]
-    if labels:
-        st.caption("  ·  ".join(labels))
+def _render_sources(sources: list[str], text: str, key: str) -> None:
+    """The page the answer came from, as a button that opens it; the guide's
+    name only when no page is known."""
+    pages = pages_to_link(sources, text)
+    docs = [] if pages else [
+        _format_source(s) for s in sources if s not in _PAGE_REFS and _format_source(s)]
+    if pages:
+        cols = st.columns(len(pages))
+        for col, page in zip(cols, pages):
+            with col:
+                if st.button(f"→ {page_label(page)}", key=f"src_{key}_{page}", type="tertiary"):
+                    from ui.widgets.immersive import go_to
+                    go_to(page)
+    if docs:
+        st.caption("  ·  ".join(docs))
 
 
 def _format_source(src: str) -> str:
@@ -185,7 +234,7 @@ def _format_source(src: str) -> str:
     if not src:
         return ""
     if src in _PAGE_REFS:
-        return f"→ {t_fn(f'nav.{src}')}"
+        return f"→ {page_label(src)}"
     if src.endswith((".md", ".txt", ".pdf")):
         return f"📄 {src}"
     return ""

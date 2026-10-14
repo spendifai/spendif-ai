@@ -14,12 +14,12 @@ You download your transaction files from the bank, drag them into Spendif.ai, it
 
 **Situation:** You've just installed Spendif.ai and are launching it for the first time.
 
-The app automatically shows the **onboarding wizard** (4 steps). No need to look for any menu. *In parallel* the desktop launcher kicks off the download of the LLM model best suited for your hardware — a banner at the top of every step shows the progress ("📚 78% · ~3 min").
+The app automatically shows the **onboarding wizard** (4 steps). No need to look for any menu. *In parallel* the desktop launcher kicks off the download of the LLM model best suited for your hardware: a banner at the top of every step shows the progress ("📚 78% · ~3 min").
 
-1. **Step 1 — Language:** choose the taxonomy language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
-2. **Step 2 — Holders:** enter your name (and the variants used by the bank — e.g. `Mario Rossi, ROSSI MARIO`). These names are used to protect your privacy in LLM prompts and to detect internal transfers.
-3. **Step 3 — Accounts:** add your bank accounts (name + bank + account type). The account type is mandatory and indicates the financial instrument: *Bank account*, *Credit card*, *Debit card*, *Prepaid card*, *Savings account* or *Cash*. At least one account is required.
-4. **Step 4 — Summary and Start:** review the summary and click **Start**. The button is disabled until the AI model is 100% downloaded (live indicator "⏳ Waiting for AI model — 78% · ~3 min"): this guarantees the Import page works immediately after the wizard. Data is saved only at this point.
+1. **Step 1 (Language):** choose the taxonomy language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
+2. **Step 2 (Holders):** enter your name (and the variants used by the bank, e.g. `Mario Rossi, ROSSI MARIO`). These names are used to protect your privacy in LLM prompts and to detect internal transfers.
+3. **Step 3 (Accounts):** add your bank accounts (name + bank + account type). The account type is mandatory and indicates the financial instrument: *Bank account*, *Credit card*, *Debit card*, *Prepaid card*, *Savings account* or *Cash*. At least one account is required.
+4. **Step 4 (Summary and Start):** review the summary and click **Start**. The button is disabled until the AI model is 100% downloaded (live indicator "⏳ Waiting for AI model - 78% · ~3 min"): this guarantees the Import page works immediately after the wizard. Data is saved only at this point.
 
 > **Invisible LLM defaults:** the wizard also writes `llm_backend=local_llama_cpp`, the downloaded model path, and inference parameters (4096-token context, CPU by default). All editable later from **⚙️ Settings**.
 
@@ -47,8 +47,8 @@ The app automatically shows the **onboarding wizard** (4 steps). No need to look
 
 Spendif.ai analyses the structure of each file and computes a **confidence score** (from 0 to 100%) on how well it understood the format.
 
-- **Confidence >= 80%** — import proceeds automatically, with no user interaction needed.
-- **Confidence < 80%** — a review form appears where you can verify the detected columns (date, amount, description, document type) and correct them if needed. After manual confirmation, the confidence is set to 100%.
+- **Confidence >= 80%**: import proceeds automatically, with no user interaction needed.
+- **Confidence < 80%**: a review form appears where you can verify the detected columns (date, amount, description, document type) and correct them if needed. After manual confirmation, the confidence is set to 100%.
 
 Once a file's schema is confirmed, all subsequent imports of the same format will be automatic — Spendif.ai remembers the structure.
 
@@ -81,10 +81,10 @@ After processing, a detailed summary is shown for each imported file:
 | **Discarded** | Rows that could not be imported |
 
 If there are discarded rows, a warning shows the reason for each:
-- **Missing date** — the date cell is empty
-- **Unparseable date** — the date format doesn't match the schema
-- **Unparseable amount** — the amount value is not recognisable
-- **Amount: both Debit/Credit columns empty** — in files with separate debit and credit columns, neither column has a value for that row
+- **Missing date**: the date cell is empty
+- **Unparseable date**: the date format doesn't match the schema
+- **Unparseable amount**: the amount value is not recognisable
+- **Amount: both Debit/Credit columns empty**: in files with separate debit and credit columns, neither column has a value for that row
 
 You can expand the detail to see the original data of each discarded row, useful for understanding whether there's a problem with the file or the schema.
 
@@ -113,7 +113,7 @@ Go to **Ledger**. You'll find the complete list in chronological order, with fil
 
 **Checkbox columns (after the emoji columns):**
 - **Validato ☐** (Validated) — clickable checkbox to validate/unvalidate a transaction. Saves immediately on click (no need to press Save). When you validate, the ⚠️ flag is automatically cleared. When you unvalidate, `human_validated` is set back to False.
-- **🔄 Giroconto ☐** — clickable checkbox to mark/unmark an internal transfer (saves with the Save button)
+- **🔄 Giroconto ☐**: clickable checkbox to mark/unmark an internal transfer (saves with the Save button)
 
 **Column order (right side of the grid):**
 `... | Fonte | ⚠️ | ✅ | 🔄 | Validato ☐ | 🔄 Giroconto ☐`
@@ -221,7 +221,7 @@ Go to **✏️ Bulk Edit**. The page is divided into two main areas.
 4. Type **`ELIMINA`** in the confirmation field — only then does the button become enabled
 5. Click the red button
 
-> ⚠️ **Deletion is irreversible.** Always make a backup of the `ledger.db` file before deleting large amounts of data (see section 16 — *Backing up and moving your data*).
+> ⚠️ **Deletion is irreversible.** Always make a backup of the `ledger.db` file before deleting large amounts of data (see section 16, *Backing up and moving your data*).
 
 > **Example:** You accidentally imported the transactions file of an account that isn't yours. You filter by account, see 200 transactions in the preview, type ELIMINA, and remove them all at once.
 
@@ -268,7 +268,7 @@ In the Analytics section you will also find the **Counterpart associations** vie
 For each counterpart it shows:
 - **Category/Subcategory** most frequent among validated transactions
 - **Count** of validated occurrences
-- **Homogeneity** — a 0-to-1 indicator measuring how "stable" the counterpart's classification is:
+- **Homogeneity**: a 0-to-1 indicator measuring how "stable" the counterpart's classification is:
   - 🟢 **>= 0.90** — auto-categorisable (e.g. ESSELUNGA: always Food)
   - 🟡 **0.50–0.89** — mixed (e.g. ROSSOPOMODORO: almost always Dining, sometimes Holidays)
   - 🔴 **< 0.50** — heterogeneous (e.g. AMAZON: Technology, Food, Clothing...)
@@ -303,8 +303,8 @@ Interactive charts (Plotly) showing:
 
 A button to download an `.xlsx` file with three types of sheets:
 - **Riepilogo** (Summary) — the complete pivot table
-- **Trend** — monthly data by category
-- **One sheet per context** — transaction details
+- **Trend**: monthly data by category
+- **One sheet per context**: transaction details
 
 ### Available filters
 
@@ -440,8 +440,8 @@ Click **💬 Assistant** in the sidebar. A chat opens where you can type your qu
 The chatbot adapts automatically to the LLM backend you configured in Settings:
 
 - **If you use a cloud service** (OpenAI, Claude, etc.) — the chatbot searches FAQ and documentation, then generates an answer with AI. Answers are more natural and flexible.
-- **If you use Ollama or vLLM** — same behaviour, but the model runs on your computer.
-- **If you use llama.cpp or haven't configured any LLM** — the chatbot uses a deterministic system that finds the most similar question in pre-built FAQ. No LLM involved, works on any hardware.
+- **If you use Ollama or vLLM**: same behaviour, but the model runs on your computer.
+- **If you use llama.cpp or haven't configured any LLM**: the chatbot uses a deterministic system that finds the most similar question in pre-built FAQ. No LLM involved, works on any hardware.
 
 ### Suggested questions
 
@@ -526,7 +526,7 @@ For any backend (llama.cpp, Ollama, OpenAI, Claude, Compatible):
 
 Spendif.ai sends a test prompt ("PAGAMENTO POS FARMACIA") and shows:
 - The model's response (category + confidence level)
-- **📐 Context window** — configured tokens and the model's native maximum (e.g. `📐 configured: 8192 tokens · model max: 131072 tokens`)
+- **📐 Context window**: configured tokens and the model's native maximum (e.g. `📐 configured: 8192 tokens · model max: 131072 tokens`)
 
 The context window is detected automatically when you change model for all backends. If something is wrong, the error message indicates whether the problem is the connection, the API key, or the model.
 
@@ -542,7 +542,7 @@ Spendif.ai remembers the structure of each imported file (columns, date format, 
 
 > **When to use:** if the import summary shows discarded rows with reason "Importo non parsabile" for income (or expense) rows, the saved schema probably uses the wrong sign convention. Clear and re-import.
 
-> **Auto-invalidation:** Spendif.ai automatically detects broken schemas. If a file imported with a cached schema produces fewer than 10% parseable transactions, the schema is deleted and the file is re-analysed from scratch using the LLM — no manual intervention needed.
+> **Auto-invalidation:** Spendif.ai automatically detects broken schemas. If a file imported with a cached schema produces fewer than 10% parseable transactions, the schema is deleted and the file is re-analysed from scratch using the LLM, no manual intervention needed.
 
 ---
 
@@ -554,22 +554,22 @@ All your data lives in **a single file** (`ledger.db`) inside a hidden folder in
 
 | Operating system | Where to find it |
 |------------------|------------------|
-| **macOS** | `/Users/<yourname>/.spendifai/` — in Finder press `Cmd+Shift+.` to show hidden folders |
-| **Linux** | `/home/<yourname>/.spendifai/` — in your file manager press `Ctrl+H` |
+| **macOS** | `/Users/<yourname>/.spendifai/`: in Finder press `Cmd+Shift+.` to show hidden folders |
+| **Linux** | `/home/<yourname>/.spendifai/`: in your file manager press `Ctrl+H` |
 | **Windows** | `C:\Users\<yourname>\.spendifai\` |
 
 ### How to transfer your data (works across any combination: Windows, Mac, Linux)
 
 1. **Close Spendif.ai** on the source computer (quit completely).
 2. Open the `.spendifai` folder and copy these files onto a USB stick or the cloud:
-   - `ledger.db` — your data (required)
-   - `.env` — your settings and AI keys (⚠️ contains the keys in clear text: treat it like a password)
-   - `system_settings.yaml` — only if present
+   - `ledger.db`: your data (required)
+   - `.env`: your settings and AI keys (⚠️ contains the keys in clear text: treat it like a password)
+   - `system_settings.yaml`: only if present
 3. **Install Spendif.ai** on the new computer and **launch it once**, then close it (so it creates the `.spendifai` folder).
 4. **Paste** the copied files into the `.spendifai` folder on the new computer, overwriting.
 5. **Restart Spendif.ai**: you get everything back as it was.
 
-> Your data file is **portable**: you can go from Windows to Mac, Mac to Mac, Linux to Windows — it always works, with no conversion.
+> Your data file is **portable**: you can go from Windows to Mac, Mac to Mac, Linux to Windows: it always works, with no conversion.
 
 > **The AI models** (the `models/` folder) do not need to be copied: they are re-downloaded at first launch on the new computer. Copy them only if the new computer will stay **offline**.
 
@@ -598,8 +598,8 @@ The page also warns you on its own about two common problems: a computer with a 
 
 Spendif.ai includes two benchmark scripts in the `benchmark/` folder:
 
-- **`benchmark_classifier.py`** — measures schema detection quality (header, columns, date format, sign convention).
-- **`benchmark_categorizer.py`** — measures LLM categorisation quality in isolation (no database, no user rules, no history). Metrics: exact accuracy, fuzzy accuracy (top-level category), fallback rate.
+- **`benchmark_classifier.py`**: measures schema detection quality (header, columns, date format, sign convention).
+- **`benchmark_categorizer.py`**: measures LLM categorisation quality in isolation (no database, no user rules, no history). Metrics: exact accuracy, fuzzy accuracy (top-level category), fallback rate.
 
 Both support the same CLI arguments: `--runs`, `--files`, `--backend`, `--model`, `--model-path`. Useful for comparing different models before choosing which one to use in production.
 
@@ -630,8 +630,8 @@ Spendif.ai is in alpha. The features we add next are decided together with the p
 
 Features under evaluation based on alpha-tester feedback:
 
-- **Cash tracking** — log cash purchases manually, with no bank statement attached
-- **Investment performance** — see at a glance how the instruments in your portfolio are doing
-- **Companion mobile app** — capture cash on the fly from your phone and sync with the desktop
+- **Cash tracking**: log cash purchases manually, with no bank statement attached
+- **Investment performance**: see at a glance how the instruments in your portfolio are doing
+- **Companion mobile app**: capture cash on the fly from your phone and sync with the desktop
 
 Would one of these help you? Tell us in [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). When enough requests stack up on the same feature, it moves to the top of the queue.

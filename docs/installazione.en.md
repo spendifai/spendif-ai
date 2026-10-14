@@ -64,7 +64,7 @@ llama.cpp on Mac uses **Metal (Apple Silicon)** acceleration automatically. Insi
 
 ### Prerequisites
 
-- **Python >= 3.12** — check with `python3 --version`. On macOS: `brew install python@3.13`
+- **Python >= 3.12**: check with `python3 --version`. On macOS: `brew install python@3.13`
 - **Git**
 
 ### Step 1 — Clone the repository
@@ -161,9 +161,9 @@ Same procedure as Mac. llama.cpp automatically supports NVIDIA GPUs (CUDA) if dr
 
 ### Prerequisites
 
-- **Python >= 3.12** — check with `python3 --version`. On Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
-- **Git** — `sudo apt install git`
-- **curl** — `sudo apt install curl`
+- **Python >= 3.12**: check with `python3 --version`. On Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
+- **Git**: `sudo apt install git`
+- **curl**: `sudo apt install curl`
 
 ### Step 1 — Clone the repository
 
@@ -247,8 +247,8 @@ Go to ⚙️ **Settings** → **LLM Backend** section:
 ## 🐧 Linux — Docker with Ollama container
 
 This configuration starts two containers:
-- **`spendifai_app`** — the web application
-- **`spendifai_ollama`** — the Ollama LLM server
+- **`spendifai_app`**: the web application
+- **`spendifai_ollama`**: the Ollama LLM server
 
 ### Step 1 — Clone the repository
 

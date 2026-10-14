@@ -1,7 +1,12 @@
 from __future__ import annotations
+import atexit
+import gc
 import json
 import os
+import threading
+import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +89,93 @@ class LLMBackend(ABC):
           n_ctx_train  – model's native maximum context (tokens)
         """
         return None
+
+    def is_busy(self) -> bool:
+        """True when another caller is using this backend's model right now.
+
+        Only an in-process model can be busy: a server answers concurrent
+        requests on its own. Callers that must not wait (the chat) check this
+        and fall back instead of queueing behind an import.
+        """
+        return False
+
+
+# ── Shared in-process models ─────────────────────────────────────────────────
+
+class _SharedModelPool:
+    """One loaded llama.cpp model per (path, n_ctx, n_gpu_layers), process-wide.
+
+    Without it every file of an import loaded the model again, and a second
+    caller (the chat) would have held a second copy of the same weights.
+    A model is loaded on first use, served to every backend that asks for the
+    same key, used by one caller at a time, and released after
+    ``idle_release_s`` seconds without use. A backend whose model was released
+    reloads it on its next call.
+    """
+
+    def __init__(self, idle_release_s: float = 900.0):
+        self.idle_release_s = idle_release_s
+        self._guard = threading.Lock()
+        self._models: dict[tuple, dict[str, Any]] = {}
+        self._timer: threading.Timer | None = None
+
+    def get(self, key: tuple, loader) -> dict[str, Any]:
+        """Return the slot for ``key``, loading the model with ``loader`` if needed."""
+        with self._guard:
+            slot = self._models.get(key)
+            if slot is None:
+                slot = {"llm": loader(), "lock": threading.Lock(), "last_used": time.monotonic()}
+                self._models[key] = slot
+            slot["last_used"] = time.monotonic()
+            self._arm_timer()
+            return slot
+
+    def busy(self, key: tuple) -> bool:
+        with self._guard:
+            slot = self._models.get(key)
+        return slot is not None and slot["lock"].locked()
+
+    def loaded_keys(self) -> list[tuple]:
+        with self._guard:
+            return list(self._models)
+
+    def release_idle(self, now: float | None = None) -> int:
+        """Drop the models unused for ``idle_release_s`` and not in use. Returns how many."""
+        now = time.monotonic() if now is None else now
+        with self._guard:
+            idle = [k for k, s in self._models.items()
+                    if not s["lock"].locked() and now - s["last_used"] >= self.idle_release_s]
+            for k in idle:
+                del self._models[k]
+            if self._models:
+                self._arm_timer()
+        if idle:
+            gc.collect()
+            logger.info("SharedModelPool: released %d idle model(s)", len(idle))
+        return len(idle)
+
+    def clear(self) -> None:
+        with self._guard:
+            self._models.clear()
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+        gc.collect()
+
+    def _arm_timer(self) -> None:
+        # Called with the guard held.
+        if self._timer is not None:
+            self._timer.cancel()
+        self._timer = threading.Timer(self.idle_release_s, self.release_idle)
+        self._timer.daemon = True
+        self._timer.start()
+
+
+SHARED_MODELS = _SharedModelPool()
+# Free the models while Python is still up: a model alive at interpreter exit
+# is torn down by the C++ static destructors after the Metal device is gone,
+# and the process aborts on the way out.
+atexit.register(SHARED_MODELS.clear)
 
 
 # ── Ollama ────────────────────────────────────────────────────────────────────
@@ -861,15 +953,52 @@ class LlamaCppBackend(LLMBackend):
             cap = adaptive if adaptive else self.DEFAULT_N_CTX_CAP
             n_ctx = min(detected, cap)
         self._model_path = model_path
-        self._llm = Llama(
-            model_path=model_path,
-            n_ctx=n_ctx,
-            n_gpu_layers=n_gpu_layers,
-            n_batch=1024,       # larger batch → better GPU utilization on Metal
-            n_threads=1,        # with full GPU offload, CPU threads not needed for inference
-            flash_attn=True,    # faster attention on Metal (Apple Silicon)
-            verbose=False,
-        )
+        self._pool_key = (str(Path(model_path).resolve()), n_ctx, n_gpu_layers)
+
+        def _load():
+            return Llama(
+                model_path=model_path,
+                n_ctx=n_ctx,
+                n_gpu_layers=n_gpu_layers,
+                n_batch=1024,       # larger batch → better GPU utilization on Metal
+                n_threads=1,        # with full GPU offload, CPU threads not needed for inference
+                flash_attn=True,    # faster attention on Metal (Apple Silicon)
+                verbose=False,
+            )
+
+        self._loader = _load
+        # Load now, as before: a missing or broken model fails at construction.
+        SHARED_MODELS.get(self._pool_key, self._loader)
+
+    # The model lives in SHARED_MODELS, not on the instance, so that releasing
+    # it frees the memory even while backends that used it are still alive.
+    # A directly assigned model (test stubs) takes precedence.
+    @property
+    def _llm(self):
+        own = self.__dict__.get("_own_llm")
+        if own is not None:
+            return own
+        return SHARED_MODELS.get(self._pool_key, self._loader)["llm"]
+
+    @_llm.setter
+    def _llm(self, value) -> None:
+        self.__dict__["_own_llm"] = value
+
+    @contextmanager
+    def _lease(self):
+        """Hold the shared model for one call: one caller at a time."""
+        if self.__dict__.get("_own_llm") is not None or not hasattr(self, "_pool_key"):
+            yield
+            return
+        slot = SHARED_MODELS.get(self._pool_key, self._loader)
+        with slot["lock"]:
+            yield
+            slot["last_used"] = time.monotonic()
+
+    def is_busy(self) -> bool:
+        if self.__dict__.get("_own_llm") is not None or not hasattr(self, "_pool_key"):
+            return False
+        return SHARED_MODELS.busy(self._pool_key)
 
     @staticmethod
     def _adaptive_cap_from_db(model_path: str) -> int | None:
@@ -1147,6 +1276,10 @@ class LlamaCppBackend(LLMBackend):
         except Exception:
             grammar = None  # fallback: no grammar constraint
 
+        with self._lease():
+            return self._complete_locked(system_prompt, user_prompt, json_schema, temperature, grammar)
+
+    def _complete_locked(self, system_prompt, user_prompt, json_schema, temperature, grammar):
         try:
             # Render the prompt using the model's native Jinja2 chat template.
             # This mirrors Ollama's approach: apply the exact template the model

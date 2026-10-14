@@ -14,12 +14,12 @@ Scarichi i file movimenti dalla banca, li trascini in Spendif.ai, lui li unifica
 
 **Situazione:** Hai appena installato Spendif.ai e lo avvii per la prima volta.
 
-L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step). Non devi cercare nessun menu. *In parallelo* parte il download del modello LLM più adatto al tuo hardware — un banner in cima a ogni step mostra il progresso ("📚 78% · ~3 min").
+L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step). Non devi cercare nessun menu. *In parallelo* parte il download del modello LLM più adatto al tuo hardware: un banner in cima a ogni step mostra il progresso ("📚 78% · ~3 min").
 
-1. **Step 1 — Lingua:** scegli la lingua della tassonomia. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
-2. **Step 2 — Titolari:** inserisci il tuo nome (e le varianti usate dalla banca — es. `Mario Rossi, ROSSI MARIO`). Questi nomi vengono usati per proteggere la tua privacy nei prompt LLM e per riconoscere i tuoi bonifici interni.
-3. **Step 3 — Conti:** aggiungi i tuoi conti bancari (nome + banca + tipo conto). Il tipo conto è obbligatorio e indica lo strumento finanziario: *Conto corrente*, *Carta di credito*, *Carta di debito*, *Carta prepagata*, *Conto risparmio* o *Contanti*. Almeno un conto è obbligatorio.
-4. **Step 4 — Riepilogo e Avvia:** controlla il riepilogo e clicca **Avvia**. Il bottone è disabilitato finché il modello AI non è scaricato al 100% (indicatore live "⏳ Attendi modello AI — 78% · ~3 min"): garantisce che la pagina Import sia subito utilizzabile dopo il wizard. Solo a questo punto i dati vengono salvati.
+1. **Step 1 (Lingua):** scegli la lingua della tassonomia. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
+2. **Step 2 (Titolari):** inserisci il tuo nome (e le varianti usate dalla banca, es. `Mario Rossi, ROSSI MARIO`). Questi nomi vengono usati per proteggere la tua privacy nei prompt LLM e per riconoscere i tuoi bonifici interni.
+3. **Step 3 (Conti):** aggiungi i tuoi conti bancari (nome + banca + tipo conto). Il tipo conto è obbligatorio e indica lo strumento finanziario: *Conto corrente*, *Carta di credito*, *Carta di debito*, *Carta prepagata*, *Conto risparmio* o *Contanti*. Almeno un conto è obbligatorio.
+4. **Step 4 (Riepilogo e Avvia):** controlla il riepilogo e clicca **Avvia**. Il bottone è disabilitato finché il modello AI non è scaricato al 100% (indicatore live "⏳ Attendi modello AI - 78% · ~3 min"): garantisce che la pagina Import sia subito utilizzabile dopo il wizard. Solo a questo punto i dati vengono salvati.
 
 > **Default LLM invisibili:** il wizard scrive anche `llm_backend=local_llama_cpp`, il path del modello scaricato, e i parametri di inferenza (4096 token di contesto, CPU di default). Modificabili dopo da **⚙️ Impostazioni**.
 
@@ -47,8 +47,8 @@ L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step
 
 Spendif.ai analizza la struttura di ogni file e calcola un **punteggio di confidenza** (da 0 a 100%) su quanto ha capito del formato.
 
-- **Confidenza >= 80%** — l'importazione procede in automatico, senza chiederti nulla.
-- **Confidenza < 80%** — compare un form di revisione dove puoi verificare le colonne rilevate (data, importo, descrizione, tipo documento) e correggerle se necessario. Dopo la conferma manuale, la confidenza sale a 100%.
+- **Confidenza >= 80%**: l'importazione procede in automatico, senza chiederti nulla.
+- **Confidenza < 80%**: compare un form di revisione dove puoi verificare le colonne rilevate (data, importo, descrizione, tipo documento) e correggerle se necessario. Dopo la conferma manuale, la confidenza sale a 100%.
 
 Una volta confermato lo schema di un file, tutte le importazioni successive dello stesso formato saranno automatiche — Spendif.ai ricorda la struttura.
 
@@ -81,10 +81,10 @@ Al termine dell'elaborazione, per ogni file importato viene mostrato un riepilog
 | **Scartate** | Righe che non è stato possibile importare |
 
 Se ci sono righe scartate, un avviso mostra il motivo per ciascuna:
-- **Data mancante** — la cella della data è vuota
-- **Data non parsabile** — il formato della data non corrisponde allo schema
-- **Importo non parsabile** — il valore dell'importo non è riconoscibile
-- **Importo: entrambe le colonne Dare/Avere vuote** — nei file con colonne separate per dare e avere, nessuna delle due contiene un valore per quella riga
+- **Data mancante**: la cella della data è vuota
+- **Data non parsabile**: il formato della data non corrisponde allo schema
+- **Importo non parsabile**: il valore dell'importo non è riconoscibile
+- **Importo: entrambe le colonne Dare/Avere vuote**: nei file con colonne separate per dare e avere, nessuna delle due contiene un valore per quella riga
 
 Puoi espandere il dettaglio per vedere i dati originali di ogni riga scartata, utile per capire se c'è un problema nel file o nello schema.
 
@@ -112,8 +112,8 @@ Vai su **Ledger**. Trovi la lista completa in ordine cronologico, con filtri per
 - 🔄 = giroconto interno (es. bonifico tra tuoi conti, escluso dai totali) — mostra "·" quando inattivo
 
 **Colonne checkbox (dopo le emoji):**
-- **Validato ☐** — checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato (non serve premere Salva). Quando validi, il flag ⚠️ viene automaticamente rimosso. Quando rimuovi la validazione, `human_validated` torna a False.
-- **🔄 Giroconto ☐** — checkbox cliccabile per segnare/rimuovere un giroconto (si salva con il pulsante Salva)
+- **Validato ☐**: checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato (non serve premere Salva). Quando validi, il flag ⚠️ viene automaticamente rimosso. Quando rimuovi la validazione, `human_validated` torna a False.
+- **🔄 Giroconto ☐**: checkbox cliccabile per segnare/rimuovere un giroconto (si salva con il pulsante Salva)
 
 **Ordine colonne (parte destra della griglia):**
 `... | Fonte | ⚠️ | ✅ | 🔄 | Validato ☐ | 🔄 Giroconto ☐`
@@ -157,7 +157,7 @@ Vai su **Review**. Trovi le transazioni con il ⚠️. Per ognuna puoi:
 - ✅ = transazione validata dall'utente — mostra "·" quando inattivo
 
 **Colonne checkbox (dopo le emoji):**
-- **Validato ☐** — checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato. Quando validi, il flag ⚠️ viene automaticamente rimosso.
+- **Validato ☐**: checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato. Quando validi, il flag ⚠️ viene automaticamente rimosso.
 
 **Colonna Fonte (tracking classificazione):**
 - Badge che indica chi ha assegnato la categoria: 🧠 AI, 📏 Regola, 👤 Manuale, 📚 Storico
@@ -221,7 +221,7 @@ Vai su **✏️ Modifiche massive**. La pagina è divisa in due aree principali.
 4. Digita **`ELIMINA`** nel campo di conferma — solo allora il pulsante si abilita
 5. Clicca il pulsante rosso
 
-> ⚠️ **L'eliminazione è irreversibile.** Fai sempre un backup del file `ledger.db` prima di eliminare grandi quantità di dati (vedi la sezione 16 — *Backup e trasferimento dei dati*).
+> ⚠️ **L'eliminazione è irreversibile.** Fai sempre un backup del file `ledger.db` prima di eliminare grandi quantità di dati (vedi la sezione 16, *Backup e trasferimento dei dati*).
 
 > **Esempio:** Hai importato per errore il file movimenti di un conto corrente che non è tuo. Filtri per conto, vedi 200 transazioni nell'anteprima, digiti ELIMINA e le rimuovi in un colpo solo.
 
@@ -268,7 +268,7 @@ Nella sezione Analisi trovi anche la vista **Associazioni controparte → catego
 Per ogni controparte vengono mostrati:
 - **Categoria/Sottocategoria** più frequente tra le transazioni validate
 - **Conteggio** delle ricorrenze validate
-- **Omogenità** — un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
+- **Omogenità**: un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
   - 🟢 **≥ 0.90** — auto-categorizzabile (es. ESSELUNGA: sempre Alimentari)
   - 🟡 **0.50–0.89** — mista (es. ROSSOPOMODORO: quasi sempre Ristorazione, a volte Vacanze)
   - 🔴 **< 0.50** — eterogenea (es. AMAZON: Tecnologia, Alimentari, Abbigliamento...)
@@ -302,9 +302,9 @@ Grafici interattivi (Plotly) che mostrano:
 ### Vista 3 — Export Excel
 
 Pulsante per scaricare un file `.xlsx` con tre tipi di foglio:
-- **Riepilogo** — la tabella pivot completa
-- **Trend** — dati mensili per categoria
-- **Un foglio per ogni contesto** — dettaglio transazioni
+- **Riepilogo**: la tabella pivot completa
+- **Trend**: dati mensili per categoria
+- **Un foglio per ogni contesto**: dettaglio transazioni
 
 ### Filtri disponibili
 
@@ -440,8 +440,8 @@ Clicca su **💬 Assistente** nella sidebar. Si apre una chat dove puoi scrivere
 Il chatbot si adatta automaticamente al backend LLM che hai configurato nelle Impostazioni:
 
 - **Se usi un servizio cloud** (OpenAI, Claude, ecc.) — il chatbot cerca nelle FAQ e nella documentazione, poi genera una risposta con l'AI. Le risposte sono più naturali e flessibili.
-- **Se usi Ollama o vLLM** — stesso comportamento, ma il modello gira sul tuo computer.
-- **Se usi llama.cpp o non hai configurato nessun LLM** — il chatbot usa un sistema deterministico che cerca la domanda più simile nelle FAQ preconfezionate. Nessun LLM coinvolto, funziona su qualsiasi hardware.
+- **Se usi Ollama o vLLM**: stesso comportamento, ma il modello gira sul tuo computer.
+- **Se usi llama.cpp o non hai configurato nessun LLM**: il chatbot usa un sistema deterministico che cerca la domanda più simile nelle FAQ preconfezionate. Nessun LLM coinvolto, funziona su qualsiasi hardware.
 
 ### Domande suggerite
 
@@ -526,7 +526,7 @@ Per qualsiasi backend (llama.cpp, Ollama, OpenAI, Claude, Compatible):
 
 Spendif.ai invia un prompt di prova ("PAGAMENTO POS FARMACIA") e mostra:
 - La risposta del modello (categoria + livello di confidenza)
-- **📐 Finestra di contesto** — token configurati e massimo nativo del modello (es. `📐 configurato: 8192 token · max modello: 131072 token`)
+- **📐 Finestra di contesto**: token configurati e massimo nativo del modello (es. `📐 configurato: 8192 token · max modello: 131072 token`)
 
 La finestra di contesto viene rilevata automaticamente al cambio di modello per tutti i backend. Se qualcosa non va, il messaggio di errore indica se il problema è la connessione, l'API key o il modello.
 
@@ -542,7 +542,7 @@ Spendif.ai memorizza la struttura di ogni file importato (colonne, formato date,
 
 > **Quando serve:** se il riepilogo import mostra righe scartate con motivo "Importo non parsabile" per le entrate (o le uscite), lo schema salvato probabilmente usa una convenzione di segno sbagliata. Cancella e reimporta.
 
-> **Auto-invalidazione:** Spendif.ai rileva automaticamente gli schema corrotti. Se un file importato con uno schema salvato produce meno del 10% di transazioni parsabili, lo schema viene eliminato e il file viene rianalizzato da zero con l'LLM — senza intervento manuale.
+> **Auto-invalidazione:** Spendif.ai rileva automaticamente gli schema corrotti. Se un file importato con uno schema salvato produce meno del 10% di transazioni parsabili, lo schema viene eliminato e il file viene rianalizzato da zero con l'LLM, senza intervento manuale.
 
 **Reset tassonomia:** se vuoi cambiare la lingua della tassonomia dopo l'onboarding, vai in **⚙️ Impostazioni → 🔄 Reset tassonomia**, scegli la lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto.
 
@@ -556,22 +556,22 @@ Tutti i tuoi dati stanno in **un unico file** (`ledger.db`) dentro una cartella 
 
 | Sistema operativo | Dove trovarla |
 |-------------------|---------------|
-| **macOS** | `/Users/<tuonome>/.spendifai/` — nel Finder premi `Cmd+Shift+.` per vedere le cartelle nascoste |
-| **Linux** | `/home/<tuonome>/.spendifai/` — nel file manager premi `Ctrl+H` |
+| **macOS** | `/Users/<tuonome>/.spendifai/`: nel Finder premi `Cmd+Shift+.` per vedere le cartelle nascoste |
+| **Linux** | `/home/<tuonome>/.spendifai/`: nel file manager premi `Ctrl+H` |
 | **Windows** | `C:\Users\<tuonome>\.spendifai\` |
 
 ### Come trasferire i dati (funziona tra qualsiasi combinazione: Windows, Mac, Linux)
 
 1. **Chiudi Spendif.ai** sul computer di partenza (esci del tutto).
 2. Apri la cartella `.spendifai` e copia su una chiavetta o su un cloud questi file:
-   - `ledger.db` — i tuoi dati (obbligatorio)
-   - `.env` — le tue impostazioni e chiavi AI (⚠️ contiene le chiavi in chiaro: trattalo come una password)
-   - `system_settings.yaml` — solo se c'è
+   - `ledger.db`: i tuoi dati (obbligatorio)
+   - `.env`: le tue impostazioni e chiavi AI (⚠️ contiene le chiavi in chiaro: trattalo come una password)
+   - `system_settings.yaml`: solo se c'è
 3. **Installa Spendif.ai** sul nuovo computer e **avvialo una volta**, poi chiudilo (così crea la cartella `.spendifai`).
 4. **Incolla** i file copiati dentro la cartella `.spendifai` del nuovo computer, sovrascrivendo.
 5. **Riavvia Spendif.ai**: ritrovi tutto com'era.
 
-> Il file dei dati è **portabile**: puoi passare da Windows a Mac, da Mac a Mac, da Linux a Windows — funziona sempre, senza conversioni.
+> Il file dei dati è **portabile**: puoi passare da Windows a Mac, da Mac a Mac, da Linux a Windows: funziona sempre, senza conversioni.
 
 > **I modelli AI** (cartella `models/`) non serve copiarli: vengono riscaricati al primo avvio sul nuovo computer. Copiali solo se il nuovo computer resterà **senza connessione**.
 
@@ -600,8 +600,8 @@ La pagina ti avvisa anche da sola di due problemi frequenti: un computer con una
 
 Spendif.ai include due script di benchmark nella cartella `benchmark/`:
 
-- **`benchmark_classifier.py`** — misura la qualita del riconoscimento schema (header, colonne, formato date, convenzione segno).
-- **`benchmark_categorizer.py`** — misura la qualita della categorizzazione LLM in isolamento (senza database, regole o storico). Metriche: accuratezza esatta, accuratezza fuzzy (primo livello), tasso di fallback.
+- **`benchmark_classifier.py`**: misura la qualita del riconoscimento schema (header, colonne, formato date, convenzione segno).
+- **`benchmark_categorizer.py`**: misura la qualita della categorizzazione LLM in isolamento (senza database, regole o storico). Metriche: accuratezza esatta, accuratezza fuzzy (primo livello), tasso di fallback.
 
 Entrambi supportano gli stessi argomenti CLI: `--runs`, `--files`, `--backend`, `--model`, `--model-path`. Utili per confrontare modelli diversi prima di scegliere quale usare in produzione.
 
@@ -632,8 +632,8 @@ Spendif.ai è in alpha test. Le funzioni che aggiungeremo le decidiamo insieme a
 
 Funzioni in valutazione in base ai feedback degli alpha tester:
 
-- **Tracking del cash** — registrare manualmente le spese in contanti, senza estratto bancario
-- **Performance degli investimenti** — vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio
-- **App mobile compagna** — registrare cash al volo dal telefono e sincronizzare col desktop
+- **Tracking del cash**: registrare manualmente le spese in contanti, senza estratto bancario
+- **Performance degli investimenti**: vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio
+- **App mobile compagna**: registrare cash al volo dal telefono e sincronizzare col desktop
 
 Una di queste ti servirebbe? Faccelo sapere su [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.

@@ -693,5 +693,35 @@
     "q": "Is it free or paid?",
     "a": "Free and open source. No cost, no subscription, no premium tier.",
     "page": ""
+  },
+  {
+    "q": "I imported my files, what do I do now?",
+    "page": "guided",
+    "a": "Open the Workflow, the first entry in the menu: it takes you one step at a time. After the import come the counterparts (tick Always like this on those that always have the same category), then the mixed categories and finally the period at a glance in the Report. At the top you see which step you are on, with Back, Next and Leave the workflow; if you leave, next time it picks up where you left off."
+  },
+  {
+    "q": "What does the Always like this tick mean in the counterparts?",
+    "page": "counterparts",
+    "a": "Tick Always like this when a counterpart always has the category shown. Once is enough: the category applies to all its movements, those already imported and those of the next imports, which take it on their own without asking you again. If a counterpart changes category depending on what you buy, do not tick it: sort it out in the mixed categories step."
+  },
+  {
+    "q": "Why does it ask me to check 8 euros out of 10?",
+    "page": "counterparts",
+    "a": "In the counterparts step the suggested goal is to check the counterparts that together make 8 euros out of 10 of the period's spending: they are few, because they are sorted from the largest. Only spending counts, not income. At the top you see how much you have checked, how much is missing and how many counterparts are enough. It is a suggestion, not a requirement: you can move on whenever you want."
+  },
+  {
+    "q": "What are mixed categories?",
+    "page": "mixed",
+    "a": "They are spending counterparts with movements in more than one category. If it is a mistake (the pastry shop half groceries, half bar), choose the right category and press It is always this: it becomes a rule for all the movements. If it depends on what you bought (the supermarket where you also buy electronics), press It depends: one by one and sort out each movement. Movements you have already looked at are not asked again: next time you see only the new ones."
+  },
+  {
+    "q": "Why do Home and the Report show the period up to the last movement and not up to today?",
+    "page": "home",
+    "a": "The period opens on the three months ending with the last movement you loaded, not with today: if you have not imported for a while, you see where you left off instead of an empty page. To bring it up to date, load the missing statements: the Checklist tells you which ones and from which date."
+  },
+  {
+    "q": "The app is not working or the import fails: how do I ask for help?",
+    "page": "diagnostics",
+    "a": "Open the Diagnostics page from the menu. Press Save the document: it is a summary of your computer and setup, with none of your transaction data. Then press Write to support, describe what you were doing and attach the document. If you have a GitHub account you can use Send as a test report on GitHub instead."
   }
 ]
