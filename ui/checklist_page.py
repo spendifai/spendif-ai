@@ -6,18 +6,25 @@ transazioni per quel mese mostrano un'icona di assenza.
 """
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 
 import pandas as pd
 import streamlit as st
 
-from services.guided_flow_service import GuidanceKind, GuidedFlowService
+from services.guided_flow_service import (
+    CHECK_WINDOW_MONTHS,
+    GuidanceKind,
+    GuidedFlowService,
+    group_by_account,
+)
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
 from ui.widgets.immersive import go_to
+from ui.widgets.staged_import import StagedFile, stage_file, staged_files, unstage_file
 
 logger = setup_logging()
 
@@ -152,17 +159,156 @@ def _render_guidance(flow_svc: GuidedFlowService) -> bool:
     if added:
         st.success(t("guided.checklist.account_added", account=added))
 
+    groups = group_by_account(guidance)
     with st.container(border=True):
-        st.markdown(_guidance_sentence(first))
-        if first.kind is not GuidanceKind.up_to_date and st.button(
-            t("guided.checklist.go_import"), type="primary", key="guided_go_import",
-        ):
-            go_to("import")
-        if len(guidance) > 1:
+        _render_group(*groups[0], flow_svc=flow_svc, primary=True)
+        rest = groups[1:]
+        if rest:
             st.caption(t("guided.checklist.also"))
-            for g in guidance[1:]:
-                st.markdown(f"- {_guidance_sentence(g)}")
+            # A long list scrolls in its own box instead of pushing the grid down.
+            lines = sum(len(items) for _, items in rest)
+            box = (st.container(height=_SCROLL_HEIGHT_PX, border=False)
+                   if lines > _SCROLL_AFTER_LINES else st.container())
+            with box:
+                for account, items in rest:
+                    _render_group(account, items, flow_svc=flow_svc)
+        for err in st.session_state.pop("_stage_errors", []):
+            st.warning(err)
+        staged = staged_files()
+        if staged and st.button(t("guided.checklist.import_n", n=len(staged)),
+                                type="primary", key="import_staged"):
+            go_to("import")
+        old = flow_svc.old_holes()
+        if old:
+            st.caption(t("guided.checklist.old_holes", n=CHECK_WINDOW_MONTHS,
+                         items=", ".join(f"{a} ({n})" for a, n in old.items())))
+    _render_closed(flow_svc)
     return True
+
+
+_SCROLL_AFTER_LINES = 4
+_SCROLL_HEIGHT_PX = 240
+
+
+# Account | what is missing | upload | close: the same widths on every row,
+# so the buttons line up down the list.
+_GROUP_COLUMNS = [1, 4, 1, 1]
+
+
+def _render_group(account: str | None, items: list, flow_svc: GuidedFlowService,
+                  primary: bool = False) -> None:
+    """One row per suggestion; the account and its two actions on its first row.
+
+    Both actions belong to the account: *Upload the file* opens the import
+    with this account already chosen, *I no longer use it* closes it.
+    """
+    if account is None:
+        for g in items:
+            st.markdown(_guidance_sentence(g))
+        return
+    for i, g in enumerate(items):
+        col_account, col_text, col_upload, col_close = st.columns(
+            _GROUP_COLUMNS, gap="small", vertical_alignment="center")
+        col_text.markdown(_without_account(_guidance_sentence(g), account))
+        if i:
+            continue
+        col_account.markdown(f"**{account}**")
+        _upload_control(col_upload, account, primary, flow_svc)
+        _close_control(col_close, account, flow_svc)
+    _render_staged_for(account)
+
+
+def _upload_control(col, account: str, primary: bool, flow_svc: GuidedFlowService) -> None:
+    """Pick this account's files and put them on hold for the import.
+
+    The page does not change: several accounts can be prepared, then one
+    import runs them all with their account already assigned.
+    """
+    with col.popover(t("guided.checklist.go_import"), width="stretch",
+                     type="primary" if primary else "secondary"):
+        # a new key empties the picker once its files are on hold
+        round_key = f"_stage_round_{account}"
+        picked = st.file_uploader(
+            t("guided.checklist.stage_label", account=account),
+            type=["csv", "xls", "xlsx"], accept_multiple_files=True,
+            key=f"stage_up_{account}_{st.session_state.get(round_key, 0)}",
+        )
+        if picked and st.button(t("guided.checklist.stage_add"), key=f"stage_add_{account}",
+                                type="primary"):
+            for uf in picked:
+                data = uf.getvalue()
+                owner = flow_svc.format_owner(data, uf.name)
+                if not stage_file(StagedFile(uf.name, data, account,
+                                             owner if owner and owner != account else None)):
+                    st.session_state.setdefault("_stage_errors", []).append(
+                        t("guided.checklist.dup_name", file=uf.name))
+            st.session_state[round_key] = st.session_state.get(round_key, 0) + 1
+            st.rerun()
+
+
+def _render_staged_for(account: str) -> None:
+    """The files on hold for this account, each with a remove button."""
+    mine = [f for f in staged_files() if f.account == account]
+    if not mine:
+        return
+    _, col_text, _, _ = st.columns(_GROUP_COLUMNS, gap="small", vertical_alignment="center")
+    with col_text:
+        cols = st.columns([2] + [1] * len(mine), vertical_alignment="center")
+        cols[0].caption(t("guided.checklist.staged"))
+        for col, f in zip(cols[1:], mine):
+            if col.button(f"✕ {f.name}", key=f"unstage_{f.name}", type="tertiary"):
+                unstage_file(f.name)
+                st.rerun()
+        for f in mine:
+            if f.format_owner:
+                st.warning(t("guided.checklist.other_account", file=f.name, other=f.format_owner))
+
+
+def _close_control(col, account: str, flow_svc: GuidedFlowService) -> None:
+    """"I no longer use it": close the account from the date picked."""
+    with col.popover(t("guided.checklist.close_btn"), width="stretch"):
+        st.caption(t("guided.checklist.close_help"))
+        closed_on = st.date_input(
+            t("guided.checklist.close_date"),
+            value=flow_svc.suggested_closing_date(account),
+            key=f"close_date_{account}",
+            format="DD/MM/YYYY",
+        )
+        if st.button(t("guided.checklist.close_confirm"), key=f"close_btn_{account}", type="primary"):
+            flow_svc.close_account(account, closed_on)
+            st.rerun()
+
+
+def _render_closed(flow_svc: GuidedFlowService) -> None:
+    """Closed accounts: when, how many holes they were closed with, Reopen."""
+    closed = flow_svc.closed_accounts()
+    if not closed:
+        return
+    with st.expander(t("guided.checklist.closed_title", n=len(closed))):
+        for c in closed:
+            col_account, col_text, col_btn = st.columns([1, 4, 1], gap="small",
+                                                        vertical_alignment="center")
+            col_account.markdown(f"**{c.account}**")
+            notes = [t("guided.checklist.closed_on", date=_fmt_date(c.closed_on))]
+            if c.holes == 1:
+                notes.append(t("guided.checklist.closed_holes_one"))
+            elif c.holes > 1:
+                notes.append(t("guided.checklist.closed_holes_many", n=c.holes))
+            if c.after_closing:
+                notes.append(t("guided.checklist.closed_after"))
+            col_text.markdown(" ".join(n[:1].upper() + n[1:] for n in notes))
+            if col_btn.button(t("guided.checklist.reopen_btn"), key=f"reopen_{c.account}"):
+                flow_svc.reopen_account(c.account)
+                st.rerun()
+
+
+def _without_account(sentence: str, account: str | None) -> str:
+    """Drop the leading "**account**:" every per-account sentence starts with,
+    once the account is already the heading of its group."""
+    if not account:
+        return sentence
+    rest = re.sub(rf"^\*\*{re.escape(account)}\*\*\s*:\s*", "", sentence)
+    return rest[:1].upper() + rest[1:] if rest != sentence else sentence
 
 
 def render_checklist_page(engine) -> None:
@@ -243,6 +389,11 @@ def render_checklist_page(engine) -> None:
     if display_df.empty:
         st.warning(t("checklist.no_filtered_data"))
         return
+
+    closed_names = {a.name for a in account_rows if getattr(a, "closed_on", None)}
+    display_df = display_df.rename(columns={
+        c: t("checklist.closed_col", account=c) for c in display_df.columns if c in closed_names
+    })
 
     styled = (
         display_df.style

@@ -119,7 +119,7 @@ Mario Rossi, Anna Bianchi
 
 **Percorso:** Impostazioni → Formato visualizzazione
 
-Controlla come date e importi vengono mostrati nel Ledger, Analytics e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
+Controlla come date e importi vengono mostrati nel Ledger, Analisi e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
 
 ### Formato data
 
@@ -161,9 +161,9 @@ Viene passata al prompt del categorizzatore LLM per aiutarlo a interpretare corr
 
 **Percorso:** Impostazioni → 🔄 Modalità Giroconti
 
-I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Ledger, Analytics, Report).
+I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Ledger, Analisi, Report).
 
-| Modalità | Comportamento nelle viste (Ledger, Analytics, Report) |
+| Modalità | Comportamento nelle viste (Ledger, Analisi, Report) |
 |---|---|
 | **Mostra (neutral)** | Le righe 🔄 sono visibili (grigie/neutre), escluse dai totali entrate/uscite |
 | **Escludi dalle viste** | Le righe 🔄 non compaiono nelle schermate (ma restano nel database) |
@@ -182,7 +182,7 @@ Lista libera di etichette per segmentare le spese per contesto (es. `Quotidianit
 
 - Aggiungi/rimuovi contesti liberamente
 - Assegna un contesto a ogni transazione dal **Ledger** (colonna Contesto)
-- Usa il filtro Contesto in Analytics per confrontare i periodi (es. "quanto ho speso in vacanza vs quotidianità?")
+- Usa il filtro Contesto in Analisi per confrontare i periodi (es. "quanto ho speso in vacanza vs quotidianità?")
 
 **Default:** `Quotidianità`, `Lavoro`, `Vacanza`
 

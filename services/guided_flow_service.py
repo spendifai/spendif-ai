@@ -8,21 +8,30 @@ from __future__ import annotations
 from datetime import date
 
 from core.guided_flow import (
+    CHECK_WINDOW_MONTHS,
     STEPS,
     CheckProgress,
+    ClosedAccount,
     Guidance,
     GuidanceKind,
     check_progress,
     checklist_guidance,
+    closed_accounts,
+    group_by_account,
     is_stale,
+    old_holes,
     reference_period,
     resume_step,
+    suggested_closing_date,
 )
 from services.rule_service import RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 
-__all__ = ["STEPS", "CheckProgress", "Guidance", "GuidanceKind", "GuidedFlowService"]
+__all__ = [
+    "CHECK_WINDOW_MONTHS", "STEPS", "CheckProgress", "ClosedAccount", "Guidance", "GuidanceKind", "GuidedFlowService",
+    "group_by_account",
+]
 
 # Saved in the DB, not in the session: the workflow resumes after a restart.
 _STEP_SETTING = "guided_flow_step"
@@ -30,6 +39,7 @@ _STEP_SETTING = "guided_flow_step"
 
 class GuidedFlowService:
     def __init__(self, engine) -> None:
+        self._engine = engine
         self._tx = TransactionService(engine)
         self._cfg = SettingsService(engine)
         self._rules = RuleService(engine)
@@ -41,11 +51,43 @@ class GuidedFlowService:
         in the movements are appended, as the Check List grid does.
         """
         accounts = [a.name for a in self._cfg.get_accounts()]
+        return checklist_guidance(accounts, self._loaded_months(), today or date.today(),
+                                  self._closed())
+
+    def format_owner(self, raw_bytes: bytes, filename: str) -> str | None:
+        """The account this file's format was last imported into, if any."""
+        from services.import_service import ImportService
+        schema = ImportService(self._engine).find_schema_by_header(raw_bytes, filename)
+        return getattr(schema, "account_label", None) or None if schema else None
+
+    def old_holes(self, today: date | None = None) -> dict[str, int]:
+        """Holes older than the window, per account: counted, not asked for."""
+        accounts = [a.name for a in self._cfg.get_accounts()]
+        return old_holes(accounts, self._loaded_months(), today or date.today(), self._closed())
+
+    def closed_accounts(self) -> list[ClosedAccount]:
+        return closed_accounts(self._closed(), self._loaded_months())
+
+    def suggested_closing_date(self, account: str, today: date | None = None) -> date:
+        return suggested_closing_date(self._loaded_months().get(account, set()),
+                                      today or date.today())
+
+    def close_account(self, account: str, closed_on: date) -> None:
+        self._cfg.close_account(account, closed_on.isoformat())
+
+    def reopen_account(self, account: str) -> None:
+        self._cfg.reopen_account(account)
+
+    def _loaded_months(self) -> dict[str, set[str]]:
         loaded: dict[str, set[str]] = {}
         for row in self._tx.get_monthly_tx_counts():
             if row.year_month and row.account_label and row.tx_count:
                 loaded.setdefault(row.account_label, set()).add(row.year_month)
-        return checklist_guidance(accounts, loaded, today or date.today())
+        return loaded
+
+    def _closed(self) -> dict[str, date]:
+        return {a.name: date.fromisoformat(a.closed_on)
+                for a in self._cfg.get_accounts() if getattr(a, "closed_on", None)}
 
     def add_account(self, name: str) -> None:
         """Register an account by name only: the bank comes with the file."""

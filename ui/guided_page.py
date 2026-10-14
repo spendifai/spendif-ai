@@ -37,7 +37,7 @@ def _move(flow_svc: GuidedFlowService, step: str) -> None:
 
 def render_guided_page(engine, render_step: Callable[[str, object], None]) -> None:
     """Render the current step through *render_step* (the app router)."""
-    hide_chrome()
+    hide_chrome(narrow=False)
     flow_svc = GuidedFlowService(engine)
 
     step = st.session_state.get(GUIDED_STEP)

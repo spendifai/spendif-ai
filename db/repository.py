@@ -1032,14 +1032,38 @@ def reset_stale_jobs(session: Session) -> int:
     return len(stale)
 
 
-def create_import_job(session: Session, n_files: int) -> ImportJob:
+def create_import_job(session: Session, n_files: int, n_rows: int | None = None) -> ImportJob:
     from datetime import datetime, timezone
-    job = ImportJob(status="running", progress=0.0, n_files=n_files,
+    job = ImportJob(status="running", progress=0.0, n_files=n_files, n_rows=n_rows,
                     started_at=datetime.now(timezone.utc))
     session.add(job)
     session.flush()
     session.commit()  # commit immediately so other sessions/threads can see it
     return job
+
+
+def get_import_timings(session: Session, limit: int = 10) -> list[tuple[int, float]]:
+    """(rows, seconds) of the latest completed imports, newest first.
+
+    Rows are the rows read; older jobs that did not record them fall back
+    to the movements they created. Jobs with neither are left out.
+    """
+    jobs = (session.query(ImportJob)
+            .filter(ImportJob.status == "completed",
+                    ImportJob.completed_at.isnot(None),
+                    ImportJob.started_at.isnot(None))
+            .order_by(ImportJob.id.desc())
+            .limit(limit * 3)
+            .all())
+    out: list[tuple[int, float]] = []
+    for j in jobs:
+        rows = j.n_rows or j.n_transactions or 0
+        secs = (j.completed_at - j.started_at).total_seconds()
+        if rows > 0 and secs > 0:
+            out.append((rows, secs))
+        if len(out) == limit:
+            break
+    return out
 
 
 def update_import_job(session: Session, job_id: int, **kwargs) -> None:
@@ -1302,6 +1326,24 @@ def create_account(session: Session, name: str, bank_name: str = "", account_typ
     except IntegrityError:
         session.rollback()
         raise ValueError(f"Conto '{name}' già esistente")
+    return acc
+
+
+def set_account_closed(session: Session, name: str, closed_on: str | None) -> object:
+    """Close the account ``name`` on ``closed_on`` (ISO date), or reopen it with None.
+
+    An account seen only in the movements has no row yet: closing it creates
+    the row, so the Check List knows about it.
+    """
+    from db.models import Account
+    acc = session.query(Account).filter(Account.name == name).one_or_none()
+    if acc is None:
+        if closed_on is None:
+            return None
+        acc = Account(name=name.strip())
+        session.add(acc)
+    acc.closed_on = closed_on
+    session.flush()
     return acc
 
 

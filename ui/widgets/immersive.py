@@ -1,7 +1,8 @@
 """Immersive layout and navigation shared by the onboarding and the guided workflow.
 
-Immersive = no sidebar, no header, no toolbar, one narrow central column:
-only the current step is on screen.
+Immersive = no sidebar, no header, no toolbar: only the current step is on
+screen. The onboarding also narrows the column; the workflow keeps the full
+width, because its steps are tables.
 """
 from __future__ import annotations
 
@@ -14,8 +15,9 @@ GUIDED_STEP = "_guided_step"
 GUIDED_RETURN = "_guided_return"
 
 
-def hide_chrome() -> None:
-    """Hide sidebar, header and toolbar; narrow the main column."""
+def hide_chrome(narrow: bool = True) -> None:
+    """Hide sidebar, header and toolbar; with ``narrow``, also narrow the main column."""
+    width = "max-width: 820px;" if narrow else ""
     st.markdown("""
         <style>
         [data-testid="stSidebar"] { display: none !important; }
@@ -23,7 +25,7 @@ def hide_chrome() -> None:
         [data-testid="stToolbar"] { display: none !important; }
         section[data-testid="stSidebarUserContent"] { display: none !important; }
         .main .block-container {
-            max-width: 820px;
+            WIDTH
             padding-top: 2rem;
             padding-bottom: 4rem;
         }
@@ -31,7 +33,7 @@ def hide_chrome() -> None:
            Both the legacy class and the current testid (Streamlit renames often). */
         .stDeployButton, [data-testid="stAppDeployButton"] { display: none !important; }
         </style>
-    """, unsafe_allow_html=True)
+    """.replace("WIDTH", width), unsafe_allow_html=True)
 
 
 def go_to(page: str) -> None:

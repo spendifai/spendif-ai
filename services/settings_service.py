@@ -95,6 +95,17 @@ class SettingsService:
             s.commit()
             return result
 
+    def close_account(self, name: str, closed_on: str) -> None:
+        """Mark the account closed on ``closed_on`` (ISO date)."""
+        with self._session() as s:
+            repository.set_account_closed(s, name, closed_on)
+            s.commit()
+
+    def reopen_account(self, name: str) -> None:
+        with self._session() as s:
+            repository.set_account_closed(s, name, None)
+            s.commit()
+
     def delete_account(self, account_id: int) -> bool:
         with self._session() as s:
             result = repository.delete_account(s, account_id)

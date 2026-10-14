@@ -11,7 +11,7 @@
 | **Import** | Carica file CSV/XLSX, avvia la pipeline di elaborazione |
 | **Ledger** | Vista tabellare di tutte le transazioni importate |
 | **Modifiche massive** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
-| **Analytics** | Grafici e report aggregati per periodo/conto/categoria |
+| **Analisi** | Grafici e report aggregati per periodo/conto/categoria |
 | **Review** | Transazioni con classificazione incerta o da rivedere |
 | **Regole** | Gestione regole deterministiche di categorizzazione |
 | **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
@@ -124,7 +124,7 @@ Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Depos
 
 **Come viene rilevato:** matching importo + finestra temporale (±3 giorni) tra conti diversi dello stesso titolare.
 
-**Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analytics.
+**Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analisi.
 
 **Pulsante "Rileva giroconti cross-account"** in Review: riesegue la detection globalmente su tutte le transazioni. Utile se hai importato i due lati del giroconto in sessioni separate.
 
@@ -190,7 +190,7 @@ Ogni transazione viene identificata da un hash SHA-256 calcolato su: data, impor
 
 ## Export
 
-Dalla pagina Analytics → pulsante **Esporta**:
+Dalla pagina Analisi → pulsante **Esporta**:
 
 | Formato | Contenuto |
 |---|---|

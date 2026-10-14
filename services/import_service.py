@@ -301,9 +301,42 @@ class ImportService:
 
     # ── Job management ────────────────────────────────────────────────────────
 
-    def create_job(self, n_files: int):
+    def create_job(self, n_files: int, n_rows: int | None = None):
         with self._session() as s:
-            return repository.create_import_job(s, n_files)
+            return repository.create_import_job(s, n_files, n_rows)
+
+    def count_rows(self, files: list[tuple[str, bytes]]) -> int:
+        """Rows read from ``files`` (name, bytes): the basis of the time estimate.
+
+        Counted on every file, known formats included: ``analyze_file`` skips
+        reading a file whose format is cached, and reports 0 rows for it.
+        """
+        total = 0
+        for name, data in files:
+            try:
+                df_raw, _, _ = load_raw_dataframe(data, name)
+                total += len(df_raw)
+            except Exception:  # unreadable here: the import will say why
+                total += max(data.count(b"\n") - 1, 0)
+        return total
+
+    @staticmethod
+    def remaining_seconds(elapsed: float, progress: float, prior_total: float) -> float:
+        from core.import_eta import remaining_seconds
+        return remaining_seconds(elapsed, progress, prior_total)
+
+    @staticmethod
+    def duration_parts(seconds: float) -> tuple[int, int]:
+        from core.import_eta import duration_parts
+        return duration_parts(seconds)
+
+    def estimate_import_seconds(self, n_rows: int) -> tuple[float, bool]:
+        """Expected duration for ``n_rows`` rows, and whether it comes from this
+        computer's past imports (False: a first, rough estimate)."""
+        from core.import_eta import estimate_total
+        with self._session() as s:
+            history = repository.get_import_timings(s)
+        return estimate_total(n_rows, history)
 
     def update_job(self, job_id: int, **kwargs) -> None:
         with self._session() as s:

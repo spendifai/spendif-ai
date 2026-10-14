@@ -26,6 +26,7 @@ class GuidanceKind(str, Enum):
     nothing_imported = "nothing_imported"  # accounts exist, no movement at all
     never_loaded = "never_loaded"          # this account has no movement, others do
     behind = "behind"                      # last loaded month is before last month
+    dormant = "dormant"                    # nothing since before the window: closed?
     gap = "gap"                            # empty months between loaded ones
     up_to_date = "up_to_date"              # every account covers last month
 
@@ -44,6 +45,13 @@ class Guidance:
     date_from: date | None = None
     date_to: date | None = None
     last_loaded: date | None = None
+
+
+# How far back the Check List asks for data: a quarter plus a month to catch
+# up with it. Someone who leaves more than three months before looking at
+# where the money went is not chasing old statements, and asking for them
+# turns a reminder into a backlog.
+CHECK_WINDOW_MONTHS = 4
 
 
 # ── Month arithmetic ─────────────────────────────────────────────────────────
@@ -80,6 +88,7 @@ def checklist_guidance(
     accounts: list[str],
     loaded_months: dict[str, set[str]],
     today: date,
+    closed: dict[str, date] | None = None,
 ) -> list[Guidance]:
     """What the user should download next, most urgent first.
 
@@ -89,6 +98,9 @@ def checklist_guidance(
         loaded_months: account -> set of 'YYYY-MM' months that have at
             least one movement (the Check List pivot, without counts).
         today: injected for testability.
+        closed: account -> closing date. A closed account is never asked
+            for: not behind, and its holes are summarised by
+            ``closed_accounts`` instead of listed.
 
     The first item is the one the UI puts in evidence with the button;
     the others are listed below it. The list is never empty: when
@@ -99,14 +111,22 @@ def checklist_guidance(
     round (nothing imported at all) suggests that month only, for every
     account, so the first pass through the workflow stays small.
     """
-    all_accounts = list(accounts) + sorted(
+    closed = closed or {}
+    every_account = list(accounts) + sorted(
         a for a in loaded_months if a not in set(accounts)
     )
-    if not all_accounts:
+    all_accounts = [a for a in every_account if a not in closed]
+    if not every_account:
         return [Guidance(GuidanceKind.no_accounts)]
+    if not all_accounts:
+        # every account is closed: nothing left to download
+        months = [_parse_ym(m) for ms in loaded_months.values() for m in ms]
+        return [Guidance(GuidanceKind.up_to_date,
+                         last_loaded=_first_day(max(months)) if months else None)]
 
     last_month = _shift(_ym(today), -1)
     one_month = (_first_day(last_month), _last_day(last_month))
+    window_start = _shift(last_month, -(CHECK_WINDOW_MONTHS - 1))
 
     if not any(loaded_months.get(a) for a in all_accounts):
         return [Guidance(GuidanceKind.nothing_imported, a, *one_month) for a in all_accounts]
@@ -123,10 +143,15 @@ def checklist_guidance(
 
         first, last = months[0], months[-1]
         if last < last_month:
+            # Silent since before the window: the account may simply be closed,
+            # so say so. If it is still in use, the download still resumes the
+            # day after the last loaded month: starting at the window would
+            # leave a hole of its own making.
+            dormant = last < window_start
             behind.append((
                 _months_between(last, last_month),
                 Guidance(
-                    GuidanceKind.behind, acc,
+                    GuidanceKind.dormant if dormant else GuidanceKind.behind, acc,
                     date_from=_first_day(_shift(last, 1)),
                     date_to=today,
                     last_loaded=_first_day(last),
@@ -140,12 +165,14 @@ def checklist_guidance(
             if ym not in present and run_start is None:
                 run_start = ym
             if ym in present and run_start is not None:
-                gaps.append(Guidance(
-                    GuidanceKind.gap, acc,
-                    date_from=_first_day(run_start),
-                    date_to=_last_day(_shift(ym, -1)),
-                    last_loaded=_first_day(last),
-                ))
+                run_end = _shift(ym, -1)
+                if run_end >= window_start:  # older holes are not asked for
+                    gaps.append(Guidance(
+                        GuidanceKind.gap, acc,
+                        date_from=_first_day(max(run_start, window_start)),
+                        date_to=_last_day(run_end),
+                        last_loaded=_first_day(last),
+                    ))
                 run_start = None
             ym = _shift(ym, 1)
 
@@ -162,6 +189,95 @@ def checklist_guidance(
         )
         return [Guidance(GuidanceKind.up_to_date, last_loaded=_first_day(last_loaded))]
     return result
+
+
+def old_holes(
+    accounts: list[str],
+    loaded_months: dict[str, set[str]],
+    today: date,
+    closed: dict[str, date] | None = None,
+) -> dict[str, int]:
+    """Holes that end before the window, per active account: not asked for,
+    only counted, so they are set aside rather than forgotten."""
+    closed = closed or {}
+    window_start = _shift(_shift(_ym(today), -1), -(CHECK_WINDOW_MONTHS - 1))
+    every = list(accounts) + sorted(a for a in loaded_months if a not in set(accounts))
+    result: dict[str, int] = {}
+    for acc in every:
+        if acc in closed:
+            continue
+        months = {_parse_ym(m) for m in loaded_months.get(acc, ())}
+        if not months:
+            continue
+        count, in_hole = 0, False
+        ym, last = min(months), max(months)
+        while ym <= last and ym < window_start:
+            missing = ym not in months
+            if missing and not in_hole:
+                count += 1
+            in_hole = missing
+            ym = _shift(ym, 1)
+        # a hole still open at the window start reaches into the window: asked for
+        if in_hole and ym == window_start and ym not in months:
+            count -= 1
+        if count:
+            result[acc] = count
+    return result
+
+
+def group_by_account(guidance: list[Guidance]) -> list[tuple[str | None, list[Guidance]]]:
+    """The same suggestions, one group per account, in order of first appearance.
+
+    The urgency order of ``checklist_guidance`` decides which account comes
+    first; within an account the suggestions keep their order. Without this an
+    account behind by months and with a hole further back showed up in two
+    places of the list.
+    """
+    groups: dict[str | None, list[Guidance]] = {}
+    for g in guidance:
+        groups.setdefault(g.account, []).append(g)
+    return list(groups.items())
+
+
+@dataclass(frozen=True)
+class ClosedAccount:
+    """A closed account and the holes it was closed with (runs of empty months
+    between its first loaded month and its closing month). ``after_closing``
+    is True when movements were loaded for a month after the closing one."""
+    account: str
+    closed_on: date
+    holes: int
+    after_closing: bool = False
+
+
+def closed_accounts(
+    closed: dict[str, date],
+    loaded_months: dict[str, set[str]],
+) -> list[ClosedAccount]:
+    """The closed accounts in name order, each with how many holes it has."""
+    result = []
+    for acc in sorted(closed):
+        months = {_parse_ym(m) for m in loaded_months.get(acc, ())}
+        end = _ym(closed[acc])
+        holes, in_hole = 0, False
+        if months:
+            ym = min(months)
+            while ym <= end:
+                missing = ym not in months
+                if missing and not in_hole:
+                    holes += 1
+                in_hole = missing
+                ym = _shift(ym, 1)
+        after = bool(months) and max(months) > end
+        result.append(ClosedAccount(acc, closed[acc], holes, after))
+    return result
+
+
+def suggested_closing_date(months: set[str], today: date) -> date:
+    """End of the last month with movements; end of last month if none."""
+    if months:
+        return _last_day(max(_parse_ym(m) for m in months))
+    return _last_day(_shift(_ym(today), -1))
 
 
 # ── Reference period ─────────────────────────────────────────────────────────

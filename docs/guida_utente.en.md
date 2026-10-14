@@ -66,6 +66,8 @@ If automatic detection **fails** (unusual format, fully numeric, no text headers
 
 Once the file schema is confirmed, you won't see this field on subsequent imports — Spendif.ai remembers it automatically.
 
+**How long it takes.** Before starting, the import tells you the estimated time, worked out from the rows in the files and the speed of the previous imports on this computer. The first time it is an initial estimate, corrected as soon as the import starts; during the import, next to the percentage, you see how much is left.
+
 ### Import summary
 
 After processing, a detailed summary is shown for each imported file:
@@ -398,7 +400,11 @@ For each category with a defined target:
 >
 > **The mixed categories step.** It shows the spending counterparts with movements in more than one category. If it is a mistake (the pastry shop half groceries, half bar), choose the right category and press *It is always this*: it becomes a rule. If it depends on what you bought (the supermarket where you also buy electronics), press *It depends: one by one* and sort out each movement: no rule can tell them apart, since the name is the same. Movements you have already looked at are not asked again: next time you see only those that came with the last import.
 
-At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". The *Upload the file* button takes you to the import. Below it you find the other accounts to complete, including empty months in between. If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
+At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". Each account has its own row, with what is missing and two buttons. *Upload the file* lets you pick that account's files and sets them aside, already assigned to the account: you can prepare several accounts, then press *Import N files* and the import starts with the accounts already fixed. The import page only keeps the header and footer adjustment, the progress and the report. *I no longer use it* closes the account (see below). If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
+
+**How far back we ask.** The list only looks at the last 4 complete months: a quarter plus a month to catch up. Periods without transactions older than that are not asked for: a line at the bottom counts them, so you know they are there. If an account has had no transactions since before those 4 months, we suggest *I no longer use it*; if you still use it, you resume from the day after the last month loaded, so no new gap opens, since you have probably closed it.
+
+**An account you no longer use.** If you closed a card or an account, press *I no longer use it* under its name and pick the closing date (we suggest the end of the last month with transactions). From then on the Checklist stops asking for it, including the missing months before closing: you find them summed up in *Closed accounts*, where you can also press *Reopen*. Transactions already loaded stay, in the reports too, and its column in the table is marked as closed. You can also close and reopen an account from **Settings**, in the account list.
 
 Go to **✅ Checklist**. You'll find a table with:
 - **One row for each month**, from the current month going back into the past
@@ -568,6 +574,23 @@ All your data lives in **a single file** (`ledger.db`) inside a hidden folder in
 > **The AI models** (the `models/` folder) do not need to be copied: they are re-downloaded at first launch on the new computer. Copy them only if the new computer will stay **offline**.
 
 > **Backup tip:** even if you are not switching computers, copy the `ledger.db` file to a safe place every now and then. It is the one file that holds all your work. Technical details and automatic backups: the **Database management** guide (`database.md`).
+
+---
+
+## 17. Diagnostics: when something goes wrong
+
+**Situation:** The import stops with an error, the analysis is very slow or the application does not do what you expect, and you want to ask for help.
+
+Go to **Diagnostics** in the menu. The **Technical information** page gathers a summary of your computer and of how the application is set up: operating system, memory, graphics card, model in use, timings of the last imports. **It contains none of your transaction data** and is sent nowhere: you save it and you decide whether to attach it.
+
+What to do:
+1. Press **Save the document**: it is exactly what you see in the box.
+2. Press **Write to support**: your mail program opens with a message already set up. Describe what you were doing and attach the saved document. If the mail program does not open, the page tells you which address to write to.
+3. If you have a GitHub account you can use **Send as a test report on GitHub** instead: it opens a public form with the document already filled in, and nothing is sent until you send it.
+
+The page also warns you on its own about two common problems: a computer with a graphics card the application is not using (the analysis runs on the processor and is slower), and text sent to the model that is getting close to the available space (when the space runs out the analysis fails).
+
+> **Example:** The import of a statement stops halfway. You go to Diagnostics, save the document, press Write to support and in the message write "import of the September file of the BBVA account, stops at 60%". With the document attached, whoever answers sees model, memory and timings straight away, without having to ask you.
 
 ---
 

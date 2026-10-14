@@ -236,6 +236,8 @@ def create_tables(engine=None):
     _migrate_add_category_model(engine)
     _migrate_add_llm_usage_log(engine)
     _migrate_add_category_correction(engine)
+    _migrate_add_account_closed_on(engine)
+    _migrate_add_import_job_n_rows(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -509,6 +511,9 @@ class ImportJob(Base):
     detail_message = Column(Text)
     n_transactions = Column(Integer, default=0)
     n_files = Column(Integer, default=0)
+    # Rows read from the job's files, duplicates included: what the time is
+    # spent on, so seconds per row are computed on it. Null on older jobs.
+    n_rows = Column(Integer, nullable=True)
     started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime)
     # ── Phase timing (AI-88) — milliseconds spent in each pipeline phase
@@ -585,6 +590,9 @@ class Account(Base):
     name = Column(String(256), unique=True, nullable=False)   # e.g. "Conto POPSO", "Carta CartaSI"
     bank_name = Column(String(256))                           # optional free-text bank name
     account_type = Column(String(32), nullable=True)          # bank_account | credit_card | debit_card | prepaid_card | savings_account | cash
+    # ISO date (YYYY-MM-DD) after which no movements are expected: the account
+    # was closed. Empty = active. The Check List stops asking for it.
+    closed_on = Column(String(10), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -1056,6 +1064,28 @@ def _migrate_add_header_sha256(engine) -> None:
         try:
             conn.execute(_text("ALTER TABLE document_schema ADD COLUMN header_sha256 VARCHAR(64)"))
             conn.execute(_text("CREATE INDEX IF NOT EXISTS ix_document_schema_header_sha256 ON document_schema (header_sha256)"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+
+
+def _migrate_add_import_job_n_rows(engine) -> None:
+    """Add n_rows column to import_job if not already present."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text("ALTER TABLE import_job ADD COLUMN n_rows INTEGER"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+
+
+def _migrate_add_account_closed_on(engine) -> None:
+    """Add closed_on column to account if not already present."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text("ALTER TABLE account ADD COLUMN closed_on VARCHAR(10)"))
             conn.commit()
         except Exception:
             pass  # column already exists
