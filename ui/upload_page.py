@@ -1,6 +1,7 @@
 """Import page (RF-08): upload files, run pipeline, show summary."""
 from __future__ import annotations
 
+import html
 import json
 import time
 from datetime import datetime, timezone
@@ -31,7 +32,6 @@ def _ai_model_still_downloading() -> bool:
     pct = float(data.get("pct", 0.0))
     return pct < 1.0
 
-from services.update_service import UpdateService
 from services.import_service import (
     Confidence,
     DocumentSchema,
@@ -43,8 +43,11 @@ from services.import_service import (
     role_conflicts,
 )
 from services.settings_service import SettingsService
+from services.update_service import UpdateService
 from support.logging import setup_logging
 from ui.i18n import t as t_fn
+from ui.widgets.immersive import GUIDED_PAGE, go_to
+from ui.widgets.staged_import import staged_files, take_staged_files
 
 logger = setup_logging()
 
@@ -108,10 +111,10 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
         st.progress(pct)
         elapsed = _elapsed_text(job.started_at)
         if elapsed:
-            st.caption(t_fn("upload.progress_auto_elapsed",
-                            pct=int(pct * 100), elapsed=elapsed))
+            _show_prominent(st, t_fn("upload.progress_auto_elapsed",
+                                     pct=int(pct * 100), elapsed=elapsed))
         else:
-            st.caption(t_fn("upload.progress_auto", pct=int(pct * 100)))
+            _show_prominent(st, t_fn("upload.progress_auto", pct=int(pct * 100)))
         st.session_state["_upload_job_was_running"] = True
         if not was_running:
             st.rerun()
@@ -135,6 +138,26 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
         if was_running:
             st.session_state["_upload_job_was_running"] = False
             st.rerun()
+
+
+def _render_guided_continue(import_svc: ImportService) -> None:
+    """Inside the workflow, once the import is done: one button to the next step.
+
+    Shown only when nothing waits for the user here (no import running, no
+    direction of the amounts to confirm), so the button never skips a
+    question the import still has.
+    """
+    if st.session_state.get("page") != GUIDED_PAGE:
+        return
+    if st.session_state.get("_pending_sign_confirmations"):
+        return
+    job = import_svc.get_latest_job()
+    if job is None or job.status != "completed":
+        return
+    st.divider()
+    st.markdown(t_fn("upload.guided.next_hint"))
+    if st.button(t_fn("upload.guided.next_btn"), type="primary", key="guided_import_continue"):
+        go_to("counterparts")
 
 
 def _skip_reason_labels() -> dict[str, str]:
@@ -547,6 +570,288 @@ def _render_schema_review(import_svc: ImportService, config: ProcessingConfig) -
     return True
 
 
+def _fmt_duration(seconds: float) -> str:
+    h, m = ImportService.duration_parts(seconds)
+    if not h and not m:
+        return t_fn("common.duration.under_minute")
+    if not h:
+        return t_fn("common.duration.minutes", m=m)
+    return t_fn("common.duration.hours", h=h, m=m)
+
+
+def _render_estimate(import_svc: ImportService, files: list[tuple[str, bytes]]) -> None:
+    """The expected duration, before the import starts."""
+    try:
+        secs, from_history = import_svc.estimate_import_seconds(import_svc.count_rows(files))
+    except Exception:  # an estimate must never stop an import
+        return
+    key = "upload.eta.history" if from_history else "upload.eta.first"
+    _show_prominent(st, t_fn(key, time=_fmt_duration(secs)))
+
+
+def _show_prominent(target, text: str, strong: str | None = None) -> None:
+    """Progress and time left in a larger font: it is what the user waits on.
+
+    ``target`` is ``st`` or an ``st.empty()`` slot; ``strong`` is shown in bold
+    after ``text``.
+    """
+    body = html.escape(text)
+    if strong:
+        body += " · <b>" + html.escape(strong) + "</b>"
+    target.markdown(
+        f'<div style="font-size:1.25rem;line-height:1.5">{body}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _run_import(
+    import_svc: ImportService,
+    items: list[tuple[str, bytes]],
+    _file_account_map: dict[str, str | None],
+    _file_skip_map: dict[str, int],
+) -> None:
+    """Run the import of ``items`` (name, bytes) with progress and job record.
+
+    Shared by the Import page button and by the files prepared account by
+    account in the Check List, which arrive with their account already fixed.
+    """
+    st.session_state["llm_in_progress"] = True
+    giroconto_mode = st.session_state.get("giroconto_mode", "neutral")
+    config = import_svc.build_config(giroconto_mode=giroconto_mode)
+
+    # Analyse each file (schema cache lookup)
+    files: list[tuple[bytes, str, int]] = []
+    known_schemas: dict[str, object] = {}
+    file_header_sha256: dict[str, str] = {}
+
+    for name, raw_bytes in items:
+        analysis: FileAnalysis = import_svc.analyze_file(raw_bytes, name)
+        file_header_sha256[name] = analysis.header_sha256
+        if analysis.known_schema:
+            logger.info(f"upload_page: schema cache hit for {name}")
+            known_schemas[name] = analysis.known_schema
+        files.append((raw_bytes, name, analysis.n_rows))
+
+    total_files = len(files)
+    total_rows = import_svc.count_rows(items)
+    prior_total, _ = import_svc.estimate_import_seconds(total_rows)
+    run_started = time.monotonic()
+
+    # Create job record
+    job = import_svc.create_job(n_files=total_files, n_rows=total_rows or None)
+    job_id = job.id
+
+    # Live progress widgets for this session
+    _progress_bar = st.progress(0.0)
+    _status_text  = st.empty()
+    _counter_text = st.empty()
+
+    results = []
+    for i, (raw_bytes, filename, _n_rows) in enumerate(files):
+        file_start = i / total_files
+        file_end   = (i + 1) / total_files
+
+        _status_text.text(f"File {i + 1}/{total_files} - {filename}")
+        _counter_text.caption(t_fn("upload.starting"))
+
+        import_svc.update_job(
+            job_id,
+            progress=file_start,
+            status_message=f"File {i + 1}/{total_files} - {filename}",
+        )
+
+        _last_db_write = [0.0]
+
+        def _make_cb(start: float, end: float, fname: str,
+                     fidx: int, ftot: int, jid: int, _last: list):
+            def _cb(p: float, phase: str | None = None):
+                pct = start + (end - start) * p
+                _progress_bar.progress(min(pct, 1.0))
+                _status_text.text(f"File {fidx + 1}/{ftot} - {fname}")
+                left = import_svc.remaining_seconds(
+                    time.monotonic() - run_started, pct, prior_total)
+                left_text = t_fn("upload.eta.remaining", time=_fmt_duration(left))
+                if phase:
+                    progress_text = t_fn("upload.file_progress_with_phase",
+                                         phase=t_fn(f"upload.phase.{phase}"),
+                                         pct=int(p * 100))
+                else:
+                    progress_text = t_fn("upload.file_progress", pct=int(p * 100))
+                _show_prominent(_counter_text, progress_text, left_text)
+                now = time.time()
+                if now - _last[0] >= _DB_WRITE_INTERVAL:
+                    _last[0] = now
+                    phase_suffix = (
+                        f" - {t_fn(f'upload.phase.{phase}')}" if phase else ""
+                    )
+                    import_svc.update_job(
+                        jid,
+                        progress=round(pct, 4),
+                        status_message=(
+                            f"File {fidx + 1}/{ftot} - {fname}"
+                            f"{phase_suffix} ({int(p * 100)}%)"
+                        ),
+                    )
+            return _cb
+
+        try:
+            result = import_svc.process_file_single(
+                raw_bytes=raw_bytes,
+                filename=filename,
+                config=config,
+                known_schema=known_schemas.get(filename),
+                progress_callback=_make_cb(
+                    file_start, file_end, filename, i, total_files,
+                    job_id, _last_db_write,
+                ),
+                account_label_override=_file_account_map.get(filename),
+                skip_rows_override=_file_skip_map.get(filename),
+            )
+        except Exception as exc:
+            # Most common cause here: llama-cpp-python raises ValueError
+            # ("Failed to load model from file: ...") when a GGUF is
+            # truncated / corrupted / missing. Surface a friendly error
+            # instead of a Streamlit splash + traceback, and mark the
+            # job as errored so the next session doesn't think it's
+            # still running.
+            msg = t_fn("upload.error_backend_load",
+                       filename=filename, error=str(exc)[:300])
+            logger.error(
+                f"upload_page: process_file_single failed for {filename}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            st.error(msg)
+            import_svc.update_job(
+                job_id,
+                status="error",
+                status_message=str(exc)[:200],
+                completed_at=datetime.now(timezone.utc),
+            )
+            st.session_state["llm_in_progress"] = False
+            return
+
+        if result.needs_schema_review:
+            pending = st.session_state.get("_pending_schema_reviews", [])
+            pending.append({
+                "raw_bytes":              raw_bytes,
+                "filename":               filename,
+                "result":                 result,
+                "account_label_override": _file_account_map.get(filename),
+                "header_sha256":          file_header_sha256.get(filename, ""),
+                "job_id":                 job_id,
+            })
+            st.session_state["_pending_schema_reviews"] = pending
+        else:
+            import_svc.persist_result(result)
+            # Show auto-import success for high-confidence Flow 2 files
+            if result.flow_used == "flow2" and result.doc_schema:
+                _auto_score = getattr(result.doc_schema, 'confidence_score', 0.0)
+                if _auto_score >= 0.80:
+                    st.success(
+                        t_fn("upload.auto_imported", filename=filename,
+                             score=f"{_auto_score:.2f}",
+                             confidence=result.doc_schema.confidence)
+                    )
+
+        results.append(result)
+        _progress_bar.progress(file_end)
+        import_svc.update_job(job_id, progress=file_end)
+
+    # Only this job's files: reviews left over from earlier jobs are theirs.
+    n_pending = sum(1 for r in results if r.needs_schema_review)
+    n_tx      = sum(len(r.transactions) for r in results if not r.needs_schema_review)
+    n_skipped = sum(r.skipped_count for r in results)
+
+    if n_pending:
+        final_msg = t_fn("upload.pending_review", n=n_pending)
+    else:
+        final_msg = t_fn("upload.completed_tx", n=n_tx)
+    if n_skipped:
+        final_msg += t_fn("upload.already_present_skipped", n=n_skipped)
+
+    final_detail = t_fn("upload.final_detail",
+                        n_files=total_files,
+                        time=datetime.now(timezone.utc).strftime('%H:%M:%S'))
+
+    # AI-88: accumulate per-phase wall-clock across all files of this
+    # job. Each ImportResult carries `phase_durations_ms` populated by
+    # orchestrator.process_file. Sum them so the job row reports the
+    # total time spent in each pipeline phase across the whole batch.
+    _phase_totals: dict[str, int] = {}
+    for r in results:
+        for phase, ms in (getattr(r, "phase_durations_ms", None) or {}).items():
+            _phase_totals[phase] = _phase_totals.get(phase, 0) + int(ms)
+
+    import_svc.update_job(
+        job_id,
+        status="completed",
+        progress=1.0,
+        status_message=final_msg,
+        detail_message=final_detail,
+        n_transactions=n_tx,
+        completed_at=datetime.now(timezone.utc),
+        ms_header_detection=_phase_totals.get("header_detection"),
+        ms_classifying     =_phase_totals.get("classifying"),
+        ms_footer_detection=_phase_totals.get("footer_detection"),
+        ms_extracting      =_phase_totals.get("extracting"),
+        ms_cleaning        =_phase_totals.get("cleaning"),
+        ms_categorizing    =_phase_totals.get("categorizing"),
+    )
+
+    st.session_state["llm_in_progress"] = False
+    st.session_state["last_import_results"] = [r for r in results if not r.needs_schema_review]
+    # The direction of the amounts, asked about only where the two readings
+    # of it disagreed. One entry per format, not per file.
+    st.session_state["_pending_sign_confirmations"] = [
+        {
+            "filename": r.source_name,
+            "batch_sha256": r.batch_sha256,
+            "source_identifier": getattr(r.doc_schema, "source_identifier", ""),
+            "n_transactions": len(r.transactions),
+        }
+        for r in results
+        if r.sign_needs_confirmation and r.doc_schema is not None
+    ]
+
+
+def _render_staged(import_svc: ImportService, staged: list) -> bool:
+    """Files on hold with their account. Runs them, asking first only where the
+    header of a new format could not be found on its own. True once run."""
+    st.info(t_fn("upload.staged.title"))
+    account_map: dict[str, str | None] = {}
+    skip_map: dict[str, int] = {}
+    asks = False
+    for f in staged:
+        account_map[f.name] = f.account
+        hit = import_svc.find_schema_by_header(f.data, f.name)
+        detected, certain = import_svc.detect_skip_rows(f.data, f.name)
+        c1, c2, c3 = st.columns([3, 2, 2], vertical_alignment="center")
+        c1.caption(f"📄 {f.name}")
+        c2.markdown(f"**{f.account}**")
+        if hit or certain:
+            skip_map[f.name] = hit.skip_rows if hit else detected
+            continue
+        asks = True
+        if f.data.count(b"\n") < 50:
+            st.warning(t_fn("upload.first_upload_warning", filename=f.name,
+                            rows=f.data.count(b"\n")))
+        skip_map[f.name] = c3.number_input(
+            t_fn("upload.skip_rows_label"), min_value=0, max_value=20, value=0,
+            key=f"file_skip_{f.name}", help=t_fn("upload.skip_rows_help"),
+        )
+    _render_estimate(import_svc, [(f.name, f.data) for f in staged])
+    col_start, col_clear = st.columns([1, 3])
+    if col_clear.button(t_fn("upload.staged.clear"), key="staged_clear"):
+        take_staged_files()
+        st.rerun()
+    if asks and not col_start.button(t_fn("upload.staged.start"), type="primary",
+                                     key="staged_start"):
+        return False
+    files = take_staged_files()
+    _run_import(import_svc, [(f.name, f.data) for f in files], account_map, skip_map)
+    return True
+
+
 def render_upload_page(engine):
     st.header(t_fn("upload.title"))
 
@@ -586,6 +891,14 @@ def render_upload_page(engine):
     if active_job and active_job.status == "running":
         st.info(t_fn("upload.job_running"))
         _render_job_status_poll(import_svc)
+        return
+
+    # Files prepared account by account in the Check List: the account is
+    # fixed, this page only adjusts header and footer, runs and reports.
+    staged = staged_files()
+    if staged:
+        if _render_staged(import_svc, staged):
+            _render_after_import(import_svc)
         return
 
     uploaded_files = st.file_uploader(
@@ -668,203 +981,16 @@ def render_upload_page(engine):
             )
         _file_account_map[uf.name] = sel if sel != t_fn("upload.auto_detect") else None
 
+    _render_estimate(import_svc, [(uf.name, uf.getvalue()) for uf in uploaded_files])
     if st.button(t_fn("upload.process_btn"), type="primary"):
-        st.session_state["llm_in_progress"] = True
-        giroconto_mode = st.session_state.get("giroconto_mode", "neutral")
-        config = import_svc.build_config(giroconto_mode=giroconto_mode)
+        _run_import(import_svc, [(uf.name, uf.read()) for uf in uploaded_files],
+                    _file_account_map, _file_skip_map)
 
-        # Analyse each file (schema cache lookup)
-        files: list[tuple[bytes, str, int]] = []
-        known_schemas: dict[str, object] = {}
-        file_header_sha256: dict[str, str] = {}
+    _render_after_import(import_svc)
 
-        for uf in uploaded_files:
-            raw_bytes = uf.read()
-            analysis: FileAnalysis = import_svc.analyze_file(raw_bytes, uf.name)
-            file_header_sha256[uf.name] = analysis.header_sha256
-            if analysis.known_schema:
-                logger.info(f"upload_page: schema cache hit for {uf.name}")
-                known_schemas[uf.name] = analysis.known_schema
-            files.append((raw_bytes, uf.name, analysis.n_rows))
 
-        total_files = len(files)
-
-        # Create job record
-        job = import_svc.create_job(n_files=total_files)
-        job_id = job.id
-
-        # Live progress widgets for this session
-        _progress_bar = st.progress(0.0)
-        _status_text  = st.empty()
-        _counter_text = st.empty()
-
-        results = []
-        for i, (raw_bytes, filename, _n_rows) in enumerate(files):
-            file_start = i / total_files
-            file_end   = (i + 1) / total_files
-
-            _status_text.text(f"File {i + 1}/{total_files} — {filename}")
-            _counter_text.caption(t_fn("upload.starting"))
-
-            import_svc.update_job(
-                job_id,
-                progress=file_start,
-                status_message=f"File {i + 1}/{total_files} — {filename}",
-            )
-
-            _last_db_write = [0.0]
-
-            def _make_cb(start: float, end: float, fname: str,
-                         fidx: int, ftot: int, jid: int, _last: list):
-                def _cb(p: float, phase: str | None = None):
-                    pct = start + (end - start) * p
-                    _progress_bar.progress(min(pct, 1.0))
-                    _status_text.text(f"File {fidx + 1}/{ftot} — {fname}")
-                    if phase:
-                        _counter_text.caption(
-                            t_fn("upload.file_progress_with_phase",
-                                 phase=t_fn(f"upload.phase.{phase}"),
-                                 pct=int(p * 100))
-                        )
-                    else:
-                        _counter_text.caption(
-                            t_fn("upload.file_progress", pct=int(p * 100))
-                        )
-                    now = time.time()
-                    if now - _last[0] >= _DB_WRITE_INTERVAL:
-                        _last[0] = now
-                        phase_suffix = (
-                            f" — {t_fn(f'upload.phase.{phase}')}" if phase else ""
-                        )
-                        import_svc.update_job(
-                            jid,
-                            progress=round(pct, 4),
-                            status_message=(
-                                f"File {fidx + 1}/{ftot} — {fname}"
-                                f"{phase_suffix} ({int(p * 100)}%)"
-                            ),
-                        )
-                return _cb
-
-            try:
-                result = import_svc.process_file_single(
-                    raw_bytes=raw_bytes,
-                    filename=filename,
-                    config=config,
-                    known_schema=known_schemas.get(filename),
-                    progress_callback=_make_cb(
-                        file_start, file_end, filename, i, total_files,
-                        job_id, _last_db_write,
-                    ),
-                    account_label_override=_file_account_map.get(filename),
-                    skip_rows_override=_file_skip_map.get(filename),
-                )
-            except Exception as exc:
-                # Most common cause here: llama-cpp-python raises ValueError
-                # ("Failed to load model from file: …") when a GGUF is
-                # truncated / corrupted / missing. Surface a friendly error
-                # instead of a Streamlit splash + traceback, and mark the
-                # job as errored so the next session doesn't think it's
-                # still running.
-                msg = t_fn("upload.error_backend_load",
-                           filename=filename, error=str(exc)[:300])
-                logger.error(
-                    f"upload_page: process_file_single failed for {filename}: "
-                    f"{type(exc).__name__}: {exc}"
-                )
-                st.error(msg)
-                import_svc.update_job(
-                    job_id,
-                    status="error",
-                    status_message=str(exc)[:200],
-                    completed_at=datetime.now(timezone.utc),
-                )
-                st.session_state["llm_in_progress"] = False
-                return
-
-            if result.needs_schema_review:
-                pending = st.session_state.get("_pending_schema_reviews", [])
-                pending.append({
-                    "raw_bytes":              raw_bytes,
-                    "filename":               filename,
-                    "result":                 result,
-                    "account_label_override": _file_account_map.get(filename),
-                    "header_sha256":          file_header_sha256.get(filename, ""),
-                    "job_id":                 job_id,
-                })
-                st.session_state["_pending_schema_reviews"] = pending
-            else:
-                import_svc.persist_result(result)
-                # Show auto-import success for high-confidence Flow 2 files
-                if result.flow_used == "flow2" and result.doc_schema:
-                    _auto_score = getattr(result.doc_schema, 'confidence_score', 0.0)
-                    if _auto_score >= 0.80:
-                        st.success(
-                            t_fn("upload.auto_imported", filename=filename,
-                                 score=f"{_auto_score:.2f}",
-                                 confidence=result.doc_schema.confidence)
-                        )
-
-            results.append(result)
-            _progress_bar.progress(file_end)
-            import_svc.update_job(job_id, progress=file_end)
-
-        # Only this job's files: reviews left over from earlier jobs are theirs.
-        n_pending = sum(1 for r in results if r.needs_schema_review)
-        n_tx      = sum(len(r.transactions) for r in results if not r.needs_schema_review)
-        n_skipped = sum(r.skipped_count for r in results)
-
-        if n_pending:
-            final_msg = t_fn("upload.pending_review", n=n_pending)
-        else:
-            final_msg = t_fn("upload.completed_tx", n=n_tx)
-        if n_skipped:
-            final_msg += t_fn("upload.already_present_skipped", n=n_skipped)
-
-        final_detail = t_fn("upload.final_detail",
-                            n_files=total_files,
-                            time=datetime.now(timezone.utc).strftime('%H:%M:%S'))
-
-        # AI-88: accumulate per-phase wall-clock across all files of this
-        # job. Each ImportResult carries `phase_durations_ms` populated by
-        # orchestrator.process_file. Sum them so the job row reports the
-        # total time spent in each pipeline phase across the whole batch.
-        _phase_totals: dict[str, int] = {}
-        for r in results:
-            for phase, ms in (getattr(r, "phase_durations_ms", None) or {}).items():
-                _phase_totals[phase] = _phase_totals.get(phase, 0) + int(ms)
-
-        import_svc.update_job(
-            job_id,
-            status="completed",
-            progress=1.0,
-            status_message=final_msg,
-            detail_message=final_detail,
-            n_transactions=n_tx,
-            completed_at=datetime.now(timezone.utc),
-            ms_header_detection=_phase_totals.get("header_detection"),
-            ms_classifying     =_phase_totals.get("classifying"),
-            ms_footer_detection=_phase_totals.get("footer_detection"),
-            ms_extracting      =_phase_totals.get("extracting"),
-            ms_cleaning        =_phase_totals.get("cleaning"),
-            ms_categorizing    =_phase_totals.get("categorizing"),
-        )
-
-        st.session_state["llm_in_progress"] = False
-        st.session_state["last_import_results"] = [r for r in results if not r.needs_schema_review]
-        # The direction of the amounts, asked about only where the two readings
-        # of it disagreed. One entry per format, not per file.
-        st.session_state["_pending_sign_confirmations"] = [
-            {
-                "filename": r.source_name,
-                "batch_sha256": r.batch_sha256,
-                "source_identifier": getattr(r.doc_schema, "source_identifier", ""),
-                "n_transactions": len(r.transactions),
-            }
-            for r in results
-            if r.sign_needs_confirmation and r.doc_schema is not None
-        ]
-
+def _render_after_import(import_svc: ImportService) -> None:
+    """What follows a run: sign question, format review, progress, report."""
     # The direction of the amounts, when the two readings disagreed.
     _render_sign_confirmation(import_svc)
 
@@ -877,3 +1003,4 @@ def render_upload_page(engine):
 
     _render_job_status_poll(import_svc)
     _render_last_import_summary()
+    _render_guided_continue(import_svc)

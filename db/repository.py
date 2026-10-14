@@ -1032,14 +1032,38 @@ def reset_stale_jobs(session: Session) -> int:
     return len(stale)
 
 
-def create_import_job(session: Session, n_files: int) -> ImportJob:
+def create_import_job(session: Session, n_files: int, n_rows: int | None = None) -> ImportJob:
     from datetime import datetime, timezone
-    job = ImportJob(status="running", progress=0.0, n_files=n_files,
+    job = ImportJob(status="running", progress=0.0, n_files=n_files, n_rows=n_rows,
                     started_at=datetime.now(timezone.utc))
     session.add(job)
     session.flush()
     session.commit()  # commit immediately so other sessions/threads can see it
     return job
+
+
+def get_import_timings(session: Session, limit: int = 10) -> list[tuple[int, float]]:
+    """(rows, seconds) of the latest completed imports, newest first.
+
+    Rows are the rows read; older jobs that did not record them fall back
+    to the movements they created. Jobs with neither are left out.
+    """
+    jobs = (session.query(ImportJob)
+            .filter(ImportJob.status == "completed",
+                    ImportJob.completed_at.isnot(None),
+                    ImportJob.started_at.isnot(None))
+            .order_by(ImportJob.id.desc())
+            .limit(limit * 3)
+            .all())
+    out: list[tuple[int, float]] = []
+    for j in jobs:
+        rows = j.n_rows or j.n_transactions or 0
+        secs = (j.completed_at - j.started_at).total_seconds()
+        if rows > 0 and secs > 0:
+            out.append((rows, secs))
+        if len(out) == limit:
+            break
+    return out
 
 
 def update_import_job(session: Session, job_id: int, **kwargs) -> None:
@@ -1302,6 +1326,24 @@ def create_account(session: Session, name: str, bank_name: str = "", account_typ
     except IntegrityError:
         session.rollback()
         raise ValueError(f"Conto '{name}' già esistente")
+    return acc
+
+
+def set_account_closed(session: Session, name: str, closed_on: str | None) -> object:
+    """Close the account ``name`` on ``closed_on`` (ISO date), or reopen it with None.
+
+    An account seen only in the movements has no row yet: closing it creates
+    the row, so the Check List knows about it.
+    """
+    from db.models import Account
+    acc = session.query(Account).filter(Account.name == name).one_or_none()
+    if acc is None:
+        if closed_on is None:
+            return None
+        acc = Account(name=name.strip())
+        session.add(acc)
+    acc.closed_on = closed_on
+    session.flush()
     return acc
 
 
@@ -2128,12 +2170,26 @@ def get_adaptive_n_ctx_cap(
 def get_counterpart_stats(
     session: Session,
     tx_types: tuple[str, ...] = ("expense", "income"),
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> list[dict]:
     """Aggregate transactions by description to produce per-counterpart stats.
 
     Returns a list of dicts with keys:
-      description, tx_count, avg_amount, modal_category, modal_subcategory,
-      variability_pct, source_mode, human_checked, is_giroconto
+      description, tx_count, avg_amount, total_amount, modal_category,
+      modal_subcategory, variability_pct, source_mode, human_checked,
+      is_giroconto, categories, unchecked_count
+
+    `categories` lists (category, movements) most used first; `unchecked_count`
+    is how many movements the user has not seen yet (neither validated nor
+    changed by hand), so a counterpart already worked through shows only
+    what the last import added.
+
+    With `date_from`/`date_to` (ISO dates, inclusive) the figures cover the
+    movements of that period only, and counterparts without movements in it
+    are left out. `human_checked` still looks at every movement: a
+    counterpart confirmed months ago stays confirmed when the new movements
+    came in through its rule.
 
     is_giroconto is True when most of the counterpart's movements are internal
     transfers (only possible when tx_types includes internal_out/internal_in).
@@ -2149,6 +2205,7 @@ def get_counterpart_stats(
             Transaction.subcategory,
             Transaction.category_source,
             Transaction.validated_at,
+            Transaction.date,
         )
         .filter(
             Transaction.description.isnot(None),
@@ -2168,11 +2225,19 @@ def get_counterpart_stats(
         groups[key].append(row)
         display.setdefault(key, row.description)
 
+    def _in_period(row) -> bool:
+        d = row.date or ""
+        return (date_from is None or d >= date_from) and (date_to is None or d <= date_to)
+
     stats = []
-    for key, txs in groups.items():
+    for key, all_txs in groups.items():
+        txs = [t for t in all_txs if _in_period(t)]
+        if not txs:
+            continue
         desc = display[key]
         tx_count = len(txs)
-        avg_amount = sum(abs(float(t.amount or 0)) for t in txs) / tx_count
+        total_amount = sum(abs(float(t.amount or 0)) for t in txs)
+        avg_amount = total_amount / tx_count
 
         cat_counts: Counter = Counter(t.category for t in txs if t.category)
         if cat_counts:
@@ -2194,7 +2259,10 @@ def get_counterpart_stats(
             source_mode = "unknown"
 
         human_checked = any(
-            t.validated_at is not None or t.category_source == "manual" for t in txs
+            t.validated_at is not None or t.category_source == "manual" for t in all_txs
+        )
+        unchecked_count = sum(
+            1 for t in txs if t.validated_at is None and t.category_source != "manual"
         )
         n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
 
@@ -2203,12 +2271,15 @@ def get_counterpart_stats(
                 "description": desc,
                 "tx_count": tx_count,
                 "avg_amount": avg_amount,
+                "total_amount": total_amount,
                 "modal_category": modal_cat,
                 "modal_subcategory": modal_sub,
                 "variability_pct": variability_pct,
                 "source_mode": source_mode,
                 "human_checked": human_checked,
                 "is_giroconto": n_internal * 2 > tx_count,
+                "categories": cat_counts.most_common(),
+                "unchecked_count": unchecked_count,
             }
         )
 

@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import date
 
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 
-from db.models import Transaction
 from db import repository
+from db.models import Transaction
 
 
 class TransactionService:
@@ -35,6 +37,16 @@ class TransactionService:
         """
         with self._session() as s:
             return s.query(Transaction.id).limit(1).first() is not None
+
+    def get_last_movement_date(self) -> date | None:
+        """Date of the most recent movement, or None on an empty DB.
+
+        Anchors the default period of Home and Report to where the user
+        left off instead of today (see core.guided_flow.reference_period).
+        """
+        with self._session() as s:
+            last = s.query(func.max(Transaction.date)).scalar()
+        return date.fromisoformat(last) if last else None
 
     def get_recent_for_home(self, since_iso: str) -> list[tuple]:
         """Return rows since *since_iso* with only the columns the Home
@@ -324,10 +336,61 @@ class TransactionService:
             return result
 
     def get_counterpart_stats(
-        self, tx_types: tuple[str, ...] = ("expense", "income")
+        self,
+        tx_types: tuple[str, ...] = ("expense", "income"),
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> list[dict]:
         with self._session() as s:
-            return repository.get_counterpart_stats(s, tx_types=tx_types)
+            return repository.get_counterpart_stats(
+                s, tx_types=tx_types, date_from=date_from, date_to=date_to,
+            )
+
+    def get_counterpart_movements(
+        self,
+        description: str,
+        date_from: str,
+        date_to: str,
+        unchecked_only: bool = True,
+    ) -> list[Transaction]:
+        """Movements of one counterpart in a period, oldest first.
+
+        The counterpart is matched case-insensitively, as the stats group
+        it. With `unchecked_only` the movements the user has already seen
+        are left out: only what came in since is shown again.
+        """
+        with self._session() as s:
+            q = s.query(Transaction).filter(
+                func.upper(Transaction.description) == description.upper(),
+                Transaction.date >= date_from,
+                Transaction.date <= date_to,
+            )
+            if unchecked_only:
+                q = q.filter(
+                    Transaction.validated_at.is_(None),
+                    Transaction.category_source.is_distinct_from("manual"),
+                )
+            return q.order_by(Transaction.date).all()
+
+    def get_rule_categorized_spending(self, date_from: str, date_to: str) -> tuple[int, float]:
+        """Spending of a period the rules categorized on import, unseen by the user.
+
+        (movements, total). These are the movements earlier decisions spared
+        the user: categorized by a rule and never needing a look.
+        """
+        with self._session() as s:
+            count, total = (
+                s.query(func.count(Transaction.id), func.sum(func.abs(Transaction.amount)))
+                .filter(
+                    Transaction.tx_type == "expense",
+                    Transaction.category_source == "rule",
+                    Transaction.validated_at.is_(None),
+                    Transaction.date >= date_from,
+                    Transaction.date <= date_to,
+                )
+                .one()
+            )
+        return int(count or 0), float(total or 0)
 
     def delete_duplicate_groups(self, groups: list[list]) -> int:
         """Delete all but the first transaction in each duplicate group.
@@ -335,7 +398,7 @@ class TransactionService:
         Cascades deletion of ReconciliationLink and InternalTransferLink rows.
         Returns the total number of transactions deleted.
         """
-        from db.models import ReconciliationLink, InternalTransferLink
+        from db.models import InternalTransferLink, ReconciliationLink
         deleted = 0
         with self._session() as s:
             for g in groups:

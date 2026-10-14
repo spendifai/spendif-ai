@@ -66,6 +66,8 @@ Se però il rilevamento automatico **non è riuscito** (file con formato insolit
 
 Una volta confermato lo schema del file, alle importazioni successive non vedrai più questo campo — Spendif.ai lo ricorda automaticamente.
 
+**Quanto ci vuole.** Prima di partire l'import ti dice il tempo stimato, calcolato sulle righe dei file e sulla velocità delle importazioni precedenti su questo computer. La prima volta è una stima iniziale e si corregge appena l'import parte; durante l'import, accanto alla percentuale, vedi quanto manca.
+
 ### Riepilogo importazione
 
 Al termine dell'elaborazione, per ogni file importato viene mostrato un riepilogo dettagliato:
@@ -238,11 +240,11 @@ Tutte le transazioni che corrispondono vengono aggiornate immediatamente e la re
 
 ---
 
-## 8. Analytics: i grafici
+## 8. Analisi: i grafici
 
 **Situazione:** Vuoi capire dove spendi di più.
 
-Vai su **Analytics**. Trovi:
+Vai su **Analisi**. Trovi:
 - Grafico a torta spese per categoria
 - Andamento mensile entrate/uscite
 - Saldo netto nel tempo
@@ -251,17 +253,17 @@ Usa i filtri in alto per restringere a un periodo o a un conto specifico.
 
 ### Filtro ad albero tassonomico
 
-Nella pagina Analytics (e nella pagina Tassonomia) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
+Nella pagina Analisi (e nella pagina Tassonomia) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
 - Espandere e collassare i nodi dell'albero
 - Selezionare un nodo padre per selezionare automaticamente tutti i figli
 - Usare i pulsanti **Seleziona tutto** / **Deseleziona tutto** per operazioni rapide
 - Gli indicatori tri-state mostrano se un nodo è completamente selezionato, parzialmente selezionato o deselezionato
 
-> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analytics, Tassonomia). Non è presente nel Ledger e nella Review, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
+> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analisi, Tassonomia). Non è presente nel Registro e nella Revisione, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
 
 ### Associazioni controparte (auto-apprendimento)
 
-Nella sezione Analytics trovi anche la vista **Associazioni controparte → categoria**, che mostra come Spendif.ai ha imparato ad associare ogni controparte (es. ESSELUNGA, AMAZON) alle categorie nel tempo.
+Nella sezione Analisi trovi anche la vista **Associazioni controparte → categoria**, che mostra come Spendif.ai ha imparato ad associare ogni controparte (es. ESSELUNGA, AMAZON) alle categorie nel tempo.
 
 Per ogni controparte vengono mostrati:
 - **Categoria/Sottocategoria** più frequente tra le transazioni validate
@@ -307,6 +309,7 @@ Pulsante per scaricare un file `.xlsx` con tre tipi di foglio:
 ### Filtri disponibili
 
 - **Periodo:** date range picker con pulsanti rapidi — *Mese*, *3 mesi*, *Anno*, *Tutto*
+  All'apertura il periodo è già impostato sui tre mesi che finiscono con l'ultimo movimento caricato, non con oggi: se non importi da un po', vedi dove eri rimasto invece di una pagina vuota. Se manca il mese scorso, un avviso ti ricorda fino a quando sei arrivato e ti manda alla Lista di controllo.
 - **Conti:** multiselect per filtrare uno o più conti
 
 > **Esempio pratico:** Vuoi sapere quanto hai speso in "Alimentari" negli ultimi 3 mesi. Apri Report, clicca "3 mesi", guarda la riga Alimentari nella tabella pivot. Poi passa alla Vista 2 per vedere se la spesa è in crescita o in calo.
@@ -387,17 +390,29 @@ Per ogni categoria con obiettivo definito:
 
 ---
 
-## 13. Check List: tutto in ordine?
+## 13. Lista di controllo: tutto in ordine?
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
-Vai su **✅ Check List**. Trovi una tabella con:
+> **Flusso di lavoro.** La voce **🧭 Flusso di lavoro**, in cima al menu, ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le controparti, le categorie miste e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Dopo l'onboarding, *Carica ora* ti porta direttamente al passo dell'import.
+>
+> **Il passo delle controparti.** Mostra solo le controparti di spesa ancora da controllare, dalla più grande. Spunta *Sempre così* quando una controparte ha sempre la categoria indicata: basta una volta, da lì i suoi movimenti, anche quelli dei prossimi import, prendono quella categoria da soli. L'obiettivo suggerito è controllare le controparti che fanno 8 euro su 10 delle spese del periodo: in alto vedi quanto hai controllato, quanto manca e quante controparti bastano. È un suggerimento: puoi andare avanti quando vuoi.
+>
+> **Il passo delle categorie miste.** Mostra le controparti di spesa con movimenti in più categorie. Se è un errore (la pasticceria metà alimentari e metà bar), scegli la categoria giusta e premi *È sempre questa*: diventa una regola. Se dipende da cosa hai comprato (il supermercato dove prendi anche l'elettronica), premi *Dipende: li guardo uno a uno* e sistema ogni movimento: nessuna regola può distinguerli, perché il nome è lo stesso. I movimenti che hai già guardato non te li richiediamo: la volta dopo vedi solo quelli arrivati con l'ultimo import.
+
+In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Ogni conto ha la sua riga, con quello che manca e due pulsanti. *Carica il file* ti fa scegliere i file di quel conto e li mette da parte, già assegnati al conto: puoi prepararne per più conti, poi premi *Importa N file* e l'import parte con i conti già fissati. Nella pagina di import restano solo la sistemazione di intestazione e piè di pagina, l'avanzamento e il resoconto. *Non lo uso più* chiude il conto (vedi sotto). Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
+
+**Fin dove ti chiediamo i dati.** La lista guarda solo gli ultimi 4 mesi completi: un trimestre più un mese per mettersi in pari. I periodi senza movimenti più vecchi non te li chiediamo: una riga in fondo li conta, così sai che ci sono. Se un conto non ha movimenti da prima di quei 4 mesi, ti suggeriamo *Non lo uso più*; se invece lo usi ancora, riparti dal giorno dopo l'ultimo mese caricato, così non si apre un nuovo buco, perché probabilmente l'hai chiuso.
+
+**Un conto che non usi più.** Se hai chiuso una carta o un conto, sotto il suo nome premi *Non lo uso più* e scegli la data di chiusura (ti proponiamo la fine dell'ultimo mese con movimenti). Da lì la Lista di controllo non te lo chiede più, nemmeno per i mesi mancanti prima della chiusura: li trovi riassunti in *Conti chiusi*, dove puoi anche premere *Riapri*. I movimenti già caricati restano, anche nei resoconti, e nella tabella la sua colonna è segnata come chiusa. Puoi chiudere e riaprire un conto anche da **Impostazioni**, nell'elenco dei conti.
+
+Vai su **✅ Lista di controllo**. Trovi una tabella con:
 - **Una riga per ogni mese**, dal mese corrente in poi verso il passato
 - **Una colonna per ogni conto** che hai configurato in Impostazioni
 
 Ogni cella mostra il numero di transazioni importate per quel mese e quel conto. Se il numero è **—** (grigio), non hai transazioni per quella combinazione.
 
-> **Esempio pratico:** Hai tre conti — Conto Corrente, Carta Visa, Conto Deposito. Guardi la check list e vedi che Luglio 2024 ha "—" per il Conto Deposito. Significa che non hai mai importato i movimenti del conto deposito di quel mese. Vai a scaricarli dalla banca e importali.
+> **Esempio pratico:** Hai tre conti: Conto Corrente, Carta Visa, Conto Deposito. Guardi la lista di controllo e vedi che Luglio 2024 ha "—" per il Conto Deposito. Significa che non hai mai importato i movimenti del conto deposito di quel mese. Vai a scaricarli dalla banca e importali.
 
 **Come leggere i colori:**
 - **—** grigio = nessuna transazione
@@ -564,6 +579,23 @@ Tutti i tuoi dati stanno in **un unico file** (`ledger.db`) dentro una cartella 
 
 ---
 
+## 17. Diagnostica: quando qualcosa non va
+
+**Situazione:** L'import si ferma con un errore, l'analisi è molto lenta o l'applicazione non fa quello che ti aspetti, e vuoi chiedere aiuto.
+
+Vai su **Diagnostica** nel menu. La pagina **Informazioni tecniche** raccoglie un riepilogo del tuo computer e di come è configurata l'applicazione: sistema operativo, memoria, scheda grafica, modello in uso, tempi delle ultime importazioni. **Non contiene nessun dato delle tue transazioni** e non viene inviata a nessuno: la salvi tu e decidi tu se allegarla.
+
+Cosa fare:
+1. Premi **Salva il documento**: è esattamente ciò che vedi nel riquadro.
+2. Premi **Scrivi all'assistenza**: si apre il programma di posta con un messaggio già impostato. Descrivi cosa stavi facendo e allega il documento salvato. Se il programma di posta non si apre, la pagina ti dice a quale indirizzo scrivere.
+3. Se hai un account GitHub puoi usare invece **Invia come resoconto di prova su GitHub**: apre un modulo pubblico con il documento già inserito, e non parte niente finché non lo invii tu.
+
+La pagina ti avvisa anche da sola di due problemi frequenti: un computer con una scheda grafica che l'applicazione non sta usando (l'analisi gira sul processore ed è più lenta) e un testo inviato al modello che si avvicina allo spazio disponibile (quando lo spazio finisce l'analisi fallisce).
+
+> **Esempio pratico:** L'import di un estratto conto si interrompe a metà. Vai su Diagnostica, salvi il documento, premi Scrivi all'assistenza e nel messaggio scrivi "import del file di settembre del conto BBVA, si ferma al 60%". Con il documento allegato chi ti risponde vede subito modello, memoria e tempi, senza doverti fare domande.
+
+---
+
 ## Strumenti di benchmark (per utenti avanzati)
 
 Spendif.ai include due script di benchmark nella cartella `benchmark/`:
@@ -587,7 +619,7 @@ No. Le transazioni duplicate vengono ignorate.
 Spendif.ai gestisce questa cosa automaticamente (si chiama "riconciliazione carta-conto"). Se vedi ancora un duplicato, controlla in Review se una delle due ha l'icona 🔄.
 
 **Voglio esportare i dati.**
-In Analytics trovi il pulsante **Esporta** che genera HTML, CSV o XLSX.
+In Analisi trovi il pulsante **Esporta** che genera HTML, CSV o XLSX.
 
 **Ho cambiato la tassonomia ma le transazioni vecchie non si sono aggiornate.**
 Le categorie vecchie rimangono come sono. Puoi rielaborarle manualmente dalla pagina Review o ri-applicando le regole.

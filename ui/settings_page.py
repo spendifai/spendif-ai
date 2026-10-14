@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
 import streamlit as st
 
@@ -486,8 +487,25 @@ def render_settings_page(engine):
 
     if _accounts:
         for acc in _accounts:
-            c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 1, 1])
+            c1, c2, c3, c6, c4, c5 = st.columns([3, 2, 2, 2, 1, 1])
             c1.markdown(f"**{acc.name}**")
+            closed_on = getattr(acc, "closed_on", None)
+            if closed_on:
+                _d = date.fromisoformat(closed_on)
+                c1.caption(t("guided.checklist.closed_on", date=t(
+                    "common.date_long", d=_d.day, month=t(f"common.month.{_d.month}"), y=_d.year)))
+                if c6.button(t("guided.checklist.reopen_btn"), key=f"reopen_acc_{acc.id}"):
+                    cfg_svc.reopen_account(acc.name)
+                    st.rerun()
+            else:
+                with c6.popover(t("guided.checklist.close_btn")):
+                    st.caption(t("guided.checklist.close_help"))
+                    picked = st.date_input(t("guided.checklist.close_date"),
+                                           key=f"close_acc_date_{acc.id}", format="DD/MM/YYYY")
+                    if st.button(t("guided.checklist.close_confirm"), key=f"close_acc_{acc.id}",
+                                 type="primary"):
+                        cfg_svc.close_account(acc.name, picked.isoformat())
+                        st.rerun()
             c2.caption(acc.bank_name or "—")
             c3.caption(_ACCOUNT_TYPE_LABELS.get(acc.account_type or "", acc.account_type or "—"))
             edit_key = f"edit_acc_{acc.id}"

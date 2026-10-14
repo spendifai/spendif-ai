@@ -8,6 +8,19 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Aggiunto
+- Flusso di lavoro: una nuova voce in cima al menu accompagna l'utente un passo alla volta, a schermo pulito come l'onboarding, da cosa caricare all'import, alle controparti, alle categorie miste fino al quadro del periodo. Uscendo il passo si salva, e la volta dopo si riprende da lì, saltando i passi già fatti nel frattempo. Dopo l'onboarding, "Carica ora" lo apre al passo dell'import
+- Flusso di lavoro, passo delle controparti: solo le controparti di spesa ancora da controllare, dalla più grande. Basta una spunta per controparte, e i prossimi import non la richiedono. In alto spiega l'obiettivo, le controparti che fanno 8 euro su 10 delle spese del periodo, e dice quanto è controllato, quanto manca e quante controparti bastano. L'obiettivo è un suggerimento: Avanti funziona sempre
+- Flusso di lavoro, passo delle categorie miste: le controparti di spesa con movimenti in più categorie. Se è un errore, una categoria diventa regola per tutti i movimenti; se dipende da cosa si è comprato, i movimenti si guardano uno a uno, perché nessuna regola distingue movimenti con lo stesso nome. I movimenti già guardati non si richiedono: una controparte torna solo con quelli arrivati dall'ultimo import, e la pagina dice quanti erano già sistemati. Il passo delle controparti dice anche quante spese del periodo le spunte precedenti hanno categorizzato da sole
+- Flusso di lavoro, passo dell'import: a import finito, se non c'è nessuna domanda in attesa, un pulsante in fondo alla pagina porta alle controparti, così il passo successivo non si perde
+
+### Modificato
+- La Lista di controllo ora dice cosa scaricare, con le date esatte, sopra la griglia: prima il conto più indietro con un pulsante verso l'import, poi gli altri conti e i mesi vuoti in mezzo. Se non c'è ancora nessun conto chiede solo il nome; la prima volta suggerisce un mese solo, così il primo giro resta breve
+- Home e Report si aprono sui tre mesi che finiscono con l'ultimo movimento caricato, invece che su un periodo che finisce oggi. Dopo settimane senza importare i grafici non si aprono più vuoti: mostrano dove eri rimasto, e un avviso dice fino a quando sei arrivato e rimanda alla Lista di controllo. Nella Home è la nuova scelta predefinita, "Ultimi 3 mesi caricati"; gli altri periodi non cambiano
+- La didascalia del periodo nella Home non dice più "Ultimi 12 mesi" qualunque periodo sia selezionato
+- Nella pagina Controparti una controparte si può spuntare come controllata quando la sua categoria è già giusta: la categoria mostrata diventa una regola per tutti i suoi movimenti, passati e futuri. Prima una controparte risultava controllata solo cambiandole categoria
+- La Lista di controllo ha un nome solo per lingua, uguale nel menu, nella pagina, nei messaggi, nella chat e nelle guide. Prima l'italiano alternava "Lista di controllo" e "Check List", e francese, tedesco e spagnolo usavano l'inglese "Check List"; il titolo della pagina chiama i movimenti con la parola delle banche
+
 ### Corretto
 - Una controparte confermata non torna più "mista" dopo l'import successivo. Confermare una controparte, o applicare una regola ai movimenti già importati, registrava quei movimenti come modificati a mano, mentre l'import registra i nuovi come categorizzati dalla regola: stessa categoria, due origini, e la controparte risultava mista finché non si riapplicavano le regole. I movimenti categorizzati attraverso una regola ora risultano tali. Una controparte è mista solo quando hai cambiato a mano uno dei suoi movimenti, che è un'eccezione vera alla regola
 

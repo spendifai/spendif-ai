@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from services.guided_flow_service import GuidedFlowService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.formatting import format_amount_display
@@ -92,10 +93,18 @@ def render_report_page(engine):
     today = date.today()
 
     # ── Session state defaults ────────────────────────────────────────────────
+    # Land on the three months up to the last movement, not up to today:
+    # after months without importing, today's window would be empty.
+    flow_svc = GuidedFlowService(engine)
+    _landing = flow_svc.landing_period() or (today - timedelta(days=90), today)
     if "report_from" not in st.session_state:
-        st.session_state["report_from"] = today - timedelta(days=90)
+        st.session_state["report_from"] = _landing[0]
     if "report_to" not in st.session_state:
-        st.session_state["report_to"] = today
+        st.session_state["report_to"] = _landing[1]
+
+    _stopped_at = flow_svc.stopped_at(today)
+    if _stopped_at is not None:
+        st.info(t("guided.stopped_at", date=_stopped_at.strftime("%d/%m/%Y")))
 
     # ── Date presets ──────────────────────────────────────────────────────────
     st.caption(f"**{t('report.quick_period')}**")
