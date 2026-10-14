@@ -22,14 +22,16 @@ La configurazione viene salvata nel database (`user_settings`) e persiste tra i 
 
 ## ❓ Il modello LLM va scaricato prima di usare l'app?
 
-**No, con l'installazione one-click il modello viene scaricato automaticamente al primo avvio.** L'app rileva l'hardware (RAM, GPU) e scarica il modello ottimale:
+**No, con l'installazione one-click il modello viene scaricato automaticamente al primo avvio.** L'app rileva l'hardware (RAM, GPU, VRAM) e scarica il modello ottimale:
 
-| RAM | Modello | Dimensione |
-|-----|---------|-----------|
+| Memoria effettiva | Modello | Dimensione |
+|-------------------|---------|-----------|
 | 4 GB | Qwen2.5-1.5B | 1.1 GB |
 | 8 GB | Qwen2.5-3B | 2.1 GB |
 | 12 GB | Qwen2.5-7B | 4.7 GB |
 | 16+ GB | Gemma-3-12B | 6.8 GB |
+
+> **Come viene scelta la memoria effettiva?** Su Mac (Apple Silicon) la memoria è unificata, quindi coincide con la RAM. Su Linux/Windows con GPU dedicata (NVIDIA o AMD ROCm), il vincolo è la VRAM: l'app rileva la VRAM via `nvidia-smi` o `rocm-smi` e usa `min(RAM, VRAM)`. Se non viene rilevata nessuna GPU, usa la RAM di sistema.
 
 > **Nota:** l'app funziona anche senza LLM attivo. Import, ledger, regole, analisi e report sono sempre disponibili. Se il LLM non è raggiungibile, le transazioni ricevono categoria "Altro" e `to_review=True`.
 
@@ -37,7 +39,7 @@ La configurazione viene salvata nel database (`user_settings`) e persiste tra i 
 
 ## 🍎 Mac One-Click — Installazione automatica (consigliata)
 
-**Prerequisiti:** macOS 12+, Python 3.11+, connessione internet
+**Prerequisiti:** macOS 12+, Python 3.12+, connessione internet
 
 1. Scarica `install_spendifai.command` dal [repository](https://github.com/spendifai/spendif-ai)
 2. **Double-click** sul file in Finder
@@ -45,7 +47,7 @@ La configurazione viene salvata nel database (`user_settings`) e persiste tra i 
    - Verifica Python e installa `uv` (package manager)
    - Scarica Spendif.ai in `~/Applications/Spendif.ai/`
    - Installa tutte le dipendenze
-   - Rileva il tuo hardware e consiglia il modello LLM ottimale
+   - Rileva il tuo hardware (RAM, GPU, VRAM) e consiglia il modello LLM ottimale
 4. Al primo import, il modello viene scaricato automaticamente
 
 **Per avviare Spendif.ai ogni giorno:** double-click su `Spendif.ai.command` in `~/Applications/Spendif.ai/packaging/macos/`
@@ -62,7 +64,7 @@ llama.cpp su Mac usa l'accelerazione **Metal (Apple Silicon)** automaticamente. 
 
 ### Prerequisiti
 
-- **Python >= 3.13** — verifica con `python3 --version`. Su macOS: `brew install python@3.13`
+- **Python >= 3.12**: verifica con `python3 --version`. Su macOS: `brew install python@3.13`
 - **Git**
 
 ### Step 1 — Clona il repository
@@ -121,7 +123,7 @@ uv run huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruc
 
 > **Gemma 4 E2B:** richiede `llama-cpp-python` aggiornato. Se ottieni `unknown model architecture: 'gemma4'`, esegui: `uv pip install --upgrade llama-cpp-python`.
 
-> **Qwen 3.5 (architettura ibrida SSM):** la wheel PyPI standard non basta — serve una build da source. Se ottieni `missing tensor 'blk.X.ssm_conv1d.weight'` o `unknown model architecture: 'qwen3'`, lancia: `bash scripts/setup_ssm_build.sh`. Lo script rileva il backend GPU, compila e aggiunge la libreria a `benchmark/.custom_packages` per preservare la build dai sync futuri.
+> **Qwen 3.5 (architettura ibrida SSM):** la wheel PyPI standard non basta: serve una build da source. Se ottieni `missing tensor 'blk.X.ssm_conv1d.weight'` o `unknown model architecture: 'qwen3'`, lancia: `bash scripts/setup_ssm_build.sh`. Lo script rileva il backend GPU, compila con i `CMAKE_ARGS` corretti (Metal/CUDA/ROCm/Vulkan) e aggiunge `llama_cpp_python` a `benchmark/.custom_packages` così la build viene preservata dai sync futuri.
 
 ### Step 6 — Avvia l'app
 
@@ -159,9 +161,9 @@ Stessa procedura del Mac. llama.cpp supporta automaticamente GPU NVIDIA (CUDA) s
 
 ### Prerequisiti
 
-- **Python >= 3.13** — verifica con `python3 --version`. Su Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
-- **Git** — `sudo apt install git`
-- **curl** — `sudo apt install curl`
+- **Python >= 3.12**: verifica con `python3 --version`. Su Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
+- **Git**: `sudo apt install git`
+- **curl**: `sudo apt install curl`
 
 ### Step 1 — Clona il repository
 
@@ -210,6 +212,8 @@ uv run huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruc
 
 > **GPU su Linux:** llama.cpp usa automaticamente CUDA se i driver NVIDIA sono installati. Per GPU AMD (ROCm): `CMAKE_ARGS="-DGGML_HIPBLAS=on" uv pip install llama-cpp-python --upgrade` (richiede `rocm-dev` e `hipblas-dev`).
 
+> **Nota VRAM:** se scarichi manualmente, scegli il modello in base alla VRAM della GPU, non alla RAM di sistema. Al primo avvio automatico, Spendif.ai rileva la VRAM via `nvidia-smi` (NVIDIA) o `rocm-smi` (AMD) e scarica il modello appropriato.
+
 ### Step 6 — Avvia l'app
 
 ```bash
@@ -239,8 +243,8 @@ Vai su ⚙️ **Impostazioni** → sezione **Backend LLM**:
 ## 🐧 Linux — Docker con Ollama container
 
 Questa configurazione avvia due container:
-- **`spendifai_app`** — l'applicazione web
-- **`spendifai_ollama`** — il server LLM Ollama
+- **`spendifai_app`**: l'applicazione web
+- **`spendifai_ollama`**: il server LLM Ollama
 
 ### Step 1 — Clona il repository
 

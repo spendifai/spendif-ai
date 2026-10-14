@@ -64,7 +64,7 @@ llama.cpp su Mac usa l'accelerazione **Metal (Apple Silicon)** automaticamente. 
 
 ### Prerequisiti
 
-- **Python >= 3.12** — verifica con `python3 --version`. Su macOS: `brew install python@3.13`
+- **Python >= 3.12**: verifica con `python3 --version`. Su macOS: `brew install python@3.13`
 - **Git**
 
 ### Step 1 — Clona il repository
@@ -123,7 +123,7 @@ uv run huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruc
 
 > **Gemma 4 E2B:** richiede `llama-cpp-python` aggiornato. Se ottieni `unknown model architecture: 'gemma4'`, esegui: `uv pip install --upgrade llama-cpp-python`.
 
-> **Qwen 3.5 (architettura ibrida SSM):** la wheel PyPI standard non basta — serve una build da source. Se ottieni `missing tensor 'blk.X.ssm_conv1d.weight'` o `unknown model architecture: 'qwen3'`, lancia: `bash scripts/setup_ssm_build.sh`. Lo script rileva il backend GPU, compila con i `CMAKE_ARGS` corretti (Metal/CUDA/ROCm/Vulkan) e aggiunge `llama_cpp_python` a `benchmark/.custom_packages` così la build viene preservata dai sync futuri.
+> **Qwen 3.5 (architettura ibrida SSM):** la wheel PyPI standard non basta: serve una build da source. Se ottieni `missing tensor 'blk.X.ssm_conv1d.weight'` o `unknown model architecture: 'qwen3'`, lancia: `bash scripts/setup_ssm_build.sh`. Lo script rileva il backend GPU, compila con i `CMAKE_ARGS` corretti (Metal/CUDA/ROCm/Vulkan) e aggiunge `llama_cpp_python` a `benchmark/.custom_packages` così la build viene preservata dai sync futuri.
 
 ### Step 6 — Avvia l'app
 
@@ -161,9 +161,9 @@ Stessa procedura del Mac. llama.cpp supporta automaticamente GPU NVIDIA (CUDA) s
 
 ### Prerequisiti
 
-- **Python >= 3.12** — verifica con `python3 --version`. Su Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
-- **Git** — `sudo apt install git`
-- **curl** — `sudo apt install curl`
+- **Python >= 3.12**: verifica con `python3 --version`. Su Ubuntu/Debian: `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.13 python3.13-venv`
+- **Git**: `sudo apt install git`
+- **curl**: `sudo apt install curl`
 
 ### Step 1 — Clona il repository
 
@@ -243,8 +243,8 @@ Vai su ⚙️ **Impostazioni** → sezione **Backend LLM**:
 ## 🐧 Linux — Docker con Ollama container
 
 Questa configurazione avvia due container:
-- **`spendifai_app`** — l'applicazione web
-- **`spendifai_ollama`** — il server LLM Ollama
+- **`spendifai_app`**: l'applicazione web
+- **`spendifai_ollama`**: il server LLM Ollama
 
 ### Step 1 — Clona il repository
 

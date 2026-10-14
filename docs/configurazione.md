@@ -211,8 +211,8 @@ Utile per:
 **Percorso:** Impostazioni → 🤖 Configurazione LLM
 
 Il backend LLM viene usato per:
-- **Classificazione categorie** — assegna categoria/sottocategoria a ogni transazione
-- **Estrazione controparte** — normalizza la descrizione grezza della banca
+- **Classificazione categorie**: assegna categoria/sottocategoria a ogni transazione
+- **Estrazione controparte**: normalizza la descrizione grezza della banca
 
 | Backend | Privacy | Costo | Velocità | Qualità |
 |---|---|---|---|---|
@@ -240,7 +240,7 @@ La scelta predefinita per le **nuove installazioni**: nessun servizio esterno ne
 | **RAM libera** | 4 GB (modelli 3B) | 8 GB (modelli 7B) |
 | **CPU** | Qualsiasi x86-64 o ARM64 degli ultimi 5 anni | Apple Silicon (M1+) o CPU con AVX2 |
 | **GPU** | Non necessaria | Apple Metal o CUDA/ROCm (accelera 3-5x) |
-| **VRAM** | — (CPU-only o memoria unificata) | >= dimensione modello (es. 8 GB per 7B Q4) |
+| **VRAM** | - (CPU-only o memoria unificata) | >= dimensione modello (es. 8 GB per 7B Q4) |
 | **Disco** | 2.5 GB per modello | 5-7 GB per modello 7B |
 
 > **Nota:** Se l'hardware non soddisfa i requisiti minimi, usa un backend remoto (OpenAI, Claude) — vedi sezioni 9.2 e 9.3.
@@ -436,13 +436,13 @@ Backend LLM:  vLLM
 Base URL:     http://localhost:8000/v1   (o IP remoto se il server è su un'altra macchina)
 ```
 
-Il modello servito viene rilevato automaticamente dal server — non serve inserirlo manualmente.
+Il modello servito viene rilevato automaticamente dal server: non serve inserirlo manualmente.
 
 | Campo | Default | Descrizione |
 |---|---|---|
 | **Base URL** | `http://localhost:8000/v1` | URL del server vLLM |
 
-> **Performance:** vLLM usa continuous batching e ottimizzazioni CUDA avanzate — significativamente più veloce di llama.cpp e Ollama su GPU NVIDIA, specialmente per modelli ≥ 7B.
+> **Performance:** vLLM usa continuous batching e ottimizzazioni CUDA avanzate: significativamente più veloce di llama.cpp e Ollama su GPU NVIDIA, specialmente per modelli ≥ 7B.
 
 ---
 

@@ -27,6 +27,24 @@ from chat_bot.kb_store import DocChunk, FAQEntry
 _PROMPTS_PATH = Path(__file__).parent / "prompts.json"
 _MAX_HISTORY_TURNS = 3  # number of past Q&A pairs to include in the prompt
 _MIN_SIMILARITY = 0.05  # below this, corpus has no relevant content → skip generation
+_DEFAULT_CONTEXT_CHARS = 6000  # retrieved text passed to the model when its window is unknown
+
+# Common words that carry no meaning for retrieval. Without them a question
+# like "come faccio a ..." matched every chunk containing "come" and "faccio".
+_STOPWORDS_TEXT = """
+il lo la i gli le un uno una di da del dello della dei degli delle al allo alla ai agli alle
+dal dalla dai dalle nel nello nella nei negli nelle sul sulla sui sulle con per tra fra
+e ed o od ma se che chi cui non piu più anche come dove quando quale quali quanto quanta
+quanti quante questo questa questi queste quello quella quelli quelle mi ti si ci vi ne
+io tu lui lei noi voi loro mio mia miei mie tuo tua tuoi tue suo sua suoi sue è e' sono
+ho hai ha abbiamo avete hanno essere avere fare faccio fai fa devo deve posso puoi può
+c cosa perché perche adesso ora poi già gia
+the a an of to in on at for from with by and or but if then than that this these those
+is are was were be been being have has had do does did can could should would will shall
+i you he she it we they me my your his her its our their what which who whom how why
+when where there here not no so as about into out up down just only also any some
+"""
+_STOPWORDS = frozenset(_STOPWORDS_TEXT.split())
 
 
 @dataclass
@@ -46,10 +64,12 @@ class RAGEngine:
         llm_backend,  # core.llm_backends.LLMBackend
         top_k: int = 5,
         lang: str = "it",
+        context_chars: int | None = None,
     ):
         self._llm = llm_backend
         self._top_k = top_k
         self._lang = lang
+        self._context_chars = context_chars or _DEFAULT_CONTEXT_CHARS
         self._prompts = json.loads(_PROMPTS_PATH.read_text(encoding="utf-8"))
 
         # build unified corpus: FAQ questions+answers + doc chunks
@@ -138,10 +158,11 @@ class RAGEngine:
             answer = no_answer.get(self._lang, no_answer.get("en", "I don't have enough information to answer."))
             return RAGResult(answer=answer, sources=[], context_used="")
 
-        top_entries = [self._corpus[i] for _, i in scored[: self._top_k]]
+        top_entries = self._select_within_budget(scored)
 
         context = "\n\n---\n\n".join(e.text for e in top_entries)
-        sources = list({e.source for e in top_entries if e.source})
+        # best match first: the first page is the one the answer is about
+        sources = list(dict.fromkeys(e.source for e in top_entries if e.source))
 
         # ── Step 3: build history snippet ────────────────────────────────────
         history_text = ""
@@ -169,6 +190,27 @@ class RAGEngine:
 
         answer = self._call_llm(system_prompt, user_prompt)
         return RAGResult(answer=answer, sources=sources, context_used=context)
+
+    def _select_within_budget(self, scored: list[tuple[float, int]]) -> list[_CorpusEntry]:
+        """Best entries first while they fit the character budget.
+
+        Never fewer than one. Until top_k entries are chosen an entry that does
+        not fit is skipped in favour of shorter ones; after that the first one
+        that does not fit ends the selection.
+        """
+        chosen: list[_CorpusEntry] = []
+        used = 0
+        for score, i in scored:
+            if score < _MIN_SIMILARITY:
+                break
+            entry = self._corpus[i]
+            if chosen and used + len(entry.text) > self._context_chars:
+                if len(chosen) >= self._top_k:
+                    break
+                continue
+            chosen.append(entry)
+            used += len(entry.text)
+        return chosen
 
     # ── query analysis (Step 1) ───────────────────────────────────────────────
 
@@ -241,7 +283,7 @@ class RAGEngine:
         # The user_prompt contains the original question, so the model can infer the language.
         lang_guard = self._prompts.get("_lang_guard", "")
         fallback_system = f"You are a support assistant. {lang_guard}"
-        fallback_user = f"Tell the user briefly that you cannot answer their question and suggest contacting support. Their message was: {user_prompt}"
+        fallback_user = f"Tell the user briefly that you cannot answer their question and suggest opening the Diagnostics page to write to support. Their message was: {user_prompt}"
         try:
             result = self._llm.complete_structured(
                 system_prompt=fallback_system + '\n\nRespond ONLY with a JSON object: {"answer": "<your reply>"}',
@@ -282,7 +324,7 @@ class RAGEngine:
     def _tokenize(text: str) -> list[str]:
         text = text.lower()
         text = re.sub(r"[^\w\s]", " ", text)
-        return [w for w in text.split() if len(w) > 1]
+        return [w for w in text.split() if len(w) > 1 and w not in _STOPWORDS]
 
     @staticmethod
     def _cosine_similarity(a: dict[str, float], b: dict[str, float]) -> float:

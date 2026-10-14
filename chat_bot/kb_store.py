@@ -24,6 +24,7 @@ class FAQEntry:
     answer: str
     source: str = ""
     page_ref: str = ""   # optional app page key (e.g. "import", "review", "rules")
+    lang: str = ""
 
 
 @dataclass
@@ -44,11 +45,18 @@ def load_faq(lang: str = "it") -> list[FAQEntry]:
             entries.extend(_load_json_faq(path))
         elif path.suffix == ".md":
             entries.extend(_load_md_faq(path))
+    for entry in entries:
+        entry.lang = lang
     return entries
 
 
-def load_documents(lang: str = "it", chunk_size: int = 500) -> list[DocChunk]:
-    """Load document chunks for RAG from knowledge/<lang>/docs/."""
+def load_documents(lang: str = "it", chunk_size: int = 1500) -> list[DocChunk]:
+    """Load document chunks for RAG from knowledge/<lang>/docs/.
+
+    Markdown is cut at its own headings and every chunk starts with the
+    heading path it belongs to, so a step list never loses the title that
+    says what it is for. Plain text falls back to paragraphs.
+    """
     docs_dir = _KNOWLEDGE_DIR / lang / "docs"
     if not docs_dir.is_dir():
         return []
@@ -56,7 +64,8 @@ def load_documents(lang: str = "it", chunk_size: int = 500) -> list[DocChunk]:
     for path in sorted(docs_dir.rglob("*")):
         if path.suffix in (".md", ".txt"):
             text = path.read_text(encoding="utf-8")
-            for chunk in _split_text(text, chunk_size):
+            split = _split_sections if path.suffix == ".md" else _split_text
+            for chunk in split(text, chunk_size):
                 chunks.append(DocChunk(text=chunk, source=str(path.name), lang=lang))
     return chunks
 
@@ -91,6 +100,45 @@ def _load_md_faq(path: Path) -> list[FAQEntry]:
         if question and answer:
             entries.append(FAQEntry(question=question, answer=answer, source=path.name))
     return entries
+
+
+_HEADING = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
+
+
+def _split_sections(text: str, chunk_size: int) -> list[str]:
+    """Cut markdown at headings; prefix each chunk with its heading path.
+
+    A section longer than ``chunk_size`` is split by paragraphs, and every
+    piece repeats the heading path. Headings inside fenced code are ignored.
+    """
+    sections: list[tuple[str, list[str]]] = []
+    path: list[str] = []
+    body: list[str] = []
+    in_fence = False
+
+    def flush() -> None:
+        if any(line.strip() for line in body):
+            sections.append((" > ".join(path), body[:]))
+
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        m = None if in_fence else _HEADING.match(line)
+        if m:
+            flush()
+            body.clear()
+            level = len(m.group(1))
+            path[:] = path[:level - 1] + [m.group(2)]
+            continue
+        body.append(line)
+    flush()
+
+    chunks: list[str] = []
+    for heading, lines in sections:
+        budget = max(chunk_size - len(heading) - 2, 200)
+        for piece in _split_text("\n".join(lines), budget):
+            chunks.append(f"{heading}\n\n{piece}" if heading else piece)
+    return chunks
 
 
 def _split_text(text: str, chunk_size: int) -> list[str]:
