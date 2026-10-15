@@ -723,5 +723,10 @@
     "q": "L'applicazione non funziona o l'import dà errore: come chiedo aiuto?",
     "page": "diagnostics",
     "a": "Apri la pagina Diagnostica dal menu. Premi Salva il documento: è un riepilogo del computer e della configurazione, senza nessun dato delle tue transazioni. Poi premi Scrivi all'assistenza, descrivi cosa stavi facendo e allega il documento. Se hai un account GitHub puoi invece usare Invia come resoconto di prova su GitHub."
+  },
+  {
+    "q": "Come controllo i giroconti fra i miei conti?",
+    "page": "transfers",
+    "a": "Apri il Flusso di lavoro: dopo le Categorie miste c'è il passo Giroconti. Dopo ogni import Spendif.ai mette insieme i due lati di un giroconto anche se arrivano con file e import diversi (stesso importo, segno opposto, al massimo 5 giorni). Nella tabella Coppie trovate rispondi Sì o No alle coppie da confermare; una coppia rifiutata non viene riproposta. Nella tabella Con un lato solo scegli dove sono andati i soldi: mio conto non ancora caricato, mio conto che non seguo, oppure un'altra persona (allora diventa una spesa o un'entrata). La risposta vale per la stessa controparte anche nei prossimi import."
   }
 ]

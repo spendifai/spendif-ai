@@ -723,5 +723,10 @@
     "q": "The app is not working or the import fails: how do I ask for help?",
     "page": "diagnostics",
     "a": "Open the Diagnostics page from the menu. Press Save the document: it is a summary of your computer and setup, with none of your transaction data. Then press Write to support, describe what you were doing and attach the document. If you have a GitHub account you can use Send as a test report on GitHub instead."
+  },
+  {
+    "q": "How do I check the transfers between my accounts?",
+    "page": "transfers",
+    "a": "Open the Workflow: after the Mixed categories comes the Transfers step. After every import Spendif.ai puts the two sides of a transfer together even when they come with different files and imports (same amount, opposite sign, at most 5 days apart). In the Pairs found table answer Yes or No to the pairs to confirm; a pair you turn down is not proposed again. In the With one side only table choose where the money went: my account not loaded yet, my account not followed, or another person (then it becomes spending or income). The answer holds for the same counterpart in the imports to come too."
   }
 ]

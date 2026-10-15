@@ -33,7 +33,9 @@ from core.orchestrator import (
 )
 from core.sanitizer import SanitizationConfig
 from core.schemas import DocumentSchema  # noqa: F401 — re-exported for UI
+from support.logging import setup_logging
 
+logger = setup_logging()
 
 # ── Re-exported public types (UI can import these from services.import_service) ──
 __all__ = [
@@ -298,6 +300,17 @@ class ImportService:
     def persist_result(self, result: ImportResult) -> None:
         with self._session() as s:
             repository.persist_import_result(s, result)
+        # The other side of a transfer usually came with another account's
+        # file: pair the new movements with those already stored.
+        from services.transfer_service import TransferService
+        try:
+            transfers = TransferService(self.engine)
+            transfers.pair_all_once()
+            new_ids = {tx["id"] for tx in result.transactions if tx.get("id")}
+            transfers.pair_new(new_ids)
+            transfers.apply_destinations(new_ids)
+        except Exception:  # the import is saved: a failed pairing must not undo it
+            logger.exception("persist_result: transfer pairing failed")
 
     # ── Job management ────────────────────────────────────────────────────────
 

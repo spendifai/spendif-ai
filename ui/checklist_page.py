@@ -18,8 +18,10 @@ from services.guided_flow_service import (
     GuidedFlowService,
     group_by_account,
 )
+from services.held_movement_service import HeldMovementService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
+from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
@@ -302,6 +304,67 @@ def _render_closed(flow_svc: GuidedFlowService) -> None:
                 st.rerun()
 
 
+def _render_held(held_svc: HeldMovementService) -> None:
+    """Movements set aside at import because their date is in the future: fix
+    the date and import them, or discard them. Nothing else counts them."""
+    for err in st.session_state.pop("_held_errors", []):
+        st.warning(err)
+    rows = held_svc.held()
+    if not rows:
+        return
+    st.warning(t("guided.checklist.held", n=len(rows)))
+    c = {k: t(f"guided.checklist.held_col_{k}") for k in (
+        "read", "account", "description", "amount", "fixed", "action")}
+    do_import, do_discard = t("guided.checklist.held_import"), t("guided.checklist.held_discard")
+    df = pd.DataFrame([{
+        c["read"]: _fmt_date(r.date),
+        c["account"]: r.account,
+        c["description"]: r.description,
+        c["amount"]: format_amount_display(float(r.amount)),
+        c["fixed"]: r.suggested,
+        c["action"]: "",
+    } for r in rows])
+    edited = st.data_editor(
+        df,
+        column_config={
+            **{c[k]: st.column_config.TextColumn(c[k], disabled=True)
+               for k in ("read", "account", "description", "amount")},
+            c["fixed"]: st.column_config.DateColumn(
+                c["fixed"], max_value=date.today(), format="DD/MM/YYYY"),
+            c["action"]: st.column_config.SelectboxColumn(
+                c["action"], options=["", do_import, do_discard]),
+        },
+        hide_index=True, num_rows="fixed", width="stretch", key="held_editor",
+    )
+    st.caption(t("guided.checklist.held_help"))
+    if st.button(t("guided.checklist.held_apply"), key="held_apply", type="primary"):
+        done = dup = 0
+        for idx, r in enumerate(rows):
+            action = edited.at[idx, c["action"]] or ""
+            if action == do_discard:
+                held_svc.discard(r.id)
+                done += 1
+            elif action == do_import:
+                fixed = edited.at[idx, c["fixed"]]
+                if fixed is None or pd.isna(fixed):
+                    st.session_state.setdefault("_held_errors", []).append(
+                        t("guided.checklist.held_no_date", description=r.description))
+                    continue
+                fixed = pd.Timestamp(fixed).date()
+                if fixed > date.today():
+                    st.session_state.setdefault("_held_errors", []).append(
+                        t("guided.checklist.held_still_future", description=r.description))
+                    continue
+                if not held_svc.release(r.id, fixed):
+                    dup += 1
+                done += 1
+        logger.info(f"checklist_page: held movements handled={done} already_present={dup}")
+        if dup:
+            st.session_state.setdefault("_held_errors", []).append(
+                t("guided.checklist.held_duplicate", n=dup))
+        st.rerun()
+
+
 def _without_account(sentence: str, account: str | None) -> str:
     """Drop the leading "**account**:" every per-account sentence starts with,
     once the account is already the heading of its group."""
@@ -315,8 +378,11 @@ def render_checklist_page(engine) -> None:
     st.header(t("checklist.title"))
     st.caption(t("checklist.caption"))
 
+    held_svc = HeldMovementService(engine)
+    held_svc.hold_existing()          # future dates imported before the check existed
     if not _render_guidance(GuidedFlowService(engine)):
         return
+    _render_held(held_svc)
 
     cfg_svc = SettingsService(engine)
     tx_svc  = TransactionService(engine)

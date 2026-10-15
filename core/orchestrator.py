@@ -258,6 +258,7 @@ class ImportResult:
     total_file_rows: int = 0          # total rows in the raw DataFrame (after header stripping)
     header_rows_skipped: int = 0      # rows stripped as header/pre-header
     skipped_rows: list[SkippedRow] = field(default_factory=list)  # rows skipped during normalisation
+    held_count: int = 0   # movements set aside at persistence (date after the import day)
     merged_count: int = 0             # intra-file duplicate rows merged
     internal_transfer_count: int = 0  # transactions detected as giroconti (always saved)
     # Phase timings in milliseconds (AI-88). Keys: header_detection,

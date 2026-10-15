@@ -674,6 +674,14 @@ def parse_date_safe(value: str, fmt: str) -> Optional[date]:
             return datetime.datetime.strptime(v, fmt).date()
         except ValueError:
             pass
+    # ISO 8601 in any of its forms: fractions of a second, "Z", "+02:00"
+    # (exports with a timestamp). The day is the one written, no time zone
+    # conversion, as for the other formats with a time.
+    if re.match(r"\d{4}-\d{2}-\d{2}[T ]\d", v):
+        try:
+            return datetime.datetime.fromisoformat(v).date()
+        except ValueError:
+            pass
     # Fallback: try common formats
     for fallback in _DATE_FORMATS_FALLBACK:
         if fallback == fmt:

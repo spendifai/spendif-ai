@@ -23,6 +23,7 @@ from core.guided_flow import (
     reference_period,
     resume_step,
     suggested_closing_date,
+    without_future,
 )
 from services.rule_service import RuleService
 from services.settings_service import SettingsService
@@ -79,11 +80,13 @@ class GuidedFlowService:
         self._cfg.reopen_account(account)
 
     def _loaded_months(self) -> dict[str, set[str]]:
+        """Months with movements per account, the ones after the current
+        month left out: see ``without_future``."""
         loaded: dict[str, set[str]] = {}
         for row in self._tx.get_monthly_tx_counts():
             if row.year_month and row.account_label and row.tx_count:
                 loaded.setdefault(row.account_label, set()).add(row.year_month)
-        return loaded
+        return without_future(loaded, date.today())
 
     def _closed(self) -> dict[str, date]:
         return {a.name: date.fromisoformat(a.closed_on)
@@ -98,8 +101,10 @@ class GuidedFlowService:
 
         Nothing to load means both the Check List and the import are done;
         the counterparts close once the spending checked reaches the goal,
-        the mixed categories once none is left to look at. The report
-        closes only when the user moves on.
+        the mixed categories once none is left to look at, the transfers
+        once every proposed pair and one-sided transfer has an answer, the
+        income once every income counterpart of the period has been seen.
+        The report closes only when the user moves on.
         """
         closed: set[str] = set()
         if self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
@@ -108,6 +113,11 @@ class GuidedFlowService:
             closed.add("counterparts")
         if not self.mixed_counterparts():
             closed.add("mixed")
+        from services.transfer_service import TransferService
+        if TransferService(self._engine).view(today).open_count == 0:
+            closed.add("transfers")
+        if not self.unchecked_income():
+            closed.add("income")
         return closed
 
     def resume(self, today: date | None = None) -> str:
@@ -155,6 +165,35 @@ class GuidedFlowService:
             date_to=period[1].isoformat(),
         )
         return sorted(stats, key=lambda s: -s["total_amount"])
+
+    # ── Income step ──────────────────────────────────────────────────────────
+
+    def income_counterparts(self) -> list[dict]:
+        """Income counterparts of the landing period, largest total first.
+
+        ``also_spending`` marks a counterpart that has spending movements
+        too (a shop that refunded a purchase, a payment service): a rule on
+        its description would change those as well, so its income movements
+        are categorized one by one instead.
+        """
+        period = self.landing_period()
+        if period is None:
+            return []
+        stats = self._tx.get_counterpart_stats(
+            tx_types=("income",),
+            date_from=period[0].isoformat(),
+            date_to=period[1].isoformat(),
+        )
+        spending = {
+            s["description"].upper() for s in self._tx.get_counterpart_stats(tx_types=("expense",))
+        }
+        for s in stats:
+            s["also_spending"] = s["description"].upper() in spending
+        return sorted(stats, key=lambda s: -s["total_amount"])
+
+    def unchecked_income(self) -> list[dict]:
+        """Income counterparts of the period the user has not seen yet."""
+        return [s for s in self.income_counterparts() if not s["human_checked"]]
 
     def check_progress(self) -> CheckProgress:
         """Spending of the landing period checked so far, against the goal."""

@@ -20,16 +20,22 @@ from core.categorizer import TaxonomyConfig
 SEP = " / "
 
 
-def build_cat_options(taxonomy: TaxonomyConfig, *, include_empty: bool = False) -> list[str]:
+def build_cat_options(
+    taxonomy: TaxonomyConfig, *, include_empty: bool = False, income_first: bool = False,
+) -> list[str]:
     """Return all valid category+subcategory combinations as combined strings.
 
     For categories with subcategories: one entry per subcategory ("Cat / Sub").
     For categories without subcategories: one entry for the category alone ("Cat").
+    Spending categories come first, income first with *income_first*.
     """
     options: list[str] = []
     if include_empty:
         options.append("")
-    for cat in taxonomy.all_expense_categories + taxonomy.all_income_categories:
+    sides = [taxonomy.all_expense_categories, taxonomy.all_income_categories]
+    if income_first:
+        sides.reverse()
+    for cat in sides[0] + sides[1]:
         subs = taxonomy.valid_subcategories(cat)
         if subs:
             for sub in subs:

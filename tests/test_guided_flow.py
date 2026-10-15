@@ -233,3 +233,26 @@ def test_old_holes_are_counted_not_forgotten():
 def test_old_holes_skip_closed_accounts():
     loaded = {"Revolut": {"2024-02", "2024-08", "2026-09"}}
     assert old_holes(["Revolut"], loaded, TODAY, closed={"Revolut": date(2026, 9, 30)}) == {}
+
+
+# ── Movements dated in the future ────────────────────────────────────────────
+
+def test_a_future_month_does_not_open_a_hole_that_ends_in_the_future():
+    from core.guided_flow import GuidanceKind, checklist_guidance
+    today = date(2026, 10, 14)
+    loaded = {"A": {"2026-06", "2026-07", "2026-08", "2026-09", "2026-12"}}   # December: a misread date
+    result = checklist_guidance(["A"], loaded, today)
+    assert [g.kind for g in result] == [GuidanceKind.up_to_date]
+
+
+def test_behind_with_a_future_month_asks_from_the_last_real_month_to_today():
+    from core.guided_flow import GuidanceKind, checklist_guidance
+    today = date(2026, 10, 14)
+    loaded = {"A": {"2026-07", "2026-08", "2026-12"}}
+    g = checklist_guidance(["A"], loaded, today)[0]
+    assert (g.kind, g.date_from, g.date_to) == (GuidanceKind.behind, date(2026, 9, 1), today)
+
+
+def test_closing_date_ignores_future_months():
+    from core.guided_flow import suggested_closing_date
+    assert suggested_closing_date({"2026-08", "2026-12"}, date(2026, 10, 14)) == date(2026, 8, 31)

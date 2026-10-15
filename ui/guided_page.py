@@ -1,6 +1,7 @@
 """Guided workflow: the regular pages, one step at a time, without distractions.
 
-Check List -> Import -> Counterparts -> Rules -> Report, in the immersive
+Check List -> Import -> Counterparts -> Mixed categories -> Transfers ->
+Report, in the immersive
 layout of the onboarding. Each step renders the regular page under a header
 with "Step n of N", Back, Next and Leave. Leaving saves the step; the menu
 entry reopens the workflow where it was left, skipping the steps the data

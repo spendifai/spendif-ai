@@ -78,6 +78,21 @@ class TestParseDateSafe:
     def test_empty_returns_none(self):
         assert parse_date_safe("", "%d/%m/%Y") is None
 
+    def test_iso_timestamp_with_fraction_and_z(self):
+        # Exports with a timestamp: the format chosen for the file is a date.
+        assert parse_date_safe("2023-05-24T06:15:42.576636Z", "%d/%m/%Y") == date(2023, 5, 24)
+        assert parse_date_safe("2023-05-24T06:15:42.576636Z", "") == date(2023, 5, 24)
+
+    def test_iso_timestamp_with_offset_keeps_written_day(self):
+        assert parse_date_safe("2023-05-24T23:30:00+02:00", "") == date(2023, 5, 24)
+        assert parse_date_safe("2023-05-24 06:15:42.5", "") == date(2023, 5, 24)
+
+    def test_column_of_iso_timestamps_is_a_date(self):
+        import pandas as pd
+        from core.classifier import _classify_column_content
+        col = pd.Series([f"2023-05-{d:02d}T06:15:42.576636Z" for d in range(1, 11)])
+        assert _classify_column_content(col) == "date"
+
 
 class TestNormalizeDescription:
     def test_casefold(self):
