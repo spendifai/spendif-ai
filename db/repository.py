@@ -5,6 +5,7 @@ All write operations are upsert-style to guarantee idempotency.
 from __future__ import annotations
 
 import json
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -21,6 +22,8 @@ from db.models import (
     ImportBatch,
     ImportJob,
     InternalTransferLink,
+    TransferDestination,
+    HeldMovement,
     LlmUsageLog,
     NsiTagMapping,
     ReconciliationLink,
@@ -314,6 +317,84 @@ def upsert_transaction(session: Session, tx: dict, batch_id: Optional[int] = Non
     )
     session.add(row)
     return row
+
+
+def _iso(value) -> str:
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)[:10]
+
+
+# Fields of a movement kept by HeldMovement.payload: what upsert_transaction takes.
+_HELD_FIELDS = (
+    "id", "date", "date_accounting", "amount", "currency", "description", "source_file",
+    "doc_type", "account_label", "tx_type", "category", "subcategory",
+    "category_confidence", "category_source", "category_model", "reconciled",
+    "to_review", "transfer_pair_id", "transfer_confidence", "raw_description",
+    "raw_amount", "human_validated",
+)
+
+
+def hold_movement(session: Session, tx: dict, batch_id: Optional[int], reason: str) -> None:
+    """Set a movement aside in full (see HeldMovement). Idempotent on its id."""
+    if session.get(HeldMovement, tx["id"]) is not None:
+        return
+    payload = {k: tx.get(k) for k in _HELD_FIELDS if k in tx}
+    session.add(HeldMovement(
+        id=tx["id"],
+        payload=json.dumps(payload, default=str),
+        date=_iso(tx["date"]),
+        account_label=tx.get("account_label"),
+        amount=Decimal(str(tx.get("amount") or 0)),
+        description=tx.get("description") or tx.get("raw_description"),
+        source_file=tx.get("source_file"),
+        reason=reason,
+        batch_id=batch_id,
+    ))
+
+
+def get_held_movements(session: Session) -> list[HeldMovement]:
+    return session.query(HeldMovement).order_by(HeldMovement.date).all()
+
+
+def release_held_movement(session: Session, held_id: str, new_date: str) -> bool:
+    """The movement enters the ledger with ``new_date``. False when the same
+    movement is already there (nothing inserted twice); the held copy goes
+    either way."""
+    held = session.get(HeldMovement, held_id)
+    if held is None:
+        return False
+    tx = json.loads(held.payload)
+    tx["date"] = new_date
+    inserted = session.get(Transaction, tx["id"]) is None
+    upsert_transaction(session, tx, batch_id=held.batch_id)
+    session.delete(held)
+    return inserted
+
+
+def discard_held_movement(session: Session, held_id: str) -> None:
+    held = session.get(HeldMovement, held_id)
+    if held is not None:
+        session.delete(held)
+
+
+def hold_future_transactions(session: Session, today: str) -> int:
+    """Move the movements already in the ledger with a date after ``today``
+    to HeldMovement: imported before the check existed."""
+    txs = session.query(Transaction).filter(Transaction.date > today).all()
+    if not txs:
+        return 0
+    ids = [t.id for t in txs]
+    for t in txs:
+        hold_movement(session, {k: getattr(t, k) for k in _HELD_FIELDS},
+                      batch_id=t.batch_id, reason="date_future")
+    session.query(ReconciliationLink).filter(
+        (ReconciliationLink.settlement_id.in_(ids)) | (ReconciliationLink.detail_id.in_(ids))
+    ).delete(synchronize_session=False)
+    session.query(InternalTransferLink).filter(
+        (InternalTransferLink.out_id.in_(ids)) | (InternalTransferLink.in_id.in_(ids))
+    ).delete(synchronize_session=False)
+    for t in txs:
+        session.delete(t)
+    return len(txs)
 
 
 def get_existing_tx_ids(session: Session, tx_ids: list[str]) -> set[str]:
@@ -655,6 +736,103 @@ def create_transfer_link(
     return link
 
 
+def get_unpaired_movements(
+    session: Session, date_from: str | None = None, date_to: str | None = None,
+    ids: set[str] | None = None,
+) -> list[Transaction]:
+    """Movements without a transfer pair, card purchases left out, optionally
+    between two ISO dates (both included) or among ``ids``."""
+    q = session.query(Transaction).filter(
+        Transaction.transfer_pair_id.is_(None),
+        Transaction.tx_type != "card_tx",
+    )
+    if date_from:
+        q = q.filter(Transaction.date >= date_from)
+    if date_to:
+        q = q.filter(Transaction.date <= date_to)
+    if ids is not None:
+        q = q.filter(Transaction.id.in_(ids))
+    return q.all()
+
+
+def set_transfer_pair(
+    session: Session, out_tx: Transaction, in_tx: Transaction,
+    confidence: str, make_internal: bool,
+) -> None:
+    """Join two movements as the two sides of one transfer. ``make_internal``
+    turns both into internal_out / internal_in; otherwise the pair is only
+    proposed and the movements keep their type until the user confirms."""
+    pair_id = f"x_{out_tx.id}_{in_tx.id}"
+    for tx in (out_tx, in_tx):
+        tx.transfer_pair_id = pair_id
+        tx.transfer_confidence = confidence
+    if make_internal:
+        out_tx.tx_type = "internal_out"
+        in_tx.tx_type = "internal_in"
+    create_transfer_link(
+        session, out_id=out_tx.id, in_id=in_tx.id,
+        confidence=confidence, keyword_matched=False,
+    )
+
+
+def get_rejected_transfer_pairs(session: Session) -> set[tuple[str, str]]:
+    """(out_id, in_id) of the pairs the user said are not one transfer."""
+    rows = session.query(InternalTransferLink).filter(
+        InternalTransferLink.user_decision == "no").all()
+    return {(r.out_id, r.in_id) for r in rows}
+
+
+def get_open_transfer_links(session: Session) -> list[InternalTransferLink]:
+    """Pairs still standing: answered "yes" or not answered yet."""
+    return session.query(InternalTransferLink).filter(
+        (InternalTransferLink.user_decision.is_(None))
+        | (InternalTransferLink.user_decision == "yes")).all()
+
+
+def decide_transfer_pair(session: Session, out_id: str, in_id: str, decision: str) -> None:
+    """The user's answer on a pair. "yes": both movements become the two sides
+    of a transfer. "no": the pair is undone and kept only on the link, so it is
+    never proposed again; each movement keeps the type the import gave it."""
+    link = session.query(InternalTransferLink).filter_by(out_id=out_id, in_id=in_id).first()
+    if link is None:
+        return
+    link.user_decision = decision
+    out_tx, in_tx = session.get(Transaction, out_id), session.get(Transaction, in_id)
+    if decision == "yes":
+        if out_tx is not None:
+            out_tx.tx_type = "internal_out"
+        if in_tx is not None:
+            in_tx.tx_type = "internal_in"
+    else:
+        for tx in (out_tx, in_tx):
+            if tx is not None:
+                tx.transfer_pair_id = None
+                tx.transfer_confidence = None
+
+
+def get_one_sided_transfers(session: Session, date_from: str | None = None) -> list[Transaction]:
+    """Movements read as transfers whose other side was not found."""
+    q = session.query(Transaction).filter(
+        Transaction.tx_type.in_(("internal_out", "internal_in")),
+        Transaction.transfer_pair_id.is_(None),
+    )
+    if date_from:
+        q = q.filter(Transaction.date >= date_from)
+    return q.all()
+
+
+def get_transfer_destinations(session: Session) -> dict[str, str]:
+    return {r.key: r.answer for r in session.query(TransferDestination).all()}
+
+
+def set_transfer_destination(session: Session, key: str, answer: str) -> None:
+    row = session.get(TransferDestination, key)
+    if row is None:
+        session.add(TransferDestination(key=key, answer=answer))
+    else:
+        row.answer = answer
+
+
 # ── CategoryRule ──────────────────────────────────────────────────────────────
 
 def get_category_rules(session: Session) -> list[CoreCategoryRule]:
@@ -975,13 +1153,26 @@ def persist_import_result(session: Session, result) -> None:
     if result.doc_schema:
         upsert_document_schema(session, result.doc_schema)
 
+    # A movement dated after today cannot be right: it is set aside in full,
+    # out of the ledger, until the user fixes the date.
+    today = date.today().isoformat()
+    held: set[str] = set()
     tx_id_map: dict[str, Transaction] = {}
     for tx in result.transactions:
+        if _iso(tx["date"]) > today:
+            hold_movement(session, tx, batch_id=batch.id, reason="date_future")
+            held.add(tx["id"])
+            continue
         row = upsert_transaction(session, tx, batch_id=batch.id)
         tx_id_map[tx["id"]] = row
+    result.held_count = len(held)
 
     for rec in result.reconciliations:
+        if rec["settlement_id"] in held:
+            continue
         for detail_id in rec["matched_ids"]:
+            if detail_id in held:
+                continue
             create_reconciliation_link(
                 session=session,
                 settlement_id=rec["settlement_id"],
@@ -996,6 +1187,8 @@ def persist_import_result(session: Session, result) -> None:
                 tx_id_map[detail_id].reconciled = True
 
     for link in result.transfer_links:
+        if link["out_id"] in held or link["in_id"] in held:
+            continue
         create_transfer_link(
             session=session,
             out_id=link["out_id"],

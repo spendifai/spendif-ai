@@ -17,6 +17,7 @@ from sqlalchemy import create_engine
 
 from db.models import Transaction, create_tables, get_session
 from ui.home_page import (
+    _build_monthly_flow,
     _build_sankey_data,
     _load_transactions,
     _twelve_months_ago,
@@ -207,3 +208,89 @@ class TestBuildSankeyData:
         out = _build_sankey_data(df)
         # Expected expense = 50, income = 500 → surplus 450
         assert out["unknown_kind"] == "surplus"
+
+    def test_refund_lowers_its_expense_category(self):
+        """An income movement with an expense category is money back on a
+        purchase: it lowers that expense, it is not income."""
+        df = self._df(
+            (pd.Timestamp("2026-01-15"), 500.0, "income", "Stipendio", None, False),
+            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", "Spesa", False),
+            (pd.Timestamp("2026-01-25"), 50.0, "income", "Alimentari", "Spesa", False),
+        )
+        out = _build_sankey_data(df, {"Alimentari"})
+        i = out["nodes"].index("Alimentari")
+        flows = dict(zip(out["link_target"], out["link_value"]))
+        assert flows[i] == 150.0
+        unknown = out["nodes"].index(_t("home.charts.unknown"))
+        assert flows[unknown] == 350.0      # 500 income - 150 spent
+
+
+def _t(key):
+    from ui.home_page import _t as t
+    return t(key)
+
+
+# ── _build_monthly_flow ──────────────────────────────────────────────────────
+
+def _rows(*rows):
+    return pd.DataFrame(
+        list(rows),
+        columns=["date", "amount", "tx_type", "category", "subcategory", "reconciled"],
+    )
+
+
+class TestBuildMonthlyFlow:
+
+    def test_income_and_expenses_by_month(self):
+        df = _rows(
+            (pd.Timestamp("2026-01-15"), 1000.0, "income", "Stipendio", None, False),
+            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", "Spesa", False),
+            (pd.Timestamp("2026-02-20"), -80.0, "expense", "Trasporti", None, False),
+        )
+        out = _build_monthly_flow(df, {"Alimentari", "Trasporti"})
+        jan, feb = pd.Timestamp("2026-01-01"), pd.Timestamp("2026-02-01")
+        assert list(out["income"].index) == [jan, feb]
+        assert out["income"].loc[jan, "Stipendio"] == 1000.0
+        assert out["income"].loc[feb, "Stipendio"] == 0.0
+        assert out["expense"].loc[jan, "Alimentari"] == 200.0
+        assert out["expense"].loc[feb, "Trasporti"] == 80.0
+
+    def test_refund_is_not_income(self):
+        df = _rows(
+            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", "Spesa", False),
+            (pd.Timestamp("2026-01-25"), 50.0, "income", "Alimentari", "Spesa", False),
+        )
+        out = _build_monthly_flow(df, {"Alimentari"})
+        assert out["income"].empty or "Alimentari" not in out["income"].columns
+        assert out["expense"].iloc[0]["Alimentari"] == 150.0
+
+    def test_refund_larger_than_spending_counts_zero(self):
+        df = _rows(
+            (pd.Timestamp("2026-01-20"), -20.0, "expense", "Alimentari", None, False),
+            (pd.Timestamp("2026-01-25"), 50.0, "income", "Alimentari", None, False),
+            (pd.Timestamp("2026-01-26"), -30.0, "expense", "Trasporti", None, False),
+        )
+        out = _build_monthly_flow(df, {"Alimentari", "Trasporti"})
+        assert "Alimentari" not in out["expense"].columns
+        assert out["expense"].iloc[0]["Trasporti"] == 30.0
+
+    def test_transfers_and_reconciled_left_out(self):
+        df = _rows(
+            (pd.Timestamp("2026-01-10"), 5000.0, "internal_in", "Giroconto", None, False),
+            (pd.Timestamp("2026-01-11"), -5000.0, "internal_out", "Giroconto", None, False),
+            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", None, True),
+        )
+        assert _build_monthly_flow(df, {"Alimentari"}) is None
+
+    def test_small_categories_go_to_other(self):
+        rows = [(pd.Timestamp("2026-01-20"), -float(10 * (i + 1)), "expense", f"C{i}", None, False)
+                for i in range(5)]
+        out = _build_monthly_flow(_rows(*rows), {f"C{i}" for i in range(5)}, top=3)
+        other = _t("home.charts.other")
+        assert list(out["expense"].columns) == ["C4", "C3", "C2", other]
+        assert out["expense"].iloc[0][other] == 30.0     # 10 + 20
+
+    def test_uncategorised_has_a_label(self):
+        df = _rows((pd.Timestamp("2026-01-20"), -20.0, "expense", None, None, False))
+        out = _build_monthly_flow(df, set())
+        assert list(out["expense"].columns) == [_t("home.charts.uncategorised")]

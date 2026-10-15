@@ -288,7 +288,7 @@ class ReviewService:
 
         changed = df_result[df_result["tx_type"] != df["tx_type"]]
         if changed.empty:
-            return 0
+            return self._pair_across_accounts()
 
         with self._session() as s:
             updated = 0
@@ -303,7 +303,13 @@ class ReviewService:
             if updated:
                 s.commit()
 
-        return updated
+        return updated + self._pair_across_accounts()
+
+    def _pair_across_accounts(self) -> int:
+        """The two sides across accounts and imports, read transfers included;
+        returns the movements paired."""
+        from services.transfer_service import TransferService
+        return 2 * len(TransferService(self.engine).pair_all())
 
     # ── Bulk description fix ──────────────────────────────────────────────────
 

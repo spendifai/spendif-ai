@@ -238,6 +238,7 @@ def create_tables(engine=None):
     _migrate_add_category_correction(engine)
     _migrate_add_account_closed_on(engine)
     _migrate_add_import_job_n_rows(engine)
+    _migrate_add_transfer_link_decision(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -423,8 +424,50 @@ class InternalTransferLink(Base):
     confidence = Column(String(10))
     keyword_matched = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # The user's answer on the pair: "yes" (a transfer) or "no" (kept apart,
+    # never proposed again). None: not answered yet.
+    user_decision = Column(String(8), nullable=True)
 
     __table_args__ = (UniqueConstraint("out_id", "in_id"),)
+
+
+class HeldMovement(Base):
+    """A movement kept out of the ledger until the user fixes it.
+
+    Today: a date after the day of the import, which cannot be right (day and
+    month swapped, a value date, a footer line). The movement went through the
+    whole import (description, category, sign) and waits here in full
+    (``payload``, the fields ``upsert_transaction`` takes); with a corrected
+    date it enters the ledger as is. Nothing else reads this table: held
+    movements count nowhere.
+    """
+    __tablename__ = "held_movement"
+
+    id = Column(String(24), primary_key=True)          # the movement's own id
+    payload = Column(Text, nullable=False)             # JSON of the movement
+    date = Column(String(10), nullable=False)          # the date as read
+    account_label = Column(String(256))
+    amount = Column(Numeric(precision=18, scale=4))
+    description = Column(Text)
+    source_file = Column(String(512))
+    reason = Column(String(16), nullable=False)        # "date_future"
+    batch_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class TransferDestination(Base):
+    """Where a one-sided transfer went, answered once per beneficiary.
+
+    key: the IBAN in the description when there is one, otherwise the cleaned
+    description. answer: "unloaded" (an account of mine not loaded yet),
+    "untracked" (an account of mine I do not follow), "other_person" (not a
+    transfer: spending or income).
+    """
+    __tablename__ = "transfer_destination"
+
+    key = Column(String(256), primary_key=True)
+    answer = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class CategoryRule(Base):
@@ -1075,6 +1118,18 @@ def _migrate_add_import_job_n_rows(engine) -> None:
     with engine.connect() as conn:
         try:
             conn.execute(_text("ALTER TABLE import_job ADD COLUMN n_rows INTEGER"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+
+
+def _migrate_add_transfer_link_decision(engine) -> None:
+    """Add user_decision column to internal_transfer_link if not already present."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                "ALTER TABLE internal_transfer_link ADD COLUMN user_decision VARCHAR(8)"))
             conn.commit()
         except Exception:
             pass  # column already exists

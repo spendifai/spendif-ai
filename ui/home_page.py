@@ -1,11 +1,13 @@
-"""Home page — landing dashboard with income trend + income→expense Sankey.
+"""Home page: landing dashboard with monthly income and expenses + income→expense Sankey.
 
 Two charts. The default period is the three months ending with the last
 imported movement, so a user who has not imported for a while sees where
 they left off instead of an empty window:
 
-  1. Stacked bar of monthly income (categories stacked, only `income` tx_type;
-     `internal_in` excluded — transfers between own accounts are not income).
+  1. Monthly bars: income above zero, expenses below, each split by
+     category (the largest kept, the rest in "Other"). Transfers between own
+     accounts are neither; an income movement with an expense category is a
+     refund and lowers that expense.
   2. Sankey from "Total income" through expense categories down to
      subcategories, plus a "Sconosciuto" node that absorbs the surplus
      (or supplies the deficit) so the chart balances.
@@ -24,6 +26,7 @@ import pandas as pd
 import streamlit as st
 
 from services.guided_flow_service import GuidedFlowService
+from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from ui.i18n import t
 
@@ -143,55 +146,124 @@ def _render_empty_state() -> None:
         st.rerun()
 
 
-# ── Chart 1: Stacked bar — income by month ───────────────────────────────────
+# ── Refunds ──────────────────────────────────────────────────────────────────
 
-def _render_income_stacked_bar(df: pd.DataFrame) -> None:
-    """Render the monthly-income stacked bar. *df* is the rolling-12-months
-    slice; we filter to `tx_type == 'income'` + `amount > 0` + not reconciled."""
+def _split_flows(
+    df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Income rows and expense rows of *df*, transfers and reconciled left out.
+
+    An income movement whose category is an expense category is a refund (a
+    return, money back on a purchase): it lowers that expense instead of
+    counting as income. The expense frame carries ``abs_amount``, the spent
+    amount as a positive number, negative for a refund.
+    """
+    if df.empty:
+        none = pd.DataFrame(columns=["date", "amount", "category", "subcategory", "abs_amount"])
+        return none, none
+    live = df[~df["reconciled"].astype(bool)]
+    inc = live[(live["tx_type"] == _INCOME_TYPE) & (live["amount"] > 0)].copy()
+    exp = live[live["tx_type"] == _EXPENSE_TYPE].copy()
+    exp["abs_amount"] = exp["amount"].abs()
+    if expense_categories:
+        refund = inc["category"].isin(expense_categories)
+        refunds = inc[refund].copy()
+        refunds["abs_amount"] = -refunds["amount"]
+        inc = inc[~refund]
+        exp = pd.concat([exp, refunds], ignore_index=True)
+    return inc, exp
+
+
+# ── Chart 1: Bar: income above zero, expenses below, by month ───────────────
+
+_TOP_CATEGORIES = 8
+_INCOME_COLORS = ["#1b5e20", "#2e7d32", "#43a047", "#66bb6a", "#81c784", "#a5d6a7", "#c8e6c9", "#4db6ac"]
+_EXPENSE_COLORS = ["#b71c1c", "#e64a19", "#f57c00", "#ffa000", "#c2185b", "#8d6e63", "#d84315", "#ef9a9a"]
+_OTHER_COLOR = "#9e9e9e"
+
+
+def _monthly_by_category(frame: pd.DataFrame, value: str, other: str, top: int) -> pd.DataFrame:
+    """Months x categories, the largest *top* categories kept, the rest in
+    *other*. A category whose month nets below zero (refunds larger than the
+    spending) counts zero: a bar never crosses to the other side."""
+    if frame.empty:
+        return pd.DataFrame()
+    f = frame.copy()
+    f["month"] = f["date"].dt.to_period("M").dt.to_timestamp()
+    pivot = f.groupby(["month", "category"])[value].sum().unstack(fill_value=0.0).clip(lower=0.0)
+    order = pivot.sum().sort_values(ascending=False)
+    order = order[order > 0]
+    keep = list(order.index[:top])
+    rest = [c for c in order.index if c not in keep]
+    out = pivot[keep].copy()
+    if rest:
+        out[other] = pivot[rest].sum(axis=1)
+    return out.sort_index()
+
+
+def _build_monthly_flow(
+    df: pd.DataFrame, expense_categories: Optional[set[str]] = None, top: int = _TOP_CATEGORIES,
+) -> Optional[dict]:
+    """Data for the monthly chart: ``income`` and ``expense`` are months x
+    categories (positive amounts), on the same months. None when the period
+    has neither."""
+    inc, exp = _split_flows(df, expense_categories)
+    uncat = _t("home.charts.uncategorised")
+    other = _t("home.charts.other")
+    inc = inc.assign(category=inc["category"].fillna(uncat))
+    exp = exp.assign(category=exp["category"].fillna(uncat))
+    income = _monthly_by_category(inc, "amount", other, top)
+    expense = _monthly_by_category(exp, "abs_amount", other, top)
+    if income.empty and expense.empty:
+        return None
+    months = income.index.union(expense.index)
+    return {
+        "income": income.reindex(months, fill_value=0.0),
+        "expense": expense.reindex(months, fill_value=0.0),
+    }
+
+
+def _render_monthly_flow(data: dict) -> None:
     import plotly.graph_objects as go
 
-    inc = df[
-        (df["tx_type"] == _INCOME_TYPE)
-        & (df["amount"] > 0)
-        & (~df["reconciled"])
-    ].copy()
-
-    if inc.empty:
-        st.caption(_t("home.charts.no_income"))
-        return
-
-    inc["category"] = inc["category"].fillna(_t("home.charts.uncategorised"))
-    inc["month"] = inc["date"].dt.to_period("M").dt.to_timestamp()
-
-    pivot = (
-        inc.groupby(["month", "category"])["amount"]
-        .sum()
-        .unstack(fill_value=0.0)
-        .sort_index()
-    )
-
+    other = _t("home.charts.other")
+    inc_name, exp_name = _t("home.charts.income_side"), _t("home.charts.expense_side")
     fig = go.Figure()
-    for cat in pivot.columns:
-        fig.add_bar(
-            name=str(cat),
-            x=pivot.index,
-            y=pivot[cat].values,
-        )
+
+    def add(frame: pd.DataFrame, colors: list[str], side: str, sign: float) -> None:
+        for i, cat in enumerate(frame.columns):
+            values = frame[cat].values
+            fig.add_bar(
+                name=str(cat),
+                x=frame.index,
+                y=sign * values,
+                customdata=values,
+                marker_color=_OTHER_COLOR if cat == other else colors[i % len(colors)],
+                legendgroup=side,
+                legendgrouptitle_text=side,
+                hovertemplate=f"{side} · %{{fullData.name}}<br>%{{x|%m/%Y}}: %{{customdata:,.0f}}<extra></extra>",
+            )
+
+    add(data["income"], _INCOME_COLORS, inc_name, 1.0)
+    add(data["expense"], _EXPENSE_COLORS, exp_name, -1.0)
     fig.update_layout(
-        barmode="stack",
-        title=_t("home.charts.income_title"),
+        barmode="relative",
+        title=_t("home.charts.flow_title"),
         xaxis_title=_t("home.charts.month"),
         yaxis_title=_t("home.charts.amount"),
-        legend_title_text=_t("home.charts.category"),
-        height=420,
+        legend=dict(groupclick="toggleitem"),
+        height=480,
         margin=dict(l=40, r=40, t=60, b=40),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    fig.add_hline(y=0, line_width=1, line_color="#616161")
+    st.plotly_chart(fig, width="stretch")
 
 
 # ── Chart 2: Sankey — income → expense category → subcategory ────────────────
 
-def _build_sankey_data(df: pd.DataFrame) -> Optional[dict]:
+def _build_sankey_data(
+    df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
+) -> Optional[dict]:
     """Build node/link arrays for the Sankey. Returns None if there is no
     income AND no expense (chart pointless), otherwise dict with keys:
         nodes: list[str]
@@ -200,22 +272,12 @@ def _build_sankey_data(df: pd.DataFrame) -> Optional[dict]:
         link_value:  list[float]
         unknown_kind: 'surplus' | 'deficit' | 'parity'  (informational)
     """
-    inc_df = df[
-        (df["tx_type"] == _INCOME_TYPE)
-        & (df["amount"] > 0)
-        & (~df["reconciled"])
-    ]
-    exp_df = df[
-        (df["tx_type"] == _EXPENSE_TYPE)
-        & (~df["reconciled"])
-    ].copy()
+    # Refunds lower their expense category, as in the monthly chart.
+    inc_df, exp_df = _split_flows(df, expense_categories)
 
     total_income = float(inc_df["amount"].sum())
-    # Expense amounts are negative; we work with abs() for chart legibility.
-    exp_df["abs_amount"] = exp_df["amount"].abs()
-    total_expense = float(exp_df["abs_amount"].sum())
 
-    if total_income == 0.0 and total_expense == 0.0:
+    if total_income == 0.0 and exp_df.empty:
         return None
 
     # ── Node layout ──────────────────────────────────────────────────────────
@@ -241,6 +303,8 @@ def _build_sankey_data(df: pd.DataFrame) -> Optional[dict]:
     exp_df["category"] = exp_df["category"].fillna(uncat_cat_label)
     exp_df["subcategory"] = exp_df["subcategory"].fillna(uncat_sub_label)
     cat_totals = exp_df.groupby("category")["abs_amount"].sum().to_dict()
+    # A category whose refunds exceed its spending draws nothing.
+    total_expense = float(sum(v for v in cat_totals.values() if v > 0))
 
     # AI-119: order matters — Plotly Sankey with arrangement="perpendicular"
     # lays out nodes within each column in the order they're added to the
@@ -340,7 +404,7 @@ def _render_sankey(data: dict) -> None:
         height=chart_height,
         margin=dict(l=10, r=10, t=60, b=10),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ── Entry point ──────────────────────────────────────────────────────────────
@@ -421,7 +485,10 @@ def render_home_page(engine) -> None:
         st.info(_t("home.charts.no_income"))
         return
 
-    _render_income_stacked_bar(df)
-    sankey = _build_sankey_data(df)
+    expense_categories = set(SettingsService(engine).get_taxonomy().expenses)
+    flow = _build_monthly_flow(df, expense_categories)
+    if flow is not None:
+        _render_monthly_flow(flow)
+    sankey = _build_sankey_data(df, expense_categories)
     if sankey is not None:
         _render_sankey(sankey)

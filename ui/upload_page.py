@@ -223,6 +223,9 @@ def _render_last_import_summary():
                 if to_review:
                     st.warning(t_fn("upload.needs_review", n=to_review))
 
+                if getattr(result, "held_count", 0):
+                    st.warning(t_fn("upload.held_future", n=result.held_count))
+
                 # ── Skipped rows detail ──
                 if result.skipped_rows:
                     # Group by reason

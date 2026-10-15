@@ -206,6 +206,10 @@ def _route(page: str, engine) -> None:
         from ui.mixed_page import render_mixed_page
         render_mixed_page(engine)
 
+    elif page == "transfers":
+        from ui.transfers_page import render_transfers_page
+        render_transfers_page(engine)
+
     elif page == "budget":
         from ui.budget_page import render_budget_page
         render_budget_page(engine)
@@ -225,6 +229,10 @@ def _route(page: str, engine) -> None:
     elif page == "counterparts":
         from ui.counterparts_page import render_counterparts_page
         render_counterparts_page(engine)
+
+    elif page == "income":
+        from ui.counterparts_page import render_income_page
+        render_income_page(engine)
 
     elif page == "taxonomy":
         from ui.taxonomy_page import render_taxonomy_page

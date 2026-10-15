@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from streamlit.testing.v1 import AppTest
 
+from core.guided_flow import STEPS
+
 
 def _app():
     import streamlit as st
@@ -44,7 +46,7 @@ def _button(at, key):
 def test_starts_from_first_open_step_with_header():
     at = AppTest.from_function(_app).run(timeout=30)
     assert "STEP:checklist" in _texts(at)
-    assert at.caption[0].value == "Step 1 of 5: What to load"
+    assert at.caption[0].value == "Step 1 of 7: What to load"
     assert _button(at, "guided_back").disabled
 
 
@@ -68,7 +70,7 @@ def test_leave_returns_home_and_resumes_on_same_step():
 
 def test_done_on_last_step_lands_on_report_and_restarts_cycle():
     at = AppTest.from_function(_app).run(timeout=30)
-    for _ in range(4):
+    for _ in range(len(STEPS) - 1):
         _button(at, "guided_next").click().run(timeout=30)
     assert "STEP:report" in _texts(at)
     assert _button(at, "guided_next").label == "Done"

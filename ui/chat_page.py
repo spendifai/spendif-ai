@@ -20,10 +20,10 @@ _MODE_LABELS = {
 _PAGE_REFS = frozenset({
     "import", "history", "ledger", "bulk_edit", "analytics", "report", "budget",
     "budget_vs_actual", "review", "rules", "taxonomy", "settings", "checklist",
-    "home", "guided", "counterparts", "mixed", "llm_models", "diagnostics",
+    "home", "guided", "counterparts", "mixed", "transfers", "income", "llm_models", "diagnostics",
 })
 # Pages whose label is not a menu entry (reached from the workflow).
-_PAGE_LABEL_KEY = {"mixed": "mixed.title"}
+_PAGE_LABEL_KEY = {"mixed": "mixed.title", "transfers": "transfers.title", "income": "income.title"}
 # Sources come best match first; the best page is enough, more is noise.
 _MAX_PAGE_LINKS = 1
 
