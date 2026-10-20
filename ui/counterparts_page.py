@@ -83,6 +83,20 @@ _DROPDOWN_CSS = """
 """
 
 
+def _apply_to_income(tx_svc: TransactionService, r: dict) -> int:
+    """A row of the income step for a counterpart that also has spending:
+    the choice goes to its income movements only, one by one, no rule."""
+    txs = [tx for tx in tx_svc.get_by_rule_pattern(r["description"], "exact")
+           if tx.tx_type == "income"]
+    for tx in txs:
+        if r["giroconto"]:
+            tx_svc.toggle_giroconto(tx.id)
+        elif r["set_category"]:
+            tx_svc.update_category(tx.id, r["new_cat"], r["new_sub"], origin="income")
+    logger.info(f"counterparts_page: {len(txs)} income movements set one by one")
+    return len(txs)
+
+
 def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
     """Criterion and progress of the workflow step, in money and in words.
 
@@ -109,6 +123,45 @@ def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
     key = "counterparts.guided.progress_one" if progress.needed == 1 else "counterparts.guided.progress"
     st.info(t(key, missing=fmt(progress.missing), needed=progress.needed, **amounts))
     st.caption(t("counterparts.guided.optional"))
+
+
+def _render_income_intro(flow_svc: GuidedFlowService) -> None:
+    """What the income step asks, and how a refund is told apart."""
+    period = flow_svc.landing_period()
+    st.markdown(t(
+        "income.guided.criterion",
+        date_from=_fmt_date(period[0]), date_to=_fmt_date(period[1]),
+    ))
+    st.caption(t("income.guided.refunds"))
+
+
+def render_income_page(engine) -> None:
+    """Income step of the workflow: the income counterparts not seen yet.
+
+    No goal: income counterparts are few and each one weighs, so all of
+    them are shown. A counterpart with spending too (``also_spending``) gets
+    its category on its income movements only, without a rule.
+    """
+    st.markdown(_DROPDOWN_CSS, unsafe_allow_html=True)
+    st.header(t("income.title"))
+    flow_svc = GuidedFlowService(engine)
+    if flow_svc.landing_period() is None or not flow_svc.income_counterparts():
+        st.info(t("income.guided.none"))
+        return
+    _render_income_intro(flow_svc)
+    filtered = flow_svc.unchecked_income()
+    if not filtered:
+        st.success(t("income.guided.all_checked"))
+        return
+    cfg_svc = SettingsService(engine)
+    cat_options = build_cat_options(cfg_svc.get_taxonomy(), include_empty=True, income_first=True)
+    one_by_one = {s["description"] for s in filtered if s["also_spending"]}
+    if one_by_one:
+        st.caption(t("income.guided.one_by_one", names=", ".join(sorted(one_by_one))))
+    _render_grid(
+        filtered, cat_options, TransactionService(engine), RuleService(engine),
+        guided=True, one_by_one=one_by_one,
+    )
 
 
 def render_counterparts_page(engine) -> None:
@@ -210,7 +263,12 @@ def _render_grid(
     tx_svc: TransactionService,
     rule_svc: RuleService,
     guided: bool,
+    one_by_one: set[str] | None = None,
 ) -> None:
+    """*one_by_one*: counterparts whose income movements get the category
+    one by one, without a rule (the income step, for a counterpart that
+    also has spending a rule would change)."""
+    one_by_one = one_by_one or set()
     df = _build_df(filtered, cat_options)
 
     _col_counterpart = t("counterparts.col_counterpart")
@@ -337,6 +395,11 @@ def _render_grid(
             saved = 0
             applied = 0
             for r in changed_rows:
+                if r["description"] in one_by_one:
+                    n = _apply_to_income(tx_svc, r)
+                    saved += 1 if n else 0
+                    applied += n
+                    continue
                 if r["giroconto"]:
                     _, created = rule_svc.create_rule(
                         pattern=r["description"],

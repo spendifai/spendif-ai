@@ -414,7 +414,7 @@ def render_registry_page(engine):
                     continue
                 tx_svc.update_category(tx_id, _new_cat, _new_sub, origin="ledger")
                 n_cat += 1
-                _desc = str(orig["Descrizione"]).strip()
+                _desc = str(orig[COL_DESC]).strip()
                 if _desc:
                     _fan_out_candidates.append((tx_id, _desc))
 
@@ -498,7 +498,7 @@ def render_registry_page(engine):
     if len(_sel_ids) == 1:
         _rule_tx_id = _sel_ids[0]
         _rule_tx_row = orig_df[orig_df["_id"] == _rule_tx_id].iloc[0]
-        _rule_tx_desc = _rule_tx_row["Descrizione"]
+        _rule_tx_desc = _rule_tx_row[COL_DESC]
         _rule_tx_cat = _rule_tx_row[COL_CATEGORY]
         _rule_tx_sub = _rule_tx_row[COL_SUBCATEGORY]
         _rule_tx_ctx = _rule_tx_row[COL_CONTEXT]

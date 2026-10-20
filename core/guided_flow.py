@@ -84,6 +84,29 @@ def _months_between(first: tuple[int, int], last: tuple[int, int]) -> int:
 
 # ── Check List guidance ──────────────────────────────────────────────────────
 
+def without_future(loaded_months: dict[str, set[str]], today: date) -> dict[str, set[str]]:
+    """Drop the months after the current one. A movement dated in the future
+    (a typo in the bank's file, a misread date) is not a loaded month: counted
+    as one, it would open a hole that ends in the future and ask the user for
+    movements that cannot exist yet."""
+    now = _ym(today)
+    return {acc: {m for m in ms if _parse_ym(m) <= now} for acc, ms in loaded_months.items()}
+
+
+def swapped_date(d: date, today: date) -> date | None:
+    """The date with day and month swapped, when that gives a real date not
+    after ``today``: the usual reading error behind a date in the future
+    (02/12 read as 2 December instead of 12 February). None otherwise; the
+    user confirms it either way."""
+    if d.day > 12:
+        return None
+    try:
+        swapped = date(d.year, d.day, d.month)
+    except ValueError:
+        return None
+    return swapped if swapped <= today and swapped != d else None
+
+
 def checklist_guidance(
     accounts: list[str],
     loaded_months: dict[str, set[str]],
@@ -112,6 +135,7 @@ def checklist_guidance(
     account, so the first pass through the workflow stays small.
     """
     closed = closed or {}
+    loaded_months = without_future(loaded_months, today)
     every_account = list(accounts) + sorted(
         a for a in loaded_months if a not in set(accounts)
     )
@@ -191,6 +215,12 @@ def checklist_guidance(
     return result
 
 
+def check_window_start(today: date) -> date:
+    """First day of the window the workflow asks about: the last
+    CHECK_WINDOW_MONTHS complete months."""
+    return _first_day(_shift(_shift(_ym(today), -1), -(CHECK_WINDOW_MONTHS - 1)))
+
+
 def old_holes(
     accounts: list[str],
     loaded_months: dict[str, set[str]],
@@ -200,6 +230,7 @@ def old_holes(
     """Holes that end before the window, per active account: not asked for,
     only counted, so they are set aside rather than forgotten."""
     closed = closed or {}
+    loaded_months = without_future(loaded_months, today)
     window_start = _shift(_shift(_ym(today), -1), -(CHECK_WINDOW_MONTHS - 1))
     every = list(accounts) + sorted(a for a in loaded_months if a not in set(accounts))
     result: dict[str, int] = {}
@@ -274,7 +305,9 @@ def closed_accounts(
 
 
 def suggested_closing_date(months: set[str], today: date) -> date:
-    """End of the last month with movements; end of last month if none."""
+    """End of the last month with movements; end of last month if none.
+    Months after the current one are left out (see ``without_future``)."""
+    months = {m for m in months if _parse_ym(m) <= _ym(today)}
     if months:
         return _last_day(max(_parse_ym(m) for m in months))
     return _last_day(_shift(_ym(today), -1))
@@ -349,10 +382,11 @@ def check_progress(
 
 # ── Resume ───────────────────────────────────────────────────────────────────
 
-# Steps of the first version, in order. The transfers step ("are the money
-# moves between your accounts consistent?") comes in a second phase, after
-# "import"; the UI numbers only the steps listed here.
-STEPS: list[str] = ["checklist", "import", "counterparts", "mixed", "report"]
+# Steps in order; the UI numbers only the steps listed here. "counterparts"
+# checks the spending, "transfers" that the money moved between the user's
+# own accounts has both sides, "income" the income left once the transfers
+# are out: after them, so a transfer is never asked as income.
+STEPS: list[str] = ["checklist", "import", "counterparts", "mixed", "transfers", "income", "report"]
 
 
 def resume_step(steps: list[str], saved: str | None, closed: set[str]) -> str:
