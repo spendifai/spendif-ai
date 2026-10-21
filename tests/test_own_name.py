@@ -211,3 +211,18 @@ def test_renaming_all_spreads_the_category_of_the_renamed_movement(session):
     # The user's choice became a rule on the name: the next imports get it too.
     assert any(r.pattern == "Mutuo Casa" and r.category == "Casa"
                for r in repository.get_category_rules(session))
+
+
+def test_renaming_all_a_giroconto_makes_giroconti_of_the_others(session):
+    from core.normalizer import own_name_for
+    _variable_rates(session)
+    ref = session.get(Transaction, "m0")
+    ref.tx_type = "internal_out"          # the user marked it: no category any more
+    session.flush()
+    _rule, renamed = repository.create_own_name(session, "m0", "Giro su conto mutuo", any_amount=True)
+    repository.spread_own_name_category(session, "m0", renamed)
+    for i in ("m1", "m2"):
+        assert session.get(Transaction, i).tx_type == "internal_out"
+    assert session.get(Transaction, "back").tx_type not in ("internal_out", "internal_in")  # other direction
+    giro = [r for r in repository.get_category_rules(session) if r.is_giroconto]
+    assert [(r.pattern, r.direction) for r in giro] == [("Giro Su Conto Mutuo", "out")]
