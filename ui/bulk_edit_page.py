@@ -338,7 +338,8 @@ def render_bulk_edit_page(engine):
                     rule_msg = t("bulk_edit.rule_created") if created else t("bulk_edit.rule_updated")
 
                 if apply_to_similar_cat and sel.description:
-                    similar = tx_svc.get_by_rule_pattern(sel.description, "contains")
+                    similar = tx_svc.get_by_rule_pattern(
+                        sel.description, "contains", "out" if is_expense else "in")
                     for stx in similar:
                         if stx.id != sel.id:
                             _set_cat(stx.id, new_cat, new_sub, origin="bulk_edit")

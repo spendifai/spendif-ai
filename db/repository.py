@@ -615,7 +615,7 @@ def apply_rules_to_transactions(session: Session, tx_ids: list[str],
         if tx.category_source == "manual" or tx.human_validated:
             continue
         for rule in rules:
-            if rule.matches(tx.description or "", tx.doc_type):
+            if rule.matches(tx.description or "", tx.doc_type, tx.amount):
                 if rule.is_multi_category:
                     n += _make_multi_category(tx, fallbacks)
                 elif rule.is_giroconto:
@@ -1125,6 +1125,7 @@ def get_category_rules(session: Session) -> list[CoreCategoryRule]:
             priority=row.priority or 0,
             is_giroconto=bool(row.is_giroconto),
             is_multi_category=bool(row.is_multi_category),
+            direction=row.direction,
         )
         for row in rows
     ]
@@ -1181,7 +1182,7 @@ def apply_rules_to_review_transactions(
     for tx in txs:
         desc = tx.description or ""
         for rule in rules:
-            if rule.matches(desc, tx.doc_type):
+            if rule.matches(desc, tx.doc_type, tx.amount):
                 if rule.is_multi_category:
                     updated += _make_multi_category(tx, fallbacks)
                     break
@@ -1234,7 +1235,7 @@ def apply_all_rules_to_all_transactions(
     for tx in txs:
         desc = tx.description or ""
         for rule in rules:
-            if rule.matches(desc, tx.doc_type):
+            if rule.matches(desc, tx.doc_type, tx.amount):
                 if rule.is_multi_category:
                     n_matched += _make_multi_category(tx, fallbacks)
                     break
@@ -1267,6 +1268,25 @@ def apply_all_rules_to_all_transactions(
     return n_matched, n_cleared
 
 
+def category_direction(session: Session, category: Optional[str]) -> Optional[str]:
+    """"out" for a spending category, "in" for an income one (spec 18)."""
+    from db.models import TaxonomyCategory
+    if not category:
+        return None
+    types = {t for (t,) in session.query(TaxonomyCategory.type).filter(TaxonomyCategory.name == category)}
+    if types == {"expense"}:
+        return "out"
+    if types == {"income"}:
+        return "in"
+    return None
+
+
+def pattern_directions(session: Session, pattern: str, match_type: str) -> set[str]:
+    """The directions of the movements a pattern covers: "out", "in" or both."""
+    return {"out" if float(tx.amount or 0) < 0 else "in"
+            for tx in get_transactions_by_rule_pattern(session, pattern, match_type)}
+
+
 def create_category_rule(
     session: Session,
     pattern: str,
@@ -1278,34 +1298,47 @@ def create_category_rule(
     priority: int = 0,
     is_giroconto: bool = False,
     is_multi_category: bool = False,
+    direction: Optional[str] = None,
 ) -> tuple[CategoryRule, bool]:
     """Create or update a category rule.
 
-    If a rule with the same pattern + match_type already exists it is updated
-    in-place (upsert) to avoid duplicates.
+    Every rule has a direction, "out" or "in", and holds only for the
+    movements in it (spec 18, founder 2026-10-21). Without *direction*: the
+    category's type tells it; for a giroconto or multi-category rule, the
+    movements the pattern covers, and when they go both ways one rule per
+    direction is written (two visible decisions, never one for both).
 
-    Returns (rule, created) where created=False means an existing rule was updated.
+    If a rule with the same pattern + match_type + direction already exists
+    it is updated in place. Returns (rule, created): the first rule written.
     """
+    if direction is None:
+        direction = category_direction(session, category) if category else None
+    if direction is None:
+        found = pattern_directions(session, pattern, match_type)
+        if len(found) > 1:
+            first = None
+            for d in sorted(found, reverse=True):  # "out" first
+                r = create_category_rule(session, pattern, match_type, category, subcategory,
+                                         context, doc_type, priority, is_giroconto,
+                                         is_multi_category, direction=d)
+                first = first or r
+            return first
+        direction = found.pop() if found else "out"
     # Pattern is stored verbatim (matching is case-insensitive at compare time:
     # see categorizer.matches / get_transactions_by_rule_pattern). The upsert
     # lookup is case-insensitive for contains/exact so "coop"/"COOP" dedup to one.
     from sqlalchemy import func
 
     if match_type in ("contains", "exact"):
-        existing = (
-            session.query(CategoryRule)
-            .filter(
-                func.upper(CategoryRule.pattern) == pattern.upper(),
-                CategoryRule.match_type == match_type,
-            )
-            .first()
-        )
+        same_pattern = func.upper(CategoryRule.pattern) == pattern.upper()
     else:
-        existing = (
-            session.query(CategoryRule)
-            .filter(CategoryRule.pattern == pattern, CategoryRule.match_type == match_type)
-            .first()
-        )
+        same_pattern = CategoryRule.pattern == pattern
+    existing = (
+        session.query(CategoryRule)
+        .filter(same_pattern, CategoryRule.match_type == match_type,
+                CategoryRule.direction == direction)
+        .first()
+    )
     if existing is not None:
         existing.category = category
         existing.subcategory = subcategory
@@ -1326,6 +1359,7 @@ def create_category_rule(
         priority=priority,
         is_giroconto=is_giroconto,
         is_multi_category=is_multi_category,
+        direction=direction,
     )
     session.add(rule)
     session.flush()
@@ -1382,10 +1416,17 @@ def get_transactions_by_rule_pattern(
     session: Session,
     pattern: str,
     match_type: str,
+    direction: Optional[str] = None,
 ) -> list[Transaction]:
-    """Return transactions whose description matches the rule pattern."""
+    """Return transactions whose description matches the rule pattern, in
+    the rule's *direction* ("out", "in") when given (spec 18)."""
     import re
-    txs = session.query(Transaction).all()
+    q = session.query(Transaction)
+    if direction == "out":
+        q = q.filter(Transaction.amount < 0)
+    elif direction == "in":
+        q = q.filter(Transaction.amount >= 0)
+    txs = q.all()
     result = []
     pat_lower = pattern.lower()
     for tx in txs:
@@ -1407,13 +1448,14 @@ def get_transactions_by_rule_pattern(
 
 def set_giroconto_by_rule_pattern(
     session: Session, pattern: str, match_type: str, make_giroconto: bool,
+    direction: Optional[str] = None,
 ) -> int:
     """Mark (or unmark) as giroconto every movement the rule pattern matches.
 
     Unmarking gives back income or expense by sign. Returns how many changed.
     """
     changed = 0
-    for tx in get_transactions_by_rule_pattern(session, pattern, match_type):
+    for tx in get_transactions_by_rule_pattern(session, pattern, match_type, direction):
         if make_giroconto:
             changed += _make_giroconto(tx)
         elif tx.tx_type in ("internal_out", "internal_in"):
@@ -1444,31 +1486,31 @@ def set_multi_category(session: Session, description: str, multi: bool) -> int:
             session.flush()
         return 0
     if existing is None:
-        session.add(CategoryRule(pattern=description, match_type="exact", category="",
-                                 subcategory="", priority=0, is_multi_category=True))
-        session.flush()
+        # One rule per direction the counterpart has (spec 18).
+        create_category_rule(session, description, "exact", "", "", priority=0,
+                             is_multi_category=True)
     ids = [t.id for t in session.query(Transaction.id).filter(
         same_counterpart(Transaction.description, description))]
     return apply_rules_to_transactions(session, ids, get_category_rules(session))
 
 
 def delete_giroconto_rule(session: Session, pattern: str, match_type: str) -> bool:
-    """Delete the giroconto rule with this pattern, if any. True if deleted."""
+    """Delete the giroconto rules with this pattern, in both directions
+    (unmarking a counterpart undoes both). True if any was deleted."""
     from sqlalchemy import func
-    rule = (
+    rules = (
         session.query(CategoryRule)
         .filter(
             func.upper(CategoryRule.pattern) == pattern.upper(),
             CategoryRule.match_type == match_type,
             CategoryRule.is_giroconto.is_(True),
         )
-        .first()
+        .all()
     )
-    if rule is None:
-        return False
-    session.delete(rule)
+    for rule in rules:
+        session.delete(rule)
     session.flush()
-    return True
+    return bool(rules)
 
 
 # ── Persistence of ImportResult ───────────────────────────────────────────────
@@ -3045,13 +3087,14 @@ def get_counterpart_stats(
         uncategorized_count = sum(
             1 for t in txs if t.category_source not in USER_CATEGORY_SOURCES
         )
-        categorized_by_user = uncategorized_count == 0 or any(
-            r.matches(desc) for r in rules
-        )
+        # A rule covers the counterpart only in its direction (spec 18).
+        _dirs = {"out" if float(t.amount or 0) < 0 else "in" for t in txs}
+        _covers = [r for r in rules if r.matches(desc) and (r.direction is None or r.direction in _dirs)]
+        categorized_by_user = uncategorized_count == 0 or bool(_covers)
         n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
         # Multi-category (spec 24): decided by its rule; its movements not yet
         # chosen by hand are the ones to see one by one.
-        is_multi = any(r.is_multi_category and r.matches(desc) for r in rules)
+        is_multi = any(r.is_multi_category for r in _covers)
         to_see = sum(1 for t in txs if t.category_source == "multi")
 
         stats.append(

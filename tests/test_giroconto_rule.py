@@ -25,6 +25,7 @@ from db.models import (
     Transaction,
     _migrate_add_rule_giroconto,
     _migrate_add_rule_multi_category,
+    _migrate_rule_direction,
     get_session,
 )
 from db.repository import (
@@ -92,6 +93,7 @@ def test_migration_adds_the_column_to_an_old_database():
     _migrate_add_rule_giroconto(eng)
     _migrate_add_rule_giroconto(eng)  # idempotent
     _migrate_add_rule_multi_category(eng)                # the later column (spec 24)
+    _migrate_rule_direction(eng)                         # and the direction (spec 18)
 
     assert "is_giroconto" in {c["name"] for c in inspect(eng).get_columns("category_rule")}
     with get_session(eng) as s:
@@ -260,7 +262,9 @@ def test_grid_marks_and_unmarks_a_counterpart(tmp_path):
 
     with get_session(eng) as s:
         rules = get_category_rules(s)
-        assert [(r.pattern, r.is_giroconto) for r in rules] == [("Conto Risparmio", True)]
+        # Movements both ways: one giroconto rule per direction (spec 18).
+        assert sorted((r.pattern, r.is_giroconto, r.direction) for r in rules) == [
+            ("Conto Risparmio", True, "in"), ("Conto Risparmio", True, "out")]
         assert s.get(Transaction, "a").tx_type == "internal_out"
         assert s.get(Transaction, "b").tx_type == "internal_in"
         assert s.get(Transaction, "c").tx_type == "expense"

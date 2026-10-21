@@ -149,8 +149,9 @@ class RuleService:
                                                     match_type=match_type)
                     taken.add((pattern.casefold(), match_type))
                 n = 0
-                for tx in repository.get_transactions_by_rule_pattern(s, pattern, match_type):
-                    if tx.category_source == "manual":
+                for tx in repository.get_transactions_by_rule_pattern(
+                        s, pattern, match_type, getattr(rule, "direction", None)):
+                    if tx.category_source == "manual" or tx.human_validated:
                         continue
                     repository.update_transaction_category(
                         s, tx.id, rule.category, rule.subcategory or "",

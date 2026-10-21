@@ -198,9 +198,11 @@ class TransactionService:
             s.commit()
             return result
 
-    def get_by_rule_pattern(self, pattern: str, match_type: str) -> list[Transaction]:
+    def get_by_rule_pattern(self, pattern: str, match_type: str,
+                            direction: str | None = None) -> list[Transaction]:
+        """The movements a rule covers, in its direction when given (spec 18)."""
         with self._session() as s:
-            return repository.get_transactions_by_rule_pattern(s, pattern, match_type)
+            return repository.get_transactions_by_rule_pattern(s, pattern, match_type, direction)
 
     def get_by_raw_pattern(self, raw_pattern: str, match_type: str) -> list[Transaction]:
         with self._session() as s:
@@ -382,10 +384,11 @@ class TransactionService:
 
     def set_giroconto_by_rule_pattern(
         self, pattern: str, match_type: str, make_giroconto: bool,
+        direction: str | None = None,
     ) -> int:
         with self._session() as s:
             result = repository.set_giroconto_by_rule_pattern(
-                s, pattern, match_type, make_giroconto,
+                s, pattern, match_type, make_giroconto, direction,
             )
             s.commit()
             return result

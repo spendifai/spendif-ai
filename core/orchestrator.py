@@ -1671,7 +1671,7 @@ def process_file(
             if _row["tx_type"] not in _turnable:
                 continue
             _desc = str(_row.get("description") or "")
-            if any(r.matches(_desc, _row.get("doc_type")) for r in _giro_rules):
+            if any(r.matches(_desc, _row.get("doc_type"), _row.get("amount")) for r in _giro_rules):
                 tx_df.at[_i, "tx_type"] = (
                     TransactionType.internal_out.value
                     if Decimal(str(_row["amount"])) < 0

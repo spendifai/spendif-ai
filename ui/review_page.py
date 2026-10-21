@@ -304,7 +304,8 @@ def render_review_page(engine):
         # Preview and retroactive options (shown when save_rule is checked)
         if save_rule and selected_tx.description:
             _preview_pattern = selected_tx.description
-            _preview_matching = tx_svc.get_by_rule_pattern(_preview_pattern, "contains")
+            _preview_matching = tx_svc.get_by_rule_pattern(
+                _preview_pattern, "contains", "out" if float(selected_tx.amount) < 0 else "in")
             st.info(t("review.will_match", n=len(_preview_matching)))
             review_retroactive = st.checkbox(
                 t("review.apply_retroactive"),
@@ -338,7 +339,9 @@ def render_review_page(engine):
                         n_matched, _ = rule_svc.apply_to_all()
                         rule_msg += f" · {n_matched} transazioni aggiornate retroattivamente."
                     else:
-                        similar = tx_svc.get_by_rule_pattern(selected_tx.description, "contains")
+                        similar = tx_svc.get_by_rule_pattern(
+                            selected_tx.description, "contains",
+                            "out" if float(selected_tx.amount) < 0 else "in")
                         n_similar = 0
                         for stx in similar:
                             if stx.id != selected_tx.id:

@@ -626,7 +626,8 @@ def render_registry_page(engine):
                     for r in _existing_rules
                 )
                 _rule_matching = tx_svc.get_by_rule_pattern(
-                    rule_pattern.strip(), rule_match_type
+                    rule_pattern.strip(), rule_match_type,
+                    "out" if _amount_by_id.get(_rule_tx_id, 0) < 0 else "in",
                 )
                 if _rule_exists:
                     st.warning(t("ledger.rule_exists_update", n=len(_rule_matching)))

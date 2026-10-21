@@ -278,6 +278,7 @@ def create_tables(engine=None):
     _migrate_giroconti_without_category(engine)
     _migrate_description_rule_amount(engine)
     _migrate_description_rule_direction(engine)
+    _migrate_rule_direction(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -593,6 +594,9 @@ class CategoryRule(Base):
     # everything is bought; its movements take the generic category and are
     # seen one by one. Category stays empty.
     is_multi_category = Column(Boolean, default=False, nullable=False, server_default="0")
+    # The rule's direction (spec 18): "out" money out, "in" money in. A rule
+    # holds only for the movements in its direction.
+    direction = Column(String(3), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -1266,6 +1270,68 @@ def _migrate_counterparts_written_one_way(engine) -> None:
                          {"d": new, "i": tx_id})
         if changed:
             conn.commit()
+
+
+def _migrate_rule_direction(engine) -> None:
+    """Give every category rule its direction, once (spec 18): a category
+    rule from its category's type; a giroconto or multi-category rule from
+    the movements it covers, split in two rules when they go both ways.
+    Then the movements a rule of the other direction categorized lose that
+    category (left to review). Idempotent: only rules without a direction."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE category_rule ADD COLUMN direction VARCHAR(3)'))
+            conn.commit()
+        except Exception as exc:
+            if "no such table" in str(exc).lower():
+                return
+            if "duplicate column name" not in str(exc).lower():
+                raise
+    from sqlalchemy.exc import OperationalError
+    try:
+        _assign_rule_directions(engine)
+    except OperationalError:
+        pass  # a partial database (no movements or taxonomy yet): nothing to read
+
+
+def _assign_rule_directions(engine) -> None:
+    from sqlalchemy import text as _text
+    from sqlalchemy.orm import Session as _Session
+    from db import repository as _repo
+    with _Session(bind=engine) as s:
+        pending = s.query(CategoryRule).filter(CategoryRule.direction.is_(None)).all()
+        if not pending:
+            return
+        for rule in pending:
+            d = _repo.category_direction(s, rule.category) if rule.category else None
+            if d is None:
+                found = _repo.pattern_directions(s, rule.pattern, rule.match_type)
+                if len(found) > 1:
+                    rule.direction = "out"
+                    s.add(CategoryRule(
+                        pattern=rule.pattern, match_type=rule.match_type, category=rule.category,
+                        subcategory=rule.subcategory, context=rule.context, doc_type=rule.doc_type,
+                        priority=rule.priority, is_giroconto=rule.is_giroconto,
+                        is_multi_category=rule.is_multi_category, direction="in"))
+                    continue
+                d = found.pop() if found else "out"
+            rule.direction = d
+        s.flush()
+        # A movement categorized by a rule of the other direction loses it.
+        expense = {n for (n,) in s.execute(_text("SELECT name FROM taxonomy_category WHERE type='expense'"))}
+        income = {n for (n,) in s.execute(_text("SELECT name FROM taxonomy_category WHERE type='income'"))}
+        for tx in s.query(Transaction).filter(Transaction.category_source == "rule"):
+            out = float(tx.amount or 0) < 0
+            if out:
+                wrong = tx.category in income and tx.category not in expense
+            else:
+                wrong = tx.category in expense and tx.category not in income
+            if wrong:
+                tx.category = tx.subcategory = None
+                tx.category_source = tx.category_confidence = None
+                tx.to_review = True
+        s.commit()
 
 
 def _migrate_description_rule_direction(engine) -> None:

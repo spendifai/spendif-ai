@@ -108,6 +108,21 @@ class TestBuildSankeyData:
             columns=["date", "amount", "tx_type", "category", "subcategory", "reconciled"],
         )
 
+    def test_a_category_below_zero_is_never_a_source(self):
+        """Refunds larger than the spending (8,678 back, 900 spent in Salute):
+        neither the category nor its subcategories are drawn, so Salute does
+        not show as where the money comes from (2026-10-21)."""
+        df = self._df(
+            (pd.Timestamp("2026-08-03"), 3000.0, "income", "Lavoro autonomo", None, False),
+            (pd.Timestamp("2026-08-03"), 8678.0, "income", "Salute", "Altro salute", False),
+            (pd.Timestamp("2026-08-10"), -800.0, "expense", "Salute", "Dentista", False),
+            (pd.Timestamp("2026-08-12"), -100.0, "expense", "Alimentari", "Spesa", False),
+        )
+        out = _build_sankey_data(df, expense_categories={"Salute", "Alimentari"})
+        sources = {out["nodes"][i] for i in out["link_source"]}
+        assert not any("Salute" in n or "Dentista" in n for n in sources)
+        assert not any("Dentista" in n for n in out["nodes"])
+
     def test_no_income_no_expenses_returns_none(self):
         empty = self._df()
         assert _build_sankey_data(empty) is None

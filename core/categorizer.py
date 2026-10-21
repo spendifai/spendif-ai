@@ -66,6 +66,10 @@ class CategoryRule:
     is_giroconto: bool = False
     # A multi-category rule (spec 24): the generic category, seen one by one.
     is_multi_category: bool = False
+    # The rule's direction (spec 18): "out" for money out, "in" for money in.
+    # A rule never holds for both by default; None only for a rule built in
+    # code without a ledger behind it.
+    direction: Optional[str] = None
 
     _compiled: re.Pattern = field(init=False, repr=False)
 
@@ -75,9 +79,12 @@ class CategoryRule:
         else:
             self._compiled = None
 
-    def matches(self, description: str, doc_type: str | None = None) -> bool:
+    def matches(self, description: str, doc_type: str | None = None, amount=None) -> bool:
         if self.doc_type and doc_type and self.doc_type != doc_type:
             return False
+        if self.direction and amount is not None:
+            if (self.direction == "out") != (float(amount) < 0):
+                return False
         desc = description.casefold()
         if self.match_type == "exact":
             # Case and punctuation do not count: GOOGLE*CLOUD is GOOGLE CLOUD.
@@ -231,7 +238,7 @@ def _try_deterministic(
     for rule in sorted(user_rules, key=lambda r: r.priority, reverse=True):
         if rule.is_giroconto or rule.is_multi_category:
             continue
-        if rule.matches(description, doc_type):
+        if rule.matches(description, doc_type, amount):
             rule_cat = rule.category
             rule_sub = rule.subcategory or ""
             if rule_sub:
@@ -561,7 +568,7 @@ def categorize_batch(
         description = tx.get("description", "") or ""
         doc_type = tx.get("doc_type", "") or ""
 
-        if any(r.matches(description, doc_type) for r in multi_rules):
+        if any(r.matches(description, doc_type, amount) for r in multi_rules):
             results[i] = multi_category_result(amount, fallback_categories)
             continue
 

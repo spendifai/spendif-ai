@@ -334,6 +334,10 @@ def _build_sankey_data(
         amount = float(row["abs_amount"])
         if amount <= 0:
             continue
+        # A category whose refunds exceed its spending draws nothing, its
+        # subcategories included: otherwise it shows as a source of money.
+        if cat_totals.get(row["category"], 0) <= 0:
+            continue
         cat_idx = _node(f"{row['category']}", ("category", row["category"]))
         sub_idx = _node(f"{row['subcategory']} ({row['category']})",
                         ("subcategory", row["category"], row["subcategory"]))
