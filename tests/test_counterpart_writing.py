@@ -86,3 +86,32 @@ def test_saved_upper_case_counterparts_are_rewritten_once(tmp_path):
     _migrate_counterparts_written_one_way(eng)          # idempotent
     with get_session(eng) as s:
         assert s.get(Transaction, "a").description == "Esselunga Corsico"
+
+
+# ── The user's own counterpart from the Registry ─────────────────────────────
+
+def test_the_user_rewrites_a_counterpart_without_touching_the_bank_text():
+    from decimal import Decimal
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from db.models import Base, Transaction
+    from db.repository import update_transaction_description
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    s = sessionmaker(bind=engine)()
+    s.add(Transaction(id="r", date="2026-10-08", amount=Decimal("-921"), tx_type="expense",
+                      description="Rapporto", raw_description="Bonifico eseguito Rapporto 06 77 rata",
+                      category="Casa", subcategory="Altro casa", category_source="llm",
+                      human_validated=False))
+    s.flush()
+    tx = s.get(Transaction, "r")
+    assert update_transaction_description(s, "r", "mutuo  CASA")
+    assert tx.description == "Mutuo Casa"                     # written like every counterpart
+    assert tx.raw_description == "Bonifico eseguito Rapporto 06 77 rata"
+    assert (tx.category, tx.category_source) == ("Casa", "llm")  # nothing recategorized
+    assert tx.human_validated is False                        # not a check on the money
+    assert not update_transaction_description(s, "r", "MUTUO CASA")  # same counterpart
+    assert not update_transaction_description(s, "r", "   ")         # never emptied
+    assert tx.description == "Mutuo Casa"
+    s.close()

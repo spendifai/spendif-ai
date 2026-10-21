@@ -276,6 +276,7 @@ def create_tables(engine=None):
     _migrate_add_transfer_link_decision(engine)
     _migrate_add_category_color(engine)
     _migrate_giroconti_without_category(engine)
+    _migrate_description_rule_amount(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -604,11 +605,14 @@ class DescriptionRule(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     raw_pattern = Column(Text, nullable=False)          # pattern to match in raw_description
-    match_type = Column(String(10), nullable=False)      # exact | contains | regex
+    match_type = Column(String(10), nullable=False)      # exact | contains | regex | signature
+    # The user's own name (spec 27): match_type "signature", raw_pattern is
+    # the raw signature and amount the identical amount, sign included.
+    amount = Column(Numeric(precision=18, scale=2), nullable=True)
     cleaned_description = Column(Text, nullable=False)  # replacement description
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    __table_args__ = (UniqueConstraint("raw_pattern", "match_type"),)
+    __table_args__ = (UniqueConstraint("raw_pattern", "match_type", "amount"),)
 
 
 class UserSettings(Base):
@@ -1258,6 +1262,35 @@ def _migrate_counterparts_written_one_way(engine) -> None:
                          {"d": new, "i": tx_id})
         if changed:
             conn.commit()
+
+
+def _migrate_description_rule_amount(engine) -> None:
+    """Add the amount to description_rule (spec 27): one raw signature can
+    carry several own names, one per amount, so the unique key becomes
+    (raw_pattern, match_type, amount). SQLite cannot change a constraint in
+    place: the table is rebuilt once, rows kept. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(description_rule)")).fetchall()]
+        if not cols or "amount" in cols:
+            return
+        conn.execute(_text(
+            'CREATE TABLE description_rule_new ('
+            'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+            'raw_pattern TEXT NOT NULL, '
+            'match_type VARCHAR(10) NOT NULL, '
+            'amount NUMERIC(18, 2), '
+            'cleaned_description TEXT NOT NULL, '
+            'created_at DATETIME, '
+            'UNIQUE(raw_pattern, match_type, amount))'
+        ))
+        conn.execute(_text(
+            'INSERT INTO description_rule_new (id, raw_pattern, match_type, cleaned_description, created_at) '
+            'SELECT id, raw_pattern, match_type, cleaned_description, created_at FROM description_rule'
+        ))
+        conn.execute(_text('DROP TABLE description_rule'))
+        conn.execute(_text('ALTER TABLE description_rule_new RENAME TO description_rule'))
+        conn.commit()
 
 
 def _migrate_giroconti_without_category(engine) -> None:

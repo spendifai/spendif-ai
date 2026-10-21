@@ -276,6 +276,22 @@ def render_rules_page(engine):
                 else:
                     st.error(t("rules.rule_not_found"))
 
+    # ── Nomi tuoi (spec 27) ──────────────────────────────────────────────────
+    _own = rule_svc.get_own_names()
+    if _own:
+        st.divider()
+        st.subheader(t("rules.own_names_title", n=len(_own)))
+        st.caption(t("rules.own_names_caption"))
+        for _o in _own:
+            _c_txt, _c_del = st.columns([6, 1])
+            with _c_txt:
+                st.markdown(t("rules.own_names_row", name=_o["name"], amount=f"{_o['amount']:.2f}",
+                              n=_o["n"], example=(_o["example"] or _o["signature"])[:90]))
+            with _c_del:
+                if st.button(t("rules.delete_btn"), key=f"own_name_del_{_o['id']}"):
+                    rule_svc.delete_description_rule(_o["id"])
+                    st.rerun()
+
     # ── Nuova regola manuale ─────────────────────────────────────────────────
     st.divider()
     st.subheader(t("rules.new_rule_title"))

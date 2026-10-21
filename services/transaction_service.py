@@ -109,6 +109,12 @@ class TransactionService:
             s.commit()
             return result
 
+    def update_description(self, tx_id: str, description: str | None) -> bool:
+        with self._session() as s:
+            result = repository.update_transaction_description(s, tx_id, description)
+            s.commit()
+            return result
+
     def toggle_giroconto(self, tx_id: str) -> tuple[bool, str]:
         with self._session() as s:
             result = repository.toggle_transaction_giroconto(s, tx_id)

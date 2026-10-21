@@ -292,6 +292,29 @@ class RuleService:
             s.commit()
             return result
 
+    # ── Own names (spec 27) ──────────────────────────────────────────────────
+
+    def same_movements(self, tx_id: str) -> list[str]:
+        """The other movements equal to this one: same bank text without the
+        words holding digits, same amount, same sign."""
+        with self._session() as s:
+            return repository.same_movements(s, tx_id)
+
+    def create_own_name(self, tx_id: str, name: str) -> int:
+        """The user's own name for every movement like this one, past and
+        future. A category rule on the new name, if any, gives them its
+        category. Returns how many movements carry the name."""
+        with self._session() as s:
+            rule, renamed = repository.create_own_name(s, tx_id, name)
+            if renamed:
+                repository.apply_rules_to_transactions(s, renamed, repository.get_category_rules(s))
+            s.commit()
+            return len(renamed) if rule is not None else 0
+
+    def get_own_names(self) -> list[dict]:
+        with self._session() as s:
+            return repository.get_own_names(s)
+
     def delete_description_rule(self, rule_id: int) -> bool:
         with self._session() as s:
             result = repository.delete_description_rule(s, rule_id)

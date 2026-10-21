@@ -54,7 +54,7 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
         COL_SEL:         False,
         # U-06: resta un date, non una stringa, cosi' l'ordinamento e' corretto
         COL_DATE:        pd.to_datetime(tx.date).date() if tx.date else None,
-        COL_DESC:        (tx.description or "")[:80],
+        COL_DESC:        tx.description or "",
         COL_INCOME:      amount if amount > 0 else None,
         COL_EXPENSE:     abs(amount) if amount < 0 else None,
         COL_ACCOUNT:     tx.account_label or "",
@@ -311,7 +311,9 @@ def render_registry_page(engine):
         COL_ID:          None,
         COL_SEL:         st.column_config.CheckboxColumn("📏", width=40),
         COL_DATE:        st.column_config.DateColumn(t("ledger.col.date"), format=_date_fmt_js, width="small"),
-        COL_DESC:        st.column_config.TextColumn(t("ledger.col.description"), disabled=True),
+        COL_DESC:        st.column_config.TextColumn(
+            t("ledger.col.description"), width="large", help=t("ledger.col.description_help"),
+        ),
         COL_INCOME:      st.column_config.NumberColumn(t("ledger.col.income"), disabled=True, format="%.2f", width="small"),
         COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f", width="small"),
         COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small"),
@@ -397,6 +399,7 @@ def render_registry_page(engine):
         n_ctx  = 0
         n_giro = 0
         n_val  = 0
+        n_desc = 0
         _fan_out_candidates: list[tuple[str, str]] = []  # (tx_id, description) for fan-out check
         for idx in range(len(orig_df)):
             orig = orig_df.iloc[idx]
@@ -408,6 +411,22 @@ def render_registry_page(engine):
             ctx_changed  = str(edit[COL_CONTEXT])     != str(orig[COL_CONTEXT])
             giro_changed = bool(edit[COL_TRANSFER])   != bool(orig[COL_TRANSFER])
             val_changed  = bool(edit[COL_VALIDATED])  != bool(orig[COL_VALIDATED])
+            desc_changed = str(edit[COL_DESC] or "").strip() != str(orig[COL_DESC] or "").strip()
+
+            # The counterpart first: a category chosen in the same save looks
+            # for similar movements by the new name.
+            _desc_now = str(orig[COL_DESC]).strip()
+            if desc_changed:
+                if str(edit[COL_DESC] or "").strip():
+                    if tx_svc.update_description(tx_id, edit[COL_DESC]):
+                        n_desc += 1
+                        _desc_now = str(edit[COL_DESC]).strip()
+                        # Decided once for all the movements like this one
+                        # (spec 27): asked right after the save.
+                        st.session_state.setdefault("_own_name_pending", []).append(
+                            (tx_id, _desc_now, len(rule_svc.same_movements(tx_id))))
+                else:
+                    st.warning(t("ledger.description_empty", row=idx + 1))
 
             if cat_changed or sub_changed:
                 _new_cat = edit[COL_CATEGORY] or orig[COL_CATEGORY]
@@ -422,9 +441,8 @@ def render_registry_page(engine):
                     continue
                 tx_svc.update_category(tx_id, _new_cat, _new_sub, origin="ledger")
                 n_cat += 1
-                _desc = str(orig[COL_DESC]).strip()
-                if _desc:
-                    _fan_out_candidates.append((tx_id, _desc))
+                if _desc_now:
+                    _fan_out_candidates.append((tx_id, _desc_now))
 
             if ctx_changed:
                 tx_svc.update_context(tx_id, edit[COL_CONTEXT] or None)
@@ -442,9 +460,10 @@ def render_registry_page(engine):
                     tx_svc.unvalidate(tx_id)
                 n_val += 1
 
-        total_saved = n_cat + n_ctx + n_giro + n_val
+        total_saved = n_cat + n_ctx + n_giro + n_val + n_desc
         if total_saved:
             parts = []
+            if n_desc: parts.append(t("ledger.saved_descriptions", n=n_desc))
             if n_cat:  parts.append(f"{n_cat} categorie")
             if n_ctx:  parts.append(f"{n_ctx} contesti")
             if n_giro: parts.append(f"{n_giro} giroconti")
@@ -471,6 +490,26 @@ def render_registry_page(engine):
                 st.rerun()
         else:
             st.info(t("ledger.no_changes"))
+
+    # ── Own name for all the movements like this one (spec 27) ──────────────
+    for _p_idx, (_on_id, _on_name, _on_n) in enumerate(list(st.session_state.get("_own_name_pending", []))):
+        if _on_n:
+            st.info(t("ledger.own_name.ask", name=_on_name, n=_on_n))
+        else:
+            st.info(t("ledger.own_name.ask_future", name=_on_name))
+        _c_all, _c_one, _ = st.columns([2, 1, 3])
+        with _c_all:
+            _label = (t("ledger.own_name.all", n=_on_n) if _on_n else t("ledger.own_name.future"))
+            if st.button(_label, key=f"own_name_all_{_on_id}", type="primary", use_container_width=True):
+                _n_named = rule_svc.create_own_name(_on_id, _on_name)
+                st.session_state["_own_name_pending"].pop(_p_idx)
+                st.toast(t("ledger.own_name.done", name=_on_name, n=_n_named))
+                st.rerun()
+        with _c_one:
+            if st.button(t("ledger.own_name.only_this"), key=f"own_name_one_{_on_id}", use_container_width=True):
+                st.session_state["_own_name_pending"].pop(_p_idx)
+                st.rerun()
+        break  # one question at a time
 
     # ── C-06: Fan-out action buttons ─────────────────────────────────────────
     if st.session_state.get("_fan_out_pending"):

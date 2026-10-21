@@ -765,6 +765,23 @@ def update_transaction_context(session: Session, tx_id: str, context: str | None
     return True
 
 
+def update_transaction_description(session: Session, tx_id: str, description: str | None) -> bool:
+    """The user's own counterpart for one movement. Written like every
+    counterpart (the column's validator); the bank's text (raw_description)
+    is never touched, and nothing is recategorized: the user decided. Not a
+    check that the money was spent, so human_validated stays as it is.
+    Returns True if the counterpart changed."""
+    tx = session.get(Transaction, tx_id)
+    if tx is None or not (description or "").strip():
+        return False
+    before = tx.description
+    tx.description = description
+    if tx.description == before:
+        return False
+    session.flush()
+    return True
+
+
 def get_similar_transactions(
     session: Session, description: str, exclude_id: str = "", threshold: float = 0.35
 ) -> list[Transaction]:
@@ -2018,8 +2035,93 @@ def _update_schemas_account_label(session: Session, old_label: str, new_label: s
 
 # ── DescriptionRule ───────────────────────────────────────────────────────────
 
+OWN_NAME = "signature"  # match_type of a user's own name (spec 27)
+
+
 def get_description_rules(session: Session) -> list[DescriptionRule]:
-    return session.query(DescriptionRule).order_by(DescriptionRule.id).all()
+    """The Review page's bulk replacements; the own names have their list."""
+    return (session.query(DescriptionRule)
+            .filter(DescriptionRule.match_type != OWN_NAME)
+            .order_by(DescriptionRule.id).all())
+
+
+def _same_key_movements(session: Session, key: tuple[str, str]) -> list[Transaction]:
+    """The saved movements with this own-name key: same raw signature, same
+    amount to the cent, same sign."""
+    from decimal import Decimal
+    from core.normalizer import own_name_key
+    value = Decimal(key[1])
+    near = session.query(Transaction).filter(
+        Transaction.amount >= value - Decimal("0.005"),
+        Transaction.amount <= value + Decimal("0.005"),
+    ).all()
+    return [tx for tx in near if own_name_key(tx.raw_description, tx.amount) == key]
+
+
+def own_names(session: Session) -> dict[tuple[str, str], str]:
+    """{(raw signature, signed amount): own name} for the import (spec 27)."""
+    from decimal import Decimal
+    out = {}
+    for r in session.query(DescriptionRule).filter(DescriptionRule.match_type == OWN_NAME):
+        out[(r.raw_pattern, str(Decimal(str(r.amount)).quantize(Decimal("0.01"))))] = r.cleaned_description
+    return out
+
+
+def same_movements(session: Session, tx_id: str) -> list[str]:
+    """Ids of the other saved movements equal to this one for an own name."""
+    from core.normalizer import own_name_key
+    tx = session.get(Transaction, tx_id)
+    key = own_name_key(tx.raw_description, tx.amount) if tx else None
+    if key is None:
+        return []
+    return [t.id for t in _same_key_movements(session, key) if t.id != tx_id]
+
+
+def create_own_name(session: Session, tx_id: str, name: str) -> tuple[Optional[DescriptionRule], list[str]]:
+    """The user's own name for the movements like this one, past and future
+    (spec 27): a rule (raw signature, signed amount) -> name, and every saved
+    movement with that key renamed. The bank's text is never touched.
+    Returns (rule, ids renamed); (None, []) when the movement has no key."""
+    from decimal import Decimal
+    from core.normalizer import own_name_key
+    tx = session.get(Transaction, tx_id)
+    key = own_name_key(tx.raw_description, tx.amount) if tx else None
+    if key is None or not (name or "").strip():
+        return None, []
+    amount = Decimal(key[1])
+    rule = session.query(DescriptionRule).filter(
+        DescriptionRule.match_type == OWN_NAME,
+        DescriptionRule.raw_pattern == key[0],
+        DescriptionRule.amount == amount,
+    ).first()
+    if rule is None:
+        rule = DescriptionRule(raw_pattern=key[0], match_type=OWN_NAME, amount=amount,
+                               cleaned_description=name)
+        session.add(rule)
+    renamed = []
+    for t in _same_key_movements(session, key):
+        t.description = name
+        renamed.append(t.id)
+    rule.cleaned_description = session.get(Transaction, tx_id).description or name.strip()
+    session.flush()
+    return rule, renamed
+
+
+def get_own_names(session: Session) -> list[dict]:
+    """The own names for the Rules page, with an example of the bank's text
+    and how many movements carry them."""
+    from core.normalizer import own_name_key
+    out = []
+    for r in (session.query(DescriptionRule).filter(DescriptionRule.match_type == OWN_NAME)
+              .order_by(DescriptionRule.cleaned_description)):
+        key = (r.raw_pattern, f"{r.amount:.2f}")
+        movements = _same_key_movements(session, key)
+        out.append({
+            "id": r.id, "name": r.cleaned_description, "signature": r.raw_pattern,
+            "amount": float(r.amount), "n": len(movements),
+            "example": movements[0].raw_description if movements else "",
+        })
+    return out
 
 
 def create_description_rule(

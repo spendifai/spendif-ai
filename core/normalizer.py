@@ -699,7 +699,7 @@ def counterpart_case(text: str) -> str:
 _SIGNATURE_MIN_WORDS = 2
 
 
-def raw_signature(raw: str | None) -> str:
+def raw_signature(raw: str | None, min_words: int = _SIGNATURE_MIN_WORDS) -> str:
     """What stays of a raw description from one month to the next (spec 22).
 
     Tidied, case-free, without any word that contains a digit: amount, date,
@@ -710,7 +710,21 @@ def raw_signature(raw: str | None) -> str:
     """
     from core.rule_key import exact_key
     kept = [w for w in exact_key(tidy_text(raw)).split() if not any(c.isdigit() for c in w)]
-    return " ".join(kept) if len(kept) >= _SIGNATURE_MIN_WORDS else ""
+    return " ".join(kept) if len(kept) >= min_words else ""
+
+
+def own_name_key(raw: str | None, amount) -> tuple[str, str] | None:
+    """The key of a user's own name (spec 27): the raw signature plus the
+    identical amount, sign included (debit or credit). Computed on the bank's
+    text, never on the cleaned counterpart. One word is enough here: the user
+    decided, and the amount narrows it. None when nothing is left."""
+    from decimal import Decimal, InvalidOperation
+    sig = raw_signature(raw, min_words=1)
+    try:
+        value = Decimal(str(amount)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+    return (sig, str(value)) if sig else None
 
 
 # Countries that write the month before the day (05/03 = 3 May). Everywhere

@@ -864,6 +864,7 @@ def process_file(
     intermediary_prefixes: Optional[set] = None,  # active payment intermediaries (spec 20): the counterpart is the merchant after "*"
     known_categories: Optional[dict] = None,  # spec 22: {(counterpart key, direction): (cat, sub)} already in the ledger
     known_signatures: Optional[dict] = None,  # spec 22: {raw signature: counterpart} already in the ledger
+    own_names: Optional[dict] = None,  # spec 27: {(raw signature, signed amount): the user's own name}
     fallback_categories: Optional[dict] = None,  # taxonomy's generic category per direction (spec 24)
     account_label_override: Optional[str] = None,  # user-selected account name; overrides LLM-assigned label
     skip_rows_override: Optional[int] = None,  # user-confirmed skip_rows from UI; takes precedence over schema
@@ -1504,10 +1505,30 @@ def process_file(
     # SRL. The table already says so, and company names do not change with
     # the language: these movements get the merchant here and never go to the
     # model, which cleans only the others.
+    # The user's own names come first (spec 27): the user decided, so the
+    # movement is born with that name and no step after it guesses.
+    _by_own_name: dict[str, str] = {}
+    _own = own_names or {}
+    if _own:
+        from core.normalizer import own_name_key
+        for t in transactions:
+            name = _own.get(own_name_key(t.get("raw_description"), t.get("amount")))
+            if name:
+                _by_own_name[t["id"]] = name
+        if _by_own_name:
+            logger.info(
+                f"process_file: {len(_by_own_name)} movements named by the user's own "
+                f"names for {filename}, not sent to the model"
+            )
+    # A signature that has an own name for one amount says nothing for the
+    # others: their counterpart is not borrowed from the renamed movements.
+    _own_sigs = {sig for sig, _amount in _own}
     _by_intermediary: dict[str, str] = {}
     if intermediary_prefixes:
         from core.intermediaries import merchant_after
         for t in transactions:
+            if t["id"] in _by_own_name:
+                continue
             merchant = merchant_after(t.get("raw_description"), intermediary_prefixes)
             if merchant:
                 _by_intermediary[t["id"]] = merchant
@@ -1526,10 +1547,10 @@ def process_file(
     _first_with: dict[str, str] = {}     # signature -> id of the first to clean
     _to_clean = []
     for t in transactions:
-        if t["id"] in _by_intermediary:
+        if t["id"] in _by_intermediary or t["id"] in _by_own_name:
             continue
         sig = raw_signature(t.get("raw_description"))
-        if sig and sig in _known_sigs:
+        if sig and sig in _known_sigs and sig not in _own_sigs:
             _by_signature[t["id"]] = _known_sigs[sig]
         elif sig and sig in _first_with:
             _same_as[t["id"]] = _first_with[sig]
@@ -1559,7 +1580,9 @@ def process_file(
     _merged = []
     for t in transactions:
         tid = t["id"]
-        if tid in _by_intermediary:
+        if tid in _by_own_name:
+            desc = _by_own_name[tid]
+        elif tid in _by_intermediary:
             desc = _by_intermediary[tid]
         elif tid in _by_signature:
             desc = _by_signature[tid]

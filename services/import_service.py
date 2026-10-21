@@ -259,6 +259,8 @@ class ImportService:
             known_categories = repository.known_counterpart_categories(s)
             # The counterpart each raw signature already has (spec 22).
             known_signatures = repository.known_signatures(s)
+            # The user's own names (spec 27), before everything else.
+            own_names = repository.own_names(s)
             # The taxonomy's generic category, for the multi-category
             # counterparts and the fallback (spec 24).
             fallback_categories = repository.get_fallback_categories(s)
@@ -293,6 +295,7 @@ class ImportService:
             intermediary_prefixes=_active_intermediaries(self.engine),
             known_categories=known_categories,
             known_signatures=known_signatures,
+            own_names=own_names,
             fallback_categories=fallback_categories,
             account_label_override=account_label_override,
             skip_rows_override=skip_rows_override,
