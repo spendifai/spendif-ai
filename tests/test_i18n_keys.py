@@ -205,3 +205,18 @@ def test_the_bank_text_sits_next_to_the_description():
 
     keys = list(rp.build_ledger_row(_Tx(), True, {}))
     assert keys.index(rp.COL_RAW) == keys.index(rp.COL_DESC) + 1
+
+
+def test_every_registry_column_explains_itself():
+    """Founder, 2026-10-21: the user cannot guess that a tick on the first
+    column writes a rule. Every editable or symbolic column of the Registry
+    grid carries a help text on its header."""
+    from pathlib import Path
+    source = (Path(__file__).resolve().parents[1] / "ui" / "registry_page.py").read_text(encoding="utf-8")
+    block = source[source.index("_col_cfg: dict = {"):source.index("edited_df = st.data_editor(")]
+    for col in ("COL_SEL", "COL_DATE", "COL_DESC", "COL_INCOME", "COL_EXPENSE", "COL_ACCOUNT",
+                "COL_TYPE", "COL_CAT_SUB", "COL_CONTEXT", "COL_SOURCE", "COL_FLAG_REVIEW",
+                "COL_FLAG_VALID", "COL_FLAG_TRANSFER", "COL_VALIDATED", "COL_TRANSFER", "COL_RAW"):
+        start = block.index(col)
+        end = block.find("COL_", start + len(col) + 2)
+        assert "help=" in block[start:end if end > 0 else None], col
