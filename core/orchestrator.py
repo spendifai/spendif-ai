@@ -1510,9 +1510,9 @@ def process_file(
     _by_own_name: dict[str, str] = {}
     _own = own_names or {}
     if _own:
-        from core.normalizer import own_name_key
+        from core.normalizer import own_name_for
         for t in transactions:
-            name = _own.get(own_name_key(t.get("raw_description"), t.get("amount")))
+            name = own_name_for(_own, t.get("raw_description"), t.get("amount"))
             if name:
                 _by_own_name[t["id"]] = name
         if _by_own_name:

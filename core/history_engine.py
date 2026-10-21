@@ -11,7 +11,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from core.rule_key import exact_key
@@ -82,7 +82,11 @@ def get_associations(session: Session) -> list[DescriptionAssociation]:
             func.count().label("n"),
         )
         .filter(
-            Transaction.category_source.in_(USER_CATEGORY_SOURCES),
+            # Decided by the user: a rule, a choice by hand, or a movement
+            # checked by the user, whose category was confirmed with it
+            # (spec 16, principle 7).
+            or_(Transaction.category_source.in_(USER_CATEGORY_SOURCES),
+                Transaction.human_validated.is_(True)),
             Transaction.category.isnot(None),
         )
         .group_by(
@@ -152,7 +156,11 @@ def lookup_history(
             func.count().label("n"),
         )
         .filter(
-            Transaction.category_source.in_(USER_CATEGORY_SOURCES),
+            # Decided by the user: a rule, a choice by hand, or a movement
+            # checked by the user, whose category was confirmed with it
+            # (spec 16, principle 7).
+            or_(Transaction.category_source.in_(USER_CATEGORY_SOURCES),
+                Transaction.human_validated.is_(True)),
             Transaction.category.isnot(None),
             same_counterpart(Transaction.description, description),
         )
@@ -320,7 +328,7 @@ def apply_fan_out(
         if tx is None:
             continue
         # Safety: never overwrite a category the user decided
-        if tx.category_source in USER_CATEGORY_SOURCES:
+        if tx.category_source in USER_CATEGORY_SOURCES or tx.human_validated:
             continue
 
         tx.category = source.category

@@ -297,8 +297,9 @@ class TestApplyFanOut:
         assert target.context == "Vacanza"  # preserved, not cleared
 
     def test_mixed_targets_user_set_and_not(self, session):
-        """Fan-out skips categories the user set (by hand or by rule) and
-        updates the model's, also on a movement checked as spent."""
+        """Fan-out skips categories the user set (by hand or by rule) and,
+        since 2026-10-21, a checked movement: the check confirms its
+        category too (spec 16, principle 7)."""
         source = _make_tx(
             session, description="lidl", category="Alimentari",
             category_source="manual",
@@ -312,6 +313,6 @@ class TestApplyFanOut:
             category_source="llm", human_validated=True,
         )
         n = apply_fan_out(session, source.id, [by_rule.id, checked.id])
-        assert n == 1
+        assert n == 0
         assert by_rule.category == "Ristorazione"  # unchanged
-        assert checked.category == "Alimentari"  # updated
+        assert checked.category == "Altro"  # confirmed with the check: unchanged

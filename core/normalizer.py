@@ -727,6 +727,24 @@ def own_name_key(raw: str | None, amount) -> tuple[str, str] | None:
     return (sig, str(value)) if sig else None
 
 
+def own_name_direction_key(raw: str | None, amount) -> tuple[str, str] | None:
+    """The key of an own name whose amount changes (spec 27, a variable-rate
+    installment): the raw signature plus the sign only, "out" or "in". The
+    sign is always part of a rule's key (founder, 2026-10-21)."""
+    key = own_name_key(raw, amount)
+    if key is None:
+        return None
+    return (key[0], "out" if key[1].startswith("-") else "in")
+
+
+def own_name_for(own_names: dict, raw: str | None, amount) -> str | None:
+    """The own name of a movement: the rule with the identical amount first,
+    the most specific, then the one on the sign only."""
+    if not own_names:
+        return None
+    return own_names.get(own_name_key(raw, amount)) or own_names.get(own_name_direction_key(raw, amount))
+
+
 # Countries that write the month before the day (05/03 = 3 May). Everywhere
 # else, when the data cannot tell, the day comes first.
 _MONTH_FIRST_COUNTRIES = frozenset({"US"})

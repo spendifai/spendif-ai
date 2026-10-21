@@ -156,3 +156,58 @@ def test_migration_rebuilds_the_table_and_keeps_the_rows():
         rows = conn.execute(text("SELECT raw_pattern, cleaned_description FROM description_rule")).fetchall()
     assert "amount" in cols
     assert rows == [("ADDEBITO SDD", "Assicurazione")]
+
+
+_MUTUO = "Addebito banca popolare di sondrio incasso rate mutui  - crediti spec Addebito nº {n}"
+
+
+def _variable_rates(s):
+    for i, amount in enumerate(("-726.34", "-727.55", "-728.76")):
+        _tx(s, f"m{i}", _MUTUO.format(n=f"20250{i}1000014"), amount,
+            description="Banca Popolare Di Sondrio")
+    _tx(s, "back", _MUTUO.format(n="9"), "726.34", description="Banca Popolare Di Sondrio")  # credit
+
+
+def test_an_installment_that_changes_is_seen(session):
+    _variable_rates(session)
+    assert repository.same_movements(session, "m0") == []
+    assert sorted(t.id for t in repository.same_text_other_amounts(session, "m0")) == ["m1", "m2"]
+
+
+def test_the_sign_only_rule_names_every_installment_and_the_future_ones(session):
+    from core.normalizer import own_name_for
+    _variable_rates(session)
+    rule, renamed = repository.create_own_name(session, "m0", "Mutuo casa", any_amount=True)
+    assert sorted(renamed) == ["m0", "m1", "m2"]
+    assert session.get(Transaction, "back").description == "Banca Popolare Di Sondrio"  # other sign
+    assert rule.amount is None and rule.direction == "out"
+    names = repository.own_names(session)
+    assert own_name_for(names, _MUTUO.format(n="2026"), "-744.57") == "Mutuo Casa"
+    assert own_name_for(names, _MUTUO.format(n="2026"), "744.57") is None
+    listed = repository.get_own_names(session)
+    assert listed[0]["amount"] is None and listed[0]["n"] == 3
+
+
+def test_the_identical_amount_wins_over_the_sign_only(session):
+    from core.normalizer import own_name_for
+    _variable_rates(session)
+    repository.create_own_name(session, "m0", "Mutuo casa", any_amount=True)
+    repository.create_own_name(session, "m1", "Rata di febbraio")
+    names = repository.own_names(session)
+    assert own_name_for(names, _MUTUO.format(n="1"), "-727.55") == "Rata Di Febbraio"
+    assert own_name_for(names, _MUTUO.format(n="1"), "-800.00") == "Mutuo Casa"
+
+
+def test_renaming_all_spreads_the_category_of_the_renamed_movement(session):
+    _variable_rates(session)
+    ref = session.get(Transaction, "m0")
+    ref.category, ref.subcategory, ref.category_source = "Casa", "Mutuo", "manual"
+    session.flush()
+    _rule, renamed = repository.create_own_name(session, "m0", "Mutuo casa", any_amount=True)
+    repository.spread_own_name_category(session, "m0", renamed)
+    for i in ("m1", "m2"):
+        tx = session.get(Transaction, i)
+        assert (tx.category, tx.subcategory, tx.category_source) == ("Casa", "Mutuo", "rule")
+    # The user's choice became a rule on the name: the next imports get it too.
+    assert any(r.pattern == "Mutuo Casa" and r.category == "Casa"
+               for r in repository.get_category_rules(session))

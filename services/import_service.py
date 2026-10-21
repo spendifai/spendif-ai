@@ -332,6 +332,15 @@ class ImportService:
     def persist_result(self, result: ImportResult) -> None:
         with self._session() as s:
             repository.persist_import_result(s, result)
+        # The model's answers hold for each counterpart's past too (spec 22).
+        try:
+            with self._session() as s:
+                n = repository.rewrite_with_model_answers(s, result.transactions)
+                s.commit()
+            if n:
+                logger.info(f"persist_result: {n} saved movements took the model's new answer")
+        except Exception:  # the import is saved: a failed rewrite must not undo it
+            logger.exception("persist_result: rewrite with the model's answers failed")
         # The other side of a transfer usually came with another account's
         # file: pair the new movements with those already stored.
         from services.transfer_service import TransferService

@@ -277,6 +277,7 @@ def create_tables(engine=None):
     _migrate_add_category_color(engine)
     _migrate_giroconti_without_category(engine)
     _migrate_description_rule_amount(engine)
+    _migrate_description_rule_direction(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -609,6 +610,9 @@ class DescriptionRule(Base):
     # The user's own name (spec 27): match_type "signature", raw_pattern is
     # the raw signature and amount the identical amount, sign included.
     amount = Column(Numeric(precision=18, scale=2), nullable=True)
+    # An own name whose amount changes (a variable-rate installment): no
+    # amount, the sign only, "out" or "in" (spec 27).
+    direction = Column(String(3), nullable=True)
     cleaned_description = Column(Text, nullable=False)  # replacement description
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -1262,6 +1266,19 @@ def _migrate_counterparts_written_one_way(engine) -> None:
                          {"d": new, "i": tx_id})
         if changed:
             conn.commit()
+
+
+def _migrate_description_rule_direction(engine) -> None:
+    """Add description_rule.direction (spec 27): an own name on the sign only,
+    for an installment whose amount changes. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE description_rule ADD COLUMN direction VARCHAR(3)'))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower() and "no such table" not in str(exc).lower():
+                raise
 
 
 def _migrate_description_rule_amount(engine) -> None:
