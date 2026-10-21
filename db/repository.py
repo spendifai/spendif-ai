@@ -2257,9 +2257,19 @@ def spread_own_name_category(session: Session, tx_id: str, renamed: list[str]) -
     by hand, a rule, a checked movement) it becomes a category rule on the
     name, so the next imports get it too; otherwise it is copied as it is.
     The user's own choices and checked movements keep theirs. Returns how
-    many changed."""
+    many changed. A giroconto spreads the same way (founder, 2026-10-21): the
+    renamed movements become giroconti too, and a giroconto rule on the name
+    in the movement's direction does it at the next imports."""
     ref = session.get(Transaction, tx_id)
-    if ref is None or not ref.category or ref.tx_type in INTERNAL_TX_TYPES:
+    if ref is None:
+        return 0
+    others = [i for i in renamed if i != tx_id]
+    if ref.tx_type in INTERNAL_TX_TYPES:
+        create_category_rule(session, pattern=ref.description, match_type="exact",
+                             category="", subcategory="", priority=10, is_giroconto=True,
+                             direction="out" if float(ref.amount or 0) < 0 else "in")
+        return apply_rules_to_transactions(session, others, get_category_rules(session))
+    if not ref.category:
         return 0
     decided = ref.category_source in USER_CATEGORY_SOURCES or bool(ref.human_validated)
     if decided:

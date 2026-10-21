@@ -315,8 +315,9 @@ class RuleService:
 
     def create_own_name(self, tx_id: str, name: str, any_amount: bool = False) -> int:
         """The user's own name for every movement like this one, past and
-        future, and the category of this movement for all of them (founder,
-        2026-10-21: the name and its category go together). Returns how many
+        future, and the category of this movement for all of them, or the
+        giroconto mark when it is one (founder, 2026-10-21: the name and what
+        it is go together). Returns how many
         movements carry the name."""
         with self._session() as s:
             rule, renamed = repository.create_own_name(s, tx_id, name, any_amount=any_amount)
