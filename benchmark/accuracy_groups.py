@@ -17,6 +17,9 @@ from __future__ import annotations
 # Ordine: dal più recente al più vecchio.
 # (group_id, boundary_commit, descrizione)
 ACCURACY_GROUPS = [
+    ("G11", "0ec4b92", "every rule has a direction"),
+    ("G10", "6c0b70a", "checked movements, no reuse of the fallback, model answers rewrite the past"),
+    ("G9", "c8d4851", "own names applied before cleaning"),
     ("G8", "6988086", "sign from the data, counterpart reuse, one category per counterpart"),
     ("G7", "a3639f7", "deterministic sign-detection by account-type (AI-149/AI-197)"),
     ("G6", "b3947a7", "real taxonomy_map + fix SyntheticHistoryCache"),
@@ -36,6 +39,19 @@ _GROUP_COMMITS: dict[str, str] = {}
 # counterpart, intermediaries, text reduction (categorizer, classifier,
 # normalizer, nsi_lookup). The develop commits between G7 and G8 are not
 # listed yet: until they are, compare only runs inside the same group.
+# G9: own names (raw signature + amount) applied before cleaning.
+for _c in ["c8d4851"]:
+    _GROUP_COMMITS[_c] = "G9"
+
+# G10: checked movements protect their category, the fallback is not reused,
+# the model's answers rewrite the automatic past. e57f8aa is UI only.
+for _c in ["6c0b70a", "e57f8aa"]:
+    _GROUP_COMMITS[_c] = "G10"
+
+# G11: rules hold only for the movements in their direction.
+for _c in ["0ec4b92"]:
+    _GROUP_COMMITS[_c] = "G11"
+
 for _c in ["6988086"]:
     _GROUP_COMMITS[_c] = "G8"
 
