@@ -10,6 +10,7 @@ from core.import_eta import (
     DEFAULT_SECONDS_PER_ROW,
     duration_parts,
     estimate_total,
+    remaining_range,
     remaining_seconds,
     seconds_per_row,
 )
@@ -47,6 +48,14 @@ def test_remaining_blends_early_on():
     assert min(prior_only, observed_only) < early < max(prior_only, observed_only)
 
 
+def test_remaining_never_says_less_than_the_prior_still_has_to_go():
+    """Better more than less: 50% done in 100 s looks like 100 s left, but a
+    pace seen on duplicates is no promise; the prior's 500 s stand."""
+    assert remaining_seconds(elapsed=100, progress=0.5, prior_total=600) == 500
+    # once past the prior's total, only the observed pace is left
+    assert remaining_seconds(elapsed=700, progress=0.7, prior_total=600) == pytest.approx(300)
+
+
 def test_remaining_is_zero_when_done():
     assert remaining_seconds(elapsed=500, progress=1.0, prior_total=600) == 0
 
@@ -73,14 +82,15 @@ def _job(engine, n_rows, n_tx, secs, status="completed"):
         s.commit()
 
 
-def test_history_counts_rows_read_and_falls_back_to_movements(engine):
-    _job(engine, n_rows=200, n_tx=10, secs=400)       # rows read recorded
+def test_history_counts_the_movements_created_not_the_rows_read(engine):
+    """Duplicates are skipped before the model: they must not make the pace look fast."""
+    _job(engine, n_rows=826, n_tx=352, secs=779)      # 466 duplicates
     _job(engine, n_rows=None, n_tx=100, secs=400)     # older job: movements only
-    _job(engine, n_rows=None, n_tx=0, secs=30)        # nothing to divide by: left out
+    _job(engine, n_rows=200, n_tx=0, secs=30)         # all duplicates: left out
     _job(engine, n_rows=50, n_tx=50, secs=99, status="error")
     secs, from_history = ImportService(engine).estimate_import_seconds(30)
     assert from_history is True
-    assert secs == pytest.approx(30 * 800 / 300)
+    assert secs == pytest.approx(30 * (779 + 400) / (352 + 100))
 
 
 def test_no_history_is_a_first_estimate(engine):
@@ -91,3 +101,11 @@ def test_no_history_is_a_first_estimate(engine):
 def test_rows_are_counted_for_known_formats_too(engine):
     data = b"date;amount;description\n2026-09-01;-1;a\n2026-09-02;-2;b\n2026-09-03;-3;c\n"
     assert ImportService(engine).count_rows([("f.csv", data)]) == 3
+
+
+def test_the_range_gives_the_fast_and_the_safe_estimate():
+    fast, safe = remaining_range(elapsed=100, progress=0.5, prior_total=600)
+    assert (fast, safe) == pytest.approx((100, 500))
+    # slower than expected: one estimate only
+    assert remaining_range(elapsed=300, progress=0.25, prior_total=600) == pytest.approx((900, 900))
+    assert remaining_range(elapsed=0, progress=0, prior_total=600) == (600, 600)

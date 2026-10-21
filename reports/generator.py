@@ -13,6 +13,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from core.palette import EXPENSE, INCOME
 from db.models import Transaction
 from db.repository import get_transactions
 from support.logging import setup_logging
@@ -91,7 +92,7 @@ def generate_html_report(
         fig = go.Figure(go.Bar(
             x=categories,
             y=values,
-            marker_color=["green" if v >= 0 else "red" for v in values],
+            marker_color=[INCOME if v >= 0 else EXPENSE for v in values],
         ))
         fig.update_layout(title="Saldo per categoria", xaxis_title="Categoria", yaxis_title="€")
         chart_html = plotly.offline.plot(fig, include_plotlyjs="cdn", output_type="div")

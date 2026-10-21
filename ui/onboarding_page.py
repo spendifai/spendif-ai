@@ -105,15 +105,15 @@ _K_ACCOUNTS = "_ob_accounts"
 _K_TAXONOMY = "_ob_taxonomy_edits"
 
 
-def _account_types() -> dict[str, str]:
-    return {
-        t("onboarding.account_type.bank_account"): "bank_account",
-        t("onboarding.account_type.credit_card"): "credit_card",
-        t("onboarding.account_type.debit_card"): "debit_card",
-        t("onboarding.account_type.prepaid_card"): "prepaid_card",
-        t("onboarding.account_type.savings_account"): "savings_account",
-        t("onboarding.account_type.cash"): "cash",
-    }
+# How the person uses the account, in two answers anybody can give. It
+# replaced the banking types (credit, debit, prepaid...), which asked for
+# knowledge most people do not have. Optional: left empty, the first file of
+# the account asks instead.
+_USAGES = ("payments", "in_and_out")
+
+
+def _usage_label(u: str | None) -> str:
+    return t(f"account.usage.{u}") if u else ""
 
 
 # ── Country list & language → country suggestion ──────────────────────────────
@@ -380,12 +380,12 @@ def _step2_accounts(lang: str) -> None:
 
     # Initialize with one empty row if list is empty
     if not st.session_state.get(_K_ACCOUNTS):
-        st.session_state[_K_ACCOUNTS] = [{"name": "", "bank": "", "type": "bank_account"}]
+        st.session_state[_K_ACCOUNTS] = [{"name": "", "bank": "", "usage": None}]
 
     accounts: list[dict] = st.session_state[_K_ACCOUNTS]
-    # Backfill 'type' key for accounts created before this field existed
+    # Backfill 'usage' for rows created before this field existed
     for _a in accounts:
-        _a.setdefault("type", "bank_account")
+        _a.setdefault("usage", None)
     to_remove = None
 
     for i, acc in enumerate(accounts):
@@ -404,18 +404,16 @@ def _step2_accounts(lang: str) -> None:
             key=f"_ob_acc_bank_{i}",
             label_visibility="visible" if i == 0 else "collapsed",
         )
-        _types = _account_types()
-        _type_values = list(_types.values())
-        _type_labels_list = list(_types.keys())
-        _cur_type_idx = _type_values.index(acc["type"]) if acc["type"] in _type_values else 0
-        _sel_type_label = c2b.selectbox(
-            t("onboarding.step2.type") if i == 0 else "",
-            _type_labels_list,
-            index=_cur_type_idx,
-            key=f"_ob_acc_type_{i}",
+        acc["usage"] = c2b.selectbox(
+            t("account.usage") if i == 0 else "",
+            _USAGES,
+            index=_USAGES.index(acc["usage"]) if acc.get("usage") in _USAGES else None,
+            format_func=_usage_label,
+            placeholder=t("account.usage.placeholder"),
+            help=t("account.usage.help") if i == 0 else None,
+            key=f"_ob_acc_usage_{i}",
             label_visibility="visible" if i == 0 else "collapsed",
         )
-        acc["type"] = _types[_sel_type_label]
         with c3:
             if i == 0:
                 st.write("")   # align with label height
@@ -430,7 +428,7 @@ def _step2_accounts(lang: str) -> None:
         st.rerun()
 
     if st.button(t("onboarding.step2.add_account"), key="_ob_acc_add"):
-        accounts.append({"name": "", "bank": "", "type": "bank_account"})
+        accounts.append({"name": "", "bank": "", "usage": None})
         st.session_state[_K_ACCOUNTS] = accounts
         st.rerun()
 
@@ -708,12 +706,12 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
             st.caption(t("onboarding.step3.no_names"))
 
     with col2:
-        _type_labels_inv = {v: k for k, v in _account_types().items()}
         st.markdown(t("onboarding.step3.accounts_title"))
         if accounts:
             for acc in accounts:
                 bank_note = f" — {acc['bank']}" if acc["bank"].strip() else ""
-                type_note = f" ({_type_labels_inv.get(acc.get('type', ''), acc.get('type', ''))})"
+                _u = acc.get("usage")
+                type_note = f" ({t(f'account.usage.{_u}.short')})" if _u else ""
                 st.markdown(f"- **{acc['name']}**{bank_note}{type_note}")
         else:
             st.caption(t("onboarding.step3.no_accounts"))
@@ -978,7 +976,7 @@ def _persist_choices(
             if acc["name"].strip():
                 cfg_svc.create_account(
                     acc["name"].strip(), acc["bank"].strip(),
-                    account_type=acc.get("type", "bank_account"),
+                    usage=acc.get("usage"),
                 )
 
         # 3-bis. Localised default life-contexts. The base seed in
@@ -1046,7 +1044,7 @@ def render_onboarding_page(engine) -> None:
         st.session_state[_K_LANG]     = detected
         st.session_state[_K_COUNTRY]  = _COUNTRY_SUGGESTION.get(detected, "IT")
         st.session_state[_K_NAMES]    = ""
-        st.session_state[_K_ACCOUNTS] = [{"name": "", "bank": "", "type": "bank_account"}]
+        st.session_state[_K_ACCOUNTS] = [{"name": "", "bank": "", "usage": None}]
 
     step = st.session_state[_K_STEP]
     lang = st.session_state[_K_LANG]

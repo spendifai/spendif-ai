@@ -177,9 +177,6 @@ def _split_flows(
 # ── Chart 1: Bar: income above zero, expenses below, by month ───────────────
 
 _TOP_CATEGORIES = 8
-_INCOME_COLORS = ["#1b5e20", "#2e7d32", "#43a047", "#66bb6a", "#81c784", "#a5d6a7", "#c8e6c9", "#4db6ac"]
-_EXPENSE_COLORS = ["#b71c1c", "#e64a19", "#f57c00", "#ffa000", "#c2185b", "#8d6e63", "#d84315", "#ef9a9a"]
-_OTHER_COLOR = "#9e9e9e"
 
 
 def _monthly_by_category(frame: pd.DataFrame, value: str, other: str, top: int) -> pd.DataFrame:
@@ -223,29 +220,30 @@ def _build_monthly_flow(
     }
 
 
-def _render_monthly_flow(data: dict) -> None:
+def _render_monthly_flow(data: dict, palette) -> None:
+    """Each category in its own colour (spec 25): the same in every month and
+    every chart; "other" and the uncategorised in grey."""
     import plotly.graph_objects as go
 
-    other = _t("home.charts.other")
     inc_name, exp_name = _t("home.charts.income_side"), _t("home.charts.expense_side")
     fig = go.Figure()
 
-    def add(frame: pd.DataFrame, colors: list[str], side: str, sign: float) -> None:
-        for i, cat in enumerate(frame.columns):
+    def add(frame: pd.DataFrame, direction: str, side: str, sign: float) -> None:
+        for cat in frame.columns:
             values = frame[cat].values
             fig.add_bar(
                 name=str(cat),
                 x=frame.index,
                 y=sign * values,
                 customdata=values,
-                marker_color=_OTHER_COLOR if cat == other else colors[i % len(colors)],
+                marker_color=palette.category(cat, direction),
                 legendgroup=side,
                 legendgrouptitle_text=side,
                 hovertemplate=f"{side} · %{{fullData.name}}<br>%{{x|%m/%Y}}: %{{customdata:,.0f}}<extra></extra>",
             )
 
-    add(data["income"], _INCOME_COLORS, inc_name, 1.0)
-    add(data["expense"], _EXPENSE_COLORS, exp_name, -1.0)
+    add(data["income"], "income", inc_name, 1.0)
+    add(data["expense"], "expense", exp_name, -1.0)
     fig.update_layout(
         barmode="relative",
         title=_t("home.charts.flow_title"),
@@ -255,7 +253,7 @@ def _render_monthly_flow(data: dict) -> None:
         height=480,
         margin=dict(l=40, r=40, t=60, b=40),
     )
-    fig.add_hline(y=0, line_width=1, line_color="#616161")
+    fig.add_hline(y=0, line_width=1, line_color=palette.tokens["other"])
     st.plotly_chart(fig, width="stretch")
 
 
@@ -288,11 +286,15 @@ def _build_sankey_data(
 
     nodes: list[str] = [income_label]  # 0 = income source
     node_idx: dict[str, int] = {income_label: 0}
+    # What each node is, for its colour (spec 25): ("income",),
+    # ("category", cat), ("subcategory", cat, sub) or ("unknown",).
+    node_kinds: list[tuple] = [("income",)]
 
-    def _node(label: str) -> int:
+    def _node(label: str, kind: tuple) -> int:
         if label not in node_idx:
             node_idx[label] = len(nodes)
             nodes.append(label)
+            node_kinds.append(kind)
         return node_idx[label]
 
     link_source: list[int] = []
@@ -312,7 +314,7 @@ def _build_sankey_data(
     for cat, amount in sorted(cat_totals.items(), key=lambda kv: -kv[1]):
         if amount <= 0:
             continue
-        cat_idx = _node(f"{cat}")
+        cat_idx = _node(f"{cat}", ("category", cat))
         link_source.append(0)
         link_target.append(cat_idx)
         link_value.append(amount)
@@ -332,8 +334,13 @@ def _build_sankey_data(
         amount = float(row["abs_amount"])
         if amount <= 0:
             continue
-        cat_idx = _node(f"{row['category']}")
-        sub_idx = _node(f"{row['subcategory']} ({row['category']})")
+        # A category whose refunds exceed its spending draws nothing, its
+        # subcategories included: otherwise it shows as a source of money.
+        if cat_totals.get(row["category"], 0) <= 0:
+            continue
+        cat_idx = _node(f"{row['category']}", ("category", row["category"]))
+        sub_idx = _node(f"{row['subcategory']} ({row['category']})",
+                        ("subcategory", row["category"], row["subcategory"]))
         link_source.append(cat_idx)
         link_target.append(sub_idx)
         link_value.append(amount)
@@ -342,14 +349,14 @@ def _build_sankey_data(
     delta = total_income - total_expense
     if delta > 0:
         # Surplus: income flows partly to Unknown.
-        unknown_idx = _node(unknown_label)
+        unknown_idx = _node(unknown_label, ("unknown",))
         link_source.append(0)
         link_target.append(unknown_idx)
         link_value.append(delta)
         unknown_kind = "surplus"
     elif delta < 0:
         # Deficit: Unknown supplies the missing budget.
-        unknown_idx = _node(unknown_label)
+        unknown_idx = _node(unknown_label, ("unknown",))
         # Each category currently gets its abs amount from income (0). Re-balance:
         # Unknown is an extra source; we model it as a separate flow that goes
         # collectively to a virtual "expense pool". Simplest: Unknown → income_label
@@ -365,6 +372,7 @@ def _build_sankey_data(
 
     return {
         "nodes": nodes,
+        "node_kinds": node_kinds,
         "link_source": link_source,
         "link_target": link_target,
         "link_value": link_value,
@@ -372,8 +380,27 @@ def _build_sankey_data(
     }
 
 
-def _render_sankey(data: dict) -> None:
+def _node_color(kind: tuple, palette) -> str:
+    if kind[0] == "income":
+        return palette.tokens["income"]
+    if kind[0] == "category":
+        return palette.category(kind[1], "expense")
+    if kind[0] == "subcategory":
+        return palette.subcategory(kind[1], kind[2], "expense")
+    return palette.tokens["other"]
+
+
+def _transparent(color: str, alpha: float = 0.35) -> str:
+    r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    return f"rgba({r},{g},{b},{alpha})"
+
+
+def _render_sankey(data: dict, palette) -> None:
     import plotly.graph_objects as go
+
+    node_colors = [_node_color(k, palette) for k in data["node_kinds"]]
+    # A link takes the colour of where the money goes (spec 25).
+    link_colors = [_transparent(node_colors[t]) for t in data["link_target"]]
 
     # AI-118: dynamic height + larger pad to keep small branches readable.
     # Plotly Sankey sizes branches proportionally to value, so tiny categories
@@ -390,12 +417,14 @@ def _render_sankey(data: dict) -> None:
             arrangement="perpendicular",
             node=dict(
                 label=data["nodes"],
+                color=node_colors,
                 pad=22, thickness=18,
             ),
             link=dict(
                 source=data["link_source"],
                 target=data["link_target"],
                 value=data["link_value"],
+                color=link_colors,
             ),
         )
     )
@@ -485,10 +514,12 @@ def render_home_page(engine) -> None:
         st.info(_t("home.charts.no_income"))
         return
 
-    expense_categories = set(SettingsService(engine).get_taxonomy().expenses)
+    settings = SettingsService(engine)
+    expense_categories = set(settings.get_taxonomy().expenses)
+    palette = settings.get_palette()
     flow = _build_monthly_flow(df, expense_categories)
     if flow is not None:
-        _render_monthly_flow(flow)
+        _render_monthly_flow(flow, palette)
     sankey = _build_sankey_data(df, expense_categories)
     if sankey is not None:
-        _render_sankey(sankey)
+        _render_sankey(sankey, palette)

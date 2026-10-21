@@ -2,5 +2,6 @@
   "categorizer.json": "d960e6dc9fa71106f630cd61abdfc1316173659f86c61121772c1aa83d751de4",
   "classifier.json": "10fe24d1ac63aeea548e0830f5d19bb952fddc05ebb787f488f3ac2234172af6",
   "description_cleaner.json": "6e493c10c82933e8372597b2a5364a3ce10f552c2074248374184c37239012d0",
-  "footer_detector.json": "a5f9feb5fd6f32b8e420e0c8490effa2303fa1bea30c0f336cfa13892d2bcb73"
+  "footer_detector.json": "a5f9feb5fd6f32b8e420e0c8490effa2303fa1bea30c0f336cfa13892d2bcb73",
+  "rule_key.json": "da43b4d795156b518a099517fb08ea6aa8f1110e5df667045796b61aba3730ef"
 }

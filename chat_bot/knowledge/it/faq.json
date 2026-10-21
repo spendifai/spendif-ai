@@ -121,7 +121,7 @@
   },
   {
     "q": "Come segno una transazione come giroconto (bonifico interno)?",
-    "a": "Nel Registro, nella colonna 🔄 Giroconto, seleziona la checkbox e salva. Puoi anche usare la pagina Modifiche massive per propagare il flag a tutte le transazioni con la stessa descrizione.",
+    "a": "Nel Registro, nella colonna 🔄 Giroconto, seleziona la checkbox e salva. Puoi anche usare la pagina Modifica più movimenti per propagare il flag a tutte le transazioni con la stessa descrizione.",
     "page": "ledger"
   },
   {
@@ -161,17 +161,17 @@
   },
   {
     "q": "Come cambio la categoria di molte transazioni in una volta?",
-    "a": "Vai su Modifiche massive. Seleziona una transazione di riferimento, scegli 2c Categoria, seleziona la nuova categoria e applica a tutte le transazioni simili. Puoi anche salvare una regola deterministica per i file futuri.",
+    "a": "Vai su Modifica più movimenti. Seleziona una transazione di riferimento, scegli 2c Categoria, seleziona la nuova categoria e applica a tutte le transazioni simili. Puoi anche salvare una regola deterministica per i file futuri.",
     "page": "bulk_edit"
   },
   {
     "q": "Come elimino tutte le transazioni di un conto chiuso?",
-    "a": "Vai su Modifiche massive, sezione Eliminazione massiva da filtro. Imposta il filtro per conto, controlla l'anteprima, digita ELIMINA nel campo di conferma e clicca il pulsante rosso. Attenzione: l'eliminazione è irreversibile.",
+    "a": "Vai su Modifica più movimenti, sezione Eliminazione massiva da filtro. Imposta il filtro per conto, controlla l'anteprima, digita ELIMINA nel campo di conferma e clicca il pulsante rosso. Attenzione: l'eliminazione è irreversibile.",
     "page": "bulk_edit"
   },
   {
     "q": "Come assegno un contesto (es. Vacanza) a più transazioni?",
-    "a": "Vai su Modifiche massive. Seleziona una transazione di riferimento, scegli 2b Contesto, seleziona il contesto desiderato e applica alla singola transazione o a tutte quelle con la stessa descrizione.",
+    "a": "Vai su Modifica più movimenti. Seleziona una transazione di riferimento, scegli 2b Contesto, seleziona il contesto desiderato e applica alla singola transazione o a tutte quelle con la stessa descrizione.",
     "page": "bulk_edit"
   },
   {

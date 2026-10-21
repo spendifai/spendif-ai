@@ -121,7 +121,7 @@
   },
   {
     "q": "How do I mark a transaction as an internal transfer?",
-    "a": "In the Ledger, in the 🔄 Internal transfer column, select the checkbox and save. You can also use the Bulk edit page to propagate the flag to all transactions with the same description.",
+    "a": "In the Ledger, in the 🔄 Internal transfer column, select the checkbox and save. You can also use the Edit several movements page to propagate the flag to all transactions with the same description.",
     "page": "ledger"
   },
   {
@@ -161,17 +161,17 @@
   },
   {
     "q": "How do I change the category of many transactions at once?",
-    "a": "Go to Bulk edit. Select a reference transaction, choose 2c Category, select the new category and apply to all similar transactions. You can also save a deterministic rule for future files.",
+    "a": "Go to Edit several movements. Select a reference transaction, choose 2c Category, select the new category and apply to all similar transactions. You can also save a deterministic rule for future files.",
     "page": "bulk_edit"
   },
   {
     "q": "How do I delete all transactions from a closed account?",
-    "a": "Go to Bulk edit, Bulk deletion from filter section. Set the filter by account, check the preview, type DELETE in the confirmation field and click the red button. Warning: deletion is irreversible.",
+    "a": "Go to Edit several movements, Bulk deletion from filter section. Set the filter by account, check the preview, type DELETE in the confirmation field and click the red button. Warning: deletion is irreversible.",
     "page": "bulk_edit"
   },
   {
     "q": "How do I assign a context (e.g. Holiday) to multiple transactions?",
-    "a": "Go to Bulk edit. Select a reference transaction, choose 2b Context, select the desired context and apply to the single transaction or to all those with the same description.",
+    "a": "Go to Edit several movements. Select a reference transaction, choose 2b Context, select the desired context and apply to the single transaction or to all those with the same description.",
     "page": "bulk_edit"
   },
   {

@@ -1,14 +1,14 @@
 """When to ask somebody about the direction of their own money, and when not to.
 
-Three sources decide it. The person's own answer, once given, wins for ever.
-Failing that, two independent readings are compared: the model's and the
-measurement on the data. Agreement means silence. Only disagreement is worth
-an interruption.
+The direction is measured on the file: the more frequent sign is spending.
+How the person uses the account ("payments": ci paghi, "in_and_out": ci
+entrano e escono soldi) decides only whether that verdict can be applied in
+silence. Their own answer for a format, once given, wins for ever.
 
-The trigger is deliberately not a confidence threshold. A threshold is a dial
-somebody has to tune and defend, and it was the wrong instrument here: the
-question is not "how sure are we" but "do our two ways of knowing contradict
-each other".
+The model is not one of the voices any more. It sees column names and a few
+rows, and on 2026-10-19 it took an American Express export for a bank
+account; under the old rule its guess decided whether the measure was even
+consulted, and 44 of 52 charges came in as income without a question.
 """
 
 from __future__ import annotations
@@ -17,43 +17,73 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from core.orchestrator import _sign_needs_a_question
+from core.orchestrator import _apply_account_usage_to_sign, _sign_needs_a_question
 
 
 class _Schema:
     """Only the fields the decision reads."""
 
-    def __init__(self, model=None, data=None, sealed=False):
-        self.sign_llm_verdict = model
-        self.sign_deterministic_verdict = data
+    def __init__(self, spending_positive=None, conclusive=True, pos=None, sealed=False):
+        self.sign_deterministic_verdict = spending_positive
+        self.sign_measure_conclusive = conclusive
+        self.invert_sign = bool(spending_positive)
+        if pos is None and spending_positive is not None:
+            pos = 0.85 if spending_positive else 0.15
+        self.positive_ratio = pos
+        self.negative_ratio = None if pos is None else 1 - pos
         self.user_confirmed = sealed
 
 
-def test_agreement_is_silent():
-    assert _sign_needs_a_question(_Schema(model=True, data=True)) is False
-    assert _sign_needs_a_question(_Schema(model=False, data=False)) is False
-
-
-def test_disagreement_is_the_whole_trigger():
-    assert _sign_needs_a_question(_Schema(model=True, data=False)) is True
-    assert _sign_needs_a_question(_Schema(model=False, data=True)) is True
-
-
-def test_the_seal_outranks_a_disagreement():
+def test_the_seal_outranks_everything():
     """Asking twice teaches people that their answers do not stick."""
-    assert _sign_needs_a_question(_Schema(model=True, data=False, sealed=True)) is False
+    for usage in ("payments", "in_and_out", None):
+        assert _sign_needs_a_question(_Schema(True, conclusive=False, sealed=True), usage) is False
 
 
-def test_one_reading_alone_is_not_a_disagreement():
-    """A reused schema, or a file whose layout carries the direction already.
+def test_no_measure_no_question():
+    """A reused schema, or debit/credit columns: there is nothing to settle."""
+    assert _sign_needs_a_question(_Schema(None), None) is False
+    assert _sign_needs_a_question(None, "payments") is False
 
-    Nothing contradicts anything here, and inventing a question would be
-    noise of exactly the kind a confidence threshold produces.
-    """
-    assert _sign_needs_a_question(_Schema(model=True, data=None)) is False
-    assert _sign_needs_a_question(_Schema(model=None, data=True)) is False
-    assert _sign_needs_a_question(_Schema()) is False
-    assert _sign_needs_a_question(None) is False
+
+def test_no_majority_always_asks():
+    for usage in ("payments", "in_and_out", None):
+        assert _sign_needs_a_question(_Schema(True, conclusive=False), usage) is True
+
+
+def test_an_account_never_described_asks_once_per_new_format():
+    assert _sign_needs_a_question(_Schema(True), None) is True
+    assert _sign_needs_a_question(_Schema(False), None) is True
+
+
+def test_a_card_that_looks_like_one_is_silent():
+    """The Amex case: 85% positive, described as an account people pay with."""
+    assert _sign_needs_a_question(_Schema(True, pos=0.85), "payments") is False
+    assert _sign_needs_a_question(_Schema(False, pos=0.10), "payments") is False
+
+
+def test_a_card_that_does_not_look_like_one_asks():
+    """Below two to one the file is not the account the person described."""
+    assert _sign_needs_a_question(_Schema(True, pos=0.60), "payments") is True
+
+
+def test_a_current_account_writing_expenses_negative_is_silent():
+    assert _sign_needs_a_question(_Schema(False, pos=0.30), "in_and_out") is False
+
+
+def test_a_current_account_with_a_positive_majority_asks_and_is_left_as_written():
+    schema = _Schema(True, pos=0.70)
+    _apply_account_usage_to_sign(schema, "in_and_out")
+    assert schema.invert_sign is False
+    assert _sign_needs_a_question(schema, "in_and_out") is True
+
+
+def test_the_usage_never_turns_amounts_round_on_its_own():
+    """It can leave a file as written, pending a question; it never inverts."""
+    for usage in ("payments", "in_and_out", None):
+        schema = _Schema(False, pos=0.20)
+        _apply_account_usage_to_sign(schema, usage)
+        assert schema.invert_sign is False
 
 
 # ── The seal, once written, has to survive ───────────────────────────────────
@@ -117,11 +147,13 @@ def test_a_later_import_cannot_unseal_a_format(session):
 
 # ── Answering, and what the answer does ──────────────────────────────────────
 
-def test_flipping_turns_the_whole_import_round(tmp_path):
+def test_flipping_turns_the_whole_import_round(tmp_path, monkeypatch):
     """Amount and label move together, or every later total disagrees."""
     from db import repository
     from db.models import Base, Transaction
     from services.import_service import ImportService
+
+    monkeypatch.setattr(ImportService, "recategorize_batch", lambda self, sha: 0)
 
     engine = create_engine(f"sqlite:///{tmp_path / 'ledger.db'}")
     Base.metadata.create_all(engine)
@@ -147,6 +179,48 @@ def test_flipping_turns_the_whole_import_round(tmp_path):
     stored = repository.get_document_schema(s2, "amex.csv")
     assert stored.invert_sign is True
     assert stored.user_confirmed is True
+
+
+def test_flipping_categorizes_again_but_keeps_what_the_person_set(tmp_path, monkeypatch):
+    """Categories chosen while charges looked like income came from the income
+    side ("Rendite finanziarie" on a pizza). After the flip they are chosen
+    again; a category the person set by hand stays."""
+    from core.categorizer import CategorizationResult
+    from core.models import CategorySource, Confidence
+    from db import repository
+    from db.models import Base, Transaction
+    from services.category_service import CategoryService
+    from services.import_service import ImportService
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'ledger.db'}")
+    Base.metadata.create_all(engine)
+    s = sessionmaker(bind=engine)()
+    batch = repository.create_import_batch(
+        s, sha256="abc", filename="amex.csv", n_transactions=2, flow_used="flow2",
+    )
+    s.add(Transaction(id="a" * 24, batch_id=batch.id, date="2026-01-01", amount=15,
+                      tx_type="income", description="PANDA CLUB", category="Altro entrate"))
+    s.add(Transaction(id="b" * 24, batch_id=batch.id, date="2026-01-02", amount=8,
+                      tx_type="income", description="IPER", category="Alimentari",
+                      category_source="manual"))
+    repository.upsert_document_schema(s, _schema(invert_sign=False))
+    s.commit()
+
+    seen = []
+
+    def _fake(self, txs, backend=None, progress_callback=None):
+        seen.extend(tx["id"] for tx in txs)
+        assert all(float(tx["amount"]) < 0 for tx in txs), "categorized before the flip"
+        return [CategorizationResult("Ristorazione", "Asporto", Confidence("high"),
+                                     CategorySource("llm")) for _ in txs]
+
+    monkeypatch.setattr(CategoryService, "categorize_many", _fake)
+    ImportService(engine).confirm_sign("abc", "amex.csv", flip=True)
+
+    rows = {t.id: t for t in sessionmaker(bind=engine)().query(Transaction).all()}
+    assert seen == ["a" * 24]
+    assert rows["a" * 24].category == "Ristorazione"
+    assert rows["b" * 24].category == "Alimentari"
 
 
 def test_saying_it_is_already_right_still_settles_the_format(tmp_path):

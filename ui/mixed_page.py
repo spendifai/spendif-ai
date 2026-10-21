@@ -25,6 +25,7 @@ from support.formatting import format_amount_display, format_date_display
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
+from ui.widgets.written_rules import remember, rewrite_pending, show_written_rules, write_and_apply
 
 logger = setup_logging()
 
@@ -38,13 +39,18 @@ def _split(categories: list[tuple[str, int]]) -> str:
 
 
 def _always(desc: str, cat_sub: str, tx_svc: TransactionService, rule_svc: RuleService) -> None:
-    """One category for every movement of the counterpart, past and future."""
+    """One category for every movement of the counterpart, past and future.
+
+    The product writes the rule (spec 18): merchant name and "starts with"
+    when it can tell the name, else the exact description.
+    """
     cat, sub = split_cat_sub(cat_sub)
-    rule_svc.create_rule(pattern=desc, match_type="exact", category=cat, subcategory=sub, priority=10)
-    txs = tx_svc.get_by_rule_pattern(desc, "exact")
-    for tx in txs:
-        tx_svc.apply_rule_category(tx.id, cat, sub, origin="mixed")
-    logger.info(f"mixed_page: rule pattern={desc!r} -> {cat!r}/{sub!r}, {len(txs)} movements")
+    with st.spinner(t("counterparts.writing_rules")):
+        pattern, match_type = rule_svc.write_rules([desc], queue=True)[desc]
+    n, note = write_and_apply(rule_svc, tx_svc, desc, pattern, match_type, cat, sub,
+                              origin="mixed")
+    remember([note], t("counterparts.saved_ok", n=1))
+    logger.info(f"mixed_page: rule {match_type} {pattern!r} for {desc!r} -> {cat!r}/{sub!r}, {n} movements")
 
 
 def _render_movements(
@@ -55,8 +61,8 @@ def _render_movements(
     date_fmt: str,
     fmt,
 ) -> None:
-    """The unseen movements of one counterpart, each with its own category."""
-    txs = flow_svc.unchecked_movements(desc)
+    """The movements of one counterpart still without a category set by the user."""
+    txs = flow_svc.uncategorized_movements(desc)
     col_date = t("mixed.col_date")
     col_amount = t("mixed.col_amount")
     col_cat = t("mixed.col_category")
@@ -82,14 +88,14 @@ def _render_movements(
         key=f"mx_editor_{desc}",
     )
     if st.button(t("mixed.done_btn"), type="primary", key=f"mx_done_{desc}"):
-        # Every movement shown counts as seen, also the ones left as they were:
-        # the next round shows only what a later import adds.
+        # Every movement shown with a category counts as categorized by the
+        # user, also the ones left as they were: the next round shows only
+        # what a later import adds. Done here is not checked: whether the
+        # money was spent is confirmed in the ledger only.
         for idx in range(len(df)):
             cat, sub = split_cat_sub(edited.at[idx, col_cat] or "")
             if cat:
                 tx_svc.update_category(df.at[idx, "_id"], cat, sub, origin="mixed")
-            else:
-                tx_svc.validate(df.at[idx, "_id"])
         st.session_state.pop(_OPEN, None)
         st.rerun()
 
@@ -101,6 +107,8 @@ def render_mixed_page(engine) -> None:
     tx_svc = TransactionService(engine)
     rule_svc = RuleService(engine)
     cfg_svc = SettingsService(engine)
+    rewrite_pending(rule_svc, tx_svc)
+    show_written_rules()
 
     settings = cfg_svc.get_all()
     dec = settings.get("amount_decimal_sep", ",")
@@ -121,12 +129,20 @@ def render_mixed_page(engine) -> None:
 
     for s in items:
         desc = s["description"]
+        if s.get("is_multi_category"):
+            # A place where everything is bought (spec 24): no question, only
+            # the movements still to see one by one.
+            with st.container(border=True):
+                st.markdown(f"**{desc}** · {fmt(s['total_amount'])}")
+                st.caption(t("mixed.multi_todo", n=s["to_see_one_by_one"]))
+                _render_movements(desc, flow_svc, tx_svc, cat_options, date_fmt, fmt)
+            continue
         with st.container(border=True):
             st.markdown(f"**{desc}** · {fmt(s['total_amount'])}")
             st.caption(t("mixed.split", split=_split(s["categories"])))
-            done = s["tx_count"] - s["unchecked_count"]
+            done = s["tx_count"] - s["uncategorized_count"]
             if done > 0:
-                st.caption(t("mixed.only_new", done=done, todo=s["unchecked_count"]))
+                st.caption(t("mixed.only_new", done=done, todo=s["uncategorized_count"]))
 
             modal = join_cat_sub(s["modal_category"], s["modal_subcategory"])
             col_cat, col_always, col_each = st.columns([3, 2, 2], vertical_alignment="bottom")
@@ -140,6 +156,13 @@ def render_mixed_page(engine) -> None:
                 st.rerun()
             if col_each.button(t("mixed.each_btn"), key=f"mx_each_{desc}"):
                 st.session_state[_OPEN] = desc
+                st.rerun()
+            # "Depends on what was bought", every time: a multi-category
+            # counterpart, never asked again (spec 24).
+            if st.button(t("mixed.multi_btn"), key=f"mx_multi_{desc}", help=t("mixed.multi_help")):
+                n = rule_svc.set_multi_category(desc)
+                remember([t("mixed.multi_done", name=desc, n=n)])
+                logger.info(f"mixed_page: multi-category {desc!r}, {n} movements")
                 st.rerun()
 
             if st.session_state.get(_OPEN) == desc:

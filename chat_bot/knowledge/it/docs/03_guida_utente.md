@@ -196,11 +196,11 @@ Se hai creato molte regole in sessioni diverse e vuoi applicarle tutte in una vo
 
 ---
 
-## 6. Modifiche massive: categoria, contesto e eliminazione in blocco
+## 6. Modifica più movimenti: categoria, contesto e eliminazione in blocco
 
 **Situazione:** Hai importato anni di movimenti e vuoi pulire dati sbagliati o rimuovere un intero conto che non vuoi più tracciare.
 
-Vai su **✏️ Modifiche massive**. La pagina è divisa in due aree principali.
+Vai su **✏️ Modifica più movimenti**. La pagina è divisa in due aree principali.
 
 ### 6a — Operazioni su transazione di riferimento
 

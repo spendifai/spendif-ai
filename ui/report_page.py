@@ -15,6 +15,7 @@ from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.cat_select import join_cat_sub
 
 logger = setup_logging()
 
@@ -83,6 +84,8 @@ def render_report_page(engine):
     st.header(t("report.title"))
 
     cfg_svc = SettingsService(engine)
+    palette = cfg_svc.get_palette()
+    _col_cat_sub = t("ledger.col.cat_sub")  # one column, as in every grid
     tx_svc = TransactionService(engine)
 
     settings = cfg_svc.get_all()
@@ -210,8 +213,7 @@ def render_report_page(engine):
                     pct = (row["abs_amount"] / grand_total * 100) if grand_total > 0 else 0
                     display_rows.append({
                         "Contesto": row["context"],
-                        "Categoria": row["category"],
-                        "Sottocategoria": row["subcategory"],
+                        _col_cat_sub: join_cat_sub(row["category"], row["subcategory"]),
                         "Importo": row["abs_amount"],
                         "% del totale": pct,
                         "N. transazioni": row["tx_count"],
@@ -221,8 +223,7 @@ def render_report_page(engine):
                 ctx_pct = (ctx_total / grand_total * 100) if grand_total > 0 else 0
                 display_rows.append({
                     "Contesto": f"TOTALE {ctx}",
-                    "Categoria": "",
-                    "Sottocategoria": "",
+                    _col_cat_sub: "",
                     "Importo": ctx_total,
                     "% del totale": ctx_pct,
                     "N. transazioni": int(ctx_df["tx_count"].sum()),
@@ -231,8 +232,7 @@ def render_report_page(engine):
             # Grand total row
             display_rows.append({
                 "Contesto": "TOTALE GENERALE",
-                "Categoria": "",
-                "Sottocategoria": "",
+                _col_cat_sub: "",
                 "Importo": grand_total,
                 "% del totale": 100.0,
                 "N. transazioni": int(df_section["tx_count"].sum()),
@@ -284,6 +284,7 @@ def render_report_page(engine):
                 # Line chart
                 fig_line = px.line(
                     df_m_top, x="month", y="abs_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top["category"], "expense"),
                     title=t("report.chart_expense_trend"),
                     labels={"abs_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
                     markers=True,
@@ -294,6 +295,7 @@ def render_report_page(engine):
                 # Stacked bar chart
                 fig_stack = px.bar(
                     df_m_top, x="month", y="abs_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top["category"], "expense"),
                     barmode="stack",
                     title=t("report.chart_expense_stack"),
                     labels={"abs_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
@@ -316,6 +318,7 @@ def render_report_page(engine):
 
                 fig_line_inc = px.line(
                     df_m_top_inc, x="month", y="total_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top_inc["category"], "income"),
                     title=t("report.chart_income_trend"),
                     labels={"total_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
                     markers=True,
@@ -325,6 +328,7 @@ def render_report_page(engine):
 
                 fig_stack_inc = px.bar(
                     df_m_top_inc, x="month", y="total_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top_inc["category"], "income"),
                     barmode="stack",
                     title=t("report.chart_income_stack"),
                     labels={"total_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},

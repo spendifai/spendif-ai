@@ -13,7 +13,6 @@ Covers:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -91,8 +90,7 @@ def _insert_validated_tx(
         tx_type="expense",
         category=category,
         subcategory=subcategory,
-        human_validated=True,
-        validated_at=datetime.now(timezone.utc),
+        category_source="manual",
     )
     session.add(t)
     session.flush()
@@ -125,7 +123,7 @@ class TestSingleCategoryHomogeneous:
         profiles = get_description_profiles(session)
         assert len(profiles) == 1
         p = profiles[0]
-        assert p.description == "esselunga"
+        assert p.description == "Esselunga"
         assert p.top_category == "Alimentari"
         assert p.top_subcategory == "Spesa supermercato"
         assert p.total_validated == 5
@@ -155,7 +153,7 @@ class TestMixedCategories:
         profiles = get_description_profiles(session)
         assert len(profiles) == 1
         p = profiles[0]
-        assert p.description == "amazon"
+        assert p.description == "Amazon"
         assert p.top_category == "Tecnologia"  # 5 > 3
         assert p.total_validated == 8
         assert 0.0 < p.homogeneity < 1.0

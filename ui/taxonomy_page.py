@@ -31,6 +31,8 @@ def _render_section(cfg_svc: SettingsService, type_key: str, section_label: str,
             "id": c.id,
             "name": c.name,
             "type": c.type,
+            "color": c.color,
+            "is_fallback": bool(c.is_fallback),
             "subs": sorted(subs_by_cat.get(c.id, []), key=lambda x: x["name"].lower()),
         }
         for c in cat_rows
@@ -124,6 +126,23 @@ def _render_section(cfg_svc: SettingsService, type_key: str, section_label: str,
                     st.success(t("taxonomy.sub_added", name=ns))
                     logger.info(f"taxonomy: added subcategory '{ns}' to cat {cat['id']}")
                     changed = True
+
+            st.divider()
+
+            # ── Colore (spec 25) ─────────────────────────────────
+            # Seen by everyone, changed by the expert (level 4, money axis,
+            # spec 19): the gate follows the tiered menu when it lands.
+            if cat["is_fallback"]:
+                st.caption(t("taxonomy.color_fallback"))
+            elif cat["color"]:
+                new_color = st.color_picker(
+                    t("taxonomy.color"), value=cat["color"],
+                    key=f"color_cat_{cat['id']}", help=t("taxonomy.color_help"),
+                )
+                if new_color.lower() != cat["color"].lower():
+                    if cfg_svc.set_category_color(cat["id"], new_color):
+                        logger.info(f"taxonomy: colour of category {cat['id']} → {new_color}")
+                        changed = True
 
             st.divider()
 

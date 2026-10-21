@@ -26,6 +26,7 @@ from core.models import (
     TransactionType,
 )
 from core.schemas import DocumentSchema
+from core.initials import join_initials
 from support.logging import setup_logging
 
 logger = setup_logging()
@@ -660,6 +661,144 @@ def _english_month_date(value: str) -> Optional[str]:
         else:
             out.append(tok)
     return " ".join(out) if found else None
+
+
+_NOT_WORD = re.compile(r"[\W_]+")
+# A word of letters and digits, with the apostrophes inside it kept
+# (McDonald's, dell'Arte: founder, 2026-10-21); typographic ones become '.
+_WORD = re.compile(r"[^\W_]+(?:['\u2019][^\W_]+)*")
+
+
+def tidy_text(text: str | None) -> str:
+    """Every character that is not a letter or a digit becomes a space, then
+    runs of spaces become one and the ends are trimmed.
+
+    Founder's rule (2026-10-20) for the final description: GOOGLE*CLOUD ->
+    GOOGLE CLOUD, SEVEN ELEVEN * -> SEVEN ELEVEN, CLIVATI 1969 S.R.L. ->
+    CLIVATI 1969 SRL, AMAZON.IT -> AMAZON IT. Initials written apart are
+    joined (core.initials). Letters of any alphabet and accented letters
+    stay. The same reduction is used by the rules and by the merchant list,
+    so the texts meet.
+    """
+    words = (w.replace("\u2019", "'") for w in _WORD.findall(text or ""))
+    return join_initials(" ".join(words))
+
+
+def counterpart_case(text: str) -> str:
+    """Every word with a capital initial and the rest in lower case:
+    "GOOGLE CLOUD" -> "Google Cloud", "CLIVATI 1969 SRL" -> "Clivati 1969 Srl".
+
+    How a counterpart is shown, the same whatever the bank or the model wrote
+    (founder, 2026-10-21). Only for display: no comparison looks at case.
+    Words are those of tidy_text, one space apart; a word starting with a
+    digit keeps its letters in lower case ("3cpayment").
+    """
+    return " ".join(w[:1].upper() + w[1:].lower() for w in text.split(" "))
+
+
+_SIGNATURE_MIN_WORDS = 2
+
+
+def raw_signature(raw: str | None, min_words: int = _SIGNATURE_MIN_WORDS) -> str:
+    """What stays of a raw description from one month to the next (spec 22).
+
+    Tidied, case-free, without any word that contains a digit: amount, date,
+    codes and card number change every time, the rest is the same for the
+    same merchant. Empty when fewer than two words are left: a single word
+    ("PAGAMENTO", "LIDL") is too generic to stand for one counterpart
+    (founder, 2026-10-20: a loss, but safer).
+    """
+    from core.rule_key import exact_key
+    kept = [w for w in exact_key(tidy_text(raw)).split() if not any(c.isdigit() for c in w)]
+    return " ".join(kept) if len(kept) >= min_words else ""
+
+
+def own_name_key(raw: str | None, amount) -> tuple[str, str] | None:
+    """The key of a user's own name (spec 27): the raw signature plus the
+    identical amount, sign included (debit or credit). Computed on the bank's
+    text, never on the cleaned counterpart. One word is enough here: the user
+    decided, and the amount narrows it. None when nothing is left."""
+    from decimal import Decimal, InvalidOperation
+    sig = raw_signature(raw, min_words=1)
+    try:
+        value = Decimal(str(amount)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+    return (sig, str(value)) if sig else None
+
+
+def own_name_direction_key(raw: str | None, amount) -> tuple[str, str] | None:
+    """The key of an own name whose amount changes (spec 27, a variable-rate
+    installment): the raw signature plus the sign only, "out" or "in". The
+    sign is always part of a rule's key (founder, 2026-10-21)."""
+    key = own_name_key(raw, amount)
+    if key is None:
+        return None
+    return (key[0], "out" if key[1].startswith("-") else "in")
+
+
+def own_name_for(own_names: dict, raw: str | None, amount) -> str | None:
+    """The own name of a movement: the rule with the identical amount first,
+    the most specific, then the one on the sign only."""
+    if not own_names:
+        return None
+    return own_names.get(own_name_key(raw, amount)) or own_names.get(own_name_direction_key(raw, amount))
+
+
+# Countries that write the month before the day (05/03 = 3 May). Everywhere
+# else, when the data cannot tell, the day comes first.
+_MONTH_FIRST_COUNTRIES = frozenset({"US"})
+
+_NUMERIC_DATE = re.compile(r"^\s*(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b")
+
+
+def settle_date_order(values, fmt: str, country: str | None = None) -> tuple[str, str]:
+    """The day/month order of a numeric date format, settled on the data.
+
+    The model proposes the format from a few rows and can swap day and month:
+    "%m/%d/%Y" on an Italian export reads 12/02/2026 as 2 December, and since
+    the dates with a day over 12 then fail and fall back to day first, the
+    file comes out mixed, silently. The values decide instead: a first number
+    over 12 proves day first, a second number over 12 proves month first. When
+    no value proves it, the user's country decides (day first except where
+    the month comes first). Contradicting evidence keeps the proposed format.
+    Cells that are real dates, ISO strings and formats that are not
+    day/month/year with both numbers are left alone.
+
+    Returns (format, reason); the reason is empty when nothing changed.
+    """
+    if not fmt or "%d" not in fmt or "%m" not in fmt:
+        return fmt, ""
+    year = min((fmt.index(y) for y in ("%Y", "%y") if y in fmt), default=-1)
+    if 0 <= year < min(fmt.index("%d"), fmt.index("%m")):
+        return fmt, ""                      # year first (ISO): never ambiguous
+    day_first = fmt.index("%d") < fmt.index("%m")
+    first_big = second_big = seen = 0
+    for v in values:
+        if not isinstance(v, str):
+            continue
+        m = _NUMERIC_DATE.match(v)
+        if not m:
+            continue
+        seen += 1
+        a, b = int(m.group(1)), int(m.group(2))
+        first_big += a > 12
+        second_big += b > 12
+    if not seen or (first_big and second_big):
+        return fmt, ""                      # nothing written as day/month text, or no agreement
+    if first_big:
+        want_day_first = True
+        why = f"{first_big} dates with a first number over 12"
+    elif second_big:
+        want_day_first = False
+        why = f"{second_big} dates with a second number over 12"
+    else:
+        want_day_first = (country or "").upper() not in _MONTH_FIRST_COUNTRIES
+        why = f"no date proves the order, convention of {country or 'default'}"
+    if want_day_first == day_first:
+        return fmt, ""
+    swapped = fmt.replace("%d", "%DAY%").replace("%m", "%d").replace("%DAY%", "%m")
+    return swapped, why
 
 
 def parse_date_safe(value: str, fmt: str) -> Optional[date]:

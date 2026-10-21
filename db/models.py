@@ -35,9 +35,15 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     create_engine,
+    event,
+    func,
     inspect,
 )
-from sqlalchemy.orm import DeclarativeBase, Session, relationship
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase, Session, relationship, validates
+
+from core.normalizer import counterpart_case, tidy_text
+from core.rule_key import exact_key
 
 # The DB URL is read once at import time from the SPENDIFAI_DB env var so
 # that every call site that imports `get_engine()` without arguments lands
@@ -50,6 +56,31 @@ DB_URL = os.environ.get("SPENDIFAI_DB", "sqlite:///ledger.db")
 
 class Base(DeclarativeBase):
     pass
+
+
+# One rule for "the same counterpart" in SQL too (spec 21): case, accents,
+# punctuation and initials written apart do not count. Registered on every
+# SQLite connection of the process, so queries compare as Python does.
+@event.listens_for(Engine, "connect")
+def _register_exact_key(dbapi_connection, _record) -> None:
+    create_function = getattr(dbapi_connection, "create_function", None)
+    if create_function is not None:
+        create_function("exact_key", 1, exact_key, deterministic=True)
+
+
+def same_counterpart(column, text: str | None):
+    """SQL condition: *column* is the same counterpart as *text*."""
+    return func.exact_key(column) == exact_key(text)
+
+
+def written_counterpart(text: str | None) -> str | None:
+    """How a counterpart is written, the one rule for every writer (spec 21):
+    import, payment intermediaries, the review page, the user's own
+    text. Tidied, every word with a capital initial ("Google Cloud", founder
+    2026-10-21); empty becomes None."""
+    if text is None:
+        return None
+    return counterpart_case(tidy_text(text)) or None
 
 
 def get_engine(db_url: str = DB_URL):
@@ -220,6 +251,7 @@ def create_tables(engine=None):
     _migrate_add_description_rules(engine)
     _migrate_add_rule_context(engine)
     _migrate_add_rule_giroconto(engine)
+    _migrate_add_rule_multi_category(engine)
     _migrate_add_header_sha256(engine)
     _migrate_add_confidence_score(engine)
     _migrate_add_transaction_updated_at(engine)
@@ -237,8 +269,16 @@ def create_tables(engine=None):
     _migrate_add_llm_usage_log(engine)
     _migrate_add_category_correction(engine)
     _migrate_add_account_closed_on(engine)
+    _migrate_add_account_usage(engine)
     _migrate_add_import_job_n_rows(engine)
+    _migrate_add_transaction_model_proposal(engine)
+    _migrate_counterparts_written_one_way(engine)
     _migrate_add_transfer_link_decision(engine)
+    _migrate_add_category_color(engine)
+    _migrate_giroconti_without_category(engine)
+    _migrate_description_rule_amount(engine)
+    _migrate_description_rule_direction(engine)
+    _migrate_rule_direction(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -368,6 +408,23 @@ class DocumentSchemaModel(Base):
     updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
 
 
+# Two questions about a movement, never answered by the same flag:
+# - categorized by the user (how the money was spent): the category comes from
+#   one of the user's rules or was chosen by hand. A rule answers it for the
+#   counterpart's past and future movements alike.
+# - checked by the user (the money was really spent): human_validated, set only
+#   by confirming the movement itself in the registry, one by one. It is never
+#   inherited and never set by a category change.
+USER_CATEGORY_SOURCES = ("manual", "rule")
+
+# Categories the product proposed on its own: defined with the sources in
+# core.models, kept on the movement in the model_* columns.
+from core.models import AUTOMATIC_CATEGORY_SOURCES  # noqa: E402,F401
+
+
+INTERNAL_TX_TYPES = ("internal_out", "internal_in")
+
+
 class Transaction(Base):
     __tablename__ = "transaction"
 
@@ -387,6 +444,11 @@ class Transaction(Base):
     category_confidence = Column(String(10))
     category_source = Column(String(10))            # "manual" | "rule" | "llm" | future: "history"
     category_model = Column(String(128))             # specific LLM model used (e.g. "gemma-2-2b-it-Q4_K_M")
+    # The product's own proposal at import, never changed afterwards (see
+    # AUTOMATIC_CATEGORY_SOURCES); empty when a user's rule decided at import.
+    model_category = Column(String(128), nullable=True)
+    model_subcategory = Column(String(128), nullable=True)
+    model_confidence = Column(String(10), nullable=True)
     reconciled = Column(Boolean, default=False)
     to_review = Column(Boolean, default=False)
     transfer_pair_id = Column(String(64))
@@ -394,10 +456,37 @@ class Transaction(Base):
     raw_description = Column(Text, nullable=True)   # original text before normalize_description
     raw_amount = Column(String(64), nullable=True)  # original string from source file
     context = Column(String(64), nullable=True)     # user-defined life context (e.g. Vacanza, Lavoro)
+    # Checked by the user: the money was really spent. Not about the category.
     human_validated = Column(Boolean, default=False)
     validated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
+
+    @validates("description")
+    def _written_counterpart(self, _key, value):
+        # Every write of the counterpart, whatever the code path.
+        return written_counterpart(value)
+
+    @validates("tx_type")
+    def _giroconto_has_no_category(self, _key, value):
+        """A giroconto moves money between the user's own accounts: it has no
+        category. Whatever turns a movement into a giroconto (by hand, rule,
+        transfer pair) empties its category; turning it back gives it the
+        product's proposal from the import, to review, or none. Only real
+        changes count: building a movement sets the type with no old one."""
+        old = self.tx_type
+        if old is None or old == value:
+            return value
+        if value in INTERNAL_TX_TYPES and old not in INTERNAL_TX_TYPES:
+            self.category = self.subcategory = None
+            self.category_source = self.category_confidence = self.category_model = None
+        elif old in INTERNAL_TX_TYPES and value not in INTERNAL_TX_TYPES and self.category is None:
+            if self.model_category:
+                self.category, self.subcategory = self.model_category, self.model_subcategory
+                self.category_source = "llm"
+                self.category_confidence = self.model_confidence or "low"
+            self.to_review = True
+        return value
 
     batch = relationship("ImportBatch", back_populates="transactions")
 
@@ -470,12 +559,29 @@ class TransferDestination(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class PaymentIntermediary(Base):
+    """A transparent payment intermediary (PayPal, SumUp...): the counterpart
+    of a movement paid through it is the merchant after the asterisk.
+
+    Spec 20. ``origin``: "seed" (shipped with the app), "learned" (followed
+    by two or more different merchants in the user's data), "user" (added in
+    the Intermediaries page). ``active`` False is the user's decision and is
+    never turned back on by a seed update or by learning.
+    """
+    __tablename__ = "payment_intermediary"
+
+    prefix = Column(String(64), primary_key=True)
+    origin = Column(String(10), nullable=False, default="seed")
+    active = Column(Boolean, nullable=False, default=True, server_default="1")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class CategoryRule(Base):
     __tablename__ = "category_rule"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     pattern = Column(Text, nullable=False)
-    match_type = Column(String(10), nullable=False)  # contains | regex | exact
+    match_type = Column(String(11), nullable=False)  # contains | regex | exact | starts_with
     category = Column(String(128), nullable=False)
     subcategory = Column(String(128))
     context = Column(String(64))               # optional — None means "don't set"
@@ -484,6 +590,13 @@ class CategoryRule(Base):
     # A giroconto rule marks the movement as an internal transfer instead of
     # giving it a category; category stays empty.
     is_giroconto = Column(Boolean, default=False, nullable=False, server_default="0")
+    # A multi-category rule (spec 24): the counterpart is a place where
+    # everything is bought; its movements take the generic category and are
+    # seen one by one. Category stays empty.
+    is_multi_category = Column(Boolean, default=False, nullable=False, server_default="0")
+    # The rule's direction (spec 18): "out" money out, "in" money in. A rule
+    # holds only for the movements in its direction.
+    direction = Column(String(3), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -497,11 +610,17 @@ class DescriptionRule(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     raw_pattern = Column(Text, nullable=False)          # pattern to match in raw_description
-    match_type = Column(String(10), nullable=False)      # exact | contains | regex
+    match_type = Column(String(10), nullable=False)      # exact | contains | regex | signature
+    # The user's own name (spec 27): match_type "signature", raw_pattern is
+    # the raw signature and amount the identical amount, sign included.
+    amount = Column(Numeric(precision=18, scale=2), nullable=True)
+    # An own name whose amount changes (a variable-rate installment): no
+    # amount, the sign only, "out" or "in" (spec 27).
+    direction = Column(String(3), nullable=True)
     cleaned_description = Column(Text, nullable=False)  # replacement description
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    __table_args__ = (UniqueConstraint("raw_pattern", "match_type"),)
+    __table_args__ = (UniqueConstraint("raw_pattern", "match_type", "amount"),)
 
 
 class UserSettings(Base):
@@ -579,6 +698,9 @@ class TaxonomyCategory(Base):
     type = Column(String(8), nullable=False)   # "expense" | "income"
     sort_order = Column(Integer, default=0)
     is_fallback = Column(Boolean, default=False)
+    # The category's own colour in every chart (spec 25): written once when
+    # the category is born, then only by the user. The fallback ignores it.
+    color = Column(String(7))
 
     subcategories = relationship(
         "TaxonomySubcategory",
@@ -633,6 +755,10 @@ class Account(Base):
     name = Column(String(256), unique=True, nullable=False)   # e.g. "Conto POPSO", "Carta CartaSI"
     bank_name = Column(String(256))                           # optional free-text bank name
     account_type = Column(String(32), nullable=True)          # bank_account | credit_card | debit_card | prepaid_card | savings_account | cash
+    # How the person uses the account: "payments" (ci paghi) or "in_and_out"
+    # (ci entrano e escono soldi). Empty = never said. It decides only when the
+    # import asks about the direction of the amounts, never the direction.
+    usage = Column(String(16), nullable=True)
     # ISO date (YYYY-MM-DD) after which no movements are expected: the account
     # was closed. Empty = active. The Check List stops asking for it.
     closed_on = Column(String(10), nullable=True)
@@ -999,6 +1125,20 @@ def _migrate_add_rule_giroconto(engine) -> None:
                 raise
 
 
+def _migrate_add_rule_multi_category(engine) -> None:
+    """Add is_multi_category to category_rule if not present (idempotent)."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                'ALTER TABLE category_rule ADD COLUMN is_multi_category BOOLEAN NOT NULL DEFAULT 0'
+            ))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
+
+
 def _migrate_add_rule_context(engine) -> None:
     """Add context column to category_rule if not present (idempotent)."""
     from sqlalchemy import text as _text
@@ -1112,6 +1252,202 @@ def _migrate_add_header_sha256(engine) -> None:
             pass  # column already exists
 
 
+def _migrate_counterparts_written_one_way(engine) -> None:
+    """Rewrite the saved counterparts the way every new one is written
+    (written_counterpart, spec 21): before 2026-10-21 the import saved
+    them in upper case. Only the rows that differ are touched; idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            rows = conn.execute(_text(
+                'SELECT id, description FROM "transaction" WHERE description IS NOT NULL'
+            )).fetchall()
+        except Exception:
+            return  # no transaction table yet
+        changed = [(written_counterpart(d), i) for i, d in rows if written_counterpart(d) != d]
+        for new, tx_id in changed:
+            conn.execute(_text('UPDATE "transaction" SET description = :d WHERE id = :i'),
+                         {"d": new, "i": tx_id})
+        if changed:
+            conn.commit()
+
+
+def _migrate_rule_direction(engine) -> None:
+    """Give every category rule its direction, once (spec 18): a category
+    rule from its category's type; a giroconto or multi-category rule from
+    the movements it covers, split in two rules when they go both ways.
+    Then the movements a rule of the other direction categorized lose that
+    category (left to review). Idempotent: only rules without a direction."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE category_rule ADD COLUMN direction VARCHAR(3)'))
+            conn.commit()
+        except Exception as exc:
+            if "no such table" in str(exc).lower():
+                return
+            if "duplicate column name" not in str(exc).lower():
+                raise
+    from sqlalchemy.exc import OperationalError
+    try:
+        _assign_rule_directions(engine)
+    except OperationalError:
+        pass  # a partial database (no movements or taxonomy yet): nothing to read
+
+
+def _assign_rule_directions(engine) -> None:
+    from sqlalchemy import text as _text
+    from sqlalchemy.orm import Session as _Session
+    from db import repository as _repo
+    with _Session(bind=engine) as s:
+        pending = s.query(CategoryRule).filter(CategoryRule.direction.is_(None)).all()
+        if not pending:
+            return
+        for rule in pending:
+            d = _repo.category_direction(s, rule.category) if rule.category else None
+            if d is None:
+                found = _repo.pattern_directions(s, rule.pattern, rule.match_type)
+                if len(found) > 1:
+                    rule.direction = "out"
+                    s.add(CategoryRule(
+                        pattern=rule.pattern, match_type=rule.match_type, category=rule.category,
+                        subcategory=rule.subcategory, context=rule.context, doc_type=rule.doc_type,
+                        priority=rule.priority, is_giroconto=rule.is_giroconto,
+                        is_multi_category=rule.is_multi_category, direction="in"))
+                    continue
+                d = found.pop() if found else "out"
+            rule.direction = d
+        s.flush()
+        # A movement categorized by a rule of the other direction loses it.
+        expense = {n for (n,) in s.execute(_text("SELECT name FROM taxonomy_category WHERE type='expense'"))}
+        income = {n for (n,) in s.execute(_text("SELECT name FROM taxonomy_category WHERE type='income'"))}
+        for tx in s.query(Transaction).filter(Transaction.category_source == "rule"):
+            out = float(tx.amount or 0) < 0
+            if out:
+                wrong = tx.category in income and tx.category not in expense
+            else:
+                wrong = tx.category in expense and tx.category not in income
+            if wrong:
+                tx.category = tx.subcategory = None
+                tx.category_source = tx.category_confidence = None
+                tx.to_review = True
+        s.commit()
+
+
+def _migrate_description_rule_direction(engine) -> None:
+    """Add description_rule.direction (spec 27): an own name on the sign only,
+    for an installment whose amount changes. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE description_rule ADD COLUMN direction VARCHAR(3)'))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower() and "no such table" not in str(exc).lower():
+                raise
+
+
+def _migrate_description_rule_amount(engine) -> None:
+    """Add the amount to description_rule (spec 27): one raw signature can
+    carry several own names, one per amount, so the unique key becomes
+    (raw_pattern, match_type, amount). SQLite cannot change a constraint in
+    place: the table is rebuilt once, rows kept. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(description_rule)")).fetchall()]
+        if not cols or "amount" in cols:
+            return
+        conn.execute(_text(
+            'CREATE TABLE description_rule_new ('
+            'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+            'raw_pattern TEXT NOT NULL, '
+            'match_type VARCHAR(10) NOT NULL, '
+            'amount NUMERIC(18, 2), '
+            'cleaned_description TEXT NOT NULL, '
+            'created_at DATETIME, '
+            'UNIQUE(raw_pattern, match_type, amount))'
+        ))
+        conn.execute(_text(
+            'INSERT INTO description_rule_new (id, raw_pattern, match_type, cleaned_description, created_at) '
+            'SELECT id, raw_pattern, match_type, cleaned_description, created_at FROM description_rule'
+        ))
+        conn.execute(_text('DROP TABLE description_rule'))
+        conn.execute(_text('ALTER TABLE description_rule_new RENAME TO description_rule'))
+        conn.commit()
+
+
+def _migrate_giroconti_without_category(engine) -> None:
+    """Empty the category of the giroconti that kept the one they had before
+    becoming giroconti (before 2026-10-21). The product's proposal stays in
+    model_category; idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                'UPDATE "transaction" SET category = NULL, subcategory = NULL, '
+                'category_source = NULL, category_confidence = NULL, category_model = NULL '
+                "WHERE tx_type IN ('internal_out', 'internal_in') AND category IS NOT NULL"
+            ))
+            conn.commit()
+        except Exception:
+            pass  # no transaction table yet
+
+
+def _migrate_add_category_color(engine) -> None:
+    """Add taxonomy_category.color and give every category without one its
+    colour, once, in sort order (spec 25)."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE taxonomy_category ADD COLUMN color VARCHAR(7)'))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
+        fill_category_colors(conn)
+        conn.commit()
+
+
+def fill_category_colors(conn) -> int:
+    """Give each category without a colour the first free colour of its
+    direction's palette (spec 25). Colours already set, by the product
+    or by the user, are never touched. Returns how many were assigned."""
+    from sqlalchemy import text as _text
+    from core.palette import next_color
+    rows = conn.execute(_text(
+        "SELECT id, type, color FROM taxonomy_category "
+        "WHERE COALESCE(is_fallback, 0) = 0 ORDER BY type, sort_order, id"
+    )).fetchall()
+    used: dict[str, list[str]] = {}
+    for _, type_, color in rows:
+        if color:
+            used.setdefault(type_, []).append(color)
+    assigned = 0
+    for cat_id, type_, color in rows:
+        if color:
+            continue
+        new = next_color(type_, used.get(type_, []))
+        used.setdefault(type_, []).append(new)
+        conn.execute(_text("UPDATE taxonomy_category SET color = :c WHERE id = :i"),
+                     {"c": new, "i": cat_id})
+        assigned += 1
+    return assigned
+
+
+def _migrate_add_transaction_model_proposal(engine) -> None:
+    """Add the columns of the product's proposal to transaction if missing."""
+    from sqlalchemy import text as _text
+    for column, kind in (("model_category", "VARCHAR(128)"),
+                         ("model_subcategory", "VARCHAR(128)"),
+                         ("model_confidence", "VARCHAR(10)")):
+        with engine.connect() as conn:
+            try:
+                conn.execute(_text(f'ALTER TABLE "transaction" ADD COLUMN {column} {kind}'))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
+
+
 def _migrate_add_import_job_n_rows(engine) -> None:
     """Add n_rows column to import_job if not already present."""
     from sqlalchemy import text as _text
@@ -1218,11 +1554,34 @@ def _migrate_add_taxonomy_fallback(engine) -> None:
                     pass
                 else:
                     raise
-        # Mark existing fallback categories
-        for name in ("Altro", "Altro entrate", "Other", "Other income"):
-            conn.execute(_text('UPDATE taxonomy_category SET is_fallback = 1 WHERE name = :n'), {"n": name})
-            conn.execute(_text('UPDATE taxonomy_default SET is_fallback = 1 WHERE category = :n'), {"n": name})
+        # Mark the fallback categories of every language, as the built-in
+        # taxonomies define them (before 2026-10-21 only it/en were marked,
+        # so fr/de/es had no fallback after onboarding).
+        from db.taxonomy_defaults import TAXONOMY_DEFAULTS
+        for data in TAXONOMY_DEFAULTS.values():
+            for type_key, section in (("expense", "expenses"), ("income", "income")):
+                for entry in data.get(section, []):
+                    if entry.get("is_fallback"):
+                        params = {"n": entry["category"], "t": type_key}
+                        conn.execute(_text('UPDATE taxonomy_category SET is_fallback = 1 '
+                                           'WHERE name = :n AND type = :t'), params)
+                        conn.execute(_text('UPDATE taxonomy_default SET is_fallback = 1 '
+                                           'WHERE category = :n AND type = :t'), params)
         conn.commit()
+
+
+def _migrate_add_account_usage(engine) -> None:
+    """Add the usage column to account (idempotent). Left empty on purpose:
+    the old account_type defaulted to bank_account for every account, so it
+    says nothing about how an account is used and is not carried over."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text("ALTER TABLE account ADD COLUMN usage VARCHAR(16)"))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
 
 
 def _migrate_consolidate_account_type(engine) -> None:

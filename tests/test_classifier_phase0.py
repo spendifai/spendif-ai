@@ -15,7 +15,6 @@ from core.classifier import (
     _Step0Result,
     _format_step0_for_prompt,
     _merge_step0_into_result,
-    _apply_step0_invert_sign,
 )
 
 
@@ -397,77 +396,6 @@ class TestMergeStep0IntoResult:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# _apply_step0_invert_sign (post-merge safety net)
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestApplyStep0InvertSign:
-
-    def test_credit_card_forces_invert_sign_true(self):
-        result = _apply_step0_invert_sign(
-            {"doc_type": "credit_card", "sign_convention": "signed_single",
-             "amount_col": "Importo", "invert_sign": False},
-            "test"
-        )
-        assert result["invert_sign"] is True
-
-    def test_credit_card_already_true_unchanged(self):
-        result = _apply_step0_invert_sign(
-            {"doc_type": "credit_card", "sign_convention": "signed_single",
-             "amount_col": "Importo", "invert_sign": True},
-            "test"
-        )
-        assert result["invert_sign"] is True
-
-    def test_non_credit_card_no_synonym_override(self):
-        """Safety net no longer uses column-name synonyms — only credit_card rule."""
-        result = _apply_step0_invert_sign(
-            {"doc_type": "unknown", "sign_convention": "signed_single",
-             "amount_col": "Addebito", "invert_sign": None},
-            "test"
-        )
-        # No synonym-based override; LLM decides
-        assert result["invert_sign"] is None
-
-    def test_bank_account_no_override(self):
-        """Safety net leaves bank_account invert_sign as-is."""
-        result = _apply_step0_invert_sign(
-            {"doc_type": "bank_account", "sign_convention": "signed_single",
-             "amount_col": "Addebito", "invert_sign": None},
-            "test"
-        )
-        assert result["invert_sign"] is None
-
-    def test_inflow_column_no_synonym_override(self):
-        """Safety net no longer uses column-name synonyms — LLM decides."""
-        result = _apply_step0_invert_sign(
-            {"doc_type": "unknown", "sign_convention": "signed_single",
-             "amount_col": "Accredito", "invert_sign": True},
-            "test"
-        )
-        # No synonym override — value stays as LLM set it
-        assert result["invert_sign"] is True
-
-    def test_debit_positive_convention_skipped(self):
-        """Safety net only applies to signed_single convention."""
-        result = _apply_step0_invert_sign(
-            {"doc_type": "credit_card", "sign_convention": "debit_positive",
-             "amount_col": "Importo", "invert_sign": None},
-            "test"
-        )
-        # debit_positive → safety net is skipped
-        assert result["invert_sign"] is None
-
-    def test_neutral_amount_col_no_change(self):
-        result = _apply_step0_invert_sign(
-            {"doc_type": "bank_account", "sign_convention": "signed_single",
-             "amount_col": "Importo", "invert_sign": None},
-            "test"
-        )
-        # "Importo" is neutral → no deterministic rule applies
-        assert result["invert_sign"] is None
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # _is_categorical
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -781,66 +709,55 @@ class TestClassifyDocument:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# AI-149: deterministic sign decision by account-type prior
+# Direction measured on the data, whatever the model guessed the document is
 # ─────────────────────────────────────────────────────────────────────────────
-class TestDocTypeSignPrior:
-    """The prior comes from the document type read off the file.
+class TestMeasureSignFromData:
+    """The more frequent sign is spending, on every account.
 
-    It used to come from the account type the person had declared, which won
-    over the document. These cases are unchanged: every one of them already
-    drove the decision from doc_type, which is why the logic itself did not
-    move when the declaration was taken out of the chain.
+    It used to need a prior from the document type the model guessed, and ran
+    only when that guess was a card. An Amex export taken for a bank account
+    then came in with its charges as income (2026-10-19).
     """
 
     @staticmethod
-    def _apply(amounts, doc_type, debit_col=None, credit_col=None):
-        from core.classifier import _apply_doc_type_sign_prior
+    def _apply(amounts, debit_col=None, credit_col=None):
+        from core.classifier import _measure_sign_from_data
         df = pd.DataFrame({"Importo": [str(a) for a in amounts]})
         res = {"amount_col": "Importo", "debit_col": debit_col, "credit_col": credit_col,
-               "doc_type": doc_type, "sign_convention": "debit_positive", "invert_sign": False}
-        return _apply_doc_type_sign_prior(res, df, "test")
+               "sign_convention": "debit_positive", "invert_sign": False}
+        return _measure_sign_from_data(res, df, "test")
 
-    def test_expected_dominant_sign_map(self):
-        from core.classifier import _expected_dominant_sign
-        assert _expected_dominant_sign("credit_card") == -1
-        assert _expected_dominant_sign("debit_card") == -1
-        assert _expected_dominant_sign("prepaid_card") == -1
-        assert _expected_dominant_sign("cash") == -1
-        assert _expected_dominant_sign("savings_account") == +1
-        assert _expected_dominant_sign("bank_account") is None
-        assert _expected_dominant_sign("") is None
-
-    def test_card_expenses_positive_inverts(self):
-        # AI-149 regression: amex with expenses stored positive (majority +)
-        out = self._apply([50, 30, 1000, -80], "credit_card")
+    def test_expenses_positive_inverts(self):
+        out = self._apply([50, 30, 1000, -80])
         assert out["sign_convention"] == "signed_single"
         assert out["invert_sign"] is True
+        assert out["sign_deterministic_verdict"] is True
+        assert out["sign_measure_conclusive"] is True
         assert out["positive_ratio"] == 0.75 and out["negative_ratio"] == 0.25
 
-    def test_card_expenses_already_negative_no_invert(self):
-        out = self._apply([-97, -50, 2038], "credit_card")
+    def test_expenses_already_negative_no_invert(self):
+        out = self._apply([-97, -50, 2038])
         assert out["invert_sign"] is False
 
     def test_ratios_always_sum_to_one(self):
-        out = self._apply([50, 30, 1000, -80], "credit_card")
+        out = self._apply([50, 30, 1000, -80])
         assert round(out["positive_ratio"] + out["negative_ratio"], 6) == 1.0
 
-    def test_savings_opposite_prior(self):
-        # deposits positive → no invert
-        assert self._apply([100, 200, -30], "savings_account")["invert_sign"] is False
-        # deposits stored negative → invert
-        assert self._apply([-100, -200, 30], "savings_account")["invert_sign"] is True
+    def test_thousands_written_the_italian_way_are_counted(self):
+        """"2.934,73" used to be dropped, so salaries vanished from the count."""
+        out = self._apply(["2.934,73", "1.187,15", "3.001,00", "-12,79"])
+        assert out["positive_ratio"] == 0.75
 
-    def test_bank_account_no_prior_keeps_invert(self):
-        out = self._apply([500, -30, -40], "bank_account")
-        assert out["invert_sign"] is False  # unchanged from input
+    def test_few_movements_are_inconclusive_and_take_the_first(self):
+        out = self._apply([50, -80])
+        assert out["invert_sign"] is True and out["sign_measure_conclusive"] is False
+        out = self._apply([-80, 50])
+        assert out["invert_sign"] is False and out["sign_measure_conclusive"] is False
 
-    def test_s0_single_cycle_first_tx_decides(self):
-        # ≤2 movements → first non-zero tx; card, first positive → invert
-        assert self._apply([50, -80], "credit_card")["invert_sign"] is True
-        # known edge: payment (negative) listed first → no invert
-        assert self._apply([-80, 50], "credit_card")["invert_sign"] is False
+    def test_a_tie_is_inconclusive(self):
+        assert self._apply([10, 20, -5, -6])["sign_measure_conclusive"] is False
 
     def test_debit_credit_columns_untouched(self):
-        out = self._apply([50, 30], "bank_account", debit_col="Dare", credit_col="Avere")
-        assert out["sign_convention"] == "debit_positive"  # not a single-column file
+        out = self._apply([50, 30], debit_col="Dare", credit_col="Avere")
+        assert out["sign_convention"] == "debit_positive"
+        assert "sign_deterministic_verdict" not in out

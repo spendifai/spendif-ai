@@ -12,6 +12,7 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display, format_date_display
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.cat_select import cat_sub_select
 
 logger = setup_logging()
 
@@ -57,8 +58,9 @@ def render_bulk_edit_page(engine):
     with fc2:
         only_review = st.checkbox(t("bulk_edit.only_review"), key="bulk_only_review")
     with fc3:
-        show_all = st.checkbox(t("bulk_edit.show_all"), key="bulk_show_all",
-                               value=False)
+        # Giroconti have no category: shown only to take the mark away.
+        with_giro = st.checkbox(t("bulk_edit.with_giroconti"), key="bulk_with_giro",
+                                value=False, help=t("bulk_edit.with_giroconti_help"))
 
     filters: dict = {}
     if desc_search.strip():
@@ -66,19 +68,26 @@ def render_bulk_edit_page(engine):
     if only_review:
         filters["to_review"] = True
 
-    txs = tx_svc.get_transactions(filters=filters, limit=500)
+    # One entry per counterpart, the ones with more movements first: the
+    # reference is its most recent movement.
+    groups = tx_svc.counterpart_groups(filters=filters, with_giroconti=with_giro)
 
-    if not txs:
+    if not groups:
         st.info(t("bulk_edit.no_transactions"))
         return
+    st.caption(t("bulk_edit.recent_hint", n=500))
 
-    tx_options = {
-        f"{'⚠️ ' if tx.to_review else ''}"
-        f"{format_date_display(tx.date, _date_fmt)} | "
-        f"{(tx.description or '')[:70]} | "
-        f"{format_amount_display(abs(float(tx.amount)), _dec, _thou, symbol='')}": tx
-        for tx in txs
-    }
+    tx_options = {}
+    for g in groups:
+        tx = g["tx"]
+        label = (
+            f"{'🔄 ' if g['giroconto'] else ''}{'⚠️ ' if tx.to_review else ''}"
+            f"{(tx.description or '')[:70]} | "
+            f"{t('bulk_edit.n_movements', n=g['n'])} | "
+            f"{format_date_display(tx.date, _date_fmt)} | "
+            f"{format_amount_display(abs(float(tx.amount)), _dec, _thou, symbol='')}"
+        )
+        tx_options[label] = tx
 
     selected_label = st.selectbox(
         t("bulk_edit.ref_transaction"),
@@ -284,31 +293,11 @@ def render_bulk_edit_page(engine):
     if not is_giroconto:
         st.subheader(t("bulk_edit.section3c_title"))
 
-        all_categories = _expense_cats if is_expense else _income_cats
 
-        cat_idx = all_categories.index(sel.category) \
-            if sel.category in all_categories else 0
-
-        ca1, ca2 = st.columns(2)
-        with ca1:
-            new_cat = st.selectbox(
-                t("bulk_edit.new_category"), all_categories, index=cat_idx, key="bulk_cat_select"
-            )
-        with ca2:
-            subs = taxonomy.valid_subcategories(new_cat)
-            if subs:
-                sub_idx = subs.index(sel.subcategory) \
-                    if (sel.subcategory in subs and sel.category == new_cat) else 0
-                new_sub = st.selectbox(
-                    t("bulk_edit.new_subcategory"), subs, index=sub_idx,
-                    key=f"bulk_sub_select_{new_cat}"
-                )
-            else:
-                new_sub = st.text_input(
-                    t("bulk_edit.new_subcategory"),
-                    value=sel.subcategory or "",
-                    key=f"bulk_sub_text_{new_cat}"
-                )
+        new_cat, new_sub = cat_sub_select(
+            t("ledger.col.cat_sub"), taxonomy, sel.category, sel.subcategory,
+            key=f"bulk_cat_sub_{sel.id}", only="expense" if is_expense else "income",
+        )
 
         op1, op2 = st.columns(2)
         with op1:
@@ -349,7 +338,8 @@ def render_bulk_edit_page(engine):
                     rule_msg = t("bulk_edit.rule_created") if created else t("bulk_edit.rule_updated")
 
                 if apply_to_similar_cat and sel.description:
-                    similar = tx_svc.get_by_rule_pattern(sel.description, "contains")
+                    similar = tx_svc.get_by_rule_pattern(
+                        sel.description, "contains", "out" if is_expense else "in")
                     for stx in similar:
                         if stx.id != sel.id:
                             _set_cat(stx.id, new_cat, new_sub, origin="bulk_edit")

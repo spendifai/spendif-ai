@@ -196,11 +196,11 @@ If you have created many rules across different sessions and want to apply them 
 
 ---
 
-## 6. Bulk Edit: category, context, and bulk deletion
+## 6. Edit several movements: category, context, and bulk deletion
 
 **Situation:** You've imported years of transaction files and want to clean up incorrect data or remove an entire account you no longer want to track.
 
-Go to **✏️ Bulk Edit**. The page is divided into two main areas.
+Go to **✏️ Edit several movements**. The page is divided into two main areas.
 
 ### 6a — Operations on a reference transaction
 

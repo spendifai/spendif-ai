@@ -545,6 +545,9 @@ def _start_streamlit(port: int, app_dir: Path) -> subprocess.Popen:
     # utente con Settings->Tema. "viewer" (non "minimal", che toglieva anche il tema).
     # Via env così vale anche nel bundle, dove .streamlit/config.toml può non esserci.
     env["STREAMLIT_CLIENT_TOOLBAR_MODE"] = "viewer"
+    # The server ends itself as soon as this launcher is gone, however it
+    # goes (support/parent_watchdog.py): a kill -9 or a crash skips _cleanup.
+    env["SPENDIFAI_LAUNCHER_PID"] = str(os.getpid())
 
     # Il figlio eredita i descrittori del sistema operativo, non il sys.stdout
     # del padre: senza questo redirect, in un'app lanciata da icona (nessuna
@@ -626,6 +629,12 @@ if sys.platform != "win32":
     # in dev) trigger a clean exit that goes through atexit → _cleanup.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+
+    # The main thread lives in the native window loop, where these handlers
+    # never run: desktop/signal_watch.py acts on the signal from a thread.
+    from desktop.signal_watch import install as _install_signal_watch
+
+    _install_signal_watch(_cleanup)
 
 
 # ---------------------------------------------------------------------------

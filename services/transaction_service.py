@@ -4,11 +4,11 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import date
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
 from db import repository
-from db.models import Transaction
+from db.models import Transaction, USER_CATEGORY_SOURCES, same_counterpart
 
 
 class TransactionService:
@@ -27,6 +27,49 @@ class TransactionService:
     def get_transactions(self, filters: dict | None = None, limit: int = 5000, offset: int = 0) -> list[Transaction]:
         with self._session() as s:
             return repository.get_transactions(s, filters or {}, limit, offset)
+
+    @staticmethod
+    def text_matches(query: str, *texts: str | None) -> bool:
+        """A search box: the query found in one of the texts, case, accents
+        and punctuation not counting (the same reduction as the counterpart
+        comparison, exact_key). An empty query matches everything."""
+        from core.rule_key import exact_key
+        q = exact_key(query or "")
+        if not q:
+            return True
+        return any(q in exact_key(text or "") for text in texts)
+
+    def counterpart_groups(self, filters: dict | None = None,
+                           with_giroconti: bool = False, recent: int = 500) -> list[dict]:
+        """One entry per counterpart and direction, for choosing a reference
+        movement: {"tx": the most recent movement, "n": how many, "total":
+        sum of the amounts in absolute value, "giroconto": bool}, over the
+        *recent* most recent movements only (founder: a counterpart busy three
+        years ago is not what is being fixed now). Ordered by number of
+        movements, then total, both descending. The counterpart is
+        compared as everywhere else (exact_key). Giroconti are left out unless
+        asked: they have no category to change."""
+        from core.rule_key import exact_key
+        internal = ("internal_out", "internal_in")
+        groups: dict[tuple, dict] = {}
+        # The places where everything is bought (spec 24) are seen one movement
+        # at a time, never in bulk: they stay out.
+        movements = [tx for tx in self.get_transactions(filters=filters, limit=1_000_000)
+                     if (with_giroconti or tx.tx_type not in internal)
+                     and tx.category_source != "multi"]
+        movements.sort(key=lambda tx: (tx.date or "", tx.id), reverse=True)
+        for tx in movements[:recent]:
+            giro = tx.tx_type in internal
+            key = (exact_key(tx.description or "") or tx.id, float(tx.amount or 0) < 0, giro)
+            g = groups.get(key)
+            if g is None:
+                groups[key] = {"tx": tx, "n": 1, "total": abs(float(tx.amount or 0)), "giroconto": giro}
+            else:
+                g["n"] += 1
+                g["total"] += abs(float(tx.amount or 0))
+                if (tx.date or "") > (g["tx"].date or ""):
+                    g["tx"] = tx
+        return sorted(groups.values(), key=lambda g: (-g["n"], -g["total"]))
 
     def has_transactions(self) -> bool:
         """True if the `transaction` table has at least one row.
@@ -47,6 +90,12 @@ class TransactionService:
         with self._session() as s:
             last = s.query(func.max(Transaction.date)).scalar()
         return date.fromisoformat(last) if last else None
+
+    def get_last_import_period(self) -> tuple[date, date] | None:
+        """First and last date of the movements of the last finished import."""
+        with self._session() as s:
+            period = repository.get_last_import_period(s)
+        return (date.fromisoformat(period[0]), date.fromisoformat(period[1])) if period else None
 
     def get_recent_for_home(self, since_iso: str) -> list[tuple]:
         """Return rows since *since_iso* with only the columns the Home
@@ -103,6 +152,12 @@ class TransactionService:
             s.commit()
             return result
 
+    def update_description(self, tx_id: str, description: str | None) -> bool:
+        with self._session() as s:
+            result = repository.update_transaction_description(s, tx_id, description)
+            s.commit()
+            return result
+
     def toggle_giroconto(self, tx_id: str) -> tuple[bool, str]:
         with self._session() as s:
             result = repository.toggle_transaction_giroconto(s, tx_id)
@@ -143,9 +198,11 @@ class TransactionService:
             s.commit()
             return result
 
-    def get_by_rule_pattern(self, pattern: str, match_type: str) -> list[Transaction]:
+    def get_by_rule_pattern(self, pattern: str, match_type: str,
+                            direction: str | None = None) -> list[Transaction]:
+        """The movements a rule covers, in its direction when given (spec 18)."""
         with self._session() as s:
-            return repository.get_transactions_by_rule_pattern(s, pattern, match_type)
+            return repository.get_transactions_by_rule_pattern(s, pattern, match_type, direction)
 
     def get_by_raw_pattern(self, raw_pattern: str, match_type: str) -> list[Transaction]:
         with self._session() as s:
@@ -200,7 +257,7 @@ class TransactionService:
     def count_by_description(self, description: str, exclude_id: str) -> int:
         with self._session() as s:
             return s.query(Transaction).filter(
-                Transaction.description == description,
+                same_counterpart(Transaction.description, description),
                 Transaction.id != exclude_id,
             ).count()
 
@@ -214,7 +271,7 @@ class TransactionService:
     def get_by_description(self, description: str, exclude_id: str) -> list[Transaction]:
         with self._session() as s:
             return s.query(Transaction).filter(
-                Transaction.description == description,
+                same_counterpart(Transaction.description, description),
                 Transaction.id != exclude_id,
             ).all()
 
@@ -327,10 +384,11 @@ class TransactionService:
 
     def set_giroconto_by_rule_pattern(
         self, pattern: str, match_type: str, make_giroconto: bool,
+        direction: str | None = None,
     ) -> int:
         with self._session() as s:
             result = repository.set_giroconto_by_rule_pattern(
-                s, pattern, match_type, make_giroconto,
+                s, pattern, match_type, make_giroconto, direction,
             )
             s.commit()
             return result
@@ -340,10 +398,13 @@ class TransactionService:
         tx_types: tuple[str, ...] = ("expense", "income"),
         date_from: str | None = None,
         date_to: str | None = None,
+        negative_only: bool = False,
+        positive_only: bool = False,
     ) -> list[dict]:
         with self._session() as s:
             return repository.get_counterpart_stats(
                 s, tx_types=tx_types, date_from=date_from, date_to=date_to,
+                negative_only=negative_only, positive_only=positive_only,
             )
 
     def get_counterpart_movements(
@@ -351,29 +412,43 @@ class TransactionService:
         description: str,
         date_from: str,
         date_to: str,
-        unchecked_only: bool = True,
+        uncategorized_only: bool = True,
     ) -> list[Transaction]:
         """Movements of one counterpart in a period, oldest first.
 
-        The counterpart is matched case-insensitively, as the stats group
-        it. With `unchecked_only` the movements the user has already seen
-        are left out: only what came in since is shown again.
+        The counterpart is matched as the stats group it (spec 21). With `uncategorized_only` the movements whose category the user
+        already decided are left out: only what came in since is shown again.
         """
         with self._session() as s:
             q = s.query(Transaction).filter(
-                func.upper(Transaction.description) == description.upper(),
+                same_counterpart(Transaction.description, description),
                 Transaction.date >= date_from,
                 Transaction.date <= date_to,
             )
-            if unchecked_only:
-                q = q.filter(
-                    Transaction.validated_at.is_(None),
-                    Transaction.category_source.is_distinct_from("manual"),
-                )
+            if uncategorized_only:
+                q = q.filter(or_(
+                    Transaction.category_source.is_(None),
+                    Transaction.category_source.notin_(USER_CATEGORY_SOURCES),
+                ))
             return q.order_by(Transaction.date).all()
 
+    def spending_since(self, date_from: str) -> list[tuple[str, str, float]]:
+        """(date, counterpart, amount) of every spending movement since a date,
+        amounts as positive numbers."""
+        with self._session() as s:
+            rows = (
+                s.query(Transaction.date, Transaction.description, Transaction.amount)
+                .filter(
+                    Transaction.tx_type.in_(("expense", "card_tx")),
+                    Transaction.amount < 0,
+                    Transaction.date >= date_from,
+                )
+                .all()
+            )
+            return [(d or "", desc or "", abs(float(a or 0))) for d, desc, a in rows]
+
     def get_rule_categorized_spending(self, date_from: str, date_to: str) -> tuple[int, float]:
-        """Spending of a period the rules categorized on import, unseen by the user.
+        """Spending of a period the rules categorized on import.
 
         (movements, total). These are the movements earlier decisions spared
         the user: categorized by a rule and never needing a look.
@@ -382,9 +457,11 @@ class TransactionService:
             count, total = (
                 s.query(func.count(Transaction.id), func.sum(func.abs(Transaction.amount)))
                 .filter(
-                    Transaction.tx_type == "expense",
+                    # Card purchases are spending too: a card statement
+                    # types every movement card_tx, refunds included.
+                    Transaction.tx_type.in_(("expense", "card_tx")),
+                    Transaction.amount < 0,
                     Transaction.category_source == "rule",
-                    Transaction.validated_at.is_(None),
                     Transaction.date >= date_from,
                     Transaction.date <= date_to,
                 )

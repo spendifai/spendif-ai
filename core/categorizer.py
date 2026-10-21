@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import replace, dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Optional
@@ -34,6 +34,7 @@ from core.sanitizer import SanitizationConfig, redact_pii
 from core.schemas import build_categorization_batch_schema
 from support.logging import setup_logging
 from core.nsi_lookup import nsi_lookup
+from core.rule_key import STARTS_WITH, exact_key, same_text, starts_with
 
 logger = setup_logging()
 
@@ -63,6 +64,12 @@ class CategoryRule:
     # A giroconto rule makes the movement an internal transfer; it never
     # gives a category.
     is_giroconto: bool = False
+    # A multi-category rule (spec 24): the generic category, seen one by one.
+    is_multi_category: bool = False
+    # The rule's direction (spec 18): "out" for money out, "in" for money in.
+    # A rule never holds for both by default; None only for a rule built in
+    # code without a ledger behind it.
+    direction: Optional[str] = None
 
     _compiled: re.Pattern = field(init=False, repr=False)
 
@@ -72,16 +79,22 @@ class CategoryRule:
         else:
             self._compiled = None
 
-    def matches(self, description: str, doc_type: str | None = None) -> bool:
+    def matches(self, description: str, doc_type: str | None = None, amount=None) -> bool:
         if self.doc_type and doc_type and self.doc_type != doc_type:
             return False
+        if self.direction and amount is not None:
+            if (self.direction == "out") != (float(amount) < 0):
+                return False
         desc = description.casefold()
         if self.match_type == "exact":
-            return desc == self.pattern.casefold()
+            # Case and punctuation do not count: GOOGLE*CLOUD is GOOGLE CLOUD.
+            return same_text(description, self.pattern)
         elif self.match_type == "contains":
             return self.pattern.casefold() in desc
         elif self.match_type == "regex":
             return bool(self._compiled.search(desc))
+        elif self.match_type == STARTS_WITH:
+            return starts_with(description, self.pattern)
         return False
 
 
@@ -223,9 +236,9 @@ def _try_deterministic(
     """
     # Step 0: user-defined rules (sorted by priority desc)
     for rule in sorted(user_rules, key=lambda r: r.priority, reverse=True):
-        if rule.is_giroconto:
+        if rule.is_giroconto or rule.is_multi_category:
             continue
-        if rule.matches(description, doc_type):
+        if rule.matches(description, doc_type, amount):
             rule_cat = rule.category
             rule_sub = rule.subcategory or ""
             if rule_sub:
@@ -243,6 +256,16 @@ def _try_deterministic(
             )
 
     return None
+
+
+def multi_category_result(
+    amount: Decimal,
+    fallback_categories: dict[str, tuple[str, str]] | None = None,
+) -> CategorizationResult:
+    """A movement of a multi-category counterpart (spec 24): the generic
+    category of its direction, to be seen one by one, no model."""
+    fallback = _make_fallback(amount, fallback_categories)
+    return replace(fallback, source=CategorySource.multi, to_review=True)
 
 
 def _make_fallback(
@@ -503,6 +526,7 @@ def categorize_batch(
     history_cache: HistoryCache | None = None,
     user_country: str | None = None,  # ISO 3166-1 alpha-2, e.g. "IT" — for NSI ranking
     taxonomy_map: dict[str, tuple[str, str]] | None = None,  # C-08-cascade: osm_tag → (cat, sub)
+    known_categories: dict[tuple[str, str], tuple[str, str]] | None = None,  # spec 22
 ) -> list[CategorizationResult]:
     """Categorize transactions using two directional LLM batches (expense / income).
 
@@ -514,7 +538,11 @@ def categorize_batch(
            - if user_country ∈ NsiMatch.countries AND taxonomy_map has the osm_tag
              → direct CategorizationResult(source=nsi), skip LLM
            - otherwise inject hint into LLM prompt
-      4. LLM — expense batch sees only expense categories, income batch only income categories
+      3c. Category the counterpart already has in the ledger (spec 22):
+           same counterpart (exact_key) and direction → that category,
+           source=history, no model
+      4. LLM: expense batch sees only expense categories, income batch only
+         income categories; asked once per counterpart in the file (spec 22)
       5. Fallback → to_review=True
     """
     n = len(transactions)
@@ -523,17 +551,26 @@ def categorize_batch(
     llm_expense: list[int] = []
     llm_income: list[int] = []
     n_history = 0
+    n_known = 0
 
     # C-07: build historical context text once for all LLM batches
     _history_context = ""
     if history_cache:
         _history_context = get_top_associations_text(history_cache)
 
+    # A multi-category counterpart comes before every other step (spec 24):
+    # no rule category, no history, no model.
+    multi_rules = [r for r in user_rules if r.is_multi_category]
+
     # Step 0 + 1: deterministic rules per transaction
     for i, tx in enumerate(transactions):
         amount = _parse_amount(tx.get("amount"))
         description = tx.get("description", "") or ""
         doc_type = tx.get("doc_type", "") or ""
+
+        if any(r.matches(description, doc_type, amount) for r in multi_rules):
+            results[i] = multi_category_result(amount, fallback_categories)
+            continue
 
         result = _try_deterministic(description, amount, doc_type, user_rules, taxonomy, language=description_language)
         if result is not None:
@@ -590,10 +627,49 @@ def categorize_batch(
             # No bypass: inject hint for LLM
             tx["_nsi_hint"] = nsi_match.hint
 
+        # Step 3c: the category this counterpart already has (spec 22). One
+        # counterpart, one category, whoever gave it: the model is not asked
+        # again, and a wrong one is corrected once with a rule.
+        if known_categories:
+            hit = known_categories.get((exact_key(description), "out" if amount < 0 else "in"))
+            if hit:
+                results[i] = CategorizationResult(
+                    category=hit[0],
+                    subcategory=hit[1],
+                    confidence=Confidence.medium,
+                    source=CategorySource.history,
+                    to_review=False,
+                )
+                n_known += 1
+                continue
+
         if amount < 0:
             llm_expense.append(i)
         else:
             llm_income.append(i)
+
+    # Step 4 prep: one question per counterpart (spec 22). Movements whose
+    # text for the model is the same go as one; the answer is copied back.
+    _followers: dict[int, int] = {}
+
+    def _one_per_counterpart(indices: list[int], income: bool) -> list[int]:
+        first: dict[str, int] = {}
+        kept: list[int] = []
+        for i in indices:
+            t = transactions[i]
+            text = (t.get("raw_description") or t.get("description", "")) if income \
+                else t.get("description", "")
+            key = exact_key(text)
+            if key and key in first:
+                _followers[i] = first[key]
+                continue
+            if key:
+                first[key] = i
+            kept.append(i)
+        return kept
+
+    llm_expense = _one_per_counterpart(llm_expense, income=False)
+    llm_income = _one_per_counterpart(llm_income, income=True)
 
     # Report deterministic progress (rules + history done)
     if progress_callback and n > 0:
@@ -630,6 +706,11 @@ def categorize_batch(
                 batch_done_callback=_batch_done_cb,
             )
 
+    # The answer for a counterpart goes to every movement of it (spec 22).
+    for i, rep in _followers.items():
+        if results[rep] is not None:
+            results[i] = replace(results[rep])
+
     # Fallback for any still-None (llm_backend=None or batch error)
     for i in range(n):
         if results[i] is None:
@@ -642,6 +723,8 @@ def categorize_batch(
         f"categorize_batch [{source_name}]: {n} transactions — "
         f"{sum(1 for r in results if r and r.source == CategorySource.rule)} by rules, "
         f"{n_history} by history, "
+        f"{n_known} by the category already in the ledger, "
+        f"{len(_followers)} answered with another movement of the same counterpart, "
         f"{sum(1 for r in results if r and r.source == CategorySource.nsi)} by NSI, "
         f"{sum(1 for r in results if r and r.source == CategorySource.llm)} by LLM"
     )

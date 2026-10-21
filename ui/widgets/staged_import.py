@@ -10,7 +10,10 @@ from dataclasses import dataclass
 
 import streamlit as st
 
+from ui.i18n import t
+
 _KEY = "_staged_import_files"
+_ROWS_KEY = "_staged_import_rows"
 
 
 @dataclass
@@ -47,3 +50,26 @@ def unstage_file(name: str) -> None:
 def take_staged_files() -> list[StagedFile]:
     """Return the files on hold and clear them: they are handed to one import."""
     return st.session_state.pop(_KEY, [])
+
+
+def files_and_rows(n_files: int, n_rows: int) -> str:
+    """"6 file per un totale di 223 righe": how much there is to import."""
+    files = t("common.files_one" if n_files == 1 else "common.files", n=n_files)
+    rows = t("common.rows_one" if n_rows == 1 else "common.rows", n=n_rows)
+    return t("common.files_and_rows", files=files, rows=rows)
+
+
+def staged_rows(count_rows) -> int:
+    """Rows of the files on hold, counted once per set of files.
+
+    Counting reads every file; the Check List redraws often, so the count is
+    kept until the files on hold change. *count_rows* takes [(name, bytes)].
+    """
+    files = staged_files()
+    key = tuple((f.name, len(f.data)) for f in files)
+    cached = st.session_state.get(_ROWS_KEY)
+    if cached and cached[0] == key:
+        return cached[1]
+    n = count_rows([(f.name, f.data) for f in files])
+    st.session_state[_ROWS_KEY] = (key, n)
+    return n

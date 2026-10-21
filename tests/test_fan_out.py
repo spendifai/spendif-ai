@@ -122,18 +122,19 @@ class TestFindSimilarUncategorized:
         assert len(results) == 1
         assert results[0].id == target.id
 
-    def test_excludes_validated(self, session):
-        """Already-validated transactions should NOT be returned."""
+    def test_checked_is_not_categorized(self, session):
+        """A movement checked as spent but with the model's category is still
+        offered: checking says the money was spent, not how."""
         _make_tx(
             session, description="conad", category="Alimentari",
-            category_source="manual", human_validated=True,
+            category_source="manual",
         )
-        _make_tx(
+        checked = _make_tx(
             session, description="conad", category="Alimentari",
             category_source="llm", human_validated=True,
         )
         results = find_similar_uncategorized(session, "conad")
-        assert len(results) == 0
+        assert [r.id for r in results] == [checked.id]
 
     def test_excludes_rule_based(self, session):
         """Transactions with category_source='rule' should NOT be returned."""
@@ -241,16 +242,15 @@ class TestApplyFanOut:
         apply_fan_out(session, source.id, [target.id])
         assert target.to_review is False
 
-    def test_does_not_overwrite_validated(self, session):
-        """Fan-out should NOT overwrite already-validated transactions."""
+    def test_does_not_overwrite_a_category_the_user_set(self, session):
+        """Fan-out should NOT overwrite a category the user chose by hand."""
         source = _make_tx(
             session, description="lidl", category="Alimentari",
-            subcategory="Spesa", category_source="manual", human_validated=True,
+            subcategory="Spesa", category_source="manual",
         )
         target = _make_tx(
             session, description="lidl", category="Ristorazione",
-            subcategory="Ristorante", category_source="llm",
-            human_validated=True,
+            subcategory="Ristorante", category_source="manual",
         )
         n = apply_fan_out(session, source.id, [target.id])
         assert n == 0
@@ -296,21 +296,23 @@ class TestApplyFanOut:
         assert target.category == "Alimentari"
         assert target.context == "Vacanza"  # preserved, not cleared
 
-    def test_mixed_targets_validated_and_not(self, session):
-        """Fan-out skips validated targets but updates non-validated ones."""
+    def test_mixed_targets_user_set_and_not(self, session):
+        """Fan-out skips categories the user set (by hand or by rule) and,
+        since 2026-10-21, a checked movement: the check confirms its
+        category too (spec 16, principle 7)."""
         source = _make_tx(
             session, description="lidl", category="Alimentari",
-            category_source="manual", human_validated=True,
+            category_source="manual",
         )
-        validated = _make_tx(
+        by_rule = _make_tx(
             session, description="lidl", category="Ristorazione",
+            category_source="rule",
+        )
+        checked = _make_tx(
+            session, description="lidl", category="Altro",
             category_source="llm", human_validated=True,
         )
-        not_validated = _make_tx(
-            session, description="lidl", category="Altro",
-            category_source="llm",
-        )
-        n = apply_fan_out(session, source.id, [validated.id, not_validated.id])
-        assert n == 1
-        assert validated.category == "Ristorazione"  # unchanged
-        assert not_validated.category == "Alimentari"  # updated
+        n = apply_fan_out(session, source.id, [by_rule.id, checked.id])
+        assert n == 0
+        assert by_rule.category == "Ristorazione"  # unchanged
+        assert checked.category == "Altro"  # confirmed with the check: unchanged

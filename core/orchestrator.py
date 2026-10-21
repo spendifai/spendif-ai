@@ -33,6 +33,7 @@ from core.description_cleaner import clean_descriptions_batch
 from core.classifier import classify_document
 from core.llm_backends import LLMBackend, BackendFactory, OllamaBackend
 from core.models import (
+    AUTOMATIC_CATEGORY_SOURCES,
     CARD_TYPES,
     Confidence,
     DocumentType,
@@ -53,6 +54,9 @@ from core.normalizer import (
     detect_encoding,
     detect_header_row,
     detect_internal_transfers,
+    raw_signature,
+    settle_date_order,
+    tidy_text,
     detect_skip_rows,
     drop_low_variability_columns,
     find_card_settlement_matches,
@@ -246,6 +250,9 @@ class ImportResult:
     transfer_links: list[dict]
     skipped_duplicate: bool = False
     skipped_count: int = 0   # number of transactions already in DB (skipped before LLM)
+    # Movements already saved from ANOTHER file in another format, skipped
+    # (counted in skipped_count too): {date, amount, description, twin_description, twin_file}.
+    twins_skipped: list = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     flow_used: str = "unknown"  # "flow1" or "flow2"
     needs_schema_review: bool = False   # True when confidence is medium/low → user must confirm schema
@@ -609,6 +616,7 @@ def _normalize_df_with_schema(
     df: pd.DataFrame,
     schema: DocumentSchema,
     source_name: str,
+    user_country: str = "",
 ) -> tuple[list[dict], list[SkippedRow], int]:
     """
     Apply DocumentSchema to produce a list of canonical transaction dicts.
@@ -621,6 +629,18 @@ def _normalize_df_with_schema(
     transactions = []
     skipped_rows: list[SkippedRow] = []
     skip_date_nan = skip_date_parse = skip_amount = 0
+
+    # Day and month: the data decides, not the model (and not a schema cached
+    # from a wrong guess). The schema is corrected so it is saved right.
+    if schema.date_col and schema.date_col in df.columns:
+        settled, why = settle_date_order(
+            df[schema.date_col].tolist(), schema.date_format, user_country)
+        if why:
+            logger.warning(
+                "_normalize_df_with_schema [%s]: date format %s -> %s (%s)",
+                source_name, schema.date_format, settled, why,
+            )
+            schema.date_format = settled
 
     def _row_raw_values(r, idx: int) -> dict:
         """Extract raw values for a skipped row (for diagnostics)."""
@@ -840,12 +860,19 @@ def process_file(
     known_schema: Optional[DocumentSchema] = None,
     progress_callback=None,  # Callable[[float, str|None], None] — 0..1 + phase key (header_detection|classifying|footer_detection|extracting|cleaning|categorizing). Backward-compat: callables accepting only (float,) are still supported.
     existing_tx_ids_checker=None,  # Callable[[list[str]], set[str]] — returns already-imported tx ids
+    other_files_loader=None,  # Callable[[str, list[str], str], list[dict]]: (account, dates, file) -> saved movements of other files
+    intermediary_prefixes: Optional[set] = None,  # active payment intermediaries (spec 20): the counterpart is the merchant after "*"
+    known_categories: Optional[dict] = None,  # spec 22: {(counterpart key, direction): (cat, sub)} already in the ledger
+    known_signatures: Optional[dict] = None,  # spec 22: {raw signature: counterpart} already in the ledger
+    own_names: Optional[dict] = None,  # spec 27: {(raw signature, signed amount): the user's own name}
+    fallback_categories: Optional[dict] = None,  # taxonomy's generic category per direction (spec 24)
     account_label_override: Optional[str] = None,  # user-selected account name; overrides LLM-assigned label
     skip_rows_override: Optional[int] = None,  # user-confirmed skip_rows from UI; takes precedence over schema
     history_cache=None,  # Optional[HistoryCache] — pre-loaded history for batch categorization
     taxonomy_map: Optional[dict] = None,  # C-08-cascade: {osm_tag: (category, subcategory)} or None
     doc_type_override: Optional[str] = None,  # developer page only: force the document type to see where the signs move
     llm_trace: Optional[list] = None,  # AI-193 debugger: sink for raw LLM prompt/response per phase
+    account_usage: Optional[str] = None,  # how the person uses the account: "payments" | "in_and_out" | None; decides only whether to ask about the sign
 ) -> ImportResult:
     """
     Process a single file through Flow 1 or Flow 2.
@@ -1108,6 +1135,8 @@ def process_file(
     else:
         _progress(0.10, "classifying")
 
+    _apply_account_usage_to_sign(doc_schema, account_usage)
+
     # I-10: propagate border detection result to schema for persistence
     if _preprocess_info.border_detected and not getattr(doc_schema, 'has_borders', False):
         doc_schema.has_borders = True
@@ -1227,7 +1256,8 @@ def process_file(
 
     # Apply schema → canonical transactions
     _total_file_rows = len(df_raw)
-    transactions, _norm_skipped, _merge_count = _normalize_df_with_schema(df_raw, doc_schema, filename)
+    transactions, _norm_skipped, _merge_count = _normalize_df_with_schema(
+        df_raw, doc_schema, filename, config.user_country)
     _progress(0.30, "extracting")
 
     # ── Schema auto-invalidation ─────────────────────────────────────────────
@@ -1278,7 +1308,7 @@ def process_file(
             if account_label_override and account_label_override.strip():
                 doc_schema.account_label = account_label_override.strip()
             transactions, _norm_skipped, _merge_count = _normalize_df_with_schema(
-                df_raw, doc_schema, filename,
+                df_raw, doc_schema, filename, config.user_country,
             )
             logger.info(
                 "process_file: Flow 2 retry for %s produced %d/%d transactions",
@@ -1403,6 +1433,35 @@ def process_file(
                 f"process_file: {skipped_count} transactions already in DB, "
                 f"{len(transactions)} new for {filename}"
             )
+    # ── The same movement exported in another format (core.dedup) ──
+    # Its raw description differs, so its id does too: recognise it by account,
+    # date, amount, direction and a word in common, one to one, before any
+    # LLM call. Every twin skipped is reported with the movement it repeats.
+    twins_skipped: list[dict] = []
+    if other_files_loader is not None and transactions:
+        from core.dedup import find_twins
+        dates = sorted({str(t["date"]) for t in transactions})
+        saved = other_files_loader(doc_schema.account_label or "", dates, filename)
+        twins = find_twins(
+            [{**t, "date": str(t["date"])} for t in transactions], saved)
+        if twins:
+            for t in transactions:
+                twin = twins.get(t["id"])
+                if twin is not None:
+                    twins_skipped.append({
+                        "date": str(t["date"]), "amount": t["amount"],
+                        "description": t.get("raw_description") or t.get("description"),
+                        "twin_description": twin.get("raw_description") or twin.get("description"),
+                        "twin_file": twin.get("filename"),
+                    })
+            transactions = [t for t in transactions if t["id"] not in twins]
+            skipped_count += len(twins)
+            logger.info(
+                f"process_file: {len(twins)} movements already saved from another file "
+                f"(different format), {len(transactions)} new for {filename}"
+            )
+
+    if existing_tx_ids_checker is not None or other_files_loader is not None:
         if not transactions:
             logger.info(f"process_file: all transactions already imported for {filename}, skipping")
             _finalize_phase_timings()
@@ -1414,6 +1473,7 @@ def process_file(
                 reconciliations=[],
                 transfer_links=[],
                 skipped_count=skipped_count,
+                twins_skipped=twins_skipped,
                 flow_used=flow_used,
                 total_file_rows=_total_file_rows,
                 header_rows_skipped=_header_rows_skipped,
@@ -1441,14 +1501,103 @@ def process_file(
     # AI-90: cleaner has its own backend slot. Falls back to the main
     # `backend` when `cleaner_llm_backend` is empty (handled by the
     # `or backend` initialiser above).
-    transactions = clean_descriptions_batch(
-        transactions,
-        llm_backend=cleaner_backend,
-        fallback_backend=fallback,
-        source_name=filename,
-        sanitize_config=config.sanitize_config,
-        progress_callback=_cleaning_cb,
-    )
+    # Payment intermediaries (spec 20): "PAYPAL *TRENORD SRL ..." is TRENORD
+    # SRL. The table already says so, and company names do not change with
+    # the language: these movements get the merchant here and never go to the
+    # model, which cleans only the others.
+    # The user's own names come first (spec 27): the user decided, so the
+    # movement is born with that name and no step after it guesses.
+    _by_own_name: dict[str, str] = {}
+    _own = own_names or {}
+    if _own:
+        from core.normalizer import own_name_for
+        for t in transactions:
+            name = own_name_for(_own, t.get("raw_description"), t.get("amount"))
+            if name:
+                _by_own_name[t["id"]] = name
+        if _by_own_name:
+            logger.info(
+                f"process_file: {len(_by_own_name)} movements named by the user's own "
+                f"names for {filename}, not sent to the model"
+            )
+    # A signature that has an own name for one amount says nothing for the
+    # others: their counterpart is not borrowed from the renamed movements.
+    _own_sigs = {sig for sig, _amount in _own}
+    _by_intermediary: dict[str, str] = {}
+    if intermediary_prefixes:
+        from core.intermediaries import merchant_after
+        for t in transactions:
+            if t["id"] in _by_own_name:
+                continue
+            merchant = merchant_after(t.get("raw_description"), intermediary_prefixes)
+            if merchant:
+                _by_intermediary[t["id"]] = merchant
+        if _by_intermediary:
+            logger.info(
+                f"process_file: {len(_by_intermediary)} counterparts taken after a "
+                f"payment intermediary for {filename}, not sent to the model"
+            )
+    # Raw signature (spec 22): the description without the words that
+    # hold a digit is the same every month for the same merchant. A signature
+    # already in the ledger gives its counterpart; one signature, one
+    # counterpart, also inside this file: only the first goes to the model.
+    _known_sigs = known_signatures or {}
+    _by_signature: dict[str, str] = {}
+    _same_as: dict[str, str] = {}        # tx id -> id of the first with its signature
+    _first_with: dict[str, str] = {}     # signature -> id of the first to clean
+    _to_clean = []
+    for t in transactions:
+        if t["id"] in _by_intermediary or t["id"] in _by_own_name:
+            continue
+        sig = raw_signature(t.get("raw_description"))
+        if sig and sig in _known_sigs and sig not in _own_sigs:
+            _by_signature[t["id"]] = _known_sigs[sig]
+        elif sig and sig in _first_with:
+            _same_as[t["id"]] = _first_with[sig]
+        else:
+            if sig:
+                _first_with[sig] = t["id"]
+            _to_clean.append(t)
+    if _by_signature or _same_as:
+        logger.info(
+            f"process_file: {len(_by_signature)} counterparts from a known raw signature, "
+            f"{len(_same_as)} from a movement of this file with the same signature, "
+            f"{len(_to_clean)} to the model for {filename}"
+        )
+    _cleaned_by_id = {
+        t["id"]: t["description"]
+        for t in (clean_descriptions_batch(
+            _to_clean,
+            llm_backend=cleaner_backend,
+            fallback_backend=fallback,
+            source_name=filename,
+            sanitize_config=config.sanitize_config,
+            progress_callback=_cleaning_cb,
+        ) if _to_clean else [])
+    }
+    if not _to_clean:
+        _cleaning_cb(1.0)
+    _merged = []
+    for t in transactions:
+        tid = t["id"]
+        if tid in _by_own_name:
+            desc = _by_own_name[tid]
+        elif tid in _by_intermediary:
+            desc = _by_intermediary[tid]
+        elif tid in _by_signature:
+            desc = _by_signature[tid]
+        elif tid in _same_as:
+            desc = _cleaned_by_id.get(_same_as[tid], t.get("description"))
+        else:
+            desc = _cleaned_by_id.get(tid, t.get("description"))
+        _merged.append({**t, "description": desc})
+    transactions = _merged
+    # Special characters become spaces, runs of spaces one (founder's rule,
+    # 07_deterministic_pipeline.md): the counterpart the user sees and the
+    # rules match. raw_description is never touched.
+    for t in transactions:
+        if t.get("description"):
+            t["description"] = tidy_text(t["description"]) or t["description"]
 
     # Build DataFrame for transfer detection
     tx_df = pd.DataFrame(transactions)
@@ -1522,7 +1671,7 @@ def process_file(
             if _row["tx_type"] not in _turnable:
                 continue
             _desc = str(_row.get("description") or "")
-            if any(r.matches(_desc, _row.get("doc_type")) for r in _giro_rules):
+            if any(r.matches(_desc, _row.get("doc_type"), _row.get("amount")) for r in _giro_rules):
                 tx_df.at[_i, "tx_type"] = (
                     TransactionType.internal_out.value
                     if Decimal(str(_row["amount"])) < 0
@@ -1556,6 +1705,8 @@ def process_file(
         source_name=filename,
         history_cache=history_cache,
         taxonomy_map=taxonomy_map,
+        known_categories=known_categories,
+        fallback_categories=fallback_categories,
     )
     cat_map = {tx["id"]: result for tx, result in zip(to_categorize, cat_results)}
 
@@ -1590,6 +1741,12 @@ def process_file(
             tx["category_source"] = result.source.value
             tx["category_model"] = result.model_name or None
             tx["to_review"] = result.to_review
+            # The product's own proposal, kept as it is whatever the user
+            # decides later; a user's rule is a decision, not a proposal.
+            if result.source.value in AUTOMATIC_CATEGORY_SOURCES:
+                tx["model_category"] = result.category
+                tx["model_subcategory"] = result.subcategory
+                tx["model_confidence"] = result.confidence.value
             tx["human_validated"] = False
 
     # Giroconti are ALWAYS persisted in the ledger regardless of giroconto_mode.
@@ -1612,6 +1769,7 @@ def process_file(
         reconciliations=reconciliations,
         transfer_links=transfer_links,
         skipped_count=skipped_count,
+        twins_skipped=twins_skipped,
         flow_used=flow_used,
         total_file_rows=_total_file_rows,
         header_rows_skipped=_header_rows_skipped,
@@ -1619,38 +1777,77 @@ def process_file(
         merged_count=_merge_count,
         internal_transfer_count=_giro_count,
         phase_durations_ms=_phase_durations_ms,
-        sign_needs_confirmation=_sign_needs_a_question(doc_schema),
+        sign_needs_confirmation=_sign_needs_a_question(doc_schema, account_usage),
     )
 
 
-def _sign_needs_a_question(schema) -> bool:
+# How the person uses the account, in their words rather than the bank's.
+# Two answers anybody can give without knowing what a debit card is.
+ACCOUNT_USAGES = ("payments", "in_and_out")
+
+# "Ci paghi": many movements one way, few the other. Twice as many is the
+# least that "many against few" can mean; below it the file does not look like
+# the account the person described. A definition, not a value tuned on data.
+_PAYMENTS_MIN_DOMINANT_SHARE = 2 / 3
+
+
+def _apply_account_usage_to_sign(schema, account_usage: Optional[str] = None) -> None:
+    """Settle which direction is applied while a question may be pending.
+
+    The measure says the more frequent sign is spending. On an account money
+    comes in and goes out of, salaries, pensions and transfers can outnumber
+    the expenses, and the files of such accounts write spending with a minus
+    almost always. There a positive majority is not read as a reversed file:
+    the amounts are left as written and the import asks. Elsewhere the
+    measure applies as it is.
+    """
+    if schema is None or getattr(schema, "user_confirmed", False):
+        return
+    if getattr(schema, "sign_deterministic_verdict", None) is None:
+        return
+    if account_usage == "in_and_out" and schema.invert_sign:
+        logger.info(
+            "process_file: account used for money in and out, positive majority "
+            "→ amounts left as written, the import asks"
+        )
+        schema.invert_sign = False
+
+
+def _sign_needs_a_question(schema, account_usage: Optional[str] = None) -> bool:
     """Whether to interrupt somebody about the direction of their amounts.
 
-    Three sources decide that direction, in this order. The person's own
-    answer, once given, wins for ever: that is the seal, and re-asking after
-    it teaches people their answers do not stick. Otherwise two independent
-    readings are compared, the model's and the measurement on the data. When
-    they agree the file is imported in silence. Only their disagreement is
-    worth a question.
+    The direction itself is always measured on the data (the more frequent
+    sign is spending). What the person said about the account decides only
+    whether that verdict is safe to apply in silence; it never turns an
+    amount round on its own, so a wrong answer costs one question, not a
+    ledger of expenses recorded as income.
 
-    Deliberately not a confidence threshold. A threshold is a dial somebody
-    has to tune and defend; two estimators contradicting each other is a fact
-    that needs no tuning.
+    - The person's own answer for this format, once given, wins for ever.
+    - No measure (reused schema, debit/credit columns): nothing to ask.
+    - No clear majority in the file: ask.
+    - Account usage never declared: ask, once per new format.
+    - "payments" (ci paghi): the file must be lopsided, at least 2 to 1.
+    - "in_and_out" (ci entrano e escono soldi): expenses written positive
+      would be unusual for such an account, so a positive majority asks.
     """
     if schema is None:
         return False
     if getattr(schema, "user_confirmed", False):
         return False
 
-    model_says = getattr(schema, "sign_llm_verdict", None)
-    data_says = getattr(schema, "sign_deterministic_verdict", None)
-    if model_says is None or data_says is None:
-        # One of them did not run: a reused schema, or a file whose layout
-        # carries the direction structurally. There is no disagreement to
-        # report, and inventing a question here would be noise.
+    spending_positive = getattr(schema, "sign_deterministic_verdict", None)
+    if spending_positive is None:
         return False
+    if not getattr(schema, "sign_measure_conclusive", False):
+        return True
 
-    return model_says != data_says
+    if account_usage == "payments":
+        pos = getattr(schema, "positive_ratio", None) or 0.0
+        neg = getattr(schema, "negative_ratio", None) or 0.0
+        return max(pos, neg) < _PAYMENTS_MIN_DOMINANT_SHARE
+    if account_usage == "in_and_out":
+        return bool(spending_positive)
+    return True
 
 
 def process_files(

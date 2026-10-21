@@ -31,12 +31,36 @@ def estimate_total(n_rows: int, history: list[tuple[int, float]]) -> tuple[float
     return n_rows * rate, True
 
 
+def remaining_range(elapsed: float, progress: float, prior_total: float) -> tuple[float, float]:
+    """(if the rest goes as fast as so far, the safe estimate), in seconds.
+
+    The two differ when the observed pace beats the prior one, typically on
+    files full of rows already imported. The safe one is what to say first;
+    the other is worth showing too, since nobody can tell beforehand how
+    many duplicates the next file holds.
+    """
+    safe = remaining_seconds(elapsed, progress, prior_total)
+    progress = min(max(progress, 0.0), 1.0)
+    if progress <= 0.0 or progress >= 1.0:
+        return safe, safe
+    observed_left = elapsed / progress * (1.0 - progress)
+    w = min(progress / TRUST_OBSERVED_AFTER, 1.0)
+    prior_left = max(prior_total - elapsed, 0.0)
+    return min(w * observed_left + (1.0 - w) * prior_left, safe), safe
+
+
 def remaining_seconds(elapsed: float, progress: float, prior_total: float) -> float:
     """Seconds left after ``elapsed`` seconds at ``progress`` (0..1).
 
     Early on the pace is noisy (loading the model, the first file's header),
     so the prior estimate weighs most; from TRUST_OBSERVED_AFTER on, only the
     observed pace counts.
+
+    Never less than what the prior estimate still has to go: better to say
+    more and finish early than the other way round. A pace observed on files
+    full of rows already imported (skipped before the model) looks faster
+    than the next file will be, and duplicates cannot be counted before the
+    file's format is known.
     """
     progress = min(max(progress, 0.0), 1.0)
     if progress >= 1.0:
@@ -46,7 +70,29 @@ def remaining_seconds(elapsed: float, progress: float, prior_total: float) -> fl
         return prior_left
     observed_left = elapsed / progress * (1.0 - progress)
     w = min(progress / TRUST_OBSERVED_AFTER, 1.0)
-    return w * observed_left + (1.0 - w) * prior_left
+    return max(w * observed_left + (1.0 - w) * prior_left, prior_left)
+
+
+def file_spans(rows_per_file: list[int]) -> list[tuple[float, float]]:
+    """The share of the whole run each file covers, (start, end) in 0..1.
+
+    By rows, not by file count: the time goes with the rows, and with files
+    of 51 and 226 rows an equal share made the time left follow the file in
+    progress instead of the whole import. Without row counts every file gets
+    the same share.
+    """
+    n = len(rows_per_file)
+    if n == 0:
+        return []
+    total = sum(max(r, 0) for r in rows_per_file)
+    if total <= 0:
+        return [(i / n, (i + 1) / n) for i in range(n)]
+    spans, done = [], 0
+    for r in rows_per_file:
+        start = done / total
+        done += max(r, 0)
+        spans.append((start, done / total))
+    return spans
 
 
 def duration_parts(seconds: float) -> tuple[int, int]:

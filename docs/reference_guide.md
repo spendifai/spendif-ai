@@ -10,7 +10,7 @@
 |---|---|
 | **Import** | Carica file CSV/XLSX, avvia la pipeline di elaborazione |
 | **Ledger** | Vista tabellare di tutte le transazioni importate |
-| **Modifiche massive** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
+| **Modifica più movimenti** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
 | **Analisi** | Grafici e report aggregati per periodo/conto/categoria |
 | **Review** | Transazioni con classificazione incerta o da rivedere |
 | **Regole** | Gestione regole deterministiche di categorizzazione |
@@ -225,9 +225,9 @@ Distinte dalle regole di categorizzazione. Servono a sostituire descrizioni grez
 
 ---
 
-## Modifiche massive — pagina dedicata
+## Modifica più movimenti: pagina dedicata
 
-La pagina **✏️ Modifiche massive** raccoglie tutte le operazioni che agiscono su più transazioni contemporaneamente.
+La pagina **✏️ Modifica più movimenti** raccoglie tutte le operazioni che agiscono su più transazioni contemporaneamente.
 
 ### Sezioni 1–3: operazioni su transazione di riferimento
 

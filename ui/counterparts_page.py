@@ -1,6 +1,8 @@
 """Counterparts page: per-counterpart stats grid with inline rule creation."""
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 import streamlit as st
 
@@ -12,8 +14,9 @@ from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.checklist_page import _fmt_date
 from ui.i18n import t
-from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
+from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub, wrong_direction
 from ui.widgets.immersive import GUIDED_PAGE
+from ui.widgets.written_rules import remember, rewrite_pending, show_written_rules, write_and_apply
 
 logger = setup_logging()
 
@@ -44,13 +47,16 @@ def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
                 t("counterparts.col_total"): round(s["total_amount"], 2),
                 t("counterparts.col_cat_sub"): combined,
                 t("counterparts.col_giroconto"): s["is_giroconto"],
+                t("counterparts.col_multi"): s.get("is_multi_category", False),
                 t("counterparts.col_source"): src_label,
                 t("counterparts.col_variability"): f"{var:.0f}%",
-                t("counterparts.col_checked"): s["human_checked"],
+                t("counterparts.col_categorized"): s["categorized_by_user"],
                 "_description": s["description"],
                 "_orig_cat_sub": combined,
                 "_orig_giroconto": s["is_giroconto"],
-                "_orig_checked": s["human_checked"],
+                "_orig_multi": s.get("is_multi_category", False),
+                "_orig_categorized": s["categorized_by_user"],
+                "_direction": s.get("direction"),
             }
         )
     return pd.DataFrame(rows)
@@ -87,7 +93,7 @@ def _apply_to_income(tx_svc: TransactionService, r: dict) -> int:
     """A row of the income step for a counterpart that also has spending:
     the choice goes to its income movements only, one by one, no rule."""
     txs = [tx for tx in tx_svc.get_by_rule_pattern(r["description"], "exact")
-           if tx.tx_type == "income"]
+           if tx.tx_type == "income" or (tx.tx_type == "card_tx" and float(tx.amount or 0) > 0)]
     for tx in txs:
         if r["giroconto"]:
             tx_svc.toggle_giroconto(tx.id)
@@ -98,12 +104,12 @@ def _apply_to_income(tx_svc: TransactionService, r: dict) -> int:
 
 
 def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
-    """Criterion and progress of the workflow step, in money and in words.
+    """Criterion and progress of the workflow step, in movements and in words.
 
     The goal is a suggestion: Next works at any point, and the sentence
     says so, also before the goal is reached.
     """
-    period = flow_svc.landing_period()
+    period = flow_svc.workflow_period()
     progress = flow_svc.check_progress()
     if period is None or progress.total <= 0:
         st.info(t("counterparts.guided.no_spending"))
@@ -116,18 +122,25 @@ def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
     n_saved, saved = flow_svc.rule_categorized_spending()
     if n_saved:
         st.caption(t("counterparts.guided.saved", n=n_saved, amount=fmt(saved)))
-    amounts = {"checked": fmt(progress.checked), "total": fmt(progress.total)}
+    # What the step does not ask, and why: never a silent filter.
+    small = flow_svc.small_singles()
+    if small.count:
+        st.caption(t("counterparts.guided.small_singles", n=small.count, amount=fmt(small.total),
+                     limit=fmt(small.limit), cap=f"{flow_svc.small_singles_share * 100:g}",
+                     years=flow_svc.small_singles_years))
+    # Counted in movements, as the list is ordered (most movements first).
+    counts = {"checked": int(progress.checked), "total": int(progress.total)}
     if progress.reached:
-        st.success(t("counterparts.guided.reached", **amounts))
+        st.success(t("counterparts.guided.reached", **counts))
         return
     key = "counterparts.guided.progress_one" if progress.needed == 1 else "counterparts.guided.progress"
-    st.info(t(key, missing=fmt(progress.missing), needed=progress.needed, **amounts))
+    st.info(t(key, missing=math.ceil(progress.missing), needed=progress.needed, **counts))
     st.caption(t("counterparts.guided.optional"))
 
 
 def _render_income_intro(flow_svc: GuidedFlowService) -> None:
     """What the income step asks, and how a refund is told apart."""
-    period = flow_svc.landing_period()
+    period = flow_svc.workflow_period()
     st.markdown(t(
         "income.guided.criterion",
         date_from=_fmt_date(period[0]), date_to=_fmt_date(period[1]),
@@ -145,22 +158,23 @@ def render_income_page(engine) -> None:
     st.markdown(_DROPDOWN_CSS, unsafe_allow_html=True)
     st.header(t("income.title"))
     flow_svc = GuidedFlowService(engine)
-    if flow_svc.landing_period() is None or not flow_svc.income_counterparts():
+    if flow_svc.workflow_period() is None or not flow_svc.income_counterparts():
         st.info(t("income.guided.none"))
         return
     _render_income_intro(flow_svc)
-    filtered = flow_svc.unchecked_income()
+    filtered = flow_svc.uncategorized_income()
     if not filtered:
         st.success(t("income.guided.all_checked"))
         return
     cfg_svc = SettingsService(engine)
-    cat_options = build_cat_options(cfg_svc.get_taxonomy(), include_empty=True, income_first=True)
+    taxonomy = cfg_svc.get_taxonomy()
+    cat_options = build_cat_options(taxonomy, include_empty=True, only="income")
     one_by_one = {s["description"] for s in filtered if s["also_spending"]}
     if one_by_one:
         st.caption(t("income.guided.one_by_one", names=", ".join(sorted(one_by_one))))
     _render_grid(
         filtered, cat_options, TransactionService(engine), RuleService(engine),
-        guided=True, one_by_one=one_by_one,
+        guided=True, one_by_one=one_by_one, with_multi=False, taxonomy=taxonomy,
     )
 
 
@@ -175,9 +189,9 @@ def render_counterparts_page(engine) -> None:
     tx_svc = TransactionService(engine)
     rule_svc = RuleService(engine)
     cfg_svc = SettingsService(engine)
+    rewrite_pending(rule_svc, tx_svc)
 
     taxonomy = cfg_svc.get_taxonomy()
-    cat_options = build_cat_options(taxonomy, include_empty=True)
 
     if guided:
         settings = cfg_svc.get_all()
@@ -187,23 +201,54 @@ def render_counterparts_page(engine) -> None:
         _render_guided_intro(
             flow_svc, lambda v: format_amount_display(v, decimal_sep=dec, thousands_sep=thou),
         )
-        filtered = [s for s in flow_svc.expense_counterparts() if not s["human_checked"]]
+        # The counterparts seen once for a small amount, on the user's choice.
+        small = flow_svc.small_singles()
+        show_small = False
+        if small.count:
+            pct = f"{small.share * 100:.1f}".replace(".", dec)
+            show_small = st.toggle(
+                t("counterparts.guided.show_small", n=small.count, share=pct,
+                  limit=format_amount_display(small.limit, decimal_sep=dec, thousands_sep=thou)),
+                value=False, key="cp_show_small",
+            )
+        filtered = [s for s in flow_svc.expense_counterparts(include_small=show_small)
+                    if not s["categorized_by_user"]]
         if not filtered:
             if flow_svc.check_progress().total > 0:
-                st.success(t("counterparts.guided.all_checked"))
+                st.success(t("counterparts.guided.all_categorized"))
+            show_written_rules()
             return
     else:
         filtered = _filtered_stats(tx_svc)
         if filtered is None:
+            show_written_rules()
             return
-    _render_grid(filtered, cat_options, tx_svc, rule_svc, guided)
+    # A search box on the counterpart and its category; it narrows what is
+    # shown, never the goal of the step.
+    query = st.text_input(t("counterparts.search"), key="cp_search",
+                          placeholder=t("counterparts.search_placeholder"))
+    if query.strip():
+        filtered = [s for s in filtered
+                    if tx_svc.text_matches(query, s["description"], s.get("modal_category"),
+                                           s.get("modal_subcategory"))]
+        if not filtered:
+            st.info(t("counterparts.search_none", query=query.strip()))
+            return
+    # One menu for the column: the directions of the counterparts shown (the
+    # spending step shows spending only); each row is checked at the save.
+    _sides = {s.get("direction") for s in filtered}
+    _only = _sides.pop() if len(_sides) == 1 and None not in _sides else None
+    cat_options = build_cat_options(taxonomy, include_empty=True,
+                                    only=_only if _only in ("expense", "income") else None)
+    _render_grid(filtered, cat_options, tx_svc, rule_svc, guided, taxonomy=taxonomy)
 
 
 def _filtered_stats(tx_svc: TransactionService) -> list[dict] | None:
     """Regular page: every counterpart, with the user's filters and sort."""
-    # Giroconti too, so a counterpart marked as one stays here and can be unmarked.
+    # Giroconti too, so a counterpart marked as one stays here and can be
+    # unmarked; card movements too, where the merchants of a card statement are.
     stats = tx_svc.get_counterpart_stats(
-        tx_types=("expense", "income", "internal_out", "internal_in"),
+        tx_types=("expense", "income", "card_tx", "internal_out", "internal_in"),
     )
     if not stats:
         st.info(t("counterparts.empty"))
@@ -241,8 +286,8 @@ def _filtered_stats(tx_svc: TransactionService) -> list[dict] | None:
             t("counterparts.filter_low_var"), value=False, key="cp_filter_var"
         )
     with f5:
-        filter_unchecked = st.toggle(
-            t("counterparts.filter_unchecked"), value=False, key="cp_filter_unc"
+        filter_uncategorized = st.toggle(
+            t("counterparts.filter_uncategorized"), value=False, key="cp_filter_unc"
         )
 
     # ── Apply filters & sort ──────────────────────────────────────────────────
@@ -251,8 +296,8 @@ def _filtered_stats(tx_svc: TransactionService) -> list[dict] | None:
         filtered = [s for s in filtered if s["source_mode"] == filter_source]
     if filter_low_var:
         filtered = [s for s in filtered if s["variability_pct"] < _VARIABILITY_WARN]
-    if filter_unchecked:
-        filtered = [s for s in filtered if not s["human_checked"]]
+    if filter_uncategorized:
+        filtered = [s for s in filtered if not s["categorized_by_user"]]
     filtered.sort(key=lambda s: s[sort_key], reverse=not sort_asc)
     return filtered
 
@@ -264,10 +309,13 @@ def _render_grid(
     rule_svc: RuleService,
     guided: bool,
     one_by_one: set[str] | None = None,
+    with_multi: bool = True,
+    taxonomy=None,
 ) -> None:
     """*one_by_one*: counterparts whose income movements get the category
     one by one, without a rule (the income step, for a counterpart that
-    also has spending a rule would change)."""
+    also has spending a rule would change). *with_multi*: the column that
+    marks a place where everything is bought (spec 24), for spending."""
     one_by_one = one_by_one or set()
     df = _build_df(filtered, cat_options)
 
@@ -277,21 +325,24 @@ def _render_grid(
     _col_total       = t("counterparts.col_total")
     _col_cat_sub     = t("counterparts.col_cat_sub")
     _col_giro        = t("counterparts.col_giroconto")
+    _col_multi       = t("counterparts.col_multi")
     _col_src         = t("counterparts.col_source")
     _col_var         = t("counterparts.col_variability")
-    _col_chk         = t("counterparts.col_checked")
+    _col_cat_by_you         = t("counterparts.col_categorized")
 
     if guided:
         display_cols = [
             _col_counterpart, _col_tx, _col_total,
-            _col_cat_sub, _col_giro, _col_chk,
+            _col_cat_sub, _col_giro, _col_multi, _col_cat_by_you,
         ]
     else:
         display_cols = [
             _col_counterpart, _col_tx, _col_avg,
-            _col_cat_sub, _col_giro,
-            _col_src, _col_var, _col_chk,
+            _col_cat_sub, _col_giro, _col_multi,
+            _col_src, _col_var, _col_cat_by_you,
         ]
+    if not with_multi:
+        display_cols.remove(_col_multi)
 
     column_config = {
         _col_counterpart: st.column_config.TextColumn(
@@ -315,6 +366,9 @@ def _render_grid(
         _col_giro: st.column_config.CheckboxColumn(
             _col_giro, help=t("counterparts.col_giroconto_help"), width="small"
         ),
+        _col_multi: st.column_config.CheckboxColumn(
+            _col_multi, help=t("counterparts.col_multi_help"), width="small"
+        ),
         _col_src: st.column_config.TextColumn(
             _col_src, disabled=True, width="small"
         ),
@@ -323,9 +377,9 @@ def _render_grid(
         ),
         # Ticking it says "always like this": the category shown becomes a
         # rule for every movement of the counterpart, past and future.
-        _col_chk: st.column_config.CheckboxColumn(
-            t("counterparts.col_always") if guided else _col_chk,
-            help=t("counterparts.col_checked_help"), width="small",
+        _col_cat_by_you: st.column_config.CheckboxColumn(
+            t("counterparts.col_always") if guided else _col_cat_by_you,
+            help=t("counterparts.col_categorized_help"), width="small",
         ),
     }
 
@@ -343,26 +397,33 @@ def _render_grid(
 
     # ── Detect changes ────────────────────────────────────────────────────────
     # One rule per counterpart: giroconto, or a category. Ticking giroconto
-    # wins over a category picked in the same row. Ticking "checked" keeps
-    # the category shown and makes it the rule.
+    # wins over a category picked in the same row. Ticking "category set by
+    # you" keeps the category shown and makes it the rule.
     changed_rows = []
     for idx in range(len(df)):
         orig = df.at[idx, "_orig_cat_sub"]
         new_val = edited.at[idx, _col_cat_sub]
         orig_giro = bool(df.at[idx, "_orig_giroconto"])
         new_giro = bool(edited.at[idx, _col_giro])
-        orig_chk = bool(df.at[idx, "_orig_checked"])
-        new_chk = bool(edited.at[idx, _col_chk])
+        orig_multi = bool(df.at[idx, "_orig_multi"])
+        new_multi = bool(edited.at[idx, _col_multi]) if with_multi else orig_multi
+        orig_cat_by_you = bool(df.at[idx, "_orig_categorized"])
+        new_cat_by_you = bool(edited.at[idx, _col_cat_by_you])
         cat_changed = bool(new_val) and new_val != orig
-        confirm = new_chk and not orig_chk and not new_giro
-        if orig_chk and not new_chk:
+        confirm = new_cat_by_you and not orig_cat_by_you and not new_giro and not new_multi
+        if orig_cat_by_you and not new_cat_by_you and not (orig_multi and not new_multi):
             st.caption(t("counterparts.uncheck_ignored", name=df.at[idx, "_description"]))
         if confirm and not new_val:
             st.warning(t("counterparts.confirm_no_category", name=df.at[idx, "_description"]))
             confirm = False
-        if new_giro == orig_giro and not cat_changed and not confirm:
+        if new_giro == orig_giro and new_multi == orig_multi and not cat_changed and not confirm:
             continue
         new_cat, new_sub = split_cat_sub(new_val) if new_val else ("", "")
+        _dir = df.at[idx, "_direction"]
+        if (cat_changed and taxonomy is not None and _dir in ("expense", "income")
+                and wrong_direction(taxonomy, new_cat, -1 if _dir == "expense" else 1)):
+            st.error(t("counterparts.wrong_direction", name=df.at[idx, "_description"], cat=new_cat))
+            continue
         changed_rows.append(
             {
                 "description": df.at[idx, "_description"],
@@ -370,7 +431,10 @@ def _render_grid(
                 "unmark_giroconto": orig_giro and not new_giro,
                 "new_cat": new_cat,
                 "new_sub": new_sub,
-                "set_category": (cat_changed or confirm) and not new_giro,
+                # A multi-category counterpart has no category (spec 24).
+                "multi": new_multi and not new_giro,
+                "multi_changed": new_multi != orig_multi and not new_giro,
+                "set_category": (cat_changed or confirm) and not new_giro and not new_multi,
                 "confirm": confirm,
                 "orig": orig,
             }
@@ -394,11 +458,29 @@ def _render_grid(
         if st.button(t("counterparts.save_btn"), type="primary", key="cp_save"):
             saved = 0
             applied = 0
+            # The product writes the category rules (spec 18): merchant name
+            # and "starts with" when it can tell the name, else the exact text.
+            # The model may take seconds: say so, or the user clicks again.
+            with st.spinner(t("counterparts.writing_rules")):
+                written = rule_svc.write_rules(
+                    [r["description"] for r in changed_rows
+                     if r["set_category"] and r["description"] not in one_by_one],
+                    queue=True,
+                )
+            # From here to the end of the writes no Streamlit command: a click
+            # would stop the run at the next one, between two rules.
+            notes: list[str] = []
             for r in changed_rows:
                 if r["description"] in one_by_one:
                     n = _apply_to_income(tx_svc, r)
                     saved += 1 if n else 0
                     applied += n
+                    continue
+                if r["multi_changed"]:
+                    # A place where everything is bought, or no longer (spec 24).
+                    applied += rule_svc.set_multi_category(r["description"], r["multi"])
+                    saved += 1
+                    logger.info(f"counterparts_page: multi-category {r['multi']} for {r['description']!r}")
                     continue
                 if r["giroconto"]:
                     _, created = rule_svc.create_rule(
@@ -415,17 +497,20 @@ def _render_grid(
                         f" rule pattern={r['description']!r}"
                     )
                 elif r["set_category"]:
-                    _, created = rule_svc.create_rule(
-                        pattern=r["description"],
-                        match_type="exact",
-                        category=r["new_cat"],
-                        subcategory=r["new_sub"],
-                        priority=10,
+                    pattern, match_type = written[r["description"]]
+                    # A tick covers the movements already there, or it would
+                    # not leave the counterpart categorized by the user.
+                    n, note = write_and_apply(
+                        rule_svc, tx_svc, r["description"], pattern, match_type,
+                        r["new_cat"], r["new_sub"], origin="counterparts",
+                        apply=retroapply or r["confirm"],
                     )
+                    applied += n
+                    notes.append(note)
                     saved += 1
                     logger.info(
-                        f"counterparts_page: {'created' if created else 'updated'} rule"
-                        f" pattern={r['description']!r} → {r['new_cat']!r}/{r['new_sub']!r}"
+                        f"counterparts_page: rule {match_type} {pattern!r}"
+                        f" for {r['description']!r} → {r['new_cat']!r}/{r['new_sub']!r}"
                     )
                 elif r["unmark_giroconto"]:
                     # No category chosen: the giroconto rule just goes away.
@@ -435,25 +520,21 @@ def _render_grid(
                             f"counterparts_page: deleted giroconto rule"
                             f" pattern={r['description']!r}"
                         )
-                # A tick covers the movements already there, or it would not
-                # leave the counterpart checked.
-                if retroapply or r["confirm"]:
-                    if r["giroconto"] or r["unmark_giroconto"]:
-                        applied += tx_svc.set_giroconto_by_rule_pattern(
-                            r["description"], "exact", make_giroconto=r["giroconto"],
-                        )
-                    if r["set_category"]:
-                        txs = tx_svc.get_by_rule_pattern(r["description"], "exact")
-                        for tx in txs:
-                            tx_svc.apply_rule_category(
-                                tx.id, r["new_cat"], r["new_sub"], origin="counterparts"
-                            )
-                        applied += len(txs)
+                # Giroconto rules stay exact: their descriptions are often
+                # people's names (spec 18).
+                if (retroapply or r["confirm"]) and (r["giroconto"] or r["unmark_giroconto"]):
+                    applied += tx_svc.set_giroconto_by_rule_pattern(
+                        r["description"], "exact", make_giroconto=r["giroconto"],
+                    )
 
             msg = t("counterparts.saved_ok", n=saved)
             if applied:
                 msg += " " + t("counterparts.retroapplied", n=applied)
-            st.success(msg)
+            # Shown after the rerun: a message written here would vanish with it.
+            remember(notes, msg)
             st.rerun()
     else:
         st.caption(t("counterparts.no_changes"))
+    # What the last save wrote, under the button and its progress message,
+    # where the eye is after the click (founder, 2026-10-21).
+    show_written_rules()
