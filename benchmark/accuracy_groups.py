@@ -17,6 +17,7 @@ from __future__ import annotations
 # Ordine: dal più recente al più vecchio.
 # (group_id, boundary_commit, descrizione)
 ACCURACY_GROUPS = [
+    ("G8", "6988086", "sign from the data, counterpart reuse, one category per counterpart"),
     ("G7", "a3639f7", "deterministic sign-detection by account-type (AI-149/AI-197)"),
     ("G6", "b3947a7", "real taxonomy_map + fix SyntheticHistoryCache"),
     ("G5", "c4a6768", "static rules JSON + NSI lookup"),
@@ -30,6 +31,13 @@ ACCURACY_GROUPS = [
 # Commit espliciti per ogni gruppo (short hash 7 char).
 # Commit non elencati → G0 (fallback).
 _GROUP_COMMITS: dict[str, str] = {}
+
+# G8: sign measured on the data, raw-signature and category reuse per
+# counterpart, intermediaries, text reduction (categorizer, classifier,
+# normalizer, nsi_lookup). The develop commits between G7 and G8 are not
+# listed yet: until they are, compare only runs inside the same group.
+for _c in ["6988086"]:
+    _GROUP_COMMITS[_c] = "G8"
 
 # G7 — AI-197: sign-detection deterministica per tipo conto (classifier+normalizer).
 # I commit precedenti del branch (debugger AI-193, chore .env) NON cambiano
