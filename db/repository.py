@@ -2251,7 +2251,8 @@ def create_own_name(session: Session, tx_id: str, name: str,
     return rule, renamed
 
 
-def spread_own_name_category(session: Session, tx_id: str, renamed: list[str]) -> int:
+def spread_own_name_category(session: Session, tx_id: str, renamed: list[str],
+                             category_rule: Optional[bool] = None) -> int:
     """The movements just given an own name take the category of the one
     the user renamed (spec 27). When that category is the user's (a choice
     by hand, a rule, a checked movement) it becomes a category rule on the
@@ -2271,8 +2272,11 @@ def spread_own_name_category(session: Session, tx_id: str, renamed: list[str]) -
         return apply_rules_to_transactions(session, others, get_category_rules(session))
     if not ref.category:
         return 0
+    # *category_rule*: the user's answer to "fix the category for this name
+    # too"; without an answer, a rule only when the category is already the
+    # user's.
     decided = ref.category_source in USER_CATEGORY_SOURCES or bool(ref.human_validated)
-    if decided:
+    if category_rule if category_rule is not None else decided:
         create_category_rule(session, pattern=ref.description, match_type="exact",
                              category=ref.category, subcategory=ref.subcategory or "",
                              priority=10)

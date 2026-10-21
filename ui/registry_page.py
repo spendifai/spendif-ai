@@ -313,33 +313,50 @@ def render_registry_page(engine):
 
     _col_cfg: dict = {
         COL_ID:          None,
-        COL_SEL:         st.column_config.CheckboxColumn("📏", width=40),
-        COL_DATE:        st.column_config.DateColumn(t("ledger.col.date"), format=_date_fmt_js, width="small"),
+        # Every column says what it means, on the header (founder, 2026-10-21:
+        # a tick on the first column that writes a rule cannot be guessed).
+        COL_SEL:         st.column_config.CheckboxColumn(
+            t("ledger.col.rule_select"), help=t("ledger.col.rule_select_help"), width=80,
+        ),
+        COL_DATE:        st.column_config.DateColumn(
+            t("ledger.col.date"), format=_date_fmt_js, width="small", help=t("ledger.col.date_help"),
+        ),
         COL_DESC:        st.column_config.TextColumn(
             t("ledger.col.description"), width="large", help=t("ledger.col.description_help"),
         ),
-        COL_INCOME:      st.column_config.NumberColumn(t("ledger.col.income"), disabled=True, format="%.2f", width="small"),
-        COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f", width="small"),
-        COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small"),
-        COL_TYPE:        st.column_config.TextColumn(t("ledger.col.type"), disabled=True, width="small"),
+        COL_INCOME:      st.column_config.NumberColumn(t("ledger.col.income"), disabled=True, format="%.2f",
+                                                       width="small", help=t("ledger.col.income_help")),
+        COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f",
+                                                       width="small", help=t("ledger.col.expense_help")),
+        COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small",
+                                                     help=t("ledger.col.account_help")),
+        COL_TYPE:        st.column_config.TextColumn(t("ledger.col.type"), disabled=True, width="small",
+                                                     help=t("ledger.col.type_help")),
         COL_CAT_SUB:     st.column_config.SelectboxColumn(
             t("ledger.col.cat_sub"), options=[""] + _cat_options, required=False, width="large",
+            help=t("ledger.col.cat_sub_help"),
         ),
         COL_CONTEXT:     st.column_config.SelectboxColumn(
             t("ledger.col.context"), options=[""] + _contexts, required=False, width="small",
+            help=t("ledger.col.context_help"),
         ),
-        COL_SOURCE:      st.column_config.TextColumn(t("ledger.col.source"), disabled=True, width=100),
-        COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=40),
-        COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=40),
-        COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=40),
+        COL_SOURCE:      st.column_config.TextColumn(t("ledger.col.source"), disabled=True, width=100,
+                                                     help=t("ledger.col.source_help")),
+        COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=40,
+                                                     help=t("ledger.col.flag_review_help")),
+        COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=40,
+                                                     help=t("ledger.col.flag_valid_help")),
+        COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=40,
+                                                       help=t("ledger.col.flag_transfer_help")),
         COL_VALIDATED:   st.column_config.CheckboxColumn(
             t("ledger.col.validated"), help=t("ledger.col.validated_help"), width=60,
         ),
-        COL_TRANSFER:    st.column_config.CheckboxColumn(t("ledger.col.transfer"), width="small"),
+        COL_TRANSFER:    st.column_config.CheckboxColumn(t("ledger.col.transfer"), width="small",
+                                                         help=t("ledger.col.transfer_help")),
     }
     if show_raw:
         _col_cfg[COL_RAW] = st.column_config.TextColumn(
-            t("ledger.col.raw"), disabled=True, width="medium"
+            t("ledger.col.raw"), disabled=True, width="medium", help=t("ledger.col.raw_help"),
         )
 
     edited_df = st.data_editor(
@@ -500,6 +517,16 @@ def render_registry_page(engine):
             st.info(t("ledger.own_name.ask", name=_on_name, n=_on_n))
         else:
             st.info(t("ledger.own_name.ask_future", name=_on_name))
+        # A rule on the category too, offered as a choice (founder,
+        # 2026-10-21: renaming many movements is the moment to fix it).
+        _on_tx = rule_svc.movement_summary(_on_id)
+        _with_rule = None
+        if _on_tx["category"] and not _on_tx["giroconto"]:
+            _with_rule = st.checkbox(
+                t("ledger.own_name.category_rule",
+                  cat=join_cat_sub(_on_tx["category"], _on_tx["subcategory"]), name=_on_name),
+                value=True, key=f"own_name_rule_{_on_id}",
+            )
         _c_all, _c_same, _c_one, _ = st.columns([2, 2, 1, 1])
         with _c_all:
             if _on_var["n"]:
@@ -507,7 +534,8 @@ def render_registry_page(engine):
             else:
                 _label = t("ledger.own_name.all", n=_on_n) if _on_n else t("ledger.own_name.future")
             if st.button(_label, key=f"own_name_all_{_on_id}", type="primary", use_container_width=True):
-                _n_named = rule_svc.create_own_name(_on_id, _on_name, any_amount=bool(_on_var["n"]))
+                _n_named = rule_svc.create_own_name(_on_id, _on_name, any_amount=bool(_on_var["n"]),
+                                                    category_rule=_with_rule)
                 st.session_state["_own_name_pending"].pop(_p_idx)
                 st.toast(t("ledger.own_name.done", name=_on_name, n=_n_named))
                 st.rerun()
@@ -515,7 +543,7 @@ def render_registry_page(engine):
             with _c_same:
                 if st.button(t("ledger.own_name.same_amount", n=_on_n), key=f"own_name_same_{_on_id}",
                              use_container_width=True):
-                    _n_named = rule_svc.create_own_name(_on_id, _on_name)
+                    _n_named = rule_svc.create_own_name(_on_id, _on_name, category_rule=_with_rule)
                     st.session_state["_own_name_pending"].pop(_p_idx)
                     st.toast(t("ledger.own_name.done", name=_on_name, n=_n_named))
                     st.rerun()

@@ -226,3 +226,26 @@ def test_renaming_all_a_giroconto_makes_giroconti_of_the_others(session):
     assert session.get(Transaction, "back").tx_type not in ("internal_out", "internal_in")  # other direction
     giro = [r for r in repository.get_category_rules(session) if r.is_giroconto]
     assert [(r.pattern, r.direction) for r in giro] == [("Giro Su Conto Mutuo", "out")]
+
+
+def test_the_category_rule_is_a_choice_when_renaming_all(session):
+    _variable_rates(session)
+    ref = session.get(Transaction, "m0")
+    ref.category, ref.subcategory, ref.category_source = "Casa", "Mutuo", "llm"   # the model's
+    session.flush()
+    _rule, renamed = repository.create_own_name(session, "m0", "Mutuo casa", any_amount=True)
+    repository.spread_own_name_category(session, "m0", renamed, category_rule=True)
+    assert any(r.pattern == "Mutuo Casa" and r.category == "Casa"
+               for r in repository.get_category_rules(session))
+    assert session.get(Transaction, "m1").category_source == "rule"
+
+
+def test_without_the_choice_the_models_category_is_only_copied(session):
+    _variable_rates(session)
+    ref = session.get(Transaction, "m0")
+    ref.category, ref.subcategory, ref.category_source = "Casa", "Mutuo", "llm"
+    session.flush()
+    _rule, renamed = repository.create_own_name(session, "m0", "Mutuo casa", any_amount=True)
+    repository.spread_own_name_category(session, "m0", renamed, category_rule=False)
+    assert not any(r.pattern == "Mutuo Casa" for r in repository.get_category_rules(session))
+    assert session.get(Transaction, "m1").category == "Casa"

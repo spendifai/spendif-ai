@@ -313,7 +313,8 @@ class RuleService:
             values = [abs(float(t.amount)) for t in others] + [abs(float(me.amount))]
             return {"n": len(others), "low": min(values), "high": max(values)}
 
-    def create_own_name(self, tx_id: str, name: str, any_amount: bool = False) -> int:
+    def create_own_name(self, tx_id: str, name: str, any_amount: bool = False,
+                        category_rule: bool | None = None) -> int:
         """The user's own name for every movement like this one, past and
         future, and the category of this movement for all of them, or the
         giroconto mark when it is one (founder, 2026-10-21: the name and what
@@ -322,9 +323,19 @@ class RuleService:
         with self._session() as s:
             rule, renamed = repository.create_own_name(s, tx_id, name, any_amount=any_amount)
             if rule is not None and renamed:
-                repository.spread_own_name_category(s, tx_id, renamed)
+                repository.spread_own_name_category(s, tx_id, renamed, category_rule)
             s.commit()
             return len(renamed) if rule is not None else 0
+
+    def movement_summary(self, tx_id: str) -> dict:
+        """What the rename question needs: category pair and whether it is
+        a giroconto."""
+        with self._session() as s:
+            tx = s.get(repository.Transaction, tx_id)
+            if tx is None:
+                return {"category": "", "subcategory": "", "giroconto": False}
+            return {"category": tx.category or "", "subcategory": tx.subcategory or "",
+                    "giroconto": tx.tx_type in ("internal_out", "internal_in")}
 
     def get_own_names(self) -> list[dict]:
         with self._session() as s:
