@@ -24,6 +24,7 @@ _NAV_KEYS = [
     ("llm_models",      "llm_models"),
     ("settings",        "settings"),
     ("diagnostics",     "diagnostics"),
+    ("intermediaries",  "intermediaries"),   # for experts (spec 20); level 4 in the tiered menu
     ("checklist",       "checklist"),
     ("chat",            "chat"),
 ]

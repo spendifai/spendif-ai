@@ -18,6 +18,7 @@ from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.tree_filter import render_tree_filter, build_full_tree_data
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.chart_colors import color_treemap, series_colors
 
 logger = setup_logging()
 
@@ -29,6 +30,7 @@ def render_analysis_page(engine):
     st.header(t("analytics.title"))
 
     cfg_svc = SettingsService(engine)
+    palette = cfg_svc.get_palette()
     tx_svc  = TransactionService(engine)
 
     settings = cfg_svc.get_all()
@@ -171,7 +173,8 @@ def render_analysis_page(engine):
     if not monthly.empty:
         fig1 = px.bar(monthly, x="month", y="abs_amount", color="sign",
                       barmode="group", labels={"abs_amount": "€", "month": t("analytics.label.month")},
-                      color_discrete_map={_lbl_income: "#27ae60", _lbl_expense: "#c0392b"})
+                      color_discrete_map={_lbl_income: palette.tokens["income"],
+                                          _lbl_expense: palette.tokens["expense"]})
         st.plotly_chart(fig1, width="stretch")
 
     # ── 2. Cumulative balance ──────────────────────────────────────────────────
@@ -181,9 +184,9 @@ def render_analysis_page(engine):
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(
         x=df_sorted["date"], y=df_sorted["cumulative"],
-        mode="lines", name=t("analytics.cumulative_balance"), line=dict(color="#2980b9"),
+        mode="lines", name=t("analytics.cumulative_balance"), line=dict(color=palette.tokens["balance"]),
     ))
-    fig2.add_hline(y=0, line_dash="dash", line_color="gray")
+    fig2.add_hline(y=0, line_dash="dash", line_color=palette.tokens["other"])
     fig2.update_layout(xaxis_title=t("ledger.col.date"), yaxis_title="€")
     st.plotly_chart(fig2, width="stretch")
 
@@ -199,6 +202,8 @@ def render_analysis_page(engine):
             pie_data, names="category", values="abs_amount",
             title=t("analytics.pie_expenses_title", total=format_amount_display(total_expenses, _dec, _thou)),
             hole=0.35,
+            color="category",
+            color_discrete_map=palette.category_map(pie_data["category"], "expense"),
         )
         fig_pie.update_traces(
             textposition="inside",
@@ -213,6 +218,7 @@ def render_analysis_page(engine):
             cat_sum, path=["category", "subcategory"], values="abs_amount",
             title=t("analytics.treemap_expenses_title"),
         )
+        color_treemap(fig3, palette, "expense")
         fig3.update_traces(
             hovertemplate="<b>%{label}</b><br>%{value:.2f} €<br>%{percentRoot:.1%} del totale<extra></extra>"
         )
@@ -247,10 +253,13 @@ def render_analysis_page(engine):
                 sub_data, x="abs_amount", y="subcategory", orientation="h",
                 title=drill_title,
                 labels={"abs_amount": "€", "subcategory": t("ledger.col.subcategory")},
-                color="abs_amount",
-                color_continuous_scale="Blues",
             )
-            fig_drill.update_layout(coloraxis_showscale=False, showlegend=False)
+            # Each subcategory in the shade of its category (spec 25).
+            _sub_cat = drill_df.groupby("subcategory")["category"].agg(lambda c: c.mode().iat[0])
+            fig_drill.update_traces(marker_color=[
+                palette.subcategory(_sub_cat.get(sub), sub) for sub in sub_data["subcategory"]
+            ])
+            fig_drill.update_layout(showlegend=False)
             fig_drill.update_traces(hovertemplate="<b>%{y}</b><br>%{x:.2f} €<extra></extra>")
             st.plotly_chart(fig_drill, width="stretch")
 
@@ -262,6 +271,7 @@ def render_analysis_page(engine):
                     labels={"abs_amount": "€", "month": t("analytics.label.month")},
                     markers=True,
                 )
+                fig_trend.update_traces(line_color=palette.category(selected_cat))
                 st.plotly_chart(fig_trend, width="stretch")
     else:
         st.info(t("analytics.no_data_selection"))
@@ -278,7 +288,8 @@ def render_analysis_page(engine):
             inc_pie, names="category", values="abs_amount",
             title=t("analytics.pie_income_title", total=format_amount_display(total_income, _dec, _thou)),
             hole=0.35,
-            color_discrete_sequence=px.colors.sequential.Greens_r,
+            color="category",
+            color_discrete_map=palette.category_map(inc_pie["category"], "income"),
         )
         fig_inc_pie.update_traces(
             textposition="inside",
@@ -292,8 +303,8 @@ def render_analysis_page(engine):
             fig_inc_tree = px.treemap(
                 inc_tree, path=["category", "subcategory"], values="abs_amount",
                 title=t("analytics.treemap_income_title"),
-                color_discrete_sequence=px.colors.sequential.Greens_r,
             )
+            color_treemap(fig_inc_tree, palette, "income")
             st.plotly_chart(fig_inc_tree, width="stretch")
 
     # ── 6. Analisi per contesto ────────────────────────────────────────────────
@@ -311,6 +322,7 @@ def render_analysis_page(engine):
                 barmode="stack",
                 labels={"abs_amount": "€", "month": t("analytics.label.month"), "context": t("ledger.col.context")},
                 title=t("analytics.monthly_by_context"),
+                color_discrete_sequence=series_colors(palette),
             )
             st.plotly_chart(fig_ctx, width="stretch")
 
@@ -326,6 +338,7 @@ def render_analysis_page(engine):
                 ctx_pie, names="context", values="abs_amount",
                 title=t("analytics.pie_context_title"),
                 hole=0.35,
+                color_discrete_sequence=series_colors(palette),
             )
             fig_ctx_pie.update_traces(
                 textposition="inside",
@@ -447,7 +460,7 @@ def render_analysis_page(engine):
             fig_bench = px.bar(
                 _df_chart, x=t("analytics.col.percentage"), y=_c_cat, color="Tipo",
                 barmode="group", orientation="h",
-                color_discrete_map={_c_yours: "#e74c3c", _c_bench: "#95a5a6"},
+                color_discrete_map={_c_yours: palette.tokens["expense"], _c_bench: palette.tokens["other"]},
                 labels={t("analytics.col.percentage"): t("analytics.label.pct_total_expenses"), _c_cat: ""},
                 title=t("analytics.benchmark_chart_title", n=n_members),
             )
@@ -491,6 +504,10 @@ def render_analysis_page(engine):
     if not top_n.empty:
         fig4 = px.bar(top_n, y="description", x="abs_amount", orientation="h",
                       labels={"abs_amount": "€", "description": ""})
+        # Each counterpart in the colour of its most frequent category.
+        _cp_cat = df.groupby("description")["category"].agg(
+            lambda c: c.mode().iat[0] if not c.mode().empty else None)
+        fig4.update_traces(marker_color=[palette.category(_cp_cat.get(d)) for d in top_n["description"]])
         st.plotly_chart(fig4, width="stretch")
 
     # ── 9. Account breakdown ───────────────────────────────────────────────────
@@ -503,7 +520,8 @@ def render_analysis_page(engine):
     )
     if not acc_monthly.empty:
         fig5 = px.bar(acc_monthly, x="month", y="abs_amount", color="account_label",
-                      barmode="stack", labels={"abs_amount": "€", "month": t("analytics.label.month")})
+                      barmode="stack", labels={"abs_amount": "€", "month": t("analytics.label.month")},
+                      color_discrete_sequence=series_colors(palette))
         st.plotly_chart(fig5, width="stretch")
 
     # ── 10. Associazioni descrizione → categoria ───────────────────────────────

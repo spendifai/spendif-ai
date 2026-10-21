@@ -38,6 +38,12 @@ logger = setup_logging()
 capture_unhandled_exceptions()
 logger.info("Starting Spendif.ai")
 
+# The server never outlives the desktop launcher (support/parent_watchdog.py):
+# once per process, a no-op when run without the launcher.
+from support.parent_watchdog import start as _watch_launcher
+
+_watch_launcher()
+
 # ── S-01: Prompt integrity check ─────────────────────────────────────────────
 from core.prompt_guard import verify_prompt_integrity
 
@@ -53,6 +59,11 @@ if _prompt_errors:
 # ── DB bootstrap ──────────────────────────────────────────────────────────────
 DB_URL = os.getenv("SPENDIFAI_DB", "sqlite:///ledger.db")
 engine = create_tables(get_engine(DB_URL))
+
+# Payment intermediaries shipped with the app (spec 20): an update can add some.
+from services.intermediary_service import sync_seed_once
+
+sync_seed_once(engine)
 
 # ── Dev mode (AI-193) ─────────────────────────────────────────────────────────
 # When SPENDIFAI_DEV_MODE=1 the developer-only pages (e.g. the pipeline
@@ -225,6 +236,9 @@ def _route(page: str, engine) -> None:
     elif page == "rules":
         from ui.rules_page import render_rules_page
         render_rules_page(engine)
+    elif page == "intermediaries":
+        from ui.intermediaries_page import render_intermediaries_page
+        render_intermediaries_page(engine)
 
     elif page == "counterparts":
         from ui.counterparts_page import render_counterparts_page

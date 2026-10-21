@@ -12,8 +12,12 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from core.categorizer import CategoryRule as CoreCategoryRule
+from core.rule_key import STARTS_WITH, exact_key, same_text, starts_with
 from core.schemas import DocumentSchema
 from db.models import (
+    AUTOMATIC_CATEGORY_SOURCES,
+    INTERNAL_TX_TYPES,
+    same_counterpart,
     CategoryCorrection,
     CategoryRule,
     DEFAULT_USER_SETTINGS,
@@ -21,6 +25,7 @@ from db.models import (
     DocumentSchemaModel,
     ImportBatch,
     ImportJob,
+    PaymentIntermediary,
     InternalTransferLink,
     TransferDestination,
     HeldMovement,
@@ -28,6 +33,7 @@ from db.models import (
     NsiTagMapping,
     ReconciliationLink,
     Transaction,
+    USER_CATEGORY_SOURCES,
     UserSettings,
 )
 from support.logging import setup_logging
@@ -297,7 +303,9 @@ def upsert_transaction(session: Session, tx: dict, batch_id: Optional[int] = Non
         date_accounting=tx.get("date_accounting").isoformat() if tx.get("date_accounting") and hasattr(tx["date_accounting"], "isoformat") else tx.get("date_accounting"),
         amount=amount_val,
         currency=tx.get("currency", "EUR"),
-        description=(tx.get("description") or "").strip().upper() or None,
+        # Written by the model's validator (written_counterpart, spec 21):
+        # never forced to upper case, comparisons ignore case.
+        description=tx.get("description"),
         source_file=tx.get("source_file", ""),
         doc_type=tx.get("doc_type", ""),
         account_label=tx.get("account_label", ""),
@@ -307,6 +315,9 @@ def upsert_transaction(session: Session, tx: dict, batch_id: Optional[int] = Non
         category_confidence=tx.get("category_confidence"),
         category_source=tx.get("category_source"),
         category_model=tx.get("category_model"),
+        model_category=tx.get("model_category"),
+        model_subcategory=tx.get("model_subcategory"),
+        model_confidence=tx.get("model_confidence"),
         reconciled=bool(tx.get("reconciled", False)),
         to_review=bool(tx.get("to_review", False)),
         transfer_pair_id=tx.get("transfer_pair_id"),
@@ -405,13 +416,195 @@ def get_existing_tx_ids(session: Session, tx_ids: list[str]) -> set[str]:
     return {row.id for row in rows}
 
 
+# ── Coherent categorization (spec 22) ─────────────────────────────────────────
+
+def known_counterpart_categories(session: Session) -> dict[tuple[str, str], tuple[str, str]]:
+    """{(counterpart key, direction): (category, subcategory)} from the ledger.
+
+    The most frequent category of each counterpart, so the model is not
+    asked again about a counterpart it (or the user) already categorized.
+    Choices made by hand on one movement are one-off exceptions and do not
+    count; neither do movements without a category or internal transfers.
+    """
+    from collections import Counter, defaultdict
+    from core.rule_key import exact_key
+    counts: dict[tuple[str, str], Counter] = defaultdict(Counter)
+    rows = (
+        session.query(Transaction.description, Transaction.amount,
+                      Transaction.category, Transaction.subcategory)
+        .filter(
+            Transaction.category.isnot(None), Transaction.category != "",
+            Transaction.category_source.is_distinct_from("manual"),
+            Transaction.tx_type.notin_(("internal_out", "internal_in")),
+        )
+        .all()
+    )
+    for desc, amount, cat, sub in rows:
+        key = exact_key(desc)
+        if not key:
+            continue
+        direction = "out" if float(amount or 0) < 0 else "in"
+        counts[(key, direction)][(cat, sub or "")] += 1
+    return {k: c.most_common(1)[0][0] for k, c in counts.items()}
+
+
+def known_signatures(session: Session) -> dict[str, str]:
+    """{raw signature: counterpart} from the ledger (spec 22).
+
+    One signature, one counterpart: the oldest movement decides, so a
+    signature never gets two. Internal transfers do not count.
+    """
+    from core.normalizer import raw_signature
+    out: dict[str, str] = {}
+    rows = (
+        session.query(Transaction.raw_description, Transaction.description)
+        .filter(
+            Transaction.raw_description.isnot(None),
+            Transaction.description.isnot(None), Transaction.description != "",
+            Transaction.tx_type.notin_(("internal_out", "internal_in")),
+        )
+        .order_by(Transaction.created_at, Transaction.id)
+        .all()
+    )
+    for raw, desc in rows:
+        sig = raw_signature(raw)
+        if sig and sig not in out:
+            out[sig] = desc
+    return out
+
+
+# ── Payment intermediaries (spec 20) ─────────────────────────────────────────
+
+def get_intermediaries(session: Session) -> list[PaymentIntermediary]:
+    return session.query(PaymentIntermediary).order_by(PaymentIntermediary.prefix).all()
+
+
+def active_intermediary_prefixes(session: Session) -> set[str]:
+    return {r.prefix for r in session.query(PaymentIntermediary.prefix)
+            .filter(PaymentIntermediary.active.is_(True))}
+
+
+def add_intermediaries(session: Session, prefixes, origin: str) -> list[str]:
+    """Add the prefixes not in the table yet, active. Existing rows are never
+    touched: a deactivated one stays deactivated. Returns the added ones."""
+    existing = {r.prefix for r in session.query(PaymentIntermediary.prefix)}
+    added = [p for p in dict.fromkeys(prefixes) if p and p not in existing]
+    for p in added:
+        session.add(PaymentIntermediary(prefix=p, origin=origin, active=True))
+    if added:
+        session.flush()
+    return added
+
+
+def raw_descriptions(session: Session) -> list[str]:
+    """Every saved raw description (the Intermediaries page counts on them)."""
+    return [r[0] for r in session.query(Transaction.raw_description)
+            .filter(Transaction.raw_description.isnot(None))]
+
+
+def raw_descriptions_with_asterisk(session: Session) -> list[str]:
+    """Saved raw descriptions in the "PREFIX *REST" form candidates."""
+    return [r[0] for r in session.query(Transaction.raw_description)
+            .filter(Transaction.raw_description.like("%*%"))]
+
+
+def set_intermediary_active(session: Session, prefix: str, active: bool) -> bool:
+    row = session.get(PaymentIntermediary, prefix)
+    if row is None:
+        return False
+    row.active = active
+    session.flush()
+    return True
+
+
+def rewrite_intermediary_descriptions(session: Session, active: set[str]) -> list[str]:
+    """Write the merchant on saved movements whose description still shows an
+    active intermediary ("PAYPAL", "PAYPAL *EASYPARK"). Returns their ids."""
+    from core.intermediaries import is_dirty
+    if not active:
+        return []
+    changed = []
+    # No filter on the asterisk: an intermediary is found anywhere (spec 20).
+    for tx in session.query(Transaction).filter(Transaction.raw_description.isnot(None)):
+        merchant = is_dirty(tx.description, tx.raw_description, active)
+        if merchant and merchant != tx.description:
+            tx.description = merchant
+            changed.append(tx.id)
+    if changed:
+        session.flush()
+    return changed
+
+
+def apply_rules_to_transactions(session: Session, tx_ids: list[str],
+                                user_rules: list[CoreCategoryRule]) -> int:
+    """Apply the category rules to the given movements only; a category
+    chosen by hand stays (spec 18). Returns how many changed."""
+    if not tx_ids or not user_rules:
+        return 0
+    rules = _rules_in_order(user_rules)
+    fallbacks = get_fallback_categories(session)
+    n = 0
+    for tx in session.query(Transaction).filter(Transaction.id.in_(tx_ids)):
+        if tx.category_source == "manual":
+            continue
+        for rule in rules:
+            if rule.matches(tx.description or "", tx.doc_type):
+                if rule.is_multi_category:
+                    n += _make_multi_category(tx, fallbacks)
+                elif rule.is_giroconto:
+                    n += bool(_make_giroconto(tx))
+                elif tx.tx_type in INTERNAL_TX_TYPES:
+                    pass  # a giroconto has no category
+                else:
+                    tx.category, tx.subcategory = rule.category, rule.subcategory
+                    if rule.context:
+                        tx.context = rule.context
+                    tx.category_source, tx.category_model = "rule", None
+                    tx.category_confidence, tx.to_review = "high", False
+                    n += 1
+                break
+    if n:
+        session.flush()
+    return n
+
+
+def get_movements_from_other_files(
+    session: Session, account_label: str, dates: list[str], source_file: str,
+) -> list[dict]:
+    """Saved movements of the account on those dates that came from another file.
+
+    The candidates for recognising a movement exported in two formats
+    (core.dedup.find_twins). A movement from the same file is never a
+    candidate: two identical rows of one file are two movements.
+    """
+    from sqlalchemy import func
+    if not dates:
+        return []
+    rows = (
+        session.query(Transaction, ImportBatch.filename)
+        .outerjoin(ImportBatch, ImportBatch.id == Transaction.batch_id)
+        .filter(
+            func.lower(Transaction.account_label) == (account_label or "").lower(),
+            Transaction.date.in_(sorted(set(dates))),
+        )
+        .all()
+    )
+    return [
+        {"id": tx.id, "account_label": tx.account_label, "date": tx.date,
+         "amount": tx.amount, "raw_description": tx.raw_description,
+         "description": tx.description, "filename": filename or tx.source_file}
+        for tx, filename in rows
+        if (filename or tx.source_file) != source_file
+    ]
+
+
 def _compute_consistency(session: Session, description: str) -> float | None:
     """% of categorized transactions with same description that agree on modal category."""
     from collections import Counter
     rows = (
         session.query(Transaction.category)
         .filter(
-            Transaction.description == description,
+            same_counterpart(Transaction.description, description),
             Transaction.category.isnot(None),
         )
         .all()
@@ -438,8 +631,9 @@ def update_transaction_category(
     already in the ledger. Recording a rule application as manual makes a
     counterpart look "mixed" as soon as the next import adds rule-matched
     movements, even when the category is the same. Either way the movement
-    counts as seen by the user and a changed category is logged as a
-    correction of the previous source.
+    counts as categorized by the user and a changed category is logged as a
+    correction of the previous source. It does not count as checked: choosing
+    how the money was spent says nothing on whether it was spent.
     """
     from datetime import datetime, timezone
     if source not in ("manual", "rule"):
@@ -453,7 +647,7 @@ def update_transaction_category(
     old_model = tx.category_model
     old_conf = tx.category_confidence
     category_changed = old_cat != category or old_sub != subcategory
-    if category_changed and old_src in ("llm", "rule", "history"):
+    if category_changed and old_src in ("rule", *AUTOMATIC_CATEGORY_SOURCES):
         consistency = _compute_consistency(session, tx.description or "")
         correction = CategoryCorrection(
             tx_id=tx_id,
@@ -473,10 +667,9 @@ def update_transaction_category(
     tx.subcategory = subcategory
     tx.category_confidence = "high"
     tx.category_source = source
-    tx.category_model = None
+    # category_model stays: it names the model of the proposal, which the
+    # model_* columns keep beside the user's decision.
     tx.to_review = False
-    tx.human_validated = True
-    tx.validated_at = datetime.now(timezone.utc)
     return True
 
 
@@ -564,13 +757,10 @@ def toggle_transaction_giroconto(session: Session, tx_id: str) -> tuple[bool, st
 
 def update_transaction_context(session: Session, tx_id: str, context: str | None) -> bool:
     """Set or clear the context of a transaction. Returns True if found."""
-    from datetime import datetime, timezone
     tx = session.get(Transaction, tx_id)
     if tx is None:
         return False
     tx.context = context or None
-    tx.human_validated = True
-    tx.validated_at = datetime.now(timezone.utc)
     session.flush()
     return True
 
@@ -614,7 +804,7 @@ def bulk_set_giroconto_by_description(
 
     Returns count of transactions actually changed.
     """
-    txs = session.query(Transaction).filter(Transaction.description == description).all()
+    txs = session.query(Transaction).filter(same_counterpart(Transaction.description, description)).all()
     internal = {"internal_out", "internal_in"}
     updated = 0
     for tx in txs:
@@ -650,6 +840,8 @@ def get_transactions(
             q = q.filter(Transaction.date <= filters["date_to"])
         if "to_review" in filters:
             q = q.filter(Transaction.to_review == filters["to_review"])
+        if "category_source" in filters:
+            q = q.filter(Transaction.category_source == filters["category_source"])
         if "account_label" in filters:
             q = q.filter(Transaction.account_label == filters["account_label"])
         if "description" in filters:
@@ -848,9 +1040,29 @@ def get_category_rules(session: Session) -> list[CoreCategoryRule]:
             doc_type=row.doc_type,
             priority=row.priority or 0,
             is_giroconto=bool(row.is_giroconto),
+            is_multi_category=bool(row.is_multi_category),
         )
         for row in rows
     ]
+
+
+def _rules_in_order(user_rules: list[CoreCategoryRule]) -> list[CoreCategoryRule]:
+    """Multi-category rules first (spec 24: they win on their counterpart),
+    then by priority, highest first."""
+    return sorted(user_rules, key=lambda r: (not r.is_multi_category, -(r.priority or 0)))
+
+
+def _make_multi_category(tx: Transaction, fallbacks: dict[str, tuple[str, str]]) -> bool:
+    """A movement of a multi-category counterpart (spec 24): the generic
+    category of its direction, to see one by one. A choice made by hand
+    stays. True if changed."""
+    if tx.category_source == "manual":
+        return False
+    cat, sub = fallbacks["expense"] if float(tx.amount or 0) < 0 else fallbacks["income"]
+    changed = (tx.category, tx.subcategory, tx.category_source) != (cat, sub, "multi")
+    tx.category, tx.subcategory = cat, sub
+    tx.category_source, tx.category_confidence, tx.to_review = "multi", "low", True
+    return changed
 
 
 def _make_giroconto(tx: Transaction) -> bool:
@@ -879,17 +1091,23 @@ def apply_rules_to_review_transactions(
     if not txs:
         return 0
 
-    rules = sorted(user_rules, key=lambda r: -(r.priority or 0))
+    rules = _rules_in_order(user_rules)
+    fallbacks = get_fallback_categories(session)
     updated = 0
     for tx in txs:
         desc = tx.description or ""
         for rule in rules:
             if rule.matches(desc, tx.doc_type):
+                if rule.is_multi_category:
+                    updated += _make_multi_category(tx, fallbacks)
+                    break
                 if rule.is_giroconto:
                     _make_giroconto(tx)
                     tx.to_review = False
                     updated += 1
                     break
+                if tx.tx_type in INTERNAL_TX_TYPES:
+                    break  # a giroconto has no category
                 tx.category = rule.category
                 tx.subcategory = rule.subcategory
                 if rule.context:
@@ -898,7 +1116,7 @@ def apply_rules_to_review_transactions(
                 tx.category_model = None
                 tx.category_confidence = "high"
                 tx.to_review = False
-                # human_validated NOT reset: means "user saw this tx", not "user approves category"
+                # human_validated NOT reset: it says the money was spent, not how
                 updated += 1
                 break
     if updated:
@@ -913,7 +1131,8 @@ def apply_all_rules_to_all_transactions(
     """Apply category rules to ALL transactions (not just to_review).
 
     Rules are evaluated in descending priority order; first match wins.
-    Transactions with no matching rule are left unchanged.
+    Transactions with no matching rule are left unchanged, and so is a
+    category chosen by hand: it is a one-off exception to the rule.
 
     Returns (n_matched, n_cleared_review) where:
       - n_matched        = transactions whose category was set/changed by a rule
@@ -922,7 +1141,8 @@ def apply_all_rules_to_all_transactions(
     if not user_rules:
         return 0, 0
 
-    rules = sorted(user_rules, key=lambda r: -(r.priority or 0))
+    rules = _rules_in_order(user_rules)
+    fallbacks = get_fallback_categories(session)
     txs = session.query(Transaction).all()
 
     n_matched = 0
@@ -931,6 +1151,9 @@ def apply_all_rules_to_all_transactions(
         desc = tx.description or ""
         for rule in rules:
             if rule.matches(desc, tx.doc_type):
+                if rule.is_multi_category:
+                    n_matched += _make_multi_category(tx, fallbacks)
+                    break
                 if rule.is_giroconto:
                     if _make_giroconto(tx):
                         n_matched += 1
@@ -938,6 +1161,8 @@ def apply_all_rules_to_all_transactions(
                         tx.to_review = False
                         n_cleared += 1
                     break
+                if tx.category_source == "manual" or tx.tx_type in INTERNAL_TX_TYPES:
+                    break  # a choice by hand stays; a giroconto has no category
                 tx.category            = rule.category
                 tx.subcategory         = rule.subcategory
                 if rule.context:
@@ -945,7 +1170,7 @@ def apply_all_rules_to_all_transactions(
                 tx.category_source     = "rule"
                 tx.category_model      = None
                 tx.category_confidence = "high"
-                # human_validated NOT reset: means "user saw this tx", not "user approves category"
+                # human_validated NOT reset: it says the money was spent, not how
                 if tx.to_review:
                     tx.to_review = False
                     n_cleared += 1
@@ -967,6 +1192,7 @@ def create_category_rule(
     doc_type: Optional[str] = None,
     priority: int = 0,
     is_giroconto: bool = False,
+    is_multi_category: bool = False,
 ) -> tuple[CategoryRule, bool]:
     """Create or update a category rule.
 
@@ -1001,6 +1227,7 @@ def create_category_rule(
         existing.context = context or None
         existing.priority = priority
         existing.is_giroconto = is_giroconto
+        existing.is_multi_category = is_multi_category
         session.flush()
         return existing, False
 
@@ -1013,6 +1240,7 @@ def create_category_rule(
         doc_type=doc_type,
         priority=priority,
         is_giroconto=is_giroconto,
+        is_multi_category=is_multi_category,
     )
     session.add(rule)
     session.flush()
@@ -1074,9 +1302,11 @@ def get_transactions_by_rule_pattern(
     pat_lower = pattern.lower()
     for tx in txs:
         desc = (tx.description or "").lower()
-        if match_type == "exact" and desc == pat_lower:
+        if match_type == "exact" and same_text(tx.description, pattern):
             result.append(tx)
         elif match_type == "contains" and pat_lower in desc:
+            result.append(tx)
+        elif match_type == STARTS_WITH and starts_with(tx.description, pattern):
             result.append(tx)
         elif match_type == "regex":
             try:
@@ -1104,6 +1334,34 @@ def set_giroconto_by_rule_pattern(
     if changed:
         session.flush()
     return changed
+
+
+def set_multi_category(session: Session, description: str, multi: bool) -> int:
+    """Mark a counterpart as a place where everything is bought, or not (spec 24).
+
+    On: an exact rule without category, applied to the movements already in
+    the ledger (generic category, to see one by one; choices made by hand
+    stay). Off: the rule goes, and the counterpart is one to decide again.
+    Returns how many movements changed.
+    """
+    rule = (
+        session.query(CategoryRule)
+        .filter(CategoryRule.is_multi_category.is_(True), CategoryRule.match_type == "exact")
+        .all()
+    )
+    existing = next((r for r in rule if same_text(r.pattern, description)), None)
+    if not multi:
+        if existing is not None:
+            session.delete(existing)
+            session.flush()
+        return 0
+    if existing is None:
+        session.add(CategoryRule(pattern=description, match_type="exact", category="",
+                                 subcategory="", priority=0, is_multi_category=True))
+        session.flush()
+    ids = [t.id for t in session.query(Transaction.id).filter(
+        same_counterpart(Transaction.description, description))]
+    return apply_rules_to_transactions(session, ids, get_category_rules(session))
 
 
 def delete_giroconto_rule(session: Session, pattern: str, match_type: str) -> bool:
@@ -1236,10 +1494,13 @@ def create_import_job(session: Session, n_files: int, n_rows: int | None = None)
 
 
 def get_import_timings(session: Session, limit: int = 10) -> list[tuple[int, float]]:
-    """(rows, seconds) of the latest completed imports, newest first.
+    """(movements, seconds) of the latest completed imports, newest first.
 
-    Rows are the rows read; older jobs that did not record them fall back
-    to the movements they created. Jobs with neither are left out.
+    The time goes to the movements that reach the model: rows already in the
+    ledger are skipped before it and cost almost nothing. Counting the rows
+    read made an import full of duplicates look fast (2026-10-20: 826 rows in
+    13 minutes, 466 of them duplicates, gave 0.9 s a row against 2.2 for the
+    rows actually processed). Jobs that created no movement are left out.
     """
     jobs = (session.query(ImportJob)
             .filter(ImportJob.status == "completed",
@@ -1250,7 +1511,7 @@ def get_import_timings(session: Session, limit: int = 10) -> list[tuple[int, flo
             .all())
     out: list[tuple[int, float]] = []
     for j in jobs:
-        rows = j.n_rows or j.n_transactions or 0
+        rows = j.n_transactions or 0
         secs = (j.completed_at - j.started_at).total_seconds()
         if rows > 0 and secs > 0:
             out.append((rows, secs))
@@ -1285,6 +1546,37 @@ def add_import_job_transactions(session: Session, job_id: int, n_new: int) -> Op
 
 def get_latest_import_job(session: Session) -> Optional[ImportJob]:
     return session.query(ImportJob).order_by(ImportJob.id.desc()).first()
+
+
+def get_last_import_period(session: Session) -> Optional[tuple[str, str]]:
+    """(first, last) ISO date of the movements of the last finished import.
+
+    The batches are the ones written while that import ran. None when there
+    is no finished import or it brought no movement.
+    """
+    from sqlalchemy import func
+    job = (
+        session.query(ImportJob)
+        .filter(ImportJob.status == "completed", ImportJob.completed_at.isnot(None))
+        .order_by(ImportJob.id.desc())
+        .first()
+    )
+    if job is None or job.started_at is None:
+        return None
+    batch_ids = [
+        b.id for b in session.query(ImportBatch.id).filter(
+            ImportBatch.imported_at >= job.started_at,
+            ImportBatch.imported_at <= job.completed_at,
+        )
+    ]
+    if not batch_ids:
+        return None
+    first, last = (
+        session.query(func.min(Transaction.date), func.max(Transaction.date))
+        .filter(Transaction.batch_id.in_(batch_ids))
+        .one()
+    )
+    return (first, last) if first and last else None
 
 
 # ── UserSettings ──────────────────────────────────────────────────────────────
@@ -1359,10 +1651,28 @@ def create_taxonomy_category(session: Session, name: str, type_: str) -> "Taxono
     from db.models import TaxonomyCategory
     from sqlalchemy import func
     max_order = session.query(func.max(TaxonomyCategory.sort_order)).filter_by(type=type_).scalar() or 0
-    cat = TaxonomyCategory(name=name.strip(), type=type_, sort_order=max_order + 1)
+    from core.palette import next_color
+    # A category is born with its colour (spec 25).
+    used = [c for (c,) in session.query(TaxonomyCategory.color).filter(
+        TaxonomyCategory.type == type_, TaxonomyCategory.color.isnot(None),
+        TaxonomyCategory.is_fallback.isnot(True))]
+    cat = TaxonomyCategory(name=name.strip(), type=type_, sort_order=max_order + 1,
+                           color=next_color(type_, used))
     session.add(cat)
     session.flush()
     return cat
+
+
+def set_taxonomy_category_color(session: Session, cat_id: int, color: str) -> bool:
+    """The user's colour for a category (spec 25): never overwritten."""
+    import re
+    from db.models import TaxonomyCategory
+    cat = session.get(TaxonomyCategory, cat_id)
+    if cat is None or not re.fullmatch(r"#[0-9a-fA-F]{6}", color or ""):
+        return False
+    cat.color = color.lower()
+    session.flush()
+    return True
 
 
 def update_taxonomy_category(session: Session, cat_id: int, name: str) -> bool:
@@ -1505,13 +1815,17 @@ def get_accounts(session: Session) -> list:
     return session.query(Account).order_by(Account.name).all()
 
 
-def create_account(session: Session, name: str, bank_name: str = "", account_type: str | None = None) -> object:
+def create_account(
+    session: Session, name: str, bank_name: str = "", account_type: str | None = None,
+    usage: str | None = None,
+) -> object:
     from db.models import Account
     from sqlalchemy.exc import IntegrityError
     acc = Account(
         name=name.strip(),
         bank_name=bank_name.strip() or None,
         account_type=account_type,
+        usage=usage,
     )
     session.add(acc)
     try:
@@ -1540,6 +1854,28 @@ def set_account_closed(session: Session, name: str, closed_on: str | None) -> ob
     return acc
 
 
+def get_account_usage(session: Session, name: str | None) -> str | None:
+    """How the person uses the account called ``name``, or None if never said."""
+    from db.models import Account
+    if not name or not name.strip():
+        return None
+    acc = session.query(Account).filter(Account.name == name.strip()).one_or_none()
+    return getattr(acc, "usage", None) if acc is not None else None
+
+
+def set_account_usage(session: Session, name: str, usage: str | None) -> object:
+    """Record how the account ``name`` is used. Like closing, it creates the row
+    for an account seen only in the movements."""
+    from db.models import Account
+    acc = session.query(Account).filter(Account.name == name).one_or_none()
+    if acc is None:
+        acc = Account(name=name.strip())
+        session.add(acc)
+    acc.usage = usage
+    session.flush()
+    return acc
+
+
 def delete_account(session: Session, account_id: int) -> bool:
     from db.models import Account
     acc = session.get(Account, account_id)
@@ -1556,6 +1892,7 @@ def rename_account(
     new_name: str,
     new_bank_name: str | None = None,
     new_account_type: str | None = _SENTINEL,
+    new_usage: str | None = _SENTINEL,
 ) -> int:
     """Rename an account, recalculate all transaction IDs, and cascade to related tables.
 
@@ -1576,13 +1913,16 @@ def rename_account(
     old_name = acc.name
     stripped_new = new_name.strip()
     name_changed = old_name != stripped_new
-    if not name_changed and new_bank_name is None and new_account_type is _SENTINEL:
+    if (not name_changed and new_bank_name is None and new_account_type is _SENTINEL
+            and new_usage is _SENTINEL):
         return 0  # nothing to do
     acc.name = stripped_new
     if new_bank_name is not None:
         acc.bank_name = new_bank_name.strip() or None
     if new_account_type is not _SENTINEL:
         acc.account_type = new_account_type
+    if new_usage is not _SENTINEL:
+        acc.usage = new_usage
     try:
         session.flush()
     except IntegrityError:
@@ -1960,26 +2300,24 @@ def seed_user_taxonomy_from_default(session: Session, language: str) -> int:
     session.query(TaxonomyCategory).delete(synchronize_session=False)
     session.flush()
 
-    rows = session.execute(_text(
-        'SELECT type, category, subcategory, sort_order_cat, sort_order_sub '
+    query = _text(
+        'SELECT type, category, subcategory, sort_order_cat, sort_order_sub, is_fallback '
         'FROM taxonomy_default WHERE language = :lang AND subcategory IS NOT NULL '
         'ORDER BY sort_order_cat, sort_order_sub'
-    ), {"lang": language}).fetchall()
+    )
+    rows = session.execute(query, {"lang": language}).fetchall()
 
     if not rows:
         # Language not found — fall back to 'it'
-        rows = session.execute(_text(
-            'SELECT type, category, subcategory, sort_order_cat, sort_order_sub '
-            'FROM taxonomy_default WHERE language = :lang AND subcategory IS NOT NULL '
-            'ORDER BY sort_order_cat, sort_order_sub'
-        ), {"lang": "it"}).fetchall()
+        rows = session.execute(query, {"lang": "it"}).fetchall()
 
     cat_map: dict[tuple[str, str], TaxonomyCategory] = {}
     for row in rows:
-        type_key, cat_name, sub_name, sort_cat, sort_sub = row
+        type_key, cat_name, sub_name, sort_cat, sort_sub, is_fallback = row
         key = (type_key, cat_name)
         if key not in cat_map:
-            cat = TaxonomyCategory(name=cat_name, type=type_key, sort_order=sort_cat)
+            cat = TaxonomyCategory(name=cat_name, type=type_key, sort_order=sort_cat,
+                                   is_fallback=bool(is_fallback))
             session.add(cat)
             session.flush()  # get cat.id
             cat_map[key] = cat
@@ -1990,6 +2328,9 @@ def seed_user_taxonomy_from_default(session: Session, language: str) -> int:
         )
         session.add(sub)
 
+    session.flush()
+    from db.models import fill_category_colors
+    fill_category_colors(session.connection())  # spec 25
     session.commit()
     return len(cat_map)
 
@@ -2365,24 +2706,35 @@ def get_counterpart_stats(
     tx_types: tuple[str, ...] = ("expense", "income"),
     date_from: str | None = None,
     date_to: str | None = None,
+    negative_only: bool = False,
+    positive_only: bool = False,
 ) -> list[dict]:
     """Aggregate transactions by description to produce per-counterpart stats.
 
     Returns a list of dicts with keys:
       description, tx_count, avg_amount, total_amount, modal_category,
-      modal_subcategory, variability_pct, source_mode, human_checked,
-      is_giroconto, categories, unchecked_count
+      modal_subcategory, variability_pct, source_mode, categorized_by_user,
+      is_giroconto, categories, uncategorized_count
 
-    `categories` lists (category, movements) most used first; `unchecked_count`
-    is how many movements the user has not seen yet (neither validated nor
-    changed by hand), so a counterpart already worked through shows only
+    Everything here is about how the money was spent, never about whether it
+    was spent: that is checked movement by movement in the registry
+    (human_validated) and plays no part in these figures.
+
+    `categorized_by_user` is True when one of the user's rules covers the
+    counterpart, or when every movement of it got its category from the
+    user (a rule or a choice by hand). A rule decides for the movements of
+    every import, so a counterpart with a rule is never asked again.
+
+    `categories` lists (category, movements) most used first;
+    `uncategorized_count` is how many movements still carry a category the
+    user did not decide, so a counterpart already worked through shows only
     what the last import added.
 
     With `date_from`/`date_to` (ISO dates, inclusive) the figures cover the
     movements of that period only, and counterparts without movements in it
-    are left out. `human_checked` still looks at every movement: a
-    counterpart confirmed months ago stays confirmed when the new movements
-    came in through its rule.
+    are left out. With `negative_only` only money going out counts, with
+    `positive_only` only money coming in: a card statement's movements are
+    all `card_tx`, purchases and refunds alike.
 
     is_giroconto is True when most of the counterpart's movements are internal
     transfers (only possible when tx_types includes internal_out/internal_in).
@@ -2397,24 +2749,25 @@ def get_counterpart_stats(
             Transaction.category,
             Transaction.subcategory,
             Transaction.category_source,
-            Transaction.validated_at,
             Transaction.date,
         )
         .filter(
             Transaction.description.isnot(None),
             Transaction.description != "",
             Transaction.tx_type.in_(tx_types),
+            *([Transaction.amount < 0] if negative_only else []),
+            *([Transaction.amount > 0] if positive_only else []),
         )
         .all()
     )
 
-    # Group case-insensitively so "Coop"/"COOP" collapse into one counterpart,
-    # regardless of how the description casing was stored. The first-seen
-    # original casing is kept for display.
+    # One counterpart whatever the case, accents, punctuation or initials
+    # ("Coop", "COOP", "S.R.L."/"SRL": spec 21). The first-seen
+    # original writing is kept for display.
     groups: dict[str, list] = defaultdict(list)
     display: dict[str, str] = {}
     for row in rows:
-        key = (row.description or "").upper()
+        key = exact_key(row.description) or (row.description or "")
         groups[key].append(row)
         display.setdefault(key, row.description)
 
@@ -2422,6 +2775,7 @@ def get_counterpart_stats(
         d = row.date or ""
         return (date_from is None or d >= date_from) and (date_to is None or d <= date_to)
 
+    rules = get_category_rules(session)
     stats = []
     for key, all_txs in groups.items():
         txs = [t for t in all_txs if _in_period(t)]
@@ -2451,13 +2805,17 @@ def get_counterpart_stats(
         else:
             source_mode = "unknown"
 
-        human_checked = any(
-            t.validated_at is not None or t.category_source == "manual" for t in all_txs
+        uncategorized_count = sum(
+            1 for t in txs if t.category_source not in USER_CATEGORY_SOURCES
         )
-        unchecked_count = sum(
-            1 for t in txs if t.validated_at is None and t.category_source != "manual"
+        categorized_by_user = uncategorized_count == 0 or any(
+            r.matches(desc) for r in rules
         )
         n_internal = sum(1 for t in txs if t.tx_type in ("internal_out", "internal_in"))
+        # Multi-category (spec 24): decided by its rule; its movements not yet
+        # chosen by hand are the ones to see one by one.
+        is_multi = any(r.is_multi_category and r.matches(desc) for r in rules)
+        to_see = sum(1 for t in txs if t.category_source == "multi")
 
         stats.append(
             {
@@ -2469,10 +2827,12 @@ def get_counterpart_stats(
                 "modal_subcategory": modal_sub,
                 "variability_pct": variability_pct,
                 "source_mode": source_mode,
-                "human_checked": human_checked,
+                "categorized_by_user": categorized_by_user,
                 "is_giroconto": n_internal * 2 > tx_count,
+                "is_multi_category": is_multi,
+                "to_see_one_by_one": to_see,
                 "categories": cat_counts.most_common(),
-                "unchecked_count": unchecked_count,
+                "uncategorized_count": uncategorized_count,
             }
         )
 

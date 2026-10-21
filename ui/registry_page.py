@@ -8,7 +8,7 @@ from decimal import Decimal
 import pandas as pd
 import streamlit as st
 
-from services.rule_service import RuleService
+from services.rule_service import STARTS_WITH, RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.formatting import format_amount_display, format_date_display, strftime_to_momentjs
@@ -189,6 +189,9 @@ def render_registry_page(engine):
         )
     with fc7:
         review_only = st.checkbox(t("ledger.filter.review_only"), key="ledger_review")
+        # Movements of a place where everything is bought, not seen yet (spec 24).
+        one_by_one_only = st.checkbox(t("ledger.filter.one_by_one"), key="ledger_one_by_one",
+                                      help=t("ledger.filter.one_by_one_help"))
     with fc8:
         hide_giro = st.checkbox(
             t("ledger.filter.hide_giro"),
@@ -218,6 +221,8 @@ def render_registry_page(engine):
         filters["context"] = ctx_filter
     if review_only:
         filters["to_review"] = True
+    if one_by_one_only:
+        filters["category_source"] = "multi"
 
     txs = tx_svc.get_transactions(filters=filters)
 
@@ -296,6 +301,7 @@ def render_registry_page(engine):
         "rule": "📏 Regola",
         "manual": "👤 Manuale",
         "history": "📚 Storico",
+        "multi": "🛒 " + t("rules.multi_value"),
     }
 
     orig_rows = [build_ledger_row(tx, show_raw, _SOURCE_BADGE) for tx in page_txs]
@@ -323,7 +329,9 @@ def render_registry_page(engine):
         COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=40),
         COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=40),
         COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=40),
-        COL_VALIDATED:   st.column_config.CheckboxColumn(t("ledger.col.validated"), width=60),
+        COL_VALIDATED:   st.column_config.CheckboxColumn(
+            t("ledger.col.validated"), help=t("ledger.col.validated_help"), width=60,
+        ),
         COL_TRANSFER:    st.column_config.CheckboxColumn(t("ledger.col.transfer"), width="small"),
     }
     if show_raw:
@@ -503,22 +511,34 @@ def render_registry_page(engine):
         _rule_tx_sub = _rule_tx_row[COL_SUBCATEGORY]
         _rule_tx_ctx = _rule_tx_row[COL_CONTEXT]
 
+        # The product proposes the rule (spec 18): merchant name and "starts
+        # with" when it can tell the name, else the exact description. Asked
+        # once per movement, not at every rerun of the page.
+        _suggest_key = f"_rule_suggest_{_rule_tx_id}"
+        if _suggest_key not in st.session_state:
+            st.session_state[_suggest_key] = rule_svc.write_rules([_rule_tx_desc])[_rule_tx_desc]
+        _sugg_pattern, _sugg_type = st.session_state[_suggest_key]
+
         with st.expander(t("ledger.rule_from_selection"), expanded=True):
             rc1, rc2 = st.columns([3, 1])
             with rc1:
                 rule_pattern = st.text_input(
-                    t("ledger.rule.pattern"), value=_rule_tx_desc, key="rule_create_pattern"
+                    t("ledger.rule.pattern"), value=_sugg_pattern,
+                    key=f"rule_create_pattern_{_rule_tx_id}",
                 )
             with rc2:
                 # etichetta tradotta -> valore interno, che resta stabile
                 _match_labels = {
+                    t("ledger.rule.match.starts_with"): STARTS_WITH,
                     t("ledger.rule.match.contains"): "contains",
                     t("ledger.rule.match.exact"):    "exact",
                     t("ledger.rule.match.regex"):    "regex",
                 }
+                _match_values = list(_match_labels.values())
                 _match_label = st.selectbox(
                     t("ledger.rule.match_type"), list(_match_labels.keys()),
-                    index=0, key="rule_create_match_type",
+                    index=_match_values.index(_sugg_type) if _sugg_type in _match_values else 0,
+                    key=f"rule_create_match_type_{_rule_tx_id}",
                 )
                 rule_match_type = _match_labels[_match_label]
 

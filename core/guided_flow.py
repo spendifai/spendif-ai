@@ -335,6 +335,74 @@ def is_stale(last_movement: date, today: date) -> bool:
 
 # ── Counterparts: how much of the spending the user has checked ─────────────
 
+# Counterparts seen once are not asked in the workflow up to an amount drawn
+# from the user's own spending (founder, 2026-10-21): in a typical year of the
+# last SMALL_SINGLES_YEARS, the single-movement counterparts up to that amount
+# stay under SMALL_SINGLES_SHARE of the yearly spending. Deciding them means
+# looking at movements one by one, for little money. They keep the proposed
+# category and stay out of the goal; a switch shows them.
+SMALL_SINGLES_SHARE = 0.05
+SMALL_SINGLES_YEARS = 5
+
+
+@dataclass(frozen=True)
+class SmallSingles:
+    """The counterparts with one movement left out of the workflow.
+
+    `limit` is the threshold (0 when nothing is left out), `share` their part
+    of the spending of the period shown.
+    """
+    descriptions: frozenset
+    total: float
+    share: float
+    limit: float
+
+    @property
+    def count(self) -> int:
+        return len(self.descriptions)
+
+
+def small_single_limit(movements: list[tuple[str, str, float]],
+                       share: float = SMALL_SINGLES_SHARE) -> float:
+    """The threshold, from (year, counterpart key, amount) spending movements
+    of the last years.
+
+    A counterpart is single in a year when it has one movement that year.
+    Taken from the smallest, the singles of all the years stay under *share*
+    of the spending of all the years: per year, under *share* of the yearly
+    average. A threshold never splits equal amounts. 0 without movements.
+    """
+    total = sum(a for _, _, a in movements)
+    if total <= 0:
+        return 0.0
+    per_year: dict[tuple[str, str], list[float]] = {}
+    for year, key, amount in movements:
+        per_year.setdefault((year, key), []).append(amount)
+    singles = sorted(v[0] for v in per_year.values() if len(v) == 1)
+    limit, covered = 0.0, 0.0
+    for amount in singles:
+        if covered + amount >= share * total:
+            if amount == limit:                 # equal amounts stay together
+                limit = max((x for x in singles if x < amount), default=0.0)
+            break
+        covered += amount
+        limit = amount
+    return limit
+
+
+def small_singles(stats: list[dict], limit: float) -> SmallSingles:
+    """The single-movement counterparts of *stats* up to *limit*."""
+    total = sum(s["total_amount"] for s in stats)
+    taken = [s for s in stats if s["tx_count"] == 1 and s["total_amount"] <= limit] if limit > 0 else []
+    hidden = sum(s["total_amount"] for s in taken)
+    return SmallSingles(
+        descriptions=frozenset(s["description"] for s in taken),
+        total=hidden,
+        share=hidden / total if total else 0.0,
+        limit=limit if taken else 0.0,
+    )
+
+
 # Share of the period's spending the workflow suggests checking. Said to the
 # user in words ("8 euros out of 10"), never as a percentage.
 CHECK_GOAL_SHARE = 0.8
@@ -342,10 +410,11 @@ CHECK_GOAL_SHARE = 0.8
 
 @dataclass(frozen=True)
 class CheckProgress:
-    """Spending checked so far against the goal, in money.
+    """Spending categorized so far against the goal, in the weight given
+    (spending movements in the workflow since 2026-10-20, money before).
 
-    `missing` is how much spending is still to check to reach the goal and
-    `needed` how many unchecked counterparts, largest first, cover it.
+    `missing` is how much is still to categorize to reach the goal and
+    `needed` how many uncategorized counterparts, heaviest first, cover it.
     Both are 0 once the goal is reached.
     """
     total: float
@@ -361,10 +430,11 @@ class CheckProgress:
 def check_progress(
     counterparts: list[tuple[float, bool]], share: float = CHECK_GOAL_SHARE,
 ) -> CheckProgress:
-    """Progress over (period total, checked) pairs, one per counterpart.
+    """Progress over (weight, categorized) pairs, one per counterpart.
 
-    Ticking the largest unchecked counterparts first reaches the goal with
-    the fewest ticks, so `needed` counts them in that order.
+    Ticking the heaviest uncategorized counterparts first reaches the goal
+    with the fewest ticks, so `needed` counts them in that order; the list
+    the user sees is in the same order, so "the first N" is true.
     """
     total = sum(amount for amount, _ in counterparts)
     checked = sum(amount for amount, ok in counterparts if ok)

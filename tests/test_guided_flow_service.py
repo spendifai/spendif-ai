@@ -186,7 +186,7 @@ def test_income_counterparts_largest_first_without_transfers(engine):
     _add(engine, "c", "2026-08-12", 5000, "Giroconto", "internal_in")
     _add(engine, "d", "2026-08-12", -20, "Negozio Y", "expense")
     out = GuidedFlowService(engine).income_counterparts()
-    assert [s["description"] for s in out] == ["Stipendio ACME", "Reso Negozio"]
+    assert [s["description"] for s in out] == ["Stipendio Acme", "Reso Negozio"]
 
 
 def test_income_counterpart_with_spending_is_marked(engine):
@@ -202,7 +202,7 @@ def test_income_step_closes_when_every_income_was_seen(engine):
     svc = GuidedFlowService(engine)
     assert "income" not in svc.closed_steps(TODAY)
     TransactionService(engine).update_category("a", "Lavoro dipendente", "", origin="income")
-    assert svc.unchecked_income() == []
+    assert svc.uncategorized_income() == []
     assert "income" in svc.closed_steps(TODAY)
 
 

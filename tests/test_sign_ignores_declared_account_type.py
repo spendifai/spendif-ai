@@ -14,6 +14,10 @@ WHY IT EXISTS
 
     The accepted condition, in the founder's words: an Amex file must come out
     right whatever the account was declared to be.
+
+    2026-10-19: the banking type is gone from the interface too, replaced by
+    how the account is used ("payments" / "in_and_out"). That answer reaches
+    only the decision to ask (core.orchestrator), never the measurement here.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from core.classifier import _apply_doc_type_sign_prior
+from core.classifier import _measure_sign_from_data
 
 ACCOUNT_TYPES = (
     "bank_account",
@@ -61,8 +65,8 @@ def test_the_import_path_never_reads_the_declared_account_type():
     )
 
 
-@pytest.mark.parametrize("function", ["_apply_doc_type_sign_prior", "_apply_step0_invert_sign"])
-def test_neither_sign_decision_accepts_a_declared_type(function):
+@pytest.mark.parametrize("function", ["_measure_sign_from_data"])
+def test_the_measurement_accepts_no_declaration(function):
     tree = ast.parse(CLASSIFIER.read_text(encoding="utf-8"))
     node = next(
         n for n in ast.walk(tree)
@@ -70,12 +74,15 @@ def test_neither_sign_decision_accepts_a_declared_type(function):
     )
     names = [a.arg for a in node.args.args] + [a.arg for a in node.args.kwonlyargs]
     assert "account_type" not in names, f"{function} takes a declared account type again"
+    assert "account_usage" not in names, f"{function} takes the declared usage"
 
 
 # ── The Amex case itself ─────────────────────────────────────────────────────
 
 def _amex_shaped(amounts: list[float], doc_type: str) -> dict:
-    """An Amex statement: a single amount column, charges written positive."""
+    """An Amex statement: a single amount column, charges written positive.
+
+    doc_type is what the model guessed; the measurement no longer reads it."""
     df = pd.DataFrame({"Importo": [str(a) for a in amounts]})
     result = {
         "amount_col": "Importo",
@@ -85,7 +92,7 @@ def _amex_shaped(amounts: list[float], doc_type: str) -> dict:
         "sign_convention": "debit_positive",
         "invert_sign": False,
     }
-    return _apply_doc_type_sign_prior(result, df, "amex.csv")
+    return _measure_sign_from_data(result, df, "amex.csv")
 
 
 AMEX_CHARGES_POSITIVE = [50.0, 30.0, 1000.0, -80.0]
@@ -98,6 +105,14 @@ def test_an_amex_file_read_as_a_card_is_corrected():
     assert out["sign_convention"] == "signed_single"
 
 
+def test_an_amex_file_the_model_took_for_a_bank_account_is_corrected():
+    """2026-10-19: the case that came back. The guess no longer matters."""
+    out = _amex_shaped(AMEX_CHARGES_POSITIVE, "bank_account")
+
+    assert out["invert_sign"] is True
+    assert out["sign_measure_conclusive"] is True
+
+
 def test_the_verdict_depends_on_the_document_and_on_nothing_else():
     """Six declared types, one file, one answer.
 
@@ -106,7 +121,7 @@ def test_the_verdict_depends_on_the_document_and_on_nothing_else():
     cannot be moved from outside the file.
     """
     verdicts = {
-        declared: _amex_shaped(AMEX_CHARGES_POSITIVE, "credit_card")["invert_sign"]
+        declared: _amex_shaped(AMEX_CHARGES_POSITIVE, declared)["invert_sign"]
         for declared in ACCOUNT_TYPES
     }
 

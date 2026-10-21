@@ -26,7 +26,9 @@ from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
 from ui.widgets.immersive import go_to
-from ui.widgets.staged_import import StagedFile, stage_file, staged_files, unstage_file
+from ui.widgets.staged_import import (
+    StagedFile, files_and_rows, stage_file, staged_files, staged_rows, unstage_file,
+)
 
 logger = setup_logging()
 
@@ -177,8 +179,11 @@ def _render_guidance(flow_svc: GuidedFlowService) -> bool:
         for err in st.session_state.pop("_stage_errors", []):
             st.warning(err)
         staged = staged_files()
-        if staged and st.button(t("guided.checklist.import_n", n=len(staged)),
-                                type="primary", key="import_staged"):
+        if staged and st.button(
+            t("guided.checklist.import_n", what=files_and_rows(
+                len(staged), staged_rows(flow_svc.count_rows))),
+            type="primary", key="import_staged",
+        ):
             go_to("import")
         old = flow_svc.old_holes()
         if old:

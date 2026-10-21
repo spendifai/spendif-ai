@@ -102,8 +102,10 @@ class TestHumanValidation:
         tx = _insert_tx(session)
         assert tx.human_validated is False
 
-    def test_manual_edit_sets_validated_true(self, session):
-        """update_transaction_category sets human_validated=True and validated_at."""
+    def test_manual_edit_categorizes_but_does_not_check(self, session):
+        """Choosing how the money was spent is not checking that it was spent:
+        update_transaction_category records a manual category and leaves
+        human_validated and validated_at alone."""
         tx = _insert_tx(session, category="Alimentari", subcategory="Supermercato", category_source="llm")
         assert tx.human_validated is False
 
@@ -112,8 +114,9 @@ class TestHumanValidation:
         session.refresh(tx)
 
         assert result is True
-        assert tx.human_validated is True
-        assert tx.validated_at is not None
+        assert tx.category_source == "manual"
+        assert tx.human_validated is False
+        assert tx.validated_at is None
 
     def test_validate_without_category_change(self, session):
         """validate_transaction marks human_validated=True without changing category_source."""

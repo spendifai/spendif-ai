@@ -62,11 +62,12 @@ class DocumentSchema(BaseModel):
     is_zero_sum: bool = False
     invert_sign: bool = False  # True when card file stores expenses as positive (negate all amounts)
     user_confirmed: bool = False  # the person settled the direction for this format; never ask again
-    # The two independent readings of the direction, kept apart so their
-    # disagreement is a fact rather than something to re-derive later. Not
-    # persisted: they describe one classification, not the format.
-    sign_llm_verdict: Optional[bool] = None
+    # The direction measured on the amounts (True = spending written positive)
+    # and whether the file had a clear majority to measure it on. Not
+    # persisted: they describe one classification, not the format. None when
+    # the measure did not run (reused schema, debit/credit columns).
     sign_deterministic_verdict: Optional[bool] = None
+    sign_measure_conclusive: Optional[bool] = None
     internal_transfer_patterns: list[str] = Field(default_factory=list)
     footer_patterns: list[str] = Field(default_factory=list)
     has_borders: bool = False  # True if XLSX source uses bordered table (detected on first load)

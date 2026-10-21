@@ -6,7 +6,8 @@ import json
 import pandas as pd
 import streamlit as st
 
-from services.rule_service import RuleService
+from services.intermediary_service import IntermediaryService
+from services.rule_service import KEY_CHECK, KEY_KNOWN, STARTS_WITH, RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.logging import setup_logging
@@ -18,6 +19,7 @@ logger = setup_logging()
 def _match_labels() -> dict[str, str]:
     return {
         t("rules.match_contains"): "contains",
+        t("rules.match_starts_with"): STARTS_WITH,
         t("rules.match_exact"): "exact",
         t("rules.match_regex"): "regex",
     }
@@ -27,7 +29,6 @@ def _label_from_type() -> dict[str, str]:
     return {v: k for k, v in _match_labels().items()}
 
 
-_MATCH_TYPES = ["contains", "exact", "regex"]
 _NO_CONTEXT   = "— nessuno —"
 
 
@@ -69,21 +70,41 @@ def render_rules_page(engine):
     else:
         # ── Tabella regole ──────────────────────────────────────────────────
         st.subheader(t("rules.active_rules", n=len(rules)))
+        # Rules on a payment intermediary take nothing once the merchant is
+        # written instead (spec 20): said, never deleted.
+        _on_inter = IntermediaryService(engine).rules_on_intermediaries(rules)
+        if _on_inter:
+            st.warning(t("rules.on_intermediary",
+                         rules=", ".join(f"{r.pattern}" for r in _on_inter)))
+        # How sure it is that a "starts with" rule names the merchant: worked
+        # out from the rule each time, never stored (spec 18).
+        _key_label = {KEY_KNOWN: t("rules.key.known"), KEY_CHECK: t("rules.key.check")}
+        _conf = {r.id: rule_svc.key_confidence(r.pattern, r.match_type) for r in rules}
+        shown = rules
+        if st.toggle(t("rules.filter_key_check"), value=False, key="rules_filter_key_check"):
+            shown = [r for r in rules if _conf[r.id] == KEY_CHECK]
+            if not shown:
+                st.caption(t("rules.no_key_check"))
         table_data = [
             {
                 "ID": r.id,
                 "Pattern": r.pattern,
                 t("rules.col_type"): label_from_type.get(r.match_type, r.match_type),
+                t("rules.col_key"): _key_label.get(_conf[r.id], ""),
                 t("rules.col_category"): (
-                    t("rules.giroconto_value") if r.is_giroconto else r.category
+                    t("rules.giroconto_value") if r.is_giroconto
+                    else t("rules.multi_value") if r.is_multi_category else r.category
                 ),
                 t("rules.col_subcategory"): r.subcategory or "",
                 t("rules.col_context"): r.context or "",
                 t("rules.col_priority"): r.priority,
             }
-            for r in sorted(rules, key=lambda x: x.pattern.casefold())
+            for r in sorted(shown, key=lambda x: x.pattern.casefold())
         ]
-        df_rules = pd.DataFrame(table_data)
+        df_rules = pd.DataFrame(table_data, columns=[
+            "ID", "Pattern", t("rules.col_type"), t("rules.col_key"), t("rules.col_category"),
+            t("rules.col_subcategory"), t("rules.col_context"), t("rules.col_priority"),
+        ])
 
         # ── Ordinamento esplicito ────────────────────────────────────
         _sort_cols = ["Pattern", t("rules.col_category"), t("rules.col_priority"),
@@ -148,6 +169,8 @@ def render_rules_page(engine):
         def _rule_target(r) -> str:
             if r.is_giroconto:
                 return t("rules.giroconto_value")
+            if r.is_multi_category:
+                return t("rules.multi_value")
             return f"{r.category} / {r.subcategory or '-'}"
 
         rule_opts = {f"[{r.id}] {r.pattern[:60]}  →  {_rule_target(r)}": r

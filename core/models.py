@@ -78,3 +78,16 @@ class CategorySource(str, Enum):
     manual = "manual"
     history = "history"
     nsi = "nsi"   # C-08-cascade: NSI brand → taxonomy_map direct match
+    # Counterpart where everything is bought (spec 24): the generic category,
+    # to be seen movement by movement. Neither the user's decision nor a
+    # proposal of the product.
+    multi = "multi"
+
+
+# Categories the product proposed on its own (model, merchant list, the
+# category the counterpart already has). The proposal is kept on the movement
+# in model_category / model_subcategory / model_confidence, written at import
+# and never changed: compared with the category the user decides, it says
+# whether the proposal was right (2026-10-21).
+AUTOMATIC_CATEGORY_SOURCES = (CategorySource.llm.value, CategorySource.nsi.value,
+                              CategorySource.history.value)

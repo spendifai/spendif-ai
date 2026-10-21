@@ -1283,3 +1283,51 @@ class TestDetectInternalTransfersMissingLines:
         )
         # No pair: no keyword, not high_sym → continue
         assert result["transfer_pair_id"].isna().all()
+
+
+# ── Day and month: the data decides (settle_date_order) ──────────────────────
+
+def test_a_day_over_12_proves_day_first_against_the_model():
+    """The Amex case: the model said %m/%d/%Y on an Italian export, so
+    12/02/2026 became 2 December and 25/12 fell back to the right date."""
+    from core.normalizer import settle_date_order
+    fmt, why = settle_date_order(["12/02/2026", "25/12/2025", "02/10/2026"], "%m/%d/%Y", "IT")
+    assert fmt == "%d/%m/%Y" and why
+
+
+def test_a_second_number_over_12_proves_month_first():
+    from core.normalizer import settle_date_order
+    assert settle_date_order(["12/25/2025", "02/10/2026"], "%d/%m/%Y", "IT")[0] == "%m/%d/%Y"
+
+
+def test_no_proof_follows_the_country():
+    from core.normalizer import settle_date_order
+    assert settle_date_order(["02/10/2026", "05/03/2026"], "%m/%d/%Y", "IT")[0] == "%d/%m/%Y"
+    assert settle_date_order(["02/10/2026", "05/03/2026"], "%m/%d/%Y", "US") == ("%m/%d/%Y", "")
+
+
+def test_what_cannot_be_judged_is_left_alone():
+    import datetime
+    from core.normalizer import settle_date_order
+    # real dates from Excel cells, ISO strings, year-first formats
+    assert settle_date_order([datetime.datetime(2026, 2, 12)], "%m/%d/%Y", "IT") == ("%m/%d/%Y", "")
+    assert settle_date_order(["2026-02-12 00:00:00"], "%m/%d/%Y", "IT") == ("%m/%d/%Y", "")
+    assert settle_date_order(["2026/02/12"], "%Y/%m/%d", "IT") == ("%Y/%m/%d", "")
+    # contradicting evidence: keep what was proposed
+    assert settle_date_order(["13/02/2026", "02/13/2026"], "%m/%d/%Y", "IT") == ("%m/%d/%Y", "")
+    # two-digit year and dashes
+    assert settle_date_order(["25-12-25"], "%m-%d-%y", "IT")[0] == "%d-%m-%y"
+
+
+def test_normalization_reads_the_amex_file_right_and_fixes_the_schema():
+    import pandas as pd
+    from core.orchestrator import _normalize_df_with_schema
+    from core.schemas import DocumentSchema
+    df = pd.DataFrame({"Data": ["12/02/2026", "02/10/2026", "25/12/2025"],
+                       "Descrizione": ["A", "B", "C"], "Importo": ["10,00", "5,00", "3,00"]})
+    schema = DocumentSchema(doc_type="credit_card", date_col="Data", amount_col="Importo",
+                            description_col="Descrizione", sign_convention="signed_single",
+                            date_format="%m/%d/%Y", account_label="amex", confidence="high")
+    txs, skipped, _ = _normalize_df_with_schema(df, schema, "amex.xlsx", "IT")
+    assert [str(t["date"]) for t in txs] == ["2026-02-12", "2026-10-02", "2025-12-25"]
+    assert schema.date_format == "%d/%m/%Y"

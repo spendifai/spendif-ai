@@ -20,7 +20,7 @@ Le transazioni su cui l'AI non era sicura vengono marcate con il flag di warning
 
 - Le transazioni incerte sono marcate con **warning** (da rivedere)
 - Per ciascuna puoi correggere **categoria**, **sottocategoria** e **contesto** dai menu a tendina
-- Conferma con **Validato** per dire a Spendif.ai "questa classificazione e corretta"
+- Per dire a Spendif.ai "questa categoria e giusta" basta lasciarla o sceglierne un'altra: la scelta resta tua. La spunta **Validato** dice un'altra cosa: che il movimento e vero (vedi "Controllato e categorizzato" in fondo)
 - Puoi anche creare una regola direttamente dalla Review, come nel Ledger
 
 ---
@@ -31,7 +31,7 @@ Vista completa di tutte le transazioni importate, con filtri per data, conto, ca
 
 **Modifica diretta:** cambia categoria, sottocategoria e contesto direttamente nella griglia. Ogni modifica aggiorna il campo `category_source` a "manual".
 
-**Validazione:** spunta la checkbox Validato per confermare che la categoria e corretta. Il salvataggio e immediato, il flag di warning viene rimosso automaticamente.
+**Controllato da te:** spunta la casella *Controllato da te* quando hai verificato che il movimento e vero, cioe che i soldi sono usciti o entrati davvero. Non riguarda la categoria e non passa ai movimenti dei prossimi import: si fa un movimento alla volta, solo qui. Il salvataggio e immediato, il flag di warning viene rimosso automaticamente.
 
 **Crea regola da una transazione:**
 
@@ -71,11 +71,11 @@ Piu usi Spendif.ai, meno lavoro manuale. Ogni regola creata riduce il numero di 
 
 ## 5b. Auto-apprendimento dallo storico
 
-Oltre alle regole, Spendif.ai impara automaticamente dalle tue validazioni. Ogni volta che validi una transazione (checkbox ✅), il sistema registra l'associazione tra la controparte e la categoria.
+Oltre alle regole, Spendif.ai impara automaticamente dalle categorie che decidi tu. Ogni volta che scegli una categoria a mano, o che una tua regola la assegna, il sistema registra l'associazione tra la controparte e la categoria.
 
 ### Come funziona
 
-1. **Tabella associazioni** — Spendif.ai raggruppa tutte le transazioni validate per descrizione + categoria + sottocategoria e conta le ricorrenze.
+1. **Tabella associazioni**: Spendif.ai raggruppa tutte le transazioni con una categoria decisa da te per descrizione + categoria + sottocategoria e conta le ricorrenze.
 2. **Omogenità** — Per ogni controparte, calcola quanto è "stabile" nella classificazione (da 0 a 1). Se ESSELUNGA è *sempre* Alimentari → omogenità = 1.00. Se AMAZON è sparpagliata tra Tecnologia, Alimentari, Abbigliamento → omogenità bassa.
 3. **Decisione automatica** — Al prossimo import, prima di chiamare l'AI, Spendif.ai consulta lo storico:
    - **Confidenza ≥ 0.90** → assegna direttamente (fonte: 📚 Storico), nessuna review necessaria
@@ -85,17 +85,17 @@ Oltre alle regole, Spendif.ai impara automaticamente dalle tue validazioni. Ogni
 ### In pratica
 
 ```
-Validi 12 transazioni ESSELUNGA come Alimentari
+Metti a mano 12 transazioni ESSELUNGA in Alimentari
   → Prossimo import con ESSELUNGA: classificata automaticamente, zero interventi
 
-Validi 8 ROSSOPOMODORO come Ristorazione + 2 come Vacanze
+Metti a mano 8 ROSSOPOMODORO in Ristorazione + 2 in Vacanze
   → Prossimo import: suggerisce Ristorazione, ma te la mette in review
 
 AMAZON con 5 categorie diverse
   → Prossimo import: chiama l'AI (troppo eterogenea per lo storico)
 ```
 
-> **Importante:** solo le transazioni **validate** contano per lo storico. Le transazioni non validate hanno classificazioni incerte e non vengono usate per l'apprendimento automatico.
+> **Importante:** contano per lo storico solo le transazioni con una categoria **decisa da te** (a mano o da una tua regola). Quelle categorizzate dall'AI hanno classificazioni incerte e non vengono usate per l'apprendimento automatico. La spunta *Controllato da te* non c'entra: dice che la spesa e vera, non come l'hai fatta.
 
 ---
 
@@ -104,27 +104,32 @@ AMAZON con 5 categorie diverse
 | Indicatore | Significato |
 |------------|------------|
 | Warning | Da rivedere (classificazione incerta) |
-| Validato | Validata dall'utente |
+| Controllato da te | Movimento verificato come vero dall'utente |
 | Giroconto | Giroconto interno (bonifico tra propri conti) |
 
 ---
 
-## Validazione vs. fonte classificazione
+## Controllato e categorizzato
 
-Spendif.ai gestisce due informazioni **distinte** per ogni transazione:
+Spendif.ai gestisce due domande **distinte** per ogni transazione, e una non risponde mai all'altra:
+
+- **Categorizzato da te: come ho speso questi soldi?** Vale per una controparte: una tua regola decide la categoria dei movimenti gia caricati e di quelli dei prossimi import. E cio che chiede tutto il flusso di lavoro: una controparte con una tua regola non viene mai richiesta.
+- **Controllato da te: questi soldi li ho spesi davvero?** Vale per un movimento solo e non si eredita mai: ogni addebito nuovo e un fatto nuovo. Si fa solo nel Registro, un movimento alla volta.
+
+Cambiare la categoria di un movimento non lo segna come controllato, e controllarlo non ne decide la categoria.
 
 | Concetto | Campo | Significato |
 |----------|-------|-------------|
-| **Validazione** | `human_validated` | "Ho visto questa spesa e confermo che e corretta (non anomala)." E l'approvazione della **spesa**, non della categoria. |
+| **Controllato da te** | `human_validated` | "Ho visto questa spesa e confermo che e vera (non anomala)." E l'approvazione della **spesa**, non della categoria. |
 | **Fonte classificazione** | `category_source` | "Chi ha assegnato l'ultima categoria." Valori: AI, Regola, Manuale, Storico. |
 | **Modello classificazione** | `category_model` | "Quale modello LLM specifico ha categorizzato." Es. `gemma-2-2b-it-Q4_K_M`. Vuoto se fonte = Regola o Manuale. |
 
-**Regola chiave:** i due campi sono indipendenti. Quando una regola o l'AI riclassificano una transazione, la fonte cambia ma la validazione **non viene toccata**. Solo un click esplicito sulla checkbox "Validato" (deselezionandola) puo rimuovere la validazione.
+**Regola chiave:** i due campi sono indipendenti. Quando una regola, l'AI o tu stesso riclassificate una transazione, la fonte cambia ma il controllo **non viene toccato**. Solo un click esplicito sulla casella *Controllato da te* lo mette o lo toglie.
 
 **In pratica:**
-- Validi una transazione classificata dall'AI come "Alimentari" -> `validated=True`, `fonte=AI`
-- Poi crei una regola che la riclassifica come "Supermercato" -> `validated=True` (invariato), `fonte=Regola`
-- La validazione resta perche tu avevi gia confermato che la spesa era corretta
+- Spunti *Controllato da te* su una transazione classificata dall'AI come "Alimentari" -> `controllato=True`, `fonte=AI`
+- Poi crei una regola che la riclassifica come "Supermercato" -> `controllato=True` (invariato), `fonte=Regola`
+- Il controllo resta perche tu avevi gia confermato che la spesa era vera; la categoria ora e decisa da te perche viene da una tua regola
 
 ---
 
@@ -135,7 +140,7 @@ Spendif.ai gestisce due informazioni **distinte** per ogni transazione:
 | AI | Categorizzata dall'intelligenza artificiale |
 | Regola | Categorizzata da regola deterministica |
 | Manuale | Modificata manualmente dall'utente |
-| Storico | Categorizzata dallo storico validato (auto-apprendimento) |
+| Storico | Categorizzata dallo storico delle tue scelte (auto-apprendimento) |
 
 ---
 

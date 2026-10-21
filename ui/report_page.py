@@ -83,6 +83,7 @@ def render_report_page(engine):
     st.header(t("report.title"))
 
     cfg_svc = SettingsService(engine)
+    palette = cfg_svc.get_palette()
     tx_svc = TransactionService(engine)
 
     settings = cfg_svc.get_all()
@@ -284,6 +285,7 @@ def render_report_page(engine):
                 # Line chart
                 fig_line = px.line(
                     df_m_top, x="month", y="abs_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top["category"], "expense"),
                     title=t("report.chart_expense_trend"),
                     labels={"abs_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
                     markers=True,
@@ -294,6 +296,7 @@ def render_report_page(engine):
                 # Stacked bar chart
                 fig_stack = px.bar(
                     df_m_top, x="month", y="abs_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top["category"], "expense"),
                     barmode="stack",
                     title=t("report.chart_expense_stack"),
                     labels={"abs_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
@@ -316,6 +319,7 @@ def render_report_page(engine):
 
                 fig_line_inc = px.line(
                     df_m_top_inc, x="month", y="total_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top_inc["category"], "income"),
                     title=t("report.chart_income_trend"),
                     labels={"total_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},
                     markers=True,
@@ -325,6 +329,7 @@ def render_report_page(engine):
 
                 fig_stack_inc = px.bar(
                     df_m_top_inc, x="month", y="total_amount", color="category",
+                    color_discrete_map=palette.category_map(df_m_top_inc["category"], "income"),
                     barmode="stack",
                     title=t("report.chart_income_stack"),
                     labels={"total_amount": t("report.chart_amount"), "month": t("report.chart_month"), "category": t("report.chart_category")},

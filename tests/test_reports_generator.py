@@ -177,7 +177,7 @@ class TestGenerateCsvExport:
     def test_row_per_transaction(self, engine):
         _seed(engine, [
             _make_tx("a" * 24, "2026-01-01", "-50", category="Alimentari", description="Esselunga"),
-            _make_tx("b" * 24, "2026-01-02", "-30", category="Trasporti", description="ATM"),
+            _make_tx("b" * 24, "2026-01-02", "-30", category="Trasporti", description="Atm"),
         ])
         with get_session(engine) as s:
             data = generate_csv_export(s)
@@ -187,7 +187,7 @@ class TestGenerateCsvExport:
         # The description column appears somewhere in the row payload
         all_text = "\n".join(text.splitlines()[1:])
         assert "Esselunga" in all_text
-        assert "ATM" in all_text
+        assert "Atm" in all_text
 
 
 # ── generate_xlsx_export ──────────────────────────────────────────────────────

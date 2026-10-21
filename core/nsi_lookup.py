@@ -20,9 +20,46 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from core.initials import drop_apostrophes, join_initials
+
 logger = logging.getLogger(__name__)
 
 _STATIC_RULES_PATH = Path(__file__).parent / "static_rules.json"
+
+_NOT_WORD = re.compile(r"[\W_]+")
+
+
+def _tidy(text: str) -> str:
+    """Lower case, every character that is not a letter or a digit a space,
+    one space between words: the founder's rule for descriptions
+    (07_deterministic_pipeline.md), so "7-Eleven" and "7 ELEVEN" meet."""
+    return join_initials(" ".join(_NOT_WORD.sub(" ", drop_apostrophes(text).lower()).split()))
+
+
+def _tidy_pattern(pattern: str) -> re.Pattern | None:
+    """The same reduction on a list pattern, keeping what makes it a pattern.
+
+    The patterns are prefixes for bank descriptions cut short ("\\bleroy\\ me"),
+    alternatives joined by "|", characters escaped ("7\\-eleven"). Each
+    alternative is unescaped and tidied; a word boundary stays where there
+    was one, and so does a separator at the end. None when nothing is left.
+    """
+    alts = []
+    for alt in pattern.split("|"):
+        start = alt.startswith(r"\b")
+        end = alt.endswith(r"\b") and not alt.endswith(r"\\b")
+        raw = re.sub(r"\\(.)", r"\1", alt[2 if start else 0: len(alt) - (2 if end else 0)])
+        core = _tidy(raw)
+        # A pattern ending with a separator ("\\bbeijing\\ ") wants another word
+        # after it: tidying would drop that space and turn it into a prefix
+        # that takes "skyliner" or a "beijing" at the end. The space stays.
+        follow = " " if raw and _NOT_WORD.fullmatch(raw[-1]) else ""
+        if core:
+            alts.append((r"\b" if start else "") + re.escape(core + follow) + (r"\b" if end else ""))
+    try:
+        return re.compile("|".join(alts)) if alts else None
+    except re.error:
+        return None
 
 # Continent groupings for country ranking (ISO 3166-1 alpha-2 uppercase)
 _CONTINENT_MAP: dict[str, frozenset[str]] = {
@@ -75,6 +112,8 @@ class NsiLookup:
             with open(_STATIC_RULES_PATH, encoding="utf-8") as f:
                 data = json.load(f)
             self._rules = data.get("rules", [])
+            for rule in self._rules:
+                rule["_compiled"] = _tidy_pattern(rule.get("pattern", ""))
             logger.info(f"NSI: loaded {len(self._rules)} static rules from {_STATIC_RULES_PATH}")
         except Exception as exc:
             logger.warning(f"NSI: failed to load static_rules.json: {exc}")
@@ -104,18 +143,13 @@ class NsiLookup:
         if not self._rules:
             return None
 
-        normalized = counterpart.lower().strip()
+        normalized = _tidy(counterpart)
         matches: list[dict] = []
 
         for rule in self._rules:
-            pattern = rule.get("pattern", "")
-            if not pattern:
-                continue
-            try:
-                if re.search(pattern, normalized, re.IGNORECASE):
-                    matches.append(rule)
-            except re.error:
-                continue
+            compiled = rule.get("_compiled")
+            if compiled is not None and compiled.search(normalized):
+                matches.append(rule)
 
         if not matches:
             return None

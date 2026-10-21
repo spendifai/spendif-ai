@@ -1,8 +1,9 @@
 """History-based auto-learning engine (C-03 / C-04 / C-05).
 
-Queries validated transactions to build description→category associations,
-computes entropy/homogeneity per description, and provides a lookup function
-for history-based categorization before falling back to LLM.
+Queries the transactions whose category the user decided (a rule or a choice
+by hand) to build description→category associations, computes
+entropy/homogeneity per description, and provides a lookup function for
+history-based categorization before falling back to LLM.
 """
 from __future__ import annotations
 
@@ -13,7 +14,8 @@ from dataclasses import dataclass
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from db.models import Transaction
+from core.rule_key import exact_key
+from db.models import Transaction, USER_CATEGORY_SOURCES, same_counterpart
 from config import system_settings
 from support.logging import setup_logging
 
@@ -68,24 +70,27 @@ def _shannon_entropy(counts: list[int]) -> float:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def get_associations(session: Session) -> list[DescriptionAssociation]:
-    """Query all validated description->category associations grouped by count."""
+    """Description->category associations the user decided, grouped by count."""
+    # One counterpart whatever its writing (spec 21): grouped on the
+    # equality key, shown with one of its writings.
+    key = func.exact_key(Transaction.description)
     rows = (
         session.query(
-            Transaction.description,
+            func.min(Transaction.description),
             Transaction.category,
             Transaction.subcategory,
             func.count().label("n"),
         )
         .filter(
-            Transaction.human_validated.is_(True),
+            Transaction.category_source.in_(USER_CATEGORY_SOURCES),
             Transaction.category.isnot(None),
         )
         .group_by(
-            Transaction.description,
+            key,
             Transaction.category,
             Transaction.subcategory,
         )
-        .order_by(Transaction.description, func.count().desc())
+        .order_by(key, func.count().desc())
         .all()
     )
     return [
@@ -106,7 +111,7 @@ def get_description_profiles(session: Session) -> list[DescriptionProfile]:
     # Group by description
     by_desc: dict[str, list[DescriptionAssociation]] = defaultdict(list)
     for assoc in associations:
-        by_desc[assoc.description].append(assoc)
+        by_desc[exact_key(assoc.description)].append(assoc)
 
     profiles: list[DescriptionProfile] = []
     for desc, assocs in by_desc.items():
@@ -121,7 +126,7 @@ def get_description_profiles(session: Session) -> list[DescriptionProfile]:
         top = max(assocs, key=lambda a: a.count)
 
         profiles.append(DescriptionProfile(
-            description=desc,
+            description=assocs[0].description,
             associations=assocs,
             total_validated=total,
             homogeneity=homogeneity,
@@ -147,9 +152,9 @@ def lookup_history(
             func.count().label("n"),
         )
         .filter(
-            Transaction.human_validated.is_(True),
+            Transaction.category_source.in_(USER_CATEGORY_SOURCES),
             Transaction.category.isnot(None),
-            Transaction.description == description,
+            same_counterpart(Transaction.description, description),
         )
         .group_by(Transaction.category, Transaction.subcategory)
         .all()
@@ -180,8 +185,10 @@ class HistoryCache:
 
     def __init__(self, session: Session):
         profiles = get_description_profiles(session)
+        # Keyed on the equality key: the counterpart of a new import is
+        # found whatever its case or punctuation (spec 21).
         self._cache: dict[str, DescriptionProfile] = {
-            p.description: p for p in profiles
+            exact_key(p.description): p for p in profiles
         }
         logger.info(
             f"HistoryCache: loaded {len(self._cache)} description profiles "
@@ -193,7 +200,7 @@ class HistoryCache:
 
         Returns (category, subcategory, confidence) or (None, None, 0.0).
         """
-        profile = self._cache.get(description)
+        profile = self._cache.get(exact_key(description))
         if profile is None:
             return None, None, 0.0
         return profile.top_category, profile.top_subcategory, profile.confidence
@@ -265,15 +272,13 @@ def find_similar_uncategorized(
     Returns transactions where:
     - description matches (exact, after normalization)
     - category_source is 'llm' or None (not manually set or rule-based)
-    - human_validated is False
     """
     from sqlalchemy import or_
 
     query = (
         session.query(Transaction)
         .filter(
-            Transaction.description == description,
-            Transaction.human_validated.isnot(True),
+            same_counterpart(Transaction.description, description),
             or_(
                 Transaction.category_source.is_(None),
                 Transaction.category_source == "llm",
@@ -299,7 +304,7 @@ def apply_fan_out(
     """Apply the same category/subcategory/context from source to all targets.
 
     Sets category_source='history' on targets. Does NOT overwrite
-    transactions that are already human_validated.
+    a category the user decided (a rule or a choice by hand).
     Returns count of updated transactions.
     """
     from datetime import datetime, timezone
@@ -314,8 +319,8 @@ def apply_fan_out(
         tx = session.get(Transaction, tid)
         if tx is None:
             continue
-        # Safety: never overwrite already-validated transactions
-        if tx.human_validated:
+        # Safety: never overwrite a category the user decided
+        if tx.category_source in USER_CATEGORY_SOURCES:
             continue
 
         tx.category = source.category

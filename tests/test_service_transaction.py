@@ -193,7 +193,7 @@ def test_apply_rule_category_records_rule_source(seeded_engine):
         tx = s.get(Transaction, "t1")
         assert (tx.category, tx.subcategory) == ("Intrattenimento", "Streaming")
         assert tx.category_source == "rule"
-        assert tx.validated_at is not None      # the user saw it
+        assert tx.validated_at is None          # categorized, not checked as spent
         correction = s.query(CategoryCorrection).filter_by(tx_id="t1").one()
         assert correction.original_source == "llm"
         assert correction.correction_origin == "counterparts"
@@ -214,7 +214,7 @@ def test_confirmed_counterpart_stays_single_source_after_import(engine):
 
     stats = _counterpart(engine, "PASTICCERIA X")
     assert stats["source_mode"] == "rule"
-    assert stats["human_checked"] is True
+    assert stats["categorized_by_user"] is True
 
 
 def test_one_off_edit_makes_the_counterpart_mixed(engine):

@@ -20,7 +20,7 @@ Transactions where the AI was not confident are flagged for review.
 
 - Uncertain transactions are marked with a **warning** flag (needs review)
 - For each one you can correct **category**, **subcategory** and **context** from dropdown menus
-- Confirm with **Validated** to tell Spendif.ai "this classification is correct"
+- To tell Spendif.ai "this category is right", keep it or pick another one: the choice stays yours. The **Validated** tick says something else: that the movement is real (see "Checked and categorized" below)
 - You can also create a rule directly from the Review page, just like in the Ledger
 
 ---
@@ -31,7 +31,7 @@ Full view of all imported transactions, with filters for date, account, category
 
 **Direct editing:** change category, subcategory and context directly in the grid. Each change updates `category_source` to "manual".
 
-**Validation:** tick the Validated checkbox to confirm the category is correct. Saving is immediate and the warning flag is automatically cleared.
+**Checked by you:** tick *Checked by you* once you have verified the movement is real, that is the money really went out or came in. It is not about the category and it does not carry over to the movements of future imports: it is done one movement at a time, here only. Saving is immediate and the warning flag is automatically cleared.
 
 **Create a rule from a transaction:**
 
@@ -71,11 +71,11 @@ The more you use Spendif.ai, the less manual work. Every rule you create reduces
 
 ## 5b. Auto-learning from history
 
-In addition to rules, Spendif.ai automatically learns from your validations. Every time you validate a transaction (checkbox), the system records the association between the counterpart and the category.
+In addition to rules, Spendif.ai automatically learns from the categories you decide. Every time you pick a category by hand, or one of your rules assigns it, the system records the association between the counterpart and the category.
 
 ### How it works
 
-1. **Association table** — Spendif.ai groups all validated transactions by description + category + subcategory and counts occurrences.
+1. **Association table**: Spendif.ai groups all transactions with a category set by you by description + category + subcategory and counts occurrences.
 2. **Homogeneity** — For each counterpart, it calculates how "stable" the classification is (from 0 to 1). If ESSELUNGA is *always* Food, homogeneity = 1.00. If AMAZON is spread across Technology, Food, Clothing, homogeneity is low.
 3. **Automatic decision** — On the next import, before calling the AI, Spendif.ai checks history:
    - **Confidence >= 0.90** — assigns directly (source: History), no review needed
@@ -85,17 +85,17 @@ In addition to rules, Spendif.ai automatically learns from your validations. Eve
 ### In practice
 
 ```
-You validate 12 ESSELUNGA transactions as Food
+You put 12 ESSELUNGA transactions in Food by hand
   -> Next import with ESSELUNGA: classified automatically, zero interventions
 
-You validate 8 ROSSOPOMODORO as Dining + 2 as Holidays
+You put 8 ROSSOPOMODORO in Dining + 2 in Holidays by hand
   -> Next import: suggests Dining, but puts it in review
 
 AMAZON with 5 different categories
   -> Next import: calls the AI (too heterogeneous for history)
 ```
 
-> **Important:** only **validated** transactions count for history. Unvalidated transactions have uncertain classifications and are not used for auto-learning.
+> **Important:** only transactions with a category **set by you** (by hand or by one of your rules) count for history. Those categorized by the AI have uncertain classifications and are not used for auto-learning. The *Checked by you* tick plays no part: it says the expense is real, not how you spent.
 
 ---
 
@@ -104,27 +104,36 @@ AMAZON with 5 different categories
 | Indicator | Meaning |
 |-----------|---------|
 | Warning | Needs review (uncertain classification) |
-| Validated | Validated by the user |
+| Checked by you | Movement verified as real by the user |
 | Internal transfer | Internal transfer (transfer between own accounts) |
 
 ---
 
-## Validation vs. classification source
+## Checked and categorized
+
+Spendif.ai keeps two **distinct** questions for every transaction, and one never answers the other:
+
+- **Categorized by you: how did I spend this money?** It holds for a counterpart: one of your rules decides the category of the movements already loaded and of those of future imports. It is what the whole workflow asks: a counterpart with one of your rules is never asked again.
+- **Checked by you: did I really spend this money?** It holds for one movement only and is never inherited: every new charge is a new fact. It is done in the Ledger only, one movement at a time.
+
+Changing the category of a movement does not mark it as checked, and checking it does not decide its category.
+
+### Checked vs. classification source
 
 Spendif.ai tracks two **distinct** pieces of information for each transaction:
 
 | Concept | Field | Meaning |
 |---------|-------|---------|
-| **Validation** | `human_validated` | "I have seen this expense and confirm it is correct (not anomalous)." It is the approval of the **expense**, not the category. |
+| **Checked by you** | `human_validated` | "I have seen this expense and confirm it is real (not anomalous)." It is the approval of the **expense**, not the category. |
 | **Classification source** | `category_source` | "Who assigned the latest category." Values: AI, Rule, Manual, History. |
 | **Classification model** | `category_model` | "Which specific LLM model categorized this." E.g. `gemma-2-2b-it-Q4_K_M`. Empty when source = Rule or Manual. |
 
-**Key rule:** the two fields are independent. When a rule or the AI reclassifies a transaction, the source changes but the validation **is not touched**. Only an explicit click on the "Validated" checkbox (unchecking it) can remove the validation.
+**Key rule:** the two fields are independent. When a rule, the AI or you reclassify a transaction, the source changes but the check **is not touched**. Only an explicit click on the *Checked by you* box sets or clears it.
 
 **In practice:**
-- You validate a transaction classified by AI as "Food" -> `validated=True`, `source=AI`
-- Then you create a rule that reclassifies it as "Supermarket" -> `validated=True` (unchanged), `source=Rule`
-- The validation stays because you had already confirmed the expense was correct
+- You tick *Checked by you* on a transaction classified by AI as "Food" -> `checked=True`, `source=AI`
+- Then you create a rule that reclassifies it as "Supermarket" -> `checked=True` (unchanged), `source=Rule`
+- The check stays because you had already confirmed the expense was real; the category is now set by you because it comes from one of your rules
 
 ---
 
@@ -135,7 +144,7 @@ Spendif.ai tracks two **distinct** pieces of information for each transaction:
 | AI | Categorised by artificial intelligence |
 | Rule | Categorised by deterministic rule |
 | Manual | Manually modified by the user |
-| History | Categorised from validated history (auto-learning) |
+| History | Categorised from the history of your choices (auto-learning) |
 
 ---
 

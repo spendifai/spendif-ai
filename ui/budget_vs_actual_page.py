@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from services.budget_service import BudgetService
+from services.settings_service import SettingsService
 from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
@@ -208,13 +209,13 @@ def render_budget_vs_actual_page(engine):
     tab_bar, tab_donut = st.tabs([t("bva.tab.comparison"), t("bva.tab.distribution")])
 
     with tab_bar:
-        _render_comparison_chart(rows)
+        _render_comparison_chart(rows, SettingsService(engine).get_palette())
 
     with tab_donut:
-        _render_donut_chart(rows)
+        _render_donut_chart(rows, SettingsService(engine).get_palette())
 
 
-def _render_comparison_chart(rows: list[dict]):
+def _render_comparison_chart(rows: list[dict], palette):
     chart_rows = [r for r in rows if (r["target_pct"] or 0) > 0 or r["actual_pct"] > 0]
     if not chart_rows:
         st.info(t("bva.no_chart_data"))
@@ -228,13 +229,13 @@ def _render_comparison_chart(rows: list[dict]):
     fig.add_trace(go.Bar(
         y=categories, x=targets,
         name=t("bva.chart.target"), orientation="h",
-        marker_color="#636EFA",
+        marker_color=palette.tokens["budget"],
         text=[f"{v:.1f}%" for v in targets], textposition="auto",
     ))
     fig.add_trace(go.Bar(
         y=categories, x=actuals,
         name=t("bva.chart.actual"), orientation="h",
-        marker_color="#EF553B",
+        marker_color=palette.tokens["actual"],
         text=[f"{v:.1f}%" for v in actuals], textposition="auto",
     ))
     fig.update_layout(
@@ -249,7 +250,7 @@ def _render_comparison_chart(rows: list[dict]):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def _render_donut_chart(rows: list[dict]):
+def _render_donut_chart(rows: list[dict], palette):
     chart_rows = [r for r in rows if r["actual_pct"] > 0]
     if not chart_rows:
         st.info(t("bva.no_chart_data"))
@@ -260,6 +261,7 @@ def _render_donut_chart(rows: list[dict]):
 
     fig = go.Figure(data=[go.Pie(
         labels=labels, values=values, hole=0.4,
+        marker_colors=[palette.category(label, "expense") for label in labels],
         textinfo="label+percent", textposition="outside",
     )])
     fig.update_layout(

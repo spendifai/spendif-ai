@@ -4,11 +4,11 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import date
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
 from db import repository
-from db.models import Transaction
+from db.models import Transaction, USER_CATEGORY_SOURCES, same_counterpart
 
 
 class TransactionService:
@@ -47,6 +47,12 @@ class TransactionService:
         with self._session() as s:
             last = s.query(func.max(Transaction.date)).scalar()
         return date.fromisoformat(last) if last else None
+
+    def get_last_import_period(self) -> tuple[date, date] | None:
+        """First and last date of the movements of the last finished import."""
+        with self._session() as s:
+            period = repository.get_last_import_period(s)
+        return (date.fromisoformat(period[0]), date.fromisoformat(period[1])) if period else None
 
     def get_recent_for_home(self, since_iso: str) -> list[tuple]:
         """Return rows since *since_iso* with only the columns the Home
@@ -200,7 +206,7 @@ class TransactionService:
     def count_by_description(self, description: str, exclude_id: str) -> int:
         with self._session() as s:
             return s.query(Transaction).filter(
-                Transaction.description == description,
+                same_counterpart(Transaction.description, description),
                 Transaction.id != exclude_id,
             ).count()
 
@@ -214,7 +220,7 @@ class TransactionService:
     def get_by_description(self, description: str, exclude_id: str) -> list[Transaction]:
         with self._session() as s:
             return s.query(Transaction).filter(
-                Transaction.description == description,
+                same_counterpart(Transaction.description, description),
                 Transaction.id != exclude_id,
             ).all()
 
@@ -340,10 +346,13 @@ class TransactionService:
         tx_types: tuple[str, ...] = ("expense", "income"),
         date_from: str | None = None,
         date_to: str | None = None,
+        negative_only: bool = False,
+        positive_only: bool = False,
     ) -> list[dict]:
         with self._session() as s:
             return repository.get_counterpart_stats(
                 s, tx_types=tx_types, date_from=date_from, date_to=date_to,
+                negative_only=negative_only, positive_only=positive_only,
             )
 
     def get_counterpart_movements(
@@ -351,29 +360,43 @@ class TransactionService:
         description: str,
         date_from: str,
         date_to: str,
-        unchecked_only: bool = True,
+        uncategorized_only: bool = True,
     ) -> list[Transaction]:
         """Movements of one counterpart in a period, oldest first.
 
-        The counterpart is matched case-insensitively, as the stats group
-        it. With `unchecked_only` the movements the user has already seen
-        are left out: only what came in since is shown again.
+        The counterpart is matched as the stats group it (spec 21). With `uncategorized_only` the movements whose category the user
+        already decided are left out: only what came in since is shown again.
         """
         with self._session() as s:
             q = s.query(Transaction).filter(
-                func.upper(Transaction.description) == description.upper(),
+                same_counterpart(Transaction.description, description),
                 Transaction.date >= date_from,
                 Transaction.date <= date_to,
             )
-            if unchecked_only:
-                q = q.filter(
-                    Transaction.validated_at.is_(None),
-                    Transaction.category_source.is_distinct_from("manual"),
-                )
+            if uncategorized_only:
+                q = q.filter(or_(
+                    Transaction.category_source.is_(None),
+                    Transaction.category_source.notin_(USER_CATEGORY_SOURCES),
+                ))
             return q.order_by(Transaction.date).all()
 
+    def spending_since(self, date_from: str) -> list[tuple[str, str, float]]:
+        """(date, counterpart, amount) of every spending movement since a date,
+        amounts as positive numbers."""
+        with self._session() as s:
+            rows = (
+                s.query(Transaction.date, Transaction.description, Transaction.amount)
+                .filter(
+                    Transaction.tx_type.in_(("expense", "card_tx")),
+                    Transaction.amount < 0,
+                    Transaction.date >= date_from,
+                )
+                .all()
+            )
+            return [(d or "", desc or "", abs(float(a or 0))) for d, desc, a in rows]
+
     def get_rule_categorized_spending(self, date_from: str, date_to: str) -> tuple[int, float]:
-        """Spending of a period the rules categorized on import, unseen by the user.
+        """Spending of a period the rules categorized on import.
 
         (movements, total). These are the movements earlier decisions spared
         the user: categorized by a rule and never needing a look.
@@ -382,9 +405,11 @@ class TransactionService:
             count, total = (
                 s.query(func.count(Transaction.id), func.sum(func.abs(Transaction.amount)))
                 .filter(
-                    Transaction.tx_type == "expense",
+                    # Card purchases are spending too: a card statement
+                    # types every movement card_tx, refunds included.
+                    Transaction.tx_type.in_(("expense", "card_tx")),
+                    Transaction.amount < 0,
                     Transaction.category_source == "rule",
-                    Transaction.validated_at.is_(None),
                     Transaction.date >= date_from,
                     Transaction.date <= date_to,
                 )
