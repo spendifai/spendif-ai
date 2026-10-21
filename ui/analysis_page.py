@@ -19,6 +19,7 @@ from ui.i18n import t
 from ui.widgets.tree_filter import render_tree_filter, build_full_tree_data
 from ui.widgets.file_handoff import offer_file
 from ui.widgets.chart_colors import color_treemap, series_colors
+from ui.widgets.cat_select import join_cat_sub
 
 logger = setup_logging()
 
@@ -538,8 +539,7 @@ def render_analysis_page(engine):
         _profiles.sort(key=lambda p: p.total_validated, reverse=True)
 
         _col_desc  = t("analytics.assoc.col.description")
-        _col_mcat  = t("analytics.assoc.col.main_category")
-        _col_sub   = t("analytics.assoc.col.subcategory")
+        _col_mcat  = t("ledger.col.cat_sub")
         _col_val   = t("analytics.assoc.col.validations")
         _col_homo  = t("analytics.assoc.col.homogeneity")
         _col_conf  = t("analytics.assoc.col.confidence")
@@ -556,8 +556,7 @@ def render_analysis_page(engine):
 
             _assoc_rows.append({
                 _col_desc:  p.description or "",
-                _col_mcat:  p.top_category,
-                _col_sub:   p.top_subcategory or "",
+                _col_mcat:  join_cat_sub(p.top_category, p.top_subcategory),
                 _col_val:   p.total_validated,
                 _col_homo:  round(p.homogeneity, 2),
                 _col_conf:  round(p.confidence, 2),

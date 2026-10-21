@@ -28,6 +28,49 @@ class TransactionService:
         with self._session() as s:
             return repository.get_transactions(s, filters or {}, limit, offset)
 
+    @staticmethod
+    def text_matches(query: str, *texts: str | None) -> bool:
+        """A search box: the query found in one of the texts, case, accents
+        and punctuation not counting (the same reduction as the counterpart
+        comparison, exact_key). An empty query matches everything."""
+        from core.rule_key import exact_key
+        q = exact_key(query or "")
+        if not q:
+            return True
+        return any(q in exact_key(text or "") for text in texts)
+
+    def counterpart_groups(self, filters: dict | None = None,
+                           with_giroconti: bool = False, recent: int = 500) -> list[dict]:
+        """One entry per counterpart and direction, for choosing a reference
+        movement: {"tx": the most recent movement, "n": how many, "total":
+        sum of the amounts in absolute value, "giroconto": bool}, over the
+        *recent* most recent movements only (founder: a counterpart busy three
+        years ago is not what is being fixed now). Ordered by number of
+        movements, then total, both descending. The counterpart is
+        compared as everywhere else (exact_key). Giroconti are left out unless
+        asked: they have no category to change."""
+        from core.rule_key import exact_key
+        internal = ("internal_out", "internal_in")
+        groups: dict[tuple, dict] = {}
+        # The places where everything is bought (spec 24) are seen one movement
+        # at a time, never in bulk: they stay out.
+        movements = [tx for tx in self.get_transactions(filters=filters, limit=1_000_000)
+                     if (with_giroconti or tx.tx_type not in internal)
+                     and tx.category_source != "multi"]
+        movements.sort(key=lambda tx: (tx.date or "", tx.id), reverse=True)
+        for tx in movements[:recent]:
+            giro = tx.tx_type in internal
+            key = (exact_key(tx.description or "") or tx.id, float(tx.amount or 0) < 0, giro)
+            g = groups.get(key)
+            if g is None:
+                groups[key] = {"tx": tx, "n": 1, "total": abs(float(tx.amount or 0)), "giroconto": giro}
+            else:
+                g["n"] += 1
+                g["total"] += abs(float(tx.amount or 0))
+                if (tx.date or "") > (g["tx"].date or ""):
+                    g["tx"] = tx
+        return sorted(groups.values(), key=lambda g: (-g["n"], -g["total"]))
+
     def has_transactions(self) -> bool:
         """True if the `transaction` table has at least one row.
 

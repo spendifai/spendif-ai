@@ -10,7 +10,7 @@
 |---|---|
 | **Import** | Upload CSV/XLSX files, start the processing pipeline |
 | **Ledger** | Table view of all imported transactions |
-| **Bulk Edit** | Bulk operations: category, context, internal transfer, **deletion by filter** |
+| **Edit several movements** | Bulk operations: category, context, internal transfer, **deletion by filter** |
 | **Analytics** | Aggregated charts and reports by period/account/category |
 | **Review** | Transactions with uncertain classification or requiring review |
 | **Rules** | Management of deterministic categorization rules |
@@ -229,9 +229,9 @@ Distinct from categorization rules. Used to replace unreadable raw descriptions 
 
 ---
 
-## Bulk Edit — dedicated page
+## Edit several movements: dedicated page
 
-The **✏️ Bulk Edit** page collects all operations that act on multiple transactions simultaneously.
+The **✏️ Edit several movements** page collects all operations that act on multiple transactions simultaneously.
 
 ### Sections 1–3: operations on a reference transaction
 

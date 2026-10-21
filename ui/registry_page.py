@@ -15,6 +15,10 @@ from support.formatting import format_amount_display, format_date_display, strft
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.cat_select import (
+    build_cat_options, cat_sub_select, direction_of, join_cat_sub, options_for_amounts,
+    split_cat_sub, wrong_direction,
+)
 
 
 # ── Colonne della tabella ────────────────────────────────────────────────────
@@ -32,8 +36,8 @@ COL_INCOME = "income"
 COL_EXPENSE = "expense"
 COL_ACCOUNT = "account"
 COL_TYPE = "type"
-COL_CATEGORY = "category"
-COL_SUBCATEGORY = "subcategory"
+# Category and subcategory in one column, as in every grid of the app.
+COL_CAT_SUB = "cat_sub"
 COL_CONTEXT = "context"
 COL_SOURCE = "source"
 COL_FLAG_REVIEW = "flag_review"
@@ -55,12 +59,14 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
         # U-06: resta un date, non una stringa, cosi' l'ordinamento e' corretto
         COL_DATE:        pd.to_datetime(tx.date).date() if tx.date else None,
         COL_DESC:        tx.description or "",
+        # The bank's text right next to the counterpart, when asked: at the
+        # far end of the grid it would mean scrolling to compare them.
+        **({COL_RAW: tx.raw_description or ""} if show_raw else {}),
         COL_INCOME:      amount if amount > 0 else None,
         COL_EXPENSE:     abs(amount) if amount < 0 else None,
         COL_ACCOUNT:     tx.account_label or "",
         COL_TYPE:        tx.tx_type or "",
-        COL_CATEGORY:    tx.category or "",
-        COL_SUBCATEGORY: tx.subcategory or "",
+        COL_CAT_SUB:     join_cat_sub(tx.category, tx.subcategory),
         COL_CONTEXT:     tx.context or "",
         COL_SOURCE:      source_badge.get(tx.category_source, "—"),
         COL_FLAG_REVIEW: "⚠️" if tx.to_review else "·",
@@ -69,8 +75,6 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
         COL_VALIDATED:   bool(tx.human_validated),
         COL_TRANSFER:    is_transfer,
     }
-    if show_raw:
-        row[COL_RAW] = (tx.raw_description or "")[:80]
     return row
 
 
@@ -110,11 +114,6 @@ def render_registry_page(engine):
     _expense_cats = sorted(taxonomy.all_expense_categories)
     _income_cats  = sorted(taxonomy.all_income_categories)
     _all_cats     = _expense_cats + _income_cats
-    _all_sub      = sorted({
-        sub
-        for cat in _all_cats
-        for sub in taxonomy.valid_subcategories(cat)
-    })
 
     _accounts = tx_svc.get_distinct_account_labels()
     today = date.today()
@@ -291,7 +290,7 @@ def render_registry_page(engine):
     # ── Editable table ────────────────────────────────────────────────────────
     st.caption(
         t("ledger.edit_hint",
-          cat=t("ledger.col.category"), sub=t("ledger.col.subcategory"),
+          cat=t("ledger.col.cat_sub"),
           ctx=t("ledger.col.context"), transfer=t("ledger.col.transfer").replace("🔄 ", ""),
           save=t("ledger.save_changes").replace("💾 ", ""))
     )
@@ -306,6 +305,11 @@ def render_registry_page(engine):
 
     orig_rows = [build_ledger_row(tx, show_raw, _SOURCE_BADGE) for tx in page_txs]
     orig_df = pd.DataFrame(orig_rows)
+    # One menu for the whole column: only the categories of the direction
+    # of the rows shown; with both directions on the page each row is
+    # checked at the save.
+    _amount_by_id = {tx.id: float(tx.amount or 0) for tx in page_txs}
+    _cat_options = options_for_amounts(taxonomy, _amount_by_id.values())
 
     _col_cfg: dict = {
         COL_ID:          None,
@@ -318,11 +322,8 @@ def render_registry_page(engine):
         COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f", width="small"),
         COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small"),
         COL_TYPE:        st.column_config.TextColumn(t("ledger.col.type"), disabled=True, width="small"),
-        COL_CATEGORY:    st.column_config.SelectboxColumn(
-            t("ledger.col.category"), options=[""] + _all_cats, required=False, width="medium",
-        ),
-        COL_SUBCATEGORY: st.column_config.SelectboxColumn(
-            t("ledger.col.subcategory"), options=[""] + _all_sub, required=False, width="medium",
+        COL_CAT_SUB:     st.column_config.SelectboxColumn(
+            t("ledger.col.cat_sub"), options=[""] + _cat_options, required=False, width="large",
         ),
         COL_CONTEXT:     st.column_config.SelectboxColumn(
             t("ledger.col.context"), options=[""] + _contexts, required=False, width="small",
@@ -406,8 +407,7 @@ def render_registry_page(engine):
             edit = edited_df.iloc[idx]
             tx_id = orig["_id"]
 
-            cat_changed  = str(edit[COL_CATEGORY])    != str(orig[COL_CATEGORY])
-            sub_changed  = str(edit[COL_SUBCATEGORY]) != str(orig[COL_SUBCATEGORY])
+            cat_changed  = str(edit[COL_CAT_SUB] or "") != str(orig[COL_CAT_SUB] or "")
             ctx_changed  = str(edit[COL_CONTEXT])     != str(orig[COL_CONTEXT])
             giro_changed = bool(edit[COL_TRANSFER])   != bool(orig[COL_TRANSFER])
             val_changed  = bool(edit[COL_VALIDATED])  != bool(orig[COL_VALIDATED])
@@ -424,20 +424,17 @@ def render_registry_page(engine):
                         # Decided once for all the movements like this one
                         # (spec 27): asked right after the save.
                         st.session_state.setdefault("_own_name_pending", []).append(
-                            (tx_id, _desc_now, len(rule_svc.same_movements(tx_id))))
+                            (tx_id, _desc_now, len(rule_svc.same_movements(tx_id)),
+                             rule_svc.other_amounts(tx_id)))
                 else:
                     st.warning(t("ledger.description_empty", row=idx + 1))
 
-            if cat_changed or sub_changed:
-                _new_cat = edit[COL_CATEGORY] or orig[COL_CATEGORY]
-                _new_sub = edit[COL_SUBCATEGORY] or orig[COL_SUBCATEGORY]
-                # Validate subcategory belongs to category
-                _valid_subs = taxonomy.valid_subcategories(_new_cat)
-                if _new_sub and _valid_subs and _new_sub not in _valid_subs:
-                    st.error(
-                        t("ledger.subcategory_mismatch", row=idx + 1, sub=_new_sub,
-                          cat=_new_cat, valid=", ".join(_valid_subs))
-                    )
+            if cat_changed and edit[COL_CAT_SUB]:
+                # One choice among the valid pairs: the subcategory always
+                # belongs to its category.
+                _new_cat, _new_sub = split_cat_sub(edit[COL_CAT_SUB])
+                if wrong_direction(taxonomy, _new_cat, _amount_by_id.get(tx_id)):
+                    st.error(t("ledger.wrong_direction", row=idx + 1, cat=_new_cat))
                     continue
                 tx_svc.update_category(tx_id, _new_cat, _new_sub, origin="ledger")
                 n_cat += 1
@@ -492,19 +489,36 @@ def render_registry_page(engine):
             st.info(t("ledger.no_changes"))
 
     # ── Own name for all the movements like this one (spec 27) ──────────────
-    for _p_idx, (_on_id, _on_name, _on_n) in enumerate(list(st.session_state.get("_own_name_pending", []))):
-        if _on_n:
+    for _p_idx, (_on_id, _on_name, _on_n, _on_var) in enumerate(list(st.session_state.get("_own_name_pending", []))):
+        _fmt = lambda v: format_amount_display(v, _dec, _thou, symbol="")  # noqa: E731
+        if _on_var["n"]:
+            # Same bank text, other amounts: an installment that changes
+            # (spec 27). The sign-only rule is offered, never imposed.
+            st.info(t("ledger.own_name.ask_variable", name=_on_name, n=_on_var["n"],
+                      low=_fmt(_on_var["low"]), high=_fmt(_on_var["high"])))
+        elif _on_n:
             st.info(t("ledger.own_name.ask", name=_on_name, n=_on_n))
         else:
             st.info(t("ledger.own_name.ask_future", name=_on_name))
-        _c_all, _c_one, _ = st.columns([2, 1, 3])
+        _c_all, _c_same, _c_one, _ = st.columns([2, 2, 1, 1])
         with _c_all:
-            _label = (t("ledger.own_name.all", n=_on_n) if _on_n else t("ledger.own_name.future"))
+            if _on_var["n"]:
+                _label = t("ledger.own_name.all", n=_on_var["n"] + _on_n)
+            else:
+                _label = t("ledger.own_name.all", n=_on_n) if _on_n else t("ledger.own_name.future")
             if st.button(_label, key=f"own_name_all_{_on_id}", type="primary", use_container_width=True):
-                _n_named = rule_svc.create_own_name(_on_id, _on_name)
+                _n_named = rule_svc.create_own_name(_on_id, _on_name, any_amount=bool(_on_var["n"]))
                 st.session_state["_own_name_pending"].pop(_p_idx)
                 st.toast(t("ledger.own_name.done", name=_on_name, n=_n_named))
                 st.rerun()
+        if _on_var["n"]:
+            with _c_same:
+                if st.button(t("ledger.own_name.same_amount", n=_on_n), key=f"own_name_same_{_on_id}",
+                             use_container_width=True):
+                    _n_named = rule_svc.create_own_name(_on_id, _on_name)
+                    st.session_state["_own_name_pending"].pop(_p_idx)
+                    st.toast(t("ledger.own_name.done", name=_on_name, n=_n_named))
+                    st.rerun()
         with _c_one:
             if st.button(t("ledger.own_name.only_this"), key=f"own_name_one_{_on_id}", use_container_width=True):
                 st.session_state["_own_name_pending"].pop(_p_idx)
@@ -546,8 +560,7 @@ def render_registry_page(engine):
         _rule_tx_id = _sel_ids[0]
         _rule_tx_row = orig_df[orig_df["_id"] == _rule_tx_id].iloc[0]
         _rule_tx_desc = _rule_tx_row[COL_DESC]
-        _rule_tx_cat = _rule_tx_row[COL_CATEGORY]
-        _rule_tx_sub = _rule_tx_row[COL_SUBCATEGORY]
+        _rule_tx_cat_sub = _rule_tx_row[COL_CAT_SUB]
         _rule_tx_ctx = _rule_tx_row[COL_CONTEXT]
 
         # The product proposes the rule (spec 18): merchant name and "starts
@@ -581,22 +594,13 @@ def render_registry_page(engine):
                 )
                 rule_match_type = _match_labels[_match_label]
 
-            rc3, rc4, rc5, rc6 = st.columns(4)
+            rc3, rc5, rc6 = st.columns([2, 1, 1])
             with rc3:
-                _rc_cat_idx = (_all_cats.index(_rule_tx_cat)
-                               if _rule_tx_cat in _all_cats else 0)
-                rule_category = st.selectbox(
-                    t("ledger.col.category"), options=_all_cats,
-                    index=_rc_cat_idx, key="rule_create_category",
-                )
-            with rc4:
-                # Cascade: filter subcategories by selected category
-                _rc_valid_subs = taxonomy.valid_subcategories(rule_category)
-                _rc_sub_idx = (_rc_valid_subs.index(_rule_tx_sub)
-                               if _rule_tx_sub in _rc_valid_subs else 0)
-                rule_subcategory = st.selectbox(
-                    t("ledger.col.subcategory"), options=_rc_valid_subs,
-                    index=_rc_sub_idx, key="rule_create_subcategory",
+                _rc_cat, _rc_sub = split_cat_sub(_rule_tx_cat_sub)
+                rule_category, rule_subcategory = cat_sub_select(
+                    t("ledger.col.cat_sub"), taxonomy, _rc_cat, _rc_sub,
+                    key=f"rule_create_category_{_rule_tx_id}",
+                    only=direction_of(_amount_by_id.get(_rule_tx_id)),
                 )
             with rc5:
                 _ctx_options = [t("ledger.rule.no_context")] + _contexts

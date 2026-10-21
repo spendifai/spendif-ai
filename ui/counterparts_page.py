@@ -14,7 +14,7 @@ from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.checklist_page import _fmt_date
 from ui.i18n import t
-from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
+from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub, wrong_direction
 from ui.widgets.immersive import GUIDED_PAGE
 from ui.widgets.written_rules import remember, rewrite_pending, show_written_rules, write_and_apply
 
@@ -56,6 +56,7 @@ def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
                 "_orig_giroconto": s["is_giroconto"],
                 "_orig_multi": s.get("is_multi_category", False),
                 "_orig_categorized": s["categorized_by_user"],
+                "_direction": s.get("direction"),
             }
         )
     return pd.DataFrame(rows)
@@ -166,13 +167,14 @@ def render_income_page(engine) -> None:
         st.success(t("income.guided.all_checked"))
         return
     cfg_svc = SettingsService(engine)
-    cat_options = build_cat_options(cfg_svc.get_taxonomy(), include_empty=True, income_first=True)
+    taxonomy = cfg_svc.get_taxonomy()
+    cat_options = build_cat_options(taxonomy, include_empty=True, only="income")
     one_by_one = {s["description"] for s in filtered if s["also_spending"]}
     if one_by_one:
         st.caption(t("income.guided.one_by_one", names=", ".join(sorted(one_by_one))))
     _render_grid(
         filtered, cat_options, TransactionService(engine), RuleService(engine),
-        guided=True, one_by_one=one_by_one, with_multi=False,
+        guided=True, one_by_one=one_by_one, with_multi=False, taxonomy=taxonomy,
     )
 
 
@@ -190,7 +192,6 @@ def render_counterparts_page(engine) -> None:
     rewrite_pending(rule_svc, tx_svc)
 
     taxonomy = cfg_svc.get_taxonomy()
-    cat_options = build_cat_options(taxonomy, include_empty=True)
 
     if guided:
         settings = cfg_svc.get_all()
@@ -222,7 +223,24 @@ def render_counterparts_page(engine) -> None:
         if filtered is None:
             show_written_rules()
             return
-    _render_grid(filtered, cat_options, tx_svc, rule_svc, guided)
+    # A search box on the counterpart and its category; it narrows what is
+    # shown, never the goal of the step.
+    query = st.text_input(t("counterparts.search"), key="cp_search",
+                          placeholder=t("counterparts.search_placeholder"))
+    if query.strip():
+        filtered = [s for s in filtered
+                    if tx_svc.text_matches(query, s["description"], s.get("modal_category"),
+                                           s.get("modal_subcategory"))]
+        if not filtered:
+            st.info(t("counterparts.search_none", query=query.strip()))
+            return
+    # One menu for the column: the directions of the counterparts shown (the
+    # spending step shows spending only); each row is checked at the save.
+    _sides = {s.get("direction") for s in filtered}
+    _only = _sides.pop() if len(_sides) == 1 and None not in _sides else None
+    cat_options = build_cat_options(taxonomy, include_empty=True,
+                                    only=_only if _only in ("expense", "income") else None)
+    _render_grid(filtered, cat_options, tx_svc, rule_svc, guided, taxonomy=taxonomy)
 
 
 def _filtered_stats(tx_svc: TransactionService) -> list[dict] | None:
@@ -292,6 +310,7 @@ def _render_grid(
     guided: bool,
     one_by_one: set[str] | None = None,
     with_multi: bool = True,
+    taxonomy=None,
 ) -> None:
     """*one_by_one*: counterparts whose income movements get the category
     one by one, without a rule (the income step, for a counterpart that
@@ -400,6 +419,11 @@ def _render_grid(
         if new_giro == orig_giro and new_multi == orig_multi and not cat_changed and not confirm:
             continue
         new_cat, new_sub = split_cat_sub(new_val) if new_val else ("", "")
+        _dir = df.at[idx, "_direction"]
+        if (cat_changed and taxonomy is not None and _dir in ("expense", "income")
+                and wrong_direction(taxonomy, new_cat, -1 if _dir == "expense" else 1)):
+            st.error(t("counterparts.wrong_direction", name=df.at[idx, "_description"], cat=new_cat))
+            continue
         changed_rows.append(
             {
                 "description": df.at[idx, "_description"],

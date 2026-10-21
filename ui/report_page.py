@@ -15,6 +15,7 @@ from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.cat_select import join_cat_sub
 
 logger = setup_logging()
 
@@ -84,6 +85,7 @@ def render_report_page(engine):
 
     cfg_svc = SettingsService(engine)
     palette = cfg_svc.get_palette()
+    _col_cat_sub = t("ledger.col.cat_sub")  # one column, as in every grid
     tx_svc = TransactionService(engine)
 
     settings = cfg_svc.get_all()
@@ -211,8 +213,7 @@ def render_report_page(engine):
                     pct = (row["abs_amount"] / grand_total * 100) if grand_total > 0 else 0
                     display_rows.append({
                         "Contesto": row["context"],
-                        "Categoria": row["category"],
-                        "Sottocategoria": row["subcategory"],
+                        _col_cat_sub: join_cat_sub(row["category"], row["subcategory"]),
                         "Importo": row["abs_amount"],
                         "% del totale": pct,
                         "N. transazioni": row["tx_count"],
@@ -222,8 +223,7 @@ def render_report_page(engine):
                 ctx_pct = (ctx_total / grand_total * 100) if grand_total > 0 else 0
                 display_rows.append({
                     "Contesto": f"TOTALE {ctx}",
-                    "Categoria": "",
-                    "Sottocategoria": "",
+                    _col_cat_sub: "",
                     "Importo": ctx_total,
                     "% del totale": ctx_pct,
                     "N. transazioni": int(ctx_df["tx_count"].sum()),
@@ -232,8 +232,7 @@ def render_report_page(engine):
             # Grand total row
             display_rows.append({
                 "Contesto": "TOTALE GENERALE",
-                "Categoria": "",
-                "Sottocategoria": "",
+                _col_cat_sub: "",
                 "Importo": grand_total,
                 "% del totale": 100.0,
                 "N. transazioni": int(df_section["tx_count"].sum()),
