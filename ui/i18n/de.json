@@ -959,7 +959,7 @@
   "onboarding.first_import.upload_now": "📤 Jetzt hochladen",
   "onboarding.first_import.upload_now_help": "Zur Import-Seite gehen",
   "onboarding.first_import.skip_for_now": "⏭️ Mache ich später",
-  "onboarding.first_import.skip_help": "Landet auf der Startseite, du kannst jederzeit importieren",
+  "onboarding.first_import.skip_help": "Zu Bereiten wir deine Umsätze vor: von dort fängst du jedes Mal an",
   "onboarding.first_import.step_label": "Erster Import",
   "upload.empty_state.title": "📥 Noch keine Transaktionen",
   "upload.empty_state.caption": "Lade unten deinen ersten Kontoauszug (CSV oder XLSX) hoch, um zu starten. Spendif.ai analysiert die Transaktionen und sortiert sie in die Kategorien, die du beim Setup gewählt hast.",
@@ -999,7 +999,7 @@
   "home.period.label": "Zeitraum",
   "home.period.last_loaded": "Letzte 3 geladene Monate",
   "guided.stopped_at": "Du bist beim {date} stehen geblieben. Zum Aktualisieren öffne die Checkliste und lade die fehlenden Umsätze herunter.",
-  "nav.guided": "🧭 Arbeitsablauf",
+  "nav.guided": "🧭 Bereiten wir deine Umsätze vor",
   "nav.guided.desc": "Begleitet dich Schritt für Schritt: was laden, was prüfen, der Zeitraum im Überblick. Macht dort weiter, wo du aufgehört hast.",
   "guided.step_of": "Schritt {n} von {total}: {name}",
   "guided.back": "Zurück",
@@ -1513,5 +1513,9 @@
   "check.all_right": "Alle {n} angezeigten stimmen",
   "check.all_right_confirm": "Die {n} Umsätze im Raster so wie sie sind als geprüft markieren?",
   "check.all_right_yes": "Ja, sie stimmen",
-  "check.all_right_no": "Nein, zurück zum Raster"
+  "check.all_right_no": "Nein, zurück zum Raster",
+  "guided.welcome": "Hier fängst du jedes Mal an: ich sage dir, was zu tun ist, Schritt für Schritt. Du findest es oben im Menü.",
+  "guided.welcome_ok": "Verstanden",
+  "nav.check": "✅ Wenn du prüfen willst",
+  "nav.check.desc": "Prüfe deine Umsätze Konto für Konto, ab dem zuletzt geprüften."
 }

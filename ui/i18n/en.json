@@ -959,7 +959,7 @@
   "onboarding.first_import.upload_now": "📤 Upload now",
   "onboarding.first_import.upload_now_help": "Go to the Import page",
   "onboarding.first_import.skip_for_now": "⏭️ I'll do it later",
-  "onboarding.first_import.skip_help": "Lands on the Home, you can import any time",
+  "onboarding.first_import.skip_help": "Go to Let's prepare your movements: you start from there every time",
   "onboarding.first_import.step_label": "First import",
   "upload.empty_state.title": "📥 No transactions yet",
   "upload.empty_state.caption": "Upload your first bank statement (CSV or XLSX) below to get started. Spendif.ai will parse the transactions and sort them into the categories you picked during setup.",
@@ -999,7 +999,7 @@
   "home.period.label": "Period",
   "home.period.last_loaded": "Last 3 months loaded",
   "guided.stopped_at": "You stopped at {date}. To catch up, open the Checklist and download the missing transactions.",
-  "nav.guided": "🧭 Workflow",
+  "nav.guided": "🧭 Let's prepare your movements",
   "nav.guided.desc": "Takes you one step at a time: what to load, what to check, the period at a glance. Picks up where you left off.",
   "guided.step_of": "Step {n} of {total}: {name}",
   "guided.back": "Back",
@@ -1513,5 +1513,9 @@
   "check.all_right": "All {n} shown are right",
   "check.all_right_confirm": "Mark the {n} movements in the grid as checked, as they are?",
   "check.all_right_yes": "Yes, they are right",
-  "check.all_right_no": "No, back to the grid"
+  "check.all_right_no": "No, back to the grid",
+  "guided.welcome": "This is where you start from every time: I tell you what there is to do, one step at a time. You find it at the top of the menu.",
+  "guided.welcome_ok": "Got it",
+  "nav.check": "✅ If you want to check",
+  "nav.check.desc": "Check your movements one account at a time, from the last one you checked."
 }

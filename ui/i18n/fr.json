@@ -959,7 +959,7 @@
   "onboarding.first_import.upload_now": "📤 Charger maintenant",
   "onboarding.first_import.upload_now_help": "Aller à la page Import",
   "onboarding.first_import.skip_for_now": "⏭️ Je le ferai plus tard",
-  "onboarding.first_import.skip_help": "Atterrit sur l'Accueil, vous pouvez importer à tout moment",
+  "onboarding.first_import.skip_help": "Aller à Préparons vos opérations : c'est de là que vous repartez à chaque fois",
   "onboarding.first_import.step_label": "Premier import",
   "upload.empty_state.title": "📥 Aucune transaction importée",
   "upload.empty_state.caption": "Chargez votre premier relevé bancaire (CSV ou XLSX) ci-dessous pour commencer. Spendif.ai analyse les transactions et les classe dans les catégories choisies lors de la configuration.",
@@ -999,7 +999,7 @@
   "home.period.label": "Période",
   "home.period.last_loaded": "3 derniers mois chargés",
   "guided.stopped_at": "Vous vous êtes arrêté au {date}. Pour rattraper, ouvrez la Liste de contrôle et téléchargez les opérations manquantes.",
-  "nav.guided": "🧭 Parcours guidé",
+  "nav.guided": "🧭 Préparons vos opérations",
   "nav.guided.desc": "Vous accompagne une étape à la fois : quoi charger, quoi vérifier, la période en un coup d'œil. Reprend là où vous vous êtes arrêté.",
   "guided.step_of": "Étape {n} sur {total} : {name}",
   "guided.back": "Retour",
@@ -1513,5 +1513,9 @@
   "check.all_right": "Les {n} affichées sont justes",
   "check.all_right_confirm": "Marquer les {n} opérations de la grille comme vérifiées, telles quelles ?",
   "check.all_right_yes": "Oui, elles sont justes",
-  "check.all_right_no": "Non, retour à la grille"
+  "check.all_right_no": "Non, retour à la grille",
+  "guided.welcome": "C'est d'ici que vous repartez à chaque fois : je vous dis ce qu'il y a à faire, une étape à la fois. Vous le trouvez en haut du menu.",
+  "guided.welcome_ok": "Compris",
+  "nav.check": "✅ Si vous voulez vérifier",
+  "nav.check.desc": "Vérifiez vos opérations un compte à la fois, à partir de la dernière vérifiée."
 }
