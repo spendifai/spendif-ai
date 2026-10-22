@@ -4,17 +4,34 @@
 
 Tutti i cambiamenti rilevanti di Spendif.ai sono documentati in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.M.N da 2026.10.0 (anno, mese senza zero iniziale, release del mese da 0); le release precedenti seguivano Semantic Versioning.
 
 ## [Unreleased]
 
+## [2026.10.0] - 2026-10-22
+
 ### Aggiunto
-- Flusso di lavoro: una nuova voce in cima al menu accompagna l'utente un passo alla volta, a schermo pulito come l'onboarding, da cosa caricare all'import, alle controparti, alle categorie miste fino al quadro del periodo. Uscendo il passo si salva, e la volta dopo si riprende da lì, saltando i passi già fatti nel frattempo. Dopo l'onboarding, "Carica ora" lo apre al passo dell'import
+- Prepariamo i tuoi movimenti (prima Flusso di lavoro): la pagina da cui si riparte ogni volta. Le due uscite dell'onboarding ci portano, e la prima volta lo dice, una sola volta
+- Se vuoi controllare: un flusso a sé, dalla sua voce di menu, per controllare i movimenti un conto alla volta. Una lista mostra ogni conto con l'ultimo movimento controllato e il primo ancora da controllare; viene proposto il conto più indietro, dal suo movimento non controllato più vecchio. Poi la griglia del Registro a tutta pagina con i soli movimenti non controllati di quel conto, dal più vecchio: a ogni salvataggio i controllati escono e arrivano i successivi, e un pulsante con conferma segna controllati tutti quelli mostrati. Mentre si crea una regola il salvataggio aspetta; la regola salva prima le altre modifiche della griglia. Finito il conto, si chiede dei giroconti senza l'altro lato, poi si torna alla lista
+- Un nome tuo per un movimento della banca: rinominare una descrizione chiede se rinominare tutti i movimenti uguali, solo quelli con lo stesso importo (rate che cambiano) o solo questo, e può fissare insieme la categoria con una regola. La pagina Regole elenca i tuoi nomi
+- Investimenti e risparmi: una categoria nei due versi. In uscita per bene (immobili, azioni, pensione, fondi, vincolato), in entrata per origine dei soldi (rendita, cedole e dividendi, interessi, vendite e riscatti). Le commissioni bancarie hanno una categoria propria, quel che resta della finanza diventa Assicurazioni, la pensione va nelle entrate da lavoro, i trasporti hanno il pedaggio. Movimenti, regole e budget esistenti si spostano una volta, nella lingua delle tue categorie; le categorie create da te restano dove sono
+- Sankey della Home dalle entrate alle uscite: categorie di entrata a sinistra, di uscita a destra, ogni colonna dal ramo più grande. Interruttori per solo spese, sottocategorie e valori in percentuale o in euro sui rami abbastanza alti. Ora sta sopra il grafico mensile
+- Ogni colonna del Registro spiega cosa significa, e i totali dicono quali movimenti lasciano fuori
+- Una sola colonna di categoria in ogni griglia ("Categoria / Sottocategoria"), griglie modificabili e menu che offrono solo le categorie del verso del movimento
+- I giroconti si abbinano anche fra import diversi, i movimenti con data futura restano in attesa fino alla loro data, e le entrate hanno un passo proprio
+- L'assistente risponde con il modello locale, basandosi sulle guide attuali
+- Flusso di lavoro (ora Prepariamo i tuoi movimenti): una nuova voce in cima al menu accompagna l'utente un passo alla volta, a schermo pulito come l'onboarding, da cosa caricare all'import, alle controparti, alle categorie miste fino al quadro del periodo. Uscendo il passo si salva, e la volta dopo si riprende da lì, saltando i passi già fatti nel frattempo. Dopo l'onboarding, "Carica ora" lo apre al passo dell'import
 - Flusso di lavoro, passo delle controparti: solo le controparti di spesa ancora da controllare, dalla più grande. Basta una spunta per controparte, e i prossimi import non la richiedono. In alto spiega l'obiettivo, le controparti che fanno 8 euro su 10 delle spese del periodo, e dice quanto è controllato, quanto manca e quante controparti bastano. L'obiettivo è un suggerimento: Avanti funziona sempre
 - Flusso di lavoro, passo delle categorie miste: le controparti di spesa con movimenti in più categorie. Se è un errore, una categoria diventa regola per tutti i movimenti; se dipende da cosa si è comprato, i movimenti si guardano uno a uno, perché nessuna regola distingue movimenti con lo stesso nome. I movimenti già guardati non si richiedono: una controparte torna solo con quelli arrivati dall'ultimo import, e la pagina dice quanti erano già sistemati. Il passo delle controparti dice anche quante spese del periodo le spunte precedenti hanno categorizzato da sole
 - Flusso di lavoro, passo dell'import: a import finito, se non c'è nessuna domanda in attesa, un pulsante in fondo alla pagina porta alle controparti, così il passo successivo non si perde
 
 ### Modificato
+- Il segno di ogni movimento viene da come si usa il conto ed è misurato sui dati; le controparti si scrivono in un solo modo, e una controparte ha una sola categoria
+- Ogni regola ha un verso: vale solo per i soldi in uscita o solo per quelli in entrata. Le regole valide nei due versi sono state divise secondo i movimenti che coprivano; 27 movimenti categorizzati da una regola del verso opposto sono tornati da rivedere
+- Home e Registro contano gli stessi movimenti: tutti quelli del periodo tranne giroconti e saldi carta. Le spese con carta arrivano nei grafici della Home
+- Le colonne del Registro sono in ordine di lettura: quel che leggi, quel che decidi, la spunta della regola, poi i simboli che informano soltanto, a metà larghezza. Conto e tipo sono filtri, non più colonne
+- I movimenti controllati tengono la loro categoria: regole, estensione ai simili e modello non li toccano. La categoria di ripiego non viene mai riusata come esempio
+- Da questa release le versioni seguono il calendario: AAAA.M.N
 - La Lista di controllo ora dice cosa scaricare, con le date esatte, sopra la griglia: prima il conto più indietro con un pulsante verso l'import, poi gli altri conti e i mesi vuoti in mezzo. Se non c'è ancora nessun conto chiede solo il nome; la prima volta suggerisce un mese solo, così il primo giro resta breve
 - Home e Report si aprono sui tre mesi che finiscono con l'ultimo movimento caricato, invece che su un periodo che finisce oggi. Dopo settimane senza importare i grafici non si aprono più vuoti: mostrano dove eri rimasto, e un avviso dice fino a quando sei arrivato e rimanda alla Lista di controllo. Nella Home è la nuova scelta predefinita, "Ultimi 3 mesi caricati"; gli altri periodi non cambiano
 - La didascalia del periodo nella Home non dice più "Ultimi 12 mesi" qualunque periodo sia selezionato
@@ -22,6 +39,9 @@ Il versioning segue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - La Lista di controllo ha un nome solo per lingua, uguale nel menu, nella pagina, nei messaggi, nella chat e nelle guide. Prima l'italiano alternava "Lista di controllo" e "Check List", e francese, tedesco e spagnolo usavano l'inglese "Check List"; il titolo della pagina chiama i movimenti con la parola delle banche
 
 ### Corretto
+- Rinominare tutti i movimenti uguali estende anche il segno di giroconto
+- I rami del Sankey non finiscono più sotto il grafico mensile
+- Dipendenze: pillow 13.0.0 e streamlit 1.66.1 per nove CVE di pillow, certifi 2026.10.19 per PYSEC-2026-4320
 - Il flusso di lavoro non richiede più le controparti che hanno già una tua regola. Prima il passo delle controparti le proponeva di nuovo, e a ogni import le ritrovavi con i movimenti vecchi sistemati e i nuovi da sistemare. Ora "controllato" e "categorizzato" sono due cose: **Categoria decisa da te** (come hai speso) vale per la controparte e una regola la decide per tutti gli import; è ciò che chiede tutto il flusso. **Controllato da te** (i soldi li hai spesi davvero) vale per un movimento solo, non si eredita e si spunta solo nel Registro. Cambiare la categoria di un movimento non lo segna più come controllato, e lo storico impara solo dalle categorie decise da te
 - Una controparte confermata non torna più "mista" dopo l'import successivo. Confermare una controparte, o applicare una regola ai movimenti già importati, registrava quei movimenti come modificati a mano, mentre l'import registra i nuovi come categorizzati dalla regola: stessa categoria, due origini, e la controparte risultava mista finché non si riapplicavano le regole. I movimenti categorizzati attraverso una regola ora risultano tali. Una controparte è mista solo quando hai cambiato a mano uno dei suoi movimenti, che è un'eccezione vera alla regola
 

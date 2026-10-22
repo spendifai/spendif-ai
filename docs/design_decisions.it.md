@@ -132,8 +132,10 @@ La riconciliazione carta-conto usa:
 3. **Boundary subset sum** con k = 10 transazioni, ~10⁶ operazioni
    massimo.
 
-Le transazioni riconciliate sono escluse dal saldo netto per prevenire
-il double-counting.
+Dai totali resta fuori solo l'addebito del saldo, per il suo tipo (saldo
+carta, come i giroconti); le righe di dettaglio della carta sono le spese
+vere e contano. Il segno di riconciliazione marca i due lati di un abbinamento
+e non nasconde nulla.
 
 **Stato: beta.** Edge cases (multi-currency, addebiti parziali, cambio
 emittente carta a metà mese) sono ancora in raffinamento.
@@ -153,3 +155,23 @@ titolare:
 
 **Stato: beta.** Edge cases (conti di passaggio intermedi, commissioni
 di conversione valuta) sono ancora in raffinamento.
+
+## Versioni di calendario
+
+Da 2026.10.0 le versioni sono di calendario, `AAAA.M.N`: anno, mese senza zero
+iniziale, release del mese da 0. Le release precedenti (fino a 0.3.5)
+seguivano Semantic Versioning.
+
+- Un'app di finanza personale distribuita come pacchetto desktop non ha
+  un'API pubblica di cui un numero major prometta la compatibilita'; la data
+  dice quanto e' vecchia la copia installata, che e' cio' che serve sapere.
+- Tre numeri puri restano validi per ogni formato di pacchetto: MSIX vuole
+  quattro parti numeriche fino a 65535, RPM vieta i trattini, Homebrew e
+  winget confrontano numeri. Niente suffissi (niente `-beta`, niente `-rc1`) e
+  niente zero iniziale, che non e' semver valido e romperebbe i tag
+  dell'immagine Docker che leggono la versione come semver.
+- Il controllo degli aggiornamenti confronta i numeri come tupla, quindi
+  2026.10.0 e' piu' recente di 0.3.5 e alle installazioni esistenti viene
+  proposto l'aggiornamento.
+- La fase di lancio (alpha, beta) non fa parte della versione: si dice nelle
+  note di rilascio.

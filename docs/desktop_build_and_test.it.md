@@ -67,8 +67,11 @@ Usa una versione valida per **tutti** i formati target:
 | `.deb` | `X.Y.Z` consigliato, trattini tollerati ma sconsigliati |
 | `.rpm` | solo `X.Y.Z`, **niente trattini** (`-` proibito in `Version:`) |
 
-→ Per le run `workflow_dispatch` resta su `MAJOR.MINOR.PATCH` puro
-(`0.1.0`, `0.2.0-rc1` rompe RPM e MSIX).
+→ Le versioni sono di calendario, `AAAA.M.N` da 2026.10.0 (mese senza zero
+iniziale, release del mese da 0): tre numeri puri, validi per tutti i formati
+sopra. Niente suffissi e niente zero iniziale (`2026.01.0` non e' semver valido,
+e i tag dell'immagine Docker leggono la versione come semver). Vale anche per
+le run `workflow_dispatch` (`2026.10.0-rc1` rompe RPM e MSIX).
 
 Quando la run finisce (15–20 min):
 

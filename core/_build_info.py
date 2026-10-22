@@ -1,3 +1,3 @@
 # Generated at build time - do not edit manually.
-BUILD_TIME = "2026-10-12 12:54 UTC"
-BUILD_VERSION = "0.3.5"
+BUILD_TIME = "2026-10-22 15:18 UTC"
+BUILD_VERSION = "2026.10.0"
