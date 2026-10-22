@@ -79,3 +79,12 @@ def test_done_on_last_step_lands_on_report_and_restarts_cycle():
     at.session_state["page"] = "guided"
     at.run(timeout=30)
     assert "STEP:checklist" in _texts(at)
+
+
+def test_the_first_time_it_says_every_session_starts_here():
+    at = AppTest.from_function(_app).run(timeout=30)
+    assert any("start from every time" in i.value for i in at.info)
+    _button(at, "guided_welcome_ok").click().run(timeout=30)
+    assert not any("start from every time" in i.value for i in at.info)
+    at.run(timeout=30)
+    assert not any(b.key == "guided_welcome_ok" for b in at.button)

@@ -17,10 +17,11 @@
 | **Taxonomy** | Customizable category/subcategory structure |
 | **Settings** | LLM backend, API keys, date/amount formats, language |
 | **Checklist** | Month × account pivot table: presence and quantity of transactions; what to load for the last 4 months, files prepared per account, closed accounts |
-| **Workflow** | Guided path in steps: Checklist, Import, Spending, Mixed categories, Transfers, Income, Report. Picks up from the step left |
+| **Let's prepare your movements** | Guided path in steps, where every session starts: Checklist, Import, Spending, Mixed categories, Transfers, Income, Report. Picks up from the step left |
+| **If you want to check** | Menu entry of its own, separate from the path: one account at a time from the last checked movement, the Registry grid on the movements still to check, then the transfers without their other side |
 | **Counterparts** | Per-counterpart statistics with quick rule creation |
-| **Mixed categories** | Workflow step: counterparts whose movements sit in more than one category, solved with a rule or one by one |
-| **Transfers** | Workflow step: transfer pairs to confirm and one-sided transfers |
+| **Mixed categories** | Step of Let's prepare your movements: counterparts whose movements sit in more than one category, solved with a rule or one by one |
+| **Transfers** | Step of Let's prepare your movements: transfer pairs to confirm and one-sided transfers |
 | **Assistant** | Adaptive support chatbot (RAG cloud/local or deterministic FAQ) |
 
 ---
@@ -140,7 +141,7 @@ An internal transfer is a transfer between two of your own accounts (e.g., "Tran
 | **medium** | One side read as transfer, the other as spending or income: proposed to the user |
 | **low** | Neither side, but 1 day apart at most: proposed to the user |
 
-**Transfers step of the Workflow:** shows the pairs of the last 4 months, where the user answers yes (a transfer) or no (kept apart, never proposed again), and the one-sided transfers, where the user says once per beneficiary where the money went: *an account of mine not loaded yet*, *an account of mine I do not follow* (stays a transfer) or *another person* (becomes spending or income, also in later imports). The beneficiary is recognised by the IBAN in the description, otherwise by the cleaned description.
+**Transfers step of Let's prepare your movements:** shows the pairs of the last 4 months, where the user answers yes (a transfer) or no (kept apart, never proposed again), and the one-sided transfers, where the user says once per beneficiary where the money went: *an account of mine not loaded yet*, *an account of mine I do not follow* (stays a transfer) or *another person* (becomes spending or income, also in later imports). The beneficiary is recognised by the IBAN in the description, otherwise by the cleaned description.
 
 **How it is marked:** 🔄 icon in the Ledger, excluded from Analytics totals.
 

@@ -36,10 +36,28 @@ def _move(flow_svc: GuidedFlowService, step: str) -> None:
     st.rerun()
 
 
+# Setting: the user has read that every session starts here (spec 31).
+WELCOME_SEEN = "guided_welcome_seen"
+
+
+def _welcome_once(engine) -> None:
+    """The first time only: every session starts from this page."""
+    from services.settings_service import SettingsService
+    cfg = SettingsService(engine)
+    if cfg.get(WELCOME_SEEN) == "true":
+        return
+    c_msg, c_ok = st.columns([5, 1])
+    c_msg.info(t("guided.welcome"))
+    if c_ok.button(t("guided.welcome_ok"), key="guided_welcome_ok"):
+        cfg.set(WELCOME_SEEN, "true")
+        st.rerun()
+
+
 def render_guided_page(engine, render_step: Callable[[str, object], None]) -> None:
     """Render the current step through *render_step* (the app router)."""
     hide_chrome(narrow=False)
     flow_svc = GuidedFlowService(engine)
+    _welcome_once(engine)
 
     step = st.session_state.get(GUIDED_STEP)
     if step not in STEPS:

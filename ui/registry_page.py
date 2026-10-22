@@ -113,12 +113,7 @@ def render_registry_page(engine):
     _thou = settings.get("amount_thousands_sep", ".")
     giroconto_mode = settings.get("giroconto_mode", "neutral")
 
-    try:
-        _contexts: list[str] = json.loads(
-            settings.get("contexts", '["Quotidianità", "Lavoro", "Vacanza"]')
-        )
-    except Exception:
-        _contexts = ["Quotidianità", "Lavoro", "Vacanza"]
+    _contexts = _contexts_of(settings)
 
     _expense_cats = sorted(taxonomy.all_expense_categories)
     _income_cats  = sorted(taxonomy.all_income_categories)
@@ -305,6 +300,77 @@ def render_registry_page(engine):
               start=page_start + 1, end=page_end, rows=total_rows)
         )
 
+    _render_grid(
+        tx_svc, rule_svc, taxonomy, page_txs, show_raw=show_raw, _contexts=_contexts,
+        _date_fmt_js=_date_fmt_js, _dec=_dec, _thou=_thou, filters=filters,
+        page_num=page_num, total_pages=total_pages,
+    )
+
+
+def _contexts_of(settings: dict) -> list[str]:
+    try:
+        return json.loads(settings.get("contexts", '["Quotidianità", "Lavoro", "Vacanza"]'))
+    except Exception:
+        return ["Quotidianità", "Lavoro", "Vacanza"]
+
+
+CHECK_PAGE_SIZE = 50
+
+
+def render_check_grid(engine, txs: list, show_raw: bool = False) -> None:
+    """The Registry grid on the movements of the checking flow (spec 31):
+    the caller passes them already filtered and in date order; at most
+    CHECK_PAGE_SIZE at a time, the next ones arrive as these are checked.
+    *show_raw* adds the bank's text next to the description."""
+    cfg_svc = SettingsService(engine)
+    settings = cfg_svc.get_all()
+    _render_grid(
+        TransactionService(engine), RuleService(engine), cfg_svc.get_taxonomy(),
+        txs[:CHECK_PAGE_SIZE], show_raw=show_raw, _contexts=_contexts_of(settings),
+        _date_fmt_js=strftime_to_momentjs(settings.get("date_display_format", "%d/%m/%Y")),
+        _dec=settings.get("amount_decimal_sep", ","), _thou=settings.get("amount_thousands_sep", "."),
+        check={"size": len(txs)},
+    )
+
+
+# Session key: the version of the checking grid's editor, bumped at every save.
+CHECK_GRID_VERSION = "_check_grid_version"
+_CHECK_ALL_CONFIRM = "_check_all_confirm"
+
+
+def _next_check_grid() -> None:
+    st.session_state[CHECK_GRID_VERSION] = st.session_state.get(CHECK_GRID_VERSION, 0) + 1
+
+
+def _render_check_all(tx_svc, ids: list[str], *, disabled: bool) -> None:
+    """"All the movements shown are right", with a confirmation (spec 31)."""
+    if not st.session_state.get(_CHECK_ALL_CONFIRM):
+        if st.button(t("check.all_right", n=len(ids)), key="check_all", disabled=disabled or not ids,
+                     use_container_width=True):
+            st.session_state[_CHECK_ALL_CONFIRM] = True
+            st.rerun()
+        return
+    st.warning(t("check.all_right_confirm", n=len(ids)))
+    c_yes, c_no = st.columns(2)
+    if c_yes.button(t("check.all_right_yes"), key="check_all_yes", type="primary"):
+        n_ok = sum(1 for tx_id in ids if tx_svc.validate(tx_id))
+        st.session_state.pop(_CHECK_ALL_CONFIRM, None)
+        _next_check_grid()
+        st.toast(t("ledger.validated_n", n=n_ok))
+        st.rerun()
+    if c_no.button(t("check.all_right_no"), key="check_all_no"):
+        st.session_state.pop(_CHECK_ALL_CONFIRM, None)
+        st.rerun()
+
+
+def _render_grid(tx_svc, rule_svc, taxonomy, page_txs, *, show_raw: bool, _contexts: list[str],
+                 _date_fmt_js: str, _dec: str, _thou: str, filters: dict | None = None,
+                 page_num: int = 0, total_pages: int = 1, check: dict | None = None) -> None:
+    """The Registry grid with everything it does on save: the rename
+    question, the spread to similar movements, the rule from a row, page
+    navigation and export. *check* is the checking flow (spec 31): no
+    export or page navigation, checked rows leave the grid only at a save,
+    and no save while a rule is in progress."""
     # ── Editable table ────────────────────────────────────────────────────────
     st.caption(
         t("ledger.edit_hint",
@@ -368,6 +434,8 @@ def render_registry_page(engine):
         COL_TRANSFER:    st.column_config.CheckboxColumn(t("ledger.col.transfer"), width="small",
                                                          help=t("ledger.col.transfer_help")),
     }
+    if check is not None:
+        _col_cfg[COL_FLAG_VALID] = None
     if show_raw:
         _col_cfg[COL_RAW] = st.column_config.TextColumn(
             t("ledger.col.raw"), disabled=True, width="medium", help=t("ledger.col.raw_help"),
@@ -379,7 +447,9 @@ def render_registry_page(engine):
         hide_index=True,
         height=min(650, 42 + len(orig_df) * 35),
         column_config=_col_cfg,
-        key="ledger_editor",
+        # The checking grid starts a fresh editor after every save: its rows
+        # change, and an unsaved edit must never slide onto another movement.
+        key=f"check_editor_{st.session_state.get(CHECK_GRID_VERSION, 0)}" if check else "ledger_editor",
     )
 
     # ── Enforce single selection for rule creation ──────────────────────────
@@ -388,8 +458,10 @@ def render_registry_page(engine):
         st.error(t("ledger.one_rule_at_a_time"))
 
     # ── Auto-save Validato checkbox changes (realtime) ───────────────────────
+    # Not in the checking grid: a checked row leaves it, so the tick waits
+    # for the save, together with the other edits (spec 31).
     _n_auto_val = 0
-    for i in range(len(edited_df)):
+    for i in (range(len(edited_df)) if check is None else ()):
         new_val = bool(edited_df.iloc[i].get(COL_VALIDATED, False))
         old_val = bool(orig_df.iloc[i].get(COL_VALIDATED, False))
         if new_val != old_val:
@@ -405,18 +477,25 @@ def render_registry_page(engine):
         st.rerun()
 
     # ── Save & Validate buttons ──────────────────────────────────────────────
+    _sel_ids = [
+        orig_df.iloc[i]["_id"]
+        for i in range(len(edited_df))
+        if edited_df.iloc[i].get("_sel", False)
+    ]
+    # In the checking grid nothing refreshes while a rule is in progress:
+    # the rule's own button saves the grid and writes the rule in one pass.
+    _rule_pending = check is not None and len(_sel_ids) > 0
     sv_col, val_col, _ = st.columns([1, 1, 4])
     with sv_col:
         save_clicked = st.button(t("ledger.save_changes"), type="primary", key="ledger_save",
-                                 use_container_width=True)
+                                 use_container_width=True, disabled=_rule_pending)
+    if _rule_pending:
+        st.caption(t("check.rule_pending"))
     with val_col:
-        _sel_ids = [
-            orig_df.iloc[i]["_id"]
-            for i in range(len(edited_df))
-            if edited_df.iloc[i].get("_sel", False)
-        ]
-        if st.button(t("ledger.validate_selected"), disabled=len(_sel_ids) == 0,
-                      key="ledger_validate_bulk", use_container_width=True):
+        if check is not None:
+            _render_check_all(tx_svc, [tx.id for tx in page_txs], disabled=_rule_pending)
+        elif st.button(t("ledger.validate_selected"), disabled=len(_sel_ids) == 0,
+                       key="ledger_validate_bulk", use_container_width=True):
             n_ok = 0
             for _tid in _sel_ids:
                 if tx_svc.validate(_tid):
@@ -425,8 +504,10 @@ def render_registry_page(engine):
             logger.info(f"ledger_page: validated {n_ok} transactions")
             st.rerun()
 
-    if save_clicked:
-        logger.info("ledger_page: save_clicked=True, comparing %d rows", len(orig_df))
+    def _save_edits() -> tuple[int, int, int, int, int, list[tuple[str, str]]]:
+        """Write every edit of the grid; the counts and the movements whose
+        new category may spread to similar ones."""
+        logger.info("ledger_page: saving, comparing %d rows", len(orig_df))
         n_cat  = 0
         n_ctx  = 0
         n_giro = 0
@@ -488,7 +569,13 @@ def render_registry_page(engine):
                     tx_svc.unvalidate(tx_id)
                 n_val += 1
 
+        return n_cat, n_ctx, n_giro, n_val, n_desc, _fan_out_candidates
+
+    if save_clicked:
+        n_cat, n_ctx, n_giro, n_val, n_desc, _fan_out_candidates = _save_edits()
         total_saved = n_cat + n_ctx + n_giro + n_val + n_desc
+        if total_saved and check is not None:
+            _next_check_grid()
         if total_saved:
             parts = []
             if n_desc: parts.append(t("ledger.saved_descriptions", n=n_desc))
@@ -678,6 +765,11 @@ def render_registry_page(engine):
 
             _btn_label = t("ledger.rule_apply_update" if _rule_exists else "ledger.rule_apply_create")
             if st.button(_btn_label, key="rule_create_apply"):
+                if check is not None:
+                    # One pass: the grid's edits, then the rule, then a
+                    # single refresh (spec 31, rules from the grid).
+                    _save_edits()
+                    _next_check_grid()
                 _ctx_val = rule_context if rule_context != t("ledger.rule.no_context") else None
                 _, _created = rule_svc.create_rule(
                     pattern=rule_pattern.strip(),
@@ -699,6 +791,9 @@ def render_registry_page(engine):
                 st.rerun()
     else:
         st.caption(t("ledger.select_row_for_rule"))
+
+    if check is not None:
+        return
 
     # ── Page navigation ───────────────────────────────────────────────────────
     nav1, nav2, _ = st.columns([1, 1, 5])

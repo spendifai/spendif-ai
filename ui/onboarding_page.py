@@ -838,8 +838,8 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
     does NOT replay the wizard on the next launch. Two buttons:
 
       • "Carica ora"   → opens the guided workflow at its import step.
-      • "Lo faccio dopo" → lands on the Home (today still routed to Import
-                            until the Home page lands in a follow-up).
+      • "Lo faccio dopo" → opens the guided workflow at its first step: it is
+                            where every session starts (spec 31).
 
     Both options call `_exit_onboarding(target_page)` which clears wizard
     session state and reruns.
@@ -867,10 +867,10 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
             key="_ob_fi_skip",
             help=t("onboarding.first_import.skip_help"),
         ):
-            # Home page exists now; "skip" lands the user there. Its empty
-            # state shows a CTA back to Import — coherent with the routing
-            # already managed by app.py's has_transactions() guard.
-            _exit_onboarding(target_page="home")
+            # The work page in both cases: the user learns there that every
+            # session starts from it (spec 31).
+            st.session_state.pop("_guided_step", None)
+            _exit_onboarding(target_page="guided")
 
 
 def _persist_choices(
