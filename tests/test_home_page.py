@@ -428,3 +428,21 @@ class TestSankeySidesAndLevels:
         sub = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"}, subcategories=True)
         _, _, s2, h2 = _sankey_layout(sub)
         assert _sankey_labels(sub, s2, h2, 600, str) == sub["nodes"]
+
+    def test_nodes_stay_inside_the_chart(self):
+        from ui.home_page import _SANKEY_PAD_PX, _sankey_columns, _sankey_layout, _sankey_plot_px
+        rows = list(self._ROWS) + [
+            (pd.Timestamp("2026-01-20"), -float(10 + i), "expense", f"C{i}", f"S{i}", False) for i in range(25)
+        ]
+        out = _build_sankey_data(self._df(*rows), {f"C{i}" for i in range(25)} | {"Casa", "Alimentari"},
+                                 subcategories=True)
+        plot_px = _sankey_plot_px(out)
+        _, y, _, h = _sankey_layout(out, plot_px)
+        columns, _ = _sankey_columns(out)
+        for c in set(columns):
+            nodes = sorted((i for i in range(len(y)) if columns[i] == c), key=lambda i: y[i])
+            bottom = max(y[i] + h[i] / 2 for i in nodes)
+            assert bottom <= 1.0 + 1e-9                        # nothing below the chart
+            for a, b in zip(nodes, nodes[1:]):                 # no overlap, the pad kept
+                gap = (y[b] - h[b] / 2) - (y[a] + h[a] / 2)
+                assert gap * plot_px >= _SANKEY_PAD_PX - 1e-6

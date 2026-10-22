@@ -430,25 +430,49 @@ def _transparent(color: str, alpha: float = 0.35) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def _sankey_layout(data: dict) -> tuple[list[float], list[float], list[float], list[float]]:
-    """x, y and size of every node, so that every column reads from the
-    biggest branch down (founder, 2026-10-22): Plotly takes the order nodes
-    are added only as a hint. Subcategories stay next to their category;
-    the size of a node is the larger of what enters and what leaves it.
-    Returns x, y, size and height (as a share of the chart's height)."""
+# Pixels between two nodes of a column, and the chart's margins.
+_SANKEY_PAD_PX = 22
+_SANKEY_MARGIN_TOP, _SANKEY_MARGIN_BOTTOM = 60, 30
+
+
+def _sankey_columns(data: dict) -> tuple[list[int], list[float]]:
+    """The column of every node (0 income subcategories ... 4 spending
+    subcategories) and its size, the larger of what enters and leaves it."""
     n = len(data["nodes"])
     into, out = [0.0] * n, [0.0] * n
     for src, tgt, val in zip(data["link_source"], data["link_target"], data["link_value"]):
         out[src] += val
         into[tgt] += val
     size = [max(a, b) for a, b in zip(into, out)]
-    kinds = data["node_kinds"]
+    order = {"in_subcategory": 0, "in_category": 1, "income": 2, "category": 3, "subcategory": 4}
+    columns = []
+    for i, kind in enumerate(data["node_kinds"]):
+        if kind[0] == "unknown":
+            columns.append(1 if out[i] else 3)   # a deficit is a source, a surplus a destination
+        else:
+            columns.append(order[kind[0]])
+    return columns, size
 
-    def column(i: int) -> int:
-        kind = kinds[i][0]
-        if kind == "unknown":
-            return 1 if out[i] else 3     # a deficit is a source, a surplus a destination
-        return {"in_subcategory": 0, "in_category": 1, "income": 2, "category": 3, "subcategory": 4}[kind]
+
+def _sankey_plot_px(data: dict) -> int:
+    """Height of the drawing area: room for the column with the most nodes."""
+    columns, _ = _sankey_columns(data)
+    densest = max((columns.count(c) for c in set(columns)), default=1)
+    return max(520, min(1600, densest * (_SANKEY_PAD_PX + 20)))
+
+
+def _sankey_layout(data: dict, plot_px: int = 520, pad_px: int = _SANKEY_PAD_PX
+                   ) -> tuple[list[float], list[float], list[float], list[float]]:
+    """x, y and size of every node, so that every column reads from the
+    biggest branch down (founder, 2026-10-22): Plotly takes the order nodes
+    are added only as a hint. Subcategories stay next to their category.
+    Node heights use Plotly's own scale (the densest column fills the
+    height, *pad_px* between nodes), so what is computed here is what is
+    drawn and nothing spills below the chart. Returns x, y (centres), size
+    and height (as a share of *plot_px*)."""
+    columns, size = _sankey_columns(data)
+    kinds = data["node_kinds"]
+    n = len(size)
 
     def parent_size(i: int) -> float:
         kind = kinds[i]
@@ -457,22 +481,22 @@ def _sankey_layout(data: dict) -> tuple[list[float], list[float], list[float], l
             return next((size[j] for j in range(n) if kinds[j] == parent), 0.0)
         return size[i]
 
-    used = sorted({column(i) for i in range(n)})
+    used = sorted(set(columns))
+    members = {c: sorted((i for i in range(n) if columns[i] == c),
+                         key=lambda i: (-parent_size(i), kinds[i][1:2], -size[i])) for c in used}
+    # Pixels per euro: the same for every column, set by the tightest one.
+    scale = min(max(1.0, plot_px - pad_px * (len(m) - 1)) / (sum(size[i] for i in m) or 1.0)
+                for m in members.values())
     x_of = {c: 0.001 + 0.998 * k / max(1, len(used) - 1) for k, c in enumerate(used)}
     x, y, h = [0.0] * n, [0.0] * n, [0.0] * n
     for c in used:
-        members = sorted((i for i in range(n) if column(i) == c),
-                         key=lambda i: (-parent_size(i), kinds[i][1:2], -size[i]))
-        total = sum(size[i] for i in members) or 1.0
-        gap = 0.02
-        room = max(0.1, 1.0 - gap * (len(members) - 1))
         top = 0.0
-        for i in members:
-            height = room * size[i] / total
+        for i in members[c]:
+            node_px = scale * size[i]
             x[i] = x_of[c]
-            y[i] = min(0.999, max(0.001, top + height / 2))
-            h[i] = height
-            top += height + gap
+            y[i] = max(0.001, (top + node_px / 2) / plot_px)
+            h[i] = node_px / plot_px
+            top += node_px + pad_px
     return x, y, size, h
 
 
@@ -505,29 +529,24 @@ def _render_sankey(data: dict, palette, amount=None, percent: bool = False) -> N
     import plotly.graph_objects as go
 
     node_colors = [_node_color(k, palette) for k in data["node_kinds"]]
-    x, y, size, height = _sankey_layout(data)
+    plot_px = _sankey_plot_px(data)
+    x, y, size, height = _sankey_layout(data, plot_px)
     # A link takes the colour of where the money goes (spec 25).
     link_colors = [_transparent(node_colors[t]) for t in data["link_target"]]
 
-    # AI-118: dynamic height + larger pad to keep small branches readable.
-    # Plotly Sankey sizes branches proportionally to value, so tiny categories
-    # become unreadable. We can't enforce a true min-height, but giving the
-    # chart more vertical space + node padding makes the labels survive.
-    # The densest column drives the layout: roughly len(nodes)//3 (income,
-    # expense_cat, expense_subcat). Each node wants ~22 px of breathing room.
-    n_nodes = len(data["nodes"])
-    densest_col = max(1, n_nodes // 3)
-    chart_height = max(600, min(1400, densest_col * 22))
-    labels = _sankey_labels(data, size, height, chart_height, amount, percent)
+    # AI-118: the densest column sets the height, so small branches keep
+    # some room; positions are fixed, so the chart never grows past it.
+    chart_height = plot_px + _SANKEY_MARGIN_TOP + _SANKEY_MARGIN_BOTTOM
+    labels = _sankey_labels(data, size, height, plot_px, amount, percent)
 
     fig = go.Figure(
         go.Sankey(
-            arrangement="snap",
+            arrangement="fixed",
             node=dict(
                 label=labels,
                 x=x, y=y,
                 color=node_colors,
-                pad=22, thickness=18,
+                pad=_SANKEY_PAD_PX, thickness=18,
             ),
             link=dict(
                 source=data["link_source"],
@@ -540,7 +559,7 @@ def _render_sankey(data: dict, palette, amount=None, percent: bool = False) -> N
     fig.update_layout(
         title=_t("home.charts.sankey_title"),
         height=chart_height,
-        margin=dict(l=10, r=10, t=60, b=10),
+        margin=dict(l=10, r=10, t=_SANKEY_MARGIN_TOP, b=_SANKEY_MARGIN_BOTTOM),
     )
     st.plotly_chart(fig, width="stretch")
 
