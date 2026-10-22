@@ -133,3 +133,13 @@ def test_the_gap_before_the_start_can_be_taken(tmp_path):
     assert app.date_input(key="check_pick_since_POPSO").value == date(2026, 3, 11)
     _button(app, "check_gap_start").click().run()
     assert app.date_input(key="check_pick_since_POPSO").value == date(2026, 3, 1)
+
+
+def test_the_raw_text_toggle_sits_in_the_grid_header(tmp_path):
+    db, _ = _ledger(tmp_path)
+    app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
+    app.run()
+    _button(app, "check_next").click().run()
+    raw = next(t for t in app.toggle if t.key == "check_show_raw")
+    raw.set_value(True).run()
+    assert not app.exception, app.exception

@@ -80,12 +80,15 @@ def _render_grid_phase(engine, svc: CheckingService, date_fmt: str) -> None:
     txs = svc.unchecked(account, since)
     if not txs:
         _go(_TRANSFERS)
-    c_head, c_back = st.columns([4, 1])
+    c_head, c_raw, c_back = st.columns([4, 1, 1])
     c_head.markdown(t("check.grid_header", account=account,
                       date=format_date_display(since.isoformat(), date_fmt), n=len(txs)))
+    # The bank's text next to the description, as in the Registry.
+    show_raw = c_raw.toggle(t("ledger.filter.show_raw"), key="check_show_raw",
+                            help=t("ledger.col.raw_help"))
     if c_back.button(t("check.back_to_list"), key="check_back_grid"):
         _go(_LIST)
-    render_check_grid(engine, txs)
+    render_check_grid(engine, txs, show_raw)
 
 
 def _render_transfers_phase(engine, svc: CheckingService, date_fmt: str, fmt) -> None:

@@ -317,13 +317,13 @@ def _contexts_of(settings: dict) -> list[str]:
 CHECK_PAGE_SIZE = 50
 
 
-def render_check_grid(engine, txs: list) -> None:
+def render_check_grid(engine, txs: list, show_raw: bool = False) -> None:
     """The Registry grid on the movements of the checking flow (spec 31):
     the caller passes them already filtered and in date order; at most
-    CHECK_PAGE_SIZE at a time, the next ones arrive as these are checked."""
+    CHECK_PAGE_SIZE at a time, the next ones arrive as these are checked.
+    *show_raw* adds the bank's text next to the description."""
     cfg_svc = SettingsService(engine)
     settings = cfg_svc.get_all()
-    show_raw = st.checkbox(t("ledger.filter.show_raw"), key="check_show_raw")
     _render_grid(
         TransactionService(engine), RuleService(engine), cfg_svc.get_taxonomy(),
         txs[:CHECK_PAGE_SIZE], show_raw=show_raw, _contexts=_contexts_of(settings),
