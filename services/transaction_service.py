@@ -10,6 +10,10 @@ from sqlalchemy.orm import sessionmaker
 from db import repository
 from db.models import Transaction, USER_CATEGORY_SOURCES, same_counterpart
 
+# Movements that only move money between the user's own accounts: no total
+# (Registry, Home) counts them. Every other movement in the period does.
+NOT_COUNTED_TYPES = frozenset({"internal_out", "internal_in", "card_settlement", "aggregate_debit"})
+
 
 class TransactionService:
     def __init__(self, engine) -> None:

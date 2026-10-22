@@ -16,6 +16,7 @@ import pytest
 from sqlalchemy import create_engine
 
 from db.models import Transaction, create_tables, get_session
+from services.transaction_service import NOT_COUNTED_TYPES
 from ui.home_page import (
     _build_monthly_flow,
     _build_sankey_data,
@@ -212,17 +213,37 @@ class TestBuildSankeyData:
         # 100 income, 200 expense → deficit 100, NOT a surplus from the 5000
         assert out["unknown_kind"] == "deficit"
 
-    def test_reconciled_transactions_excluded(self):
-        """Reconciled rows (already settled by card reconciliation) must not
-        be double-counted."""
+    def test_card_spending_counts_and_settlement_does_not(self):
+        """Card movements are spending like any other, reconciled or not; the
+        settlement debit on the bank account is a giroconto and counts nowhere."""
         df = self._df(
             (pd.Timestamp("2026-01-15"), 500.0, "income", "Stipendio", None, False),
-            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", "Spesa", True),  # reconciled
-            (pd.Timestamp("2026-01-21"), -50.0, "expense", "Trasporti", "ATM", False),
+            (pd.Timestamp("2026-01-20"), -200.0, "card_tx", "Alimentari", "Spesa", True),
+            (pd.Timestamp("2026-01-21"), -100.0, "card_tx", "Trasporti", "ATM", False),
+            (pd.Timestamp("2026-01-31"), -300.0, "card_settlement", None, None, True),
         )
         out = _build_sankey_data(df)
-        # Expected expense = 50, income = 500 → surplus 450
         assert out["unknown_kind"] == "surplus"
+        unknown = out["nodes"].index(_t("home.charts.unknown"))
+        assert out["link_value"][out["link_target"].index(unknown)] == 200.0
+
+    def test_surplus_is_the_registry_net_balance(self):
+        """The Sankey surplus is all income minus all spending of the period,
+        giroconti left out: the Registry's net balance for the same period."""
+        rows = [
+            (pd.Timestamp("2026-01-15"), 1000.0, "income", "Stipendio", None, False),
+            (pd.Timestamp("2026-01-16"), 40.0, "income", "Alimentari", None, False),  # refund
+            (pd.Timestamp("2026-01-20"), -250.0, "expense", "Alimentari", None, False),
+            (pd.Timestamp("2026-01-21"), -120.0, "card_tx", "Trasporti", None, False),
+            (pd.Timestamp("2026-01-22"), -60.0, "unknown", None, None, False),
+            (pd.Timestamp("2026-01-23"), -500.0, "internal_out", None, None, False),
+            (pd.Timestamp("2026-01-24"), 500.0, "internal_in", None, None, False),
+        ]
+        out = _build_sankey_data(self._df(*rows), {"Alimentari", "Trasporti"})
+        unknown = out["nodes"].index(_t("home.charts.unknown"))
+        surplus = out["link_value"][out["link_target"].index(unknown)]
+        net = sum(r[1] for r in rows if r[2] not in NOT_COUNTED_TYPES)
+        assert surplus == pytest.approx(net) == 610.0
 
     def test_refund_lowers_its_expense_category(self):
         """An income movement with an expense category is money back on a
@@ -289,13 +310,17 @@ class TestBuildMonthlyFlow:
         assert "Alimentari" not in out["expense"].columns
         assert out["expense"].iloc[0]["Trasporti"] == 30.0
 
-    def test_transfers_and_reconciled_left_out(self):
+    def test_transfers_left_out(self):
         df = _rows(
             (pd.Timestamp("2026-01-10"), 5000.0, "internal_in", "Giroconto", None, False),
             (pd.Timestamp("2026-01-11"), -5000.0, "internal_out", "Giroconto", None, False),
-            (pd.Timestamp("2026-01-20"), -200.0, "expense", "Alimentari", None, True),
+            (pd.Timestamp("2026-01-12"), -800.0, "card_settlement", None, None, True),
         )
         assert _build_monthly_flow(df, {"Alimentari"}) is None
+
+    def test_card_spending_counts(self):
+        df = _rows((pd.Timestamp("2026-01-20"), -200.0, "card_tx", "Alimentari", None, True))
+        assert _build_monthly_flow(df, {"Alimentari"})["expense"].iloc[0]["Alimentari"] == 200.0
 
     def test_small_categories_go_to_other(self):
         rows = [(pd.Timestamp("2026-01-20"), -float(10 * (i + 1)), "expense", f"C{i}", None, False)

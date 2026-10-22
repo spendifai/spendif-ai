@@ -10,7 +10,7 @@ import streamlit as st
 
 from services.rule_service import STARTS_WITH, RuleService
 from services.settings_service import SettingsService
-from services.transaction_service import TransactionService
+from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
 from support.formatting import format_amount_display, format_date_display, strftime_to_momentjs
 from support.logging import setup_logging
 from ui.i18n import t
@@ -80,13 +80,12 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
 
 logger = setup_logging()
 
-EXCLUDED_FROM_BALANCE = {"internal_out", "internal_in", "card_settlement", "aggregate_debit"}
 
 
 def excluded_from_totals(txs) -> tuple[int, Decimal, Decimal]:
     """Movements shown in the table that the totals leave out (giroconti,
     card settlements): how many, how much went out, how much came in."""
-    left_out = [Decimal(str(tx.amount)) for tx in txs if tx.tx_type in EXCLUDED_FROM_BALANCE]
+    left_out = [Decimal(str(tx.amount)) for tx in txs if tx.tx_type in NOT_COUNTED_TYPES]
     return (len(left_out),
             abs(sum((a for a in left_out if a < 0), Decimal(0))),
             sum((a for a in left_out if a > 0), Decimal(0)))
@@ -241,7 +240,7 @@ def render_registry_page(engine):
         return
 
     # ── Metrics ────────────────────────────────────────────────────────────────
-    _bal_txs = [tx for tx in txs if tx.tx_type not in EXCLUDED_FROM_BALANCE]
+    _bal_txs = [tx for tx in txs if tx.tx_type not in NOT_COUNTED_TYPES]
     net       = sum(Decimal(str(tx.amount)) for tx in _bal_txs)
     income_t  = sum(Decimal(str(tx.amount)) for tx in _bal_txs if Decimal(str(tx.amount)) > 0)
     expense_t = sum(Decimal(str(tx.amount)) for tx in _bal_txs if Decimal(str(tx.amount)) < 0)
