@@ -657,7 +657,7 @@ def render_home_page(engine) -> None:
     subcategories = t2.toggle(_t("home.charts.sankey_subcategories"), value=False,
                               key="_home_sankey_subcategories",
                               help=_t("home.charts.sankey_subcategories_help"))
-    percent = t3.toggle(_t("home.charts.sankey_percent"), value=False, key="_home_sankey_percent",
+    percent = t3.toggle(_t("home.charts.sankey_percent"), value=True, key="_home_sankey_percent",
                         help=_t("home.charts.sankey_percent_help"))
     sankey = _build_sankey_data(df, expense_categories, subcategories, spending_only)
     if sankey is not None:
