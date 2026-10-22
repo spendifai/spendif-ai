@@ -385,5 +385,46 @@ class TestSankeySidesAndLevels:
             (pd.Timestamp("2026-01-26"), -300.0, "expense", "Investimenti e risparmi", "Fondi", False),
             (pd.Timestamp("2026-01-27"), 40.0, "income", "Investimenti e risparmi", "Interessi", False),
         )
-        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"}, {"Investimenti e risparmi"})
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"})
         assert out["nodes"].count("Investimenti e risparmi") == 2
+
+    def test_spending_only_drops_the_sources(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"}, spending_only=True)
+        kinds = {k[0] for k in out["node_kinds"]}
+        assert "in_category" not in kinds
+        flows = self._flows(out)
+        assert flows[(_t("home.charts.income_total"), "Casa")] == 800.0
+
+    def test_every_column_reads_from_the_biggest_branch_down(self):
+        from ui.home_page import _sankey_layout
+        rows = self._ROWS + (
+            (pd.Timestamp("2026-01-26"), -1200.0, "expense", "Investimenti e risparmi", "Fondi", False),
+            (pd.Timestamp("2026-01-27"), -50.0, "expense", "Casa", "Acqua", False),
+        )
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"}, subcategories=True)
+        x, y, size, _ = _sankey_layout(out)
+        kinds = out["node_kinds"]
+        cats = sorted((i for i, k in enumerate(kinds) if k[0] == "category"), key=lambda i: y[i])
+        assert [size[i] for i in cats] == sorted((size[i] for i in cats), reverse=True)
+        incomes = sorted((i for i, k in enumerate(kinds) if k[0] == "in_category"), key=lambda i: y[i])
+        assert [kinds[i][1] for i in incomes] == ["Lavoro dipendente", "Lavoro autonomo"]
+        # Casa's subcategories stay together, under the bigger Investimenti one
+        subs = sorted((i for i, k in enumerate(kinds) if k[0] == "subcategory"), key=lambda i: y[i])
+        assert [kinds[i][1] for i in subs][:1] == ["Investimenti e risparmi"]
+        assert [kinds[i][2] for i in subs if kinds[i][1] == "Casa"] == ["Affitto", "Acqua"]
+
+    def test_labels_carry_euro_or_percent_only_where_they_fit(self):
+        from ui.home_page import _sankey_labels, _sankey_layout
+        rows = self._ROWS + ((pd.Timestamp("2026-01-27"), -5.0, "expense", "Svago", None, False),)
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"})
+        _, _, size, height = _sankey_layout(out)
+        euro = _sankey_labels(out, size, height, 600, lambda v: f"{v:.0f} EUR")
+        pct = _sankey_labels(out, size, height, 600, lambda v: f"{v:.0f} EUR", percent=True)
+        casa = out["nodes"].index("Casa")
+        assert euro[casa] == "Casa  800 EUR"
+        assert pct[casa] == "Casa  23%"                     # 800 of 3500
+        svago = out["nodes"].index("Svago")
+        assert euro[svago] == "Svago"                       # 5 euro: no room
+        sub = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"}, subcategories=True)
+        _, _, s2, h2 = _sankey_layout(sub)
+        assert _sankey_labels(sub, s2, h2, 600, str) == sub["nodes"]

@@ -236,12 +236,12 @@ def test_money_back_from_savings_is_income_not_a_refund():
     assert exp["abs_amount"].sum() == 480.0       # 400 set aside + 100 - 20 refund
 
 
-def test_the_sankey_draws_money_set_aside_last():
+def test_the_sankey_shows_money_set_aside_by_size_like_any_spending():
     df = _df((1000.0, "Lavoro autonomo", None), (-600.0, "Investimenti e risparmi", "Fondi"),
              (-100.0, "Casa", "Acqua"))
-    out = _build_sankey_data(df, {"Casa"}, {"Investimenti e risparmi"})
-    cats = [n for n in out["nodes"][1:] if n in ("Casa", "Investimenti e risparmi")]
-    assert cats == ["Casa", "Investimenti e risparmi"]
+    out = _build_sankey_data(df, {"Casa"})
+    cats = [n for n, k in zip(out["nodes"], out["node_kinds"]) if k[0] == "category"]
+    assert cats == ["Investimenti e risparmi", "Casa"]
     assert _t("home.charts.unknown") in out["nodes"]
 
 
