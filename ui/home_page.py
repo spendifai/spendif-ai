@@ -155,8 +155,11 @@ def _split_flows(
 
     An income movement whose category is an expense category is a refund (a
     return, money back on a purchase): it lowers that expense instead of
-    counting as income. The expense frame carries ``abs_amount``, the spent
-    amount as a positive number, negative for a refund.
+    counting as income. *expense_categories* holds only spending categories:
+    a category that is also an income one (money set aside, spec 30) is
+    income on money in, not a refund. The expense frame carries
+    ``abs_amount``, the spent amount as a positive number, negative for a
+    refund.
     """
     if df.empty:
         none = pd.DataFrame(columns=["date", "amount", "category", "subcategory", "abs_amount"])
@@ -261,6 +264,7 @@ def _render_monthly_flow(data: dict, palette) -> None:
 
 def _build_sankey_data(
     df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
+    set_aside: Optional[set[str]] = None,
 ) -> Optional[dict]:
     """Build node/link arrays for the Sankey. Returns None if there is no
     income AND no expense (chart pointless), otherwise dict with keys:
@@ -269,7 +273,11 @@ def _build_sankey_data(
         link_target: list[int]
         link_value:  list[float]
         unknown_kind: 'surplus' | 'deficit' | 'parity'  (informational)
+
+    *set_aside*: categories of money set aside (spec 30), drawn after the
+    others, next to the money left in the accounts.
     """
+    set_aside = set_aside or set()
     # Refunds lower their expense category, as in the monthly chart.
     inc_df, exp_df = _split_flows(df, expense_categories)
 
@@ -311,7 +319,7 @@ def _build_sankey_data(
     # AI-119: order matters — Plotly Sankey with arrangement="perpendicular"
     # lays out nodes within each column in the order they're added to the
     # `nodes` list. Sort categories by value DESC so the biggest is on top.
-    for cat, amount in sorted(cat_totals.items(), key=lambda kv: -kv[1]):
+    for cat, amount in sorted(cat_totals.items(), key=lambda kv: (kv[0] in set_aside, -kv[1])):
         if amount <= 0:
             continue
         cat_idx = _node(f"{cat}", ("category", cat))
@@ -326,9 +334,10 @@ def _build_sankey_data(
         exp_df.groupby(["category", "subcategory"])["abs_amount"].sum().reset_index()
     )
     subcat_totals["cat_total"] = subcat_totals["category"].map(cat_totals)
+    subcat_totals["set_aside"] = subcat_totals["category"].isin(set_aside)
     subcat_totals = subcat_totals.sort_values(
-        by=["cat_total", "abs_amount"],
-        ascending=[False, False],
+        by=["set_aside", "cat_total", "abs_amount"],
+        ascending=[True, False, False],
     )
     for _, row in subcat_totals.iterrows():
         amount = float(row["abs_amount"])
@@ -515,11 +524,15 @@ def render_home_page(engine) -> None:
         return
 
     settings = SettingsService(engine)
-    expense_categories = set(settings.get_taxonomy().expenses)
+    taxonomy = settings.get_taxonomy()
+    # A category in both directions is money set aside (spec 30): what comes
+    # back from it is income, not a refund.
+    set_aside = set(taxonomy.expenses) & set(taxonomy.income)
+    expense_categories = set(taxonomy.expenses) - set_aside
     palette = settings.get_palette()
     flow = _build_monthly_flow(df, expense_categories)
     if flow is not None:
         _render_monthly_flow(flow, palette)
-    sankey = _build_sankey_data(df, expense_categories)
+    sankey = _build_sankey_data(df, expense_categories, set_aside)
     if sankey is not None:
         _render_sankey(sankey, palette)

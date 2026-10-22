@@ -119,12 +119,18 @@ class TaxonomyConfig:
     def all_income_categories(self) -> list[str]:
         return sorted(self.income.keys())
 
-    def valid_subcategories(self, category: str) -> list[str]:
-        return sorted(self.expenses.get(category, self.income.get(category, [])))
+    def valid_subcategories(self, category: str, direction: str | None = None) -> list[str]:
+        """Subcategories of *category* on the *direction* side ("expense" or
+        "income"). A category can exist on both sides with different
+        subcategories (spec 30): without a direction, those of both."""
+        if direction == "expense":
+            return sorted(self.expenses.get(category, []))
+        if direction == "income":
+            return sorted(self.income.get(category, []))
+        return sorted(set(self.expenses.get(category, [])) | set(self.income.get(category, [])))
 
-    def is_valid_pair(self, category: str, subcategory: str) -> bool:
-        subs = self.valid_subcategories(category)
-        return subcategory in subs
+    def is_valid_pair(self, category: str, subcategory: str, direction: str | None = None) -> bool:
+        return subcategory in self.valid_subcategories(category, direction)
 
     def find_category_for_subcategory(
         self, subcategory: str, direction: str | None = None
@@ -241,12 +247,13 @@ def _try_deterministic(
         if rule.matches(description, doc_type, amount):
             rule_cat = rule.category
             rule_sub = rule.subcategory or ""
-            if rule_sub:
-                resolved = taxonomy.find_category_for_subcategory(rule_sub)
+            side = {"out": "expense", "in": "income"}.get(rule.direction or "")
+            if rule_sub and not taxonomy.is_valid_pair(rule_cat, rule_sub, side):
+                resolved = taxonomy.find_category_for_subcategory(rule_sub, side)
                 if resolved:
                     rule_cat = resolved
             if not rule_sub:
-                subs = taxonomy.valid_subcategories(rule_cat)
+                subs = taxonomy.valid_subcategories(rule_cat, side)
                 rule_sub = subs[0] if subs else ""
             return CategorizationResult(
                 category=rule_cat,
@@ -450,7 +457,7 @@ def _validate_llm_result(
     confidence_str = item.get("confidence", "low")
     rationale = item.get("rationale", "")
 
-    if not taxonomy.is_valid_pair(category, subcategory):
+    if not taxonomy.is_valid_pair(category, subcategory, direction):
         # Try to resolve subcategory within the correct direction
         resolved_cat = taxonomy.find_category_for_subcategory(subcategory, direction)
         if resolved_cat:

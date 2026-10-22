@@ -287,5 +287,14 @@ def build_tree_data(cfg_svc, type_key: str = "expense") -> list[dict]:
 
 
 def build_full_tree_data(cfg_svc) -> list[dict]:
-    """Build a combined tree (expense + income) for ``render_tree_filter``."""
-    return build_tree_data(cfg_svc, "expense") + build_tree_data(cfg_svc, "income")
+    """Build a combined tree (expense + income) for ``render_tree_filter``.
+    A category in both directions (money set aside, spec 30) is one node:
+    the filter selects movements by name, whatever their direction."""
+    tree: dict[str, dict] = {}
+    for node in build_tree_data(cfg_svc, "expense") + build_tree_data(cfg_svc, "income"):
+        if node["name"] not in tree:
+            tree[node["name"]] = node
+            continue
+        known = {s["name"] for s in tree[node["name"]]["subcategories"]}
+        tree[node["name"]]["subcategories"] += [s for s in node["subcategories"] if s["name"] not in known]
+    return list(tree.values())
