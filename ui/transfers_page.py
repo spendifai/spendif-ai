@@ -94,7 +94,7 @@ def _render_pairs(svc: TransferService, pairs: list[PairRow], date_fmt: str, fmt
         st.rerun()
 
 
-def _render_singles(svc: TransferService, singles: list[SingleRow], date_fmt: str, fmt) -> None:
+def render_singles(svc: TransferService, singles: list[SingleRow], date_fmt: str, fmt) -> None:
     st.subheader(t("transfers.singles_title"))
     st.markdown(t("transfers.singles_help"))
     labels = {a: t(f"transfers.answer.{a}") for a in DESTINATION_ANSWERS}
@@ -166,7 +166,7 @@ def render_transfers_page(engine) -> None:
         if view.pairs:
             _render_pairs(svc, view.pairs, date_fmt, fmt)
         if view.singles:
-            _render_singles(svc, view.singles, date_fmt, fmt)
+            render_singles(svc, view.singles, date_fmt, fmt)
     if view.settled:
         st.caption(t("transfers.settled", n=view.settled))
     if view.older:

@@ -268,6 +268,10 @@ def _route(page: str, engine) -> None:
         from ui.checklist_page import render_checklist_page
         render_checklist_page(engine)
 
+    elif page == "check":
+        from ui.checking_page import render_checking_page
+        render_checking_page(engine)
+
     elif page == "chat":
         from ui.chat_page import render_chat_page
         render_chat_page(engine)

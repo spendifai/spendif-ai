@@ -135,6 +135,9 @@ class GuidedFlowService:
             closed.add("transfers")
         if not self.uncategorized_income():
             closed.add("income")
+        from services.checking_service import CheckingService, proposed
+        if proposed(CheckingService(self._engine).accounts()) is None:
+            closed.add("check")
         return closed
 
     def resume(self, today: date | None = None) -> str:
