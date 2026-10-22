@@ -27,7 +27,7 @@ import streamlit as st
 
 from services.guided_flow_service import GuidedFlowService
 from services.settings_service import SettingsService
-from services.transaction_service import TransactionService
+from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
 from ui.i18n import t
 
 
@@ -39,8 +39,6 @@ def _t(key: str, **kwargs):
 # ── Constants ────────────────────────────────────────────────────────────────
 
 _ROLLING_DAYS = 365  # rolling 12-month window
-_INCOME_TYPE = "income"
-_EXPENSE_TYPE = "expense"
 
 
 # ── Date range helpers ───────────────────────────────────────────────────────
@@ -151,7 +149,9 @@ def _render_empty_state() -> None:
 def _split_flows(
     df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Income rows and expense rows of *df*, transfers and reconciled left out.
+    """Income rows and expense rows of *df*: every movement of the period
+    except the giroconti (NOT_COUNTED_TYPES), the same as the Registry totals.
+    Card movements count like any other.
 
     An income movement whose category is an expense category is a refund (a
     return, money back on a purchase): it lowers that expense instead of
@@ -161,9 +161,9 @@ def _split_flows(
     if df.empty:
         none = pd.DataFrame(columns=["date", "amount", "category", "subcategory", "abs_amount"])
         return none, none
-    live = df[~df["reconciled"].astype(bool)]
-    inc = live[(live["tx_type"] == _INCOME_TYPE) & (live["amount"] > 0)].copy()
-    exp = live[live["tx_type"] == _EXPENSE_TYPE].copy()
+    live = df[~df["tx_type"].isin(NOT_COUNTED_TYPES)]
+    inc = live[live["amount"] > 0].copy()
+    exp = live[live["amount"] < 0].copy()
     exp["abs_amount"] = exp["amount"].abs()
     if expense_categories:
         refund = inc["category"].isin(expense_categories)
