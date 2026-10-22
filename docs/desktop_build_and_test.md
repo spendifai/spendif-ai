@@ -66,8 +66,11 @@ Use a version that is valid for **every** target format:
 | `.deb` | `X.Y.Z` recommended, dashes tolerated but discouraged |
 | `.rpm` | `X.Y.Z` only, **no dashes** (`-` forbidden in `Version:`) |
 
-→ Stick to plain `MAJOR.MINOR.PATCH` for `workflow_dispatch` runs
-(`0.1.0`, `0.2.0-rc1` will break RPM and MSIX).
+→ Versions are calendar versions `YYYY.M.N` from 2026.10.0 (month without a
+leading zero, release of the month from 0): three plain numbers, valid for
+every format above. No suffixes (`2026.10.0-rc1` breaks RPM and MSIX) and no
+leading zero (`2026.01.0` is not valid semver, and the Docker image tags read
+the version as semver).
 
 Once the run finishes (15–20 min):
 

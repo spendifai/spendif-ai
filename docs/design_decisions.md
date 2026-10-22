@@ -131,8 +131,10 @@ Card–account reconciliation uses:
 3. **Boundary subset sum** with k = 10 transactions, ~10⁶ operations
    maximum.
 
-Reconciled transactions are excluded from the net balance to prevent
-double-counting.
+Only the settlement debit is left out of the totals, by its type (card
+settlement, like internal transfers); the card's detail lines are the real
+spending and count. The reconciled flag marks both sides of a match and hides
+nothing.
 
 **Status: beta.** Edge cases (multi-currency, partial settlements, mid-month
 issuer changes) are still being refined.
@@ -150,3 +152,22 @@ Symbolic-amount matching with time window and owner-name permutations:
 
 **Status: beta.** Edge cases (intermediary holding accounts, currency
 conversion fees) are still being refined.
+
+## Calendar versioning
+
+From 2026.10.0 versions are calendar versions `YYYY.M.N`: year, month without
+a leading zero, release of the month from 0. Earlier releases (up to 0.3.5)
+used Semantic Versioning.
+
+- A personal finance app released as a desktop package has no public API
+  whose compatibility a major number would promise; the date says how old
+  the installed copy is, which is what a user needs to know.
+- Three plain numbers stay valid for every package format: MSIX takes four
+  numeric parts up to 65535, RPM forbids dashes, Homebrew and winget compare
+  numbers. No suffixes (no `-beta`, no `-rc1`) and no leading zero, which is
+  not valid semver and would break the Docker image tags that read the version
+  as semver.
+- The update check compares the numbers as a tuple, so 2026.10.0 is newer
+  than 0.3.5 and existing installs are offered the upgrade.
+- The launch stage (alpha, beta) is not part of the version: it is said in the
+  release notes.
