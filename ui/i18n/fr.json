@@ -1502,8 +1502,6 @@
   "check.all_even": "Tous les comptes sont à jour.",
   "check.account": "Compte à vérifier",
   "check.since": "À partir du",
-  "check.gap": "Il y a aussi {n} opérations non vérifiées avant le {date}.",
-  "check.gap_start": "Partir de la première non vérifiée",
   "check.next": "Suivant",
   "check.grid_header": "**{account}** à partir du {date} : il en reste **{n}**.",
   "check.back_to_list": "Retour à la liste",
@@ -1517,5 +1515,6 @@
   "guided.welcome": "C'est d'ici que vous repartez à chaque fois : je vous dis ce qu'il y a à faire, une étape à la fois. Vous le trouvez en haut du menu.",
   "guided.welcome_ok": "Compris",
   "nav.check": "✅ Si vous voulez vérifier",
-  "nav.check.desc": "Vérifiez vos opérations un compte à la fois, à partir de la dernière vérifiée."
+  "nav.check.desc": "Vérifiez vos opérations un compte à la fois, à partir de la dernière vérifiée.",
+  "check.col.first_unchecked": "Première à vérifier"
 }

@@ -1,15 +1,16 @@
 """Checking movements one account at a time (spec 31).
 
-For every account: the last movement the user checked, how many are left
-after it and how many unchecked ones sit before it; the account furthest
-behind is proposed with the day to start from. The grid then shows the
-unchecked movements of that account from that day, oldest first.
+For every account: the last movement the user checked, the first one not
+checked yet and how many are left; the account whose oldest unchecked
+movement is furthest back is proposed, starting from that movement, so
+nothing left behind is ever skipped (founder, 2026-10-22). The grid then
+shows the unchecked movements of that account from that day, oldest first.
 """
 from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
@@ -22,15 +23,13 @@ class AccountCheck:
     """Where the check of one account stands."""
     account: str
     last_checked: date | None     # date of the most recent checked movement
-    first: date                   # date of the account's first movement
-    to_check: int                 # unchecked movements from ``start`` on
-    before: int                   # unchecked movements before ``start``
+    first_unchecked: date | None  # date of the oldest unchecked movement
+    to_check: int                 # unchecked movements
 
     @property
-    def start(self) -> date:
-        """The day after the last checked movement; the first movement when
-        nothing was ever checked."""
-        return self.last_checked + timedelta(days=1) if self.last_checked else self.first
+    def start(self) -> date | None:
+        """Where the check starts: the oldest unchecked movement."""
+        return self.first_unchecked
 
 
 def _day(value: str) -> date:
@@ -38,12 +37,12 @@ def _day(value: str) -> date:
 
 
 def proposed(accounts: list[AccountCheck]) -> AccountCheck | None:
-    """The account furthest behind: the oldest last check (never checked
-    first), then the most movements to check. None when all are even."""
+    """The account furthest behind: the oldest unchecked movement, then the
+    most movements to check. None when all are even."""
     open_ = [a for a in accounts if a.to_check]
     if not open_:
         return None
-    return min(open_, key=lambda a: (a.last_checked or date.min, -a.to_check, a.account))
+    return min(open_, key=lambda a: (a.first_unchecked, -a.to_check, a.account))
 
 
 class CheckingService:
@@ -62,23 +61,16 @@ class CheckingService:
     def accounts(self) -> list[AccountCheck]:
         """Every account with movements, in name order."""
         with self._session() as s:
+            checked = Transaction.human_validated.is_(True)
             rows = s.query(
                 Transaction.account_label,
-                func.min(Transaction.date),
-                func.max(Transaction.date).filter(Transaction.human_validated.is_(True)),
+                func.max(Transaction.date).filter(checked),
+                func.min(Transaction.date).filter(~checked | Transaction.human_validated.is_(None)),
+                func.count(Transaction.id).filter(~checked | Transaction.human_validated.is_(None)),
             ).filter(Transaction.account_label.isnot(None)).group_by(Transaction.account_label).all()
-            result = []
-            for account, first, last in sorted(rows, key=lambda r: r[0]):
-                last_day = _day(last) if last else None
-                start = last_day + timedelta(days=1) if last_day else _day(first)
-                unchecked = s.query(Transaction.date).filter(
-                    Transaction.account_label == account,
-                    Transaction.human_validated.isnot(True),
-                ).all()
-                after = sum(1 for (d,) in unchecked if _day(d) >= start)
-                result.append(AccountCheck(account=account, last_checked=last_day, first=_day(first),
-                                           to_check=after, before=len(unchecked) - after))
-            return result
+            return [AccountCheck(account=account, last_checked=_day(last) if last else None,
+                                 first_unchecked=_day(first) if first else None, to_check=n or 0)
+                    for account, last, first, n in sorted(rows, key=lambda r: r[0])]
 
     def unchecked(self, account: str, since: date) -> list[Transaction]:
         """The unchecked movements of *account* from *since*, oldest first."""

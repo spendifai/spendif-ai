@@ -1502,8 +1502,6 @@
   "check.all_even": "Every account is up to date.",
   "check.account": "Account to check",
   "check.since": "From",
-  "check.gap": "There are also {n} unchecked movements before {date}.",
-  "check.gap_start": "Start from the first unchecked one",
   "check.next": "Next",
   "check.grid_header": "**{account}** from {date}: **{n}** left.",
   "check.back_to_list": "Back to the list",
@@ -1517,5 +1515,6 @@
   "guided.welcome": "This is where you start from every time: I tell you what there is to do, one step at a time. You find it at the top of the menu.",
   "guided.welcome_ok": "Got it",
   "nav.check": "✅ If you want to check",
-  "nav.check.desc": "Check your movements one account at a time, from the last one you checked."
+  "nav.check.desc": "Check your movements one account at a time, from the last one you checked.",
+  "check.col.first_unchecked": "First to check"
 }

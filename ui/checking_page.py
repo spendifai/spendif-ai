@@ -43,6 +43,8 @@ def _render_list(svc: CheckingService, date_fmt: str) -> None:
             t("check.col.account"): a.account,
             t("check.col.last_checked"): (format_date_display(a.last_checked.isoformat(), date_fmt)
                                           if a.last_checked else t("check.never")),
+            t("check.col.first_unchecked"): (format_date_display(a.first_unchecked.isoformat(), date_fmt)
+                                             if a.first_unchecked else ""),
             t("check.col.to_check"): a.to_check,
         } for a in accounts],
         hide_index=True, width="stretch",
@@ -55,16 +57,8 @@ def _render_list(svc: CheckingService, date_fmt: str) -> None:
     account = st.selectbox(t("check.account"), names, index=names.index(best.account), key="check_pick_account")
     chosen = next(a for a in accounts if a.account == account)
     since_key = f"check_pick_since_{account}"
-    st.session_state.setdefault(since_key, chosen.start)
+    st.session_state.setdefault(since_key, chosen.start or date.today())
     since = st.date_input(t("check.since"), key=since_key, format="DD/MM/YYYY")
-    if chosen.before and since >= chosen.start:
-        st.caption(t("check.gap", n=chosen.before,
-                     date=format_date_display(chosen.start.isoformat(), date_fmt)))
-        first = svc.unchecked(account, chosen.first)
-        first_day = date.fromisoformat(str(first[0].date)[:10]) if first else chosen.first
-        # A callback: the date widget above is already drawn in this run.
-        st.button(t("check.gap_start"), key="check_gap_start",
-                  on_click=lambda: st.session_state.__setitem__(since_key, first_day))
     if st.button(t("check.next"), type="primary", key="check_next",
                  disabled=svc.remaining(account, since) == 0):
         st.session_state[CHECK_ACCOUNT] = account

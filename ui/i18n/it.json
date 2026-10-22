@@ -1502,8 +1502,6 @@
   "check.all_even": "Tutti i conti sono in pari.",
   "check.account": "Conto da controllare",
   "check.since": "Dal giorno",
-  "check.gap": "Ci sono anche {n} movimenti non controllati prima del {date}.",
-  "check.gap_start": "Parti dal primo non controllato",
   "check.next": "Avanti",
   "check.grid_header": "**{account}** dal {date}: ne restano **{n}**.",
   "check.back_to_list": "Torna alla lista",
@@ -1517,5 +1515,6 @@
   "guided.welcome": "Da qui riparti ogni volta: ti dico cosa c'è da fare, un passo alla volta. Lo trovi in cima al menu.",
   "guided.welcome_ok": "Ho capito",
   "nav.check": "✅ Se vuoi controllare",
-  "nav.check.desc": "Controlla i movimenti un conto alla volta, dall'ultimo che hai controllato."
+  "nav.check.desc": "Controlla i movimenti un conto alla volta, dall'ultimo che hai controllato.",
+  "check.col.first_unchecked": "Primo da controllare"
 }

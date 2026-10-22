@@ -1502,8 +1502,6 @@
   "check.all_even": "Alle Konten sind auf dem neuesten Stand.",
   "check.account": "Zu prüfendes Konto",
   "check.since": "Ab dem",
-  "check.gap": "Es gibt auch {n} ungeprüfte Umsätze vor dem {date}.",
-  "check.gap_start": "Beim ersten ungeprüften beginnen",
   "check.next": "Weiter",
   "check.grid_header": "**{account}** ab dem {date}: noch **{n}**.",
   "check.back_to_list": "Zurück zur Liste",
@@ -1517,5 +1515,6 @@
   "guided.welcome": "Hier fängst du jedes Mal an: ich sage dir, was zu tun ist, Schritt für Schritt. Du findest es oben im Menü.",
   "guided.welcome_ok": "Verstanden",
   "nav.check": "✅ Wenn du prüfen willst",
-  "nav.check.desc": "Prüfe deine Umsätze Konto für Konto, ab dem zuletzt geprüften."
+  "nav.check.desc": "Prüfe deine Umsätze Konto für Konto, ab dem zuletzt geprüften.",
+  "check.col.first_unchecked": "Erster zu prüfen"
 }

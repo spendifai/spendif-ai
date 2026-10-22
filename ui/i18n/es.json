@@ -1502,8 +1502,6 @@
   "check.all_even": "Todas las cuentas están al día.",
   "check.account": "Cuenta que comprobar",
   "check.since": "Desde el día",
-  "check.gap": "También hay {n} movimientos sin comprobar antes del {date}.",
-  "check.gap_start": "Empezar por el primero sin comprobar",
   "check.next": "Siguiente",
   "check.grid_header": "**{account}** desde el {date}: quedan **{n}**.",
   "check.back_to_list": "Volver a la lista",
@@ -1517,5 +1515,6 @@
   "guided.welcome": "Desde aquí empiezas cada vez: te digo qué hay que hacer, paso a paso. Lo encuentras arriba en el menú.",
   "guided.welcome_ok": "Entendido",
   "nav.check": "✅ Si quieres comprobar",
-  "nav.check.desc": "Comprueba tus movimientos cuenta por cuenta, desde el último que comprobaste."
+  "nav.check.desc": "Comprueba tus movimientos cuenta por cuenta, desde el último que comprobaste.",
+  "check.col.first_unchecked": "Primero por comprobar"
 }
