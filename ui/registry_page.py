@@ -34,8 +34,6 @@ COL_DESC = "description"
 COL_RAW = "raw"
 COL_INCOME = "income"
 COL_EXPENSE = "expense"
-COL_ACCOUNT = "account"
-COL_TYPE = "type"
 # Category and subcategory in one column, as in every grid of the app.
 COL_CAT_SUB = "cat_sub"
 COL_CONTEXT = "context"
@@ -53,9 +51,11 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
     """Una riga della tabella del Registro, con chiavi interne."""
     amount = float(tx.amount)
     is_transfer = tx.tx_type in _INTERNAL_TRANSFER_TYPES
+    # Column order is the grid's order (founder, 2026-10-22): what you read,
+    # what you decide, the rule tick, then the symbols that only inform.
+    # Account and type are filters above the grid, not columns.
     row = {
         COL_ID:          tx.id,
-        COL_SEL:         False,
         # U-06: resta un date, non una stringa, cosi' l'ordinamento e' corretto
         COL_DATE:        pd.to_datetime(tx.date).date() if tx.date else None,
         COL_DESC:        tx.description or "",
@@ -64,16 +64,15 @@ def build_ledger_row(tx, show_raw: bool, source_badge: dict) -> dict:
         **({COL_RAW: tx.raw_description or ""} if show_raw else {}),
         COL_INCOME:      amount if amount > 0 else None,
         COL_EXPENSE:     abs(amount) if amount < 0 else None,
-        COL_ACCOUNT:     tx.account_label or "",
-        COL_TYPE:        tx.tx_type or "",
         COL_CAT_SUB:     join_cat_sub(tx.category, tx.subcategory),
         COL_CONTEXT:     tx.context or "",
+        COL_VALIDATED:   bool(tx.human_validated),
+        COL_TRANSFER:    is_transfer,
+        COL_SEL:         False,
         COL_SOURCE:      source_badge.get(tx.category_source, "—"),
         COL_FLAG_REVIEW: "⚠️" if tx.to_review else "·",
         COL_FLAG_VALID:  "✅" if tx.human_validated else "·",
         COL_FLAG_TRANSFER: "🔄" if is_transfer else "·",
-        COL_VALIDATED:   bool(tx.human_validated),
-        COL_TRANSFER:    is_transfer,
     }
     return row
 
@@ -347,10 +346,6 @@ def render_registry_page(engine):
                                                        width="small", help=t("ledger.col.income_help")),
         COL_EXPENSE:     st.column_config.NumberColumn(t("ledger.col.expense"), disabled=True, format="%.2f",
                                                        width="small", help=t("ledger.col.expense_help")),
-        COL_ACCOUNT:     st.column_config.TextColumn(t("ledger.col.account"), disabled=True, width="small",
-                                                     help=t("ledger.col.account_help")),
-        COL_TYPE:        st.column_config.TextColumn(t("ledger.col.type"), disabled=True, width="small",
-                                                     help=t("ledger.col.type_help")),
         COL_CAT_SUB:     st.column_config.SelectboxColumn(
             t("ledger.col.cat_sub"), options=[""] + _cat_options, required=False, width="large",
             help=t("ledger.col.cat_sub_help"),
@@ -361,11 +356,11 @@ def render_registry_page(engine):
         ),
         COL_SOURCE:      st.column_config.TextColumn(t("ledger.col.source"), disabled=True, width=100,
                                                      help=t("ledger.col.source_help")),
-        COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=40,
+        COL_FLAG_REVIEW: st.column_config.TextColumn("⚠️", disabled=True, width=20,
                                                      help=t("ledger.col.flag_review_help")),
-        COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=40,
+        COL_FLAG_VALID:  st.column_config.TextColumn("✅", disabled=True, width=20,
                                                      help=t("ledger.col.flag_valid_help")),
-        COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=40,
+        COL_FLAG_TRANSFER: st.column_config.TextColumn("🔄", disabled=True, width=20,
                                                        help=t("ledger.col.flag_transfer_help")),
         COL_VALIDATED:   st.column_config.CheckboxColumn(
             t("ledger.col.validated"), help=t("ledger.col.validated_help"), width=60,

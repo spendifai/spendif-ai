@@ -28,6 +28,7 @@ import streamlit as st
 from services.guided_flow_service import GuidedFlowService
 from services.settings_service import SettingsService
 from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
+from support.formatting import format_amount_display
 from ui.i18n import t
 
 
@@ -155,8 +156,11 @@ def _split_flows(
 
     An income movement whose category is an expense category is a refund (a
     return, money back on a purchase): it lowers that expense instead of
-    counting as income. The expense frame carries ``abs_amount``, the spent
-    amount as a positive number, negative for a refund.
+    counting as income. *expense_categories* holds only spending categories:
+    a category that is also an income one (money set aside, spec 30) is
+    income on money in, not a refund. The expense frame carries
+    ``abs_amount``, the spent amount as a positive number, negative for a
+    refund.
     """
     if df.empty:
         none = pd.DataFrame(columns=["date", "amount", "category", "subcategory", "abs_amount"])
@@ -261,6 +265,8 @@ def _render_monthly_flow(data: dict, palette) -> None:
 
 def _build_sankey_data(
     df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
+    subcategories: bool = False,
+    spending_only: bool = False,
 ) -> Optional[dict]:
     """Build node/link arrays for the Sankey. Returns None if there is no
     income AND no expense (chart pointless), otherwise dict with keys:
@@ -269,6 +275,12 @@ def _build_sankey_data(
         link_target: list[int]
         link_value:  list[float]
         unknown_kind: 'surplus' | 'deficit' | 'parity'  (informational)
+
+    Where the money comes from on the left (income categories), where it
+    goes on the right (spending categories): production and consumption of
+    the period. *subcategories* adds the second level on both sides.
+    *spending_only* drops the left side: the total income splits into
+    spending only.
     """
     # Refunds lower their expense category, as in the monthly chart.
     inc_df, exp_df = _split_flows(df, expense_categories)
@@ -284,23 +296,46 @@ def _build_sankey_data(
     uncat_cat_label = _t("home.charts.uncategorised")
     uncat_sub_label = _t("home.charts.uncategorised_sub")
 
-    nodes: list[str] = [income_label]  # 0 = income source
-    node_idx: dict[str, int] = {income_label: 0}
-    # What each node is, for its colour (spec 25): ("income",),
-    # ("category", cat), ("subcategory", cat, sub) or ("unknown",).
+    nodes: list[str] = [income_label]  # 0 = total income
+    # What each node is, for its colour (spec 25) and as its identity: the
+    # same name can be an income and a spending category. ("income",),
+    # ("in_category", cat), ("in_subcategory", cat, sub), ("category", cat),
+    # ("subcategory", cat, sub) or ("unknown",).
     node_kinds: list[tuple] = [("income",)]
+    node_idx: dict[tuple, int] = {("income",): 0}
 
     def _node(label: str, kind: tuple) -> int:
-        if label not in node_idx:
-            node_idx[label] = len(nodes)
+        if kind not in node_idx:
+            node_idx[kind] = len(nodes)
             nodes.append(label)
             node_kinds.append(kind)
-        return node_idx[label]
+        return node_idx[kind]
 
     link_source: list[int] = []
     link_target: list[int] = []
     link_value: list[float] = []
 
+    # ── Left: where the money comes from ────────────────────────────────────
+    inc_df = inc_df.copy()
+    inc_df["category"] = inc_df["category"].fillna(uncat_cat_label)
+    inc_df["subcategory"] = inc_df["subcategory"].fillna(uncat_sub_label)
+    in_totals = inc_df.groupby("category")["amount"].sum()
+    for cat, amount in (() if spending_only else in_totals.sort_values(ascending=False).items()):
+        if amount <= 0:
+            continue
+        cat_idx = _node(f"{cat}", ("in_category", cat))
+        if subcategories:
+            subs = inc_df[inc_df["category"] == cat].groupby("subcategory")["amount"].sum()
+            for sub, sub_amount in subs.sort_values(ascending=False).items():
+                if sub_amount > 0:
+                    link_source.append(_node(f"{sub} ({cat})", ("in_subcategory", cat, sub)))
+                    link_target.append(cat_idx)
+                    link_value.append(float(sub_amount))
+        link_source.append(cat_idx)
+        link_target.append(0)
+        link_value.append(float(amount))
+
+    # ── Right: where it goes ────────────────────────────────────────────────
     # Expense category aggregation (with "uncategorised" fallback).
     exp_df["category"] = exp_df["category"].fillna(uncat_cat_label)
     exp_df["subcategory"] = exp_df["subcategory"].fillna(uncat_sub_label)
@@ -330,7 +365,7 @@ def _build_sankey_data(
         by=["cat_total", "abs_amount"],
         ascending=[False, False],
     )
-    for _, row in subcat_totals.iterrows():
+    for _, row in (subcat_totals.iterrows() if subcategories else ()):
         amount = float(row["abs_amount"])
         if amount <= 0:
             continue
@@ -355,14 +390,9 @@ def _build_sankey_data(
         link_value.append(delta)
         unknown_kind = "surplus"
     elif delta < 0:
-        # Deficit: Unknown supplies the missing budget.
+        # Deficit: a source on the left, next to the income categories, so
+        # what enters the total equals what is spent.
         unknown_idx = _node(unknown_label, ("unknown",))
-        # Each category currently gets its abs amount from income (0). Re-balance:
-        # Unknown is an extra source; we model it as a separate flow that goes
-        # collectively to a virtual "expense pool". Simplest: Unknown → income_label
-        # is unsound; Sankey needs Unknown → each category for the deficit slice.
-        # We instead add a synthetic flow Unknown → income_label so the balance
-        # math reads cleanly (the total entering "income" equals total expenses).
         link_source.append(unknown_idx)
         link_target.append(0)
         link_value.append(-delta)
@@ -371,6 +401,7 @@ def _build_sankey_data(
         unknown_kind = "parity"
 
     return {
+        "subcategories": subcategories,
         "nodes": nodes,
         "node_kinds": node_kinds,
         "link_source": link_source,
@@ -383,6 +414,10 @@ def _build_sankey_data(
 def _node_color(kind: tuple, palette) -> str:
     if kind[0] == "income":
         return palette.tokens["income"]
+    if kind[0] == "in_category":
+        return palette.category(kind[1], "income")
+    if kind[0] == "in_subcategory":
+        return palette.subcategory(kind[1], kind[2], "income")
     if kind[0] == "category":
         return palette.category(kind[1], "expense")
     if kind[0] == "subcategory":
@@ -395,30 +430,123 @@ def _transparent(color: str, alpha: float = 0.35) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def _render_sankey(data: dict, palette) -> None:
+# Pixels between two nodes of a column, and the chart's margins.
+_SANKEY_PAD_PX = 22
+_SANKEY_MARGIN_TOP, _SANKEY_MARGIN_BOTTOM = 60, 30
+
+
+def _sankey_columns(data: dict) -> tuple[list[int], list[float]]:
+    """The column of every node (0 income subcategories ... 4 spending
+    subcategories) and its size, the larger of what enters and leaves it."""
+    n = len(data["nodes"])
+    into, out = [0.0] * n, [0.0] * n
+    for src, tgt, val in zip(data["link_source"], data["link_target"], data["link_value"]):
+        out[src] += val
+        into[tgt] += val
+    size = [max(a, b) for a, b in zip(into, out)]
+    order = {"in_subcategory": 0, "in_category": 1, "income": 2, "category": 3, "subcategory": 4}
+    columns = []
+    for i, kind in enumerate(data["node_kinds"]):
+        if kind[0] == "unknown":
+            columns.append(1 if out[i] else 3)   # a deficit is a source, a surplus a destination
+        else:
+            columns.append(order[kind[0]])
+    return columns, size
+
+
+def _sankey_plot_px(data: dict) -> int:
+    """Height of the drawing area: room for the column with the most nodes."""
+    columns, _ = _sankey_columns(data)
+    densest = max((columns.count(c) for c in set(columns)), default=1)
+    return max(520, min(1600, densest * (_SANKEY_PAD_PX + 20)))
+
+
+def _sankey_layout(data: dict, plot_px: int = 520, pad_px: int = _SANKEY_PAD_PX
+                   ) -> tuple[list[float], list[float], list[float], list[float]]:
+    """x, y and size of every node, so that every column reads from the
+    biggest branch down (founder, 2026-10-22): Plotly takes the order nodes
+    are added only as a hint. Subcategories stay next to their category.
+    Node heights use Plotly's own scale (the densest column fills the
+    height, *pad_px* between nodes), so what is computed here is what is
+    drawn and nothing spills below the chart. Returns x, y (centres), size
+    and height (as a share of *plot_px*)."""
+    columns, size = _sankey_columns(data)
+    kinds = data["node_kinds"]
+    n = len(size)
+
+    def parent_size(i: int) -> float:
+        kind = kinds[i]
+        if kind[0] in ("subcategory", "in_subcategory"):
+            parent = ("category" if kind[0] == "subcategory" else "in_category", kind[1])
+            return next((size[j] for j in range(n) if kinds[j] == parent), 0.0)
+        return size[i]
+
+    used = sorted(set(columns))
+    members = {c: sorted((i for i in range(n) if columns[i] == c),
+                         key=lambda i: (-parent_size(i), kinds[i][1:2], -size[i])) for c in used}
+    # Pixels per euro: the same for every column, set by the tightest one.
+    scale = min(max(1.0, plot_px - pad_px * (len(m) - 1)) / (sum(size[i] for i in m) or 1.0)
+                for m in members.values())
+    x_of = {c: 0.001 + 0.998 * k / max(1, len(used) - 1) for k, c in enumerate(used)}
+    x, y, h = [0.0] * n, [0.0] * n, [0.0] * n
+    for c in used:
+        top = 0.0
+        for i in members[c]:
+            node_px = scale * size[i]
+            x[i] = x_of[c]
+            y[i] = max(0.001, (top + node_px / 2) / plot_px)
+            h[i] = node_px / plot_px
+            top += node_px + pad_px
+    return x, y, size, h
+
+
+# Below this height in pixels a branch has no room for its value.
+_SANKEY_LABEL_MIN_PX = 16
+
+
+def _sankey_labels(data: dict, size: list[float], height: list[float], chart_px: int,
+                   amount=None, percent: bool = False) -> list[str]:
+    """With categories only, a branch tall enough for the text carries its
+    value: euro (*amount* formats it) or share of the total income."""
+    labels = list(data["nodes"])
+    if amount is None or data.get("subcategories"):
+        return labels
+    total = size[0] or 1.0                                  # node 0 is the total
+    out = []
+    for label, v, hh in zip(labels, size, height):
+        if hh * chart_px < _SANKEY_LABEL_MIN_PX:
+            out.append(label)
+        elif percent:
+            out.append(f"{label}  {v / total * 100:.0f}%")
+        else:
+            out.append(f"{label}  {amount(v)}")
+    return out
+
+
+def _render_sankey(data: dict, palette, amount=None, percent: bool = False) -> None:
+    """*amount* formats a value in euro; *percent* shows the share of the
+    total instead."""
     import plotly.graph_objects as go
 
     node_colors = [_node_color(k, palette) for k in data["node_kinds"]]
+    plot_px = _sankey_plot_px(data)
+    x, y, size, height = _sankey_layout(data, plot_px)
     # A link takes the colour of where the money goes (spec 25).
     link_colors = [_transparent(node_colors[t]) for t in data["link_target"]]
 
-    # AI-118: dynamic height + larger pad to keep small branches readable.
-    # Plotly Sankey sizes branches proportionally to value, so tiny categories
-    # become unreadable. We can't enforce a true min-height, but giving the
-    # chart more vertical space + node padding makes the labels survive.
-    # The densest column drives the layout: roughly len(nodes)//3 (income,
-    # expense_cat, expense_subcat). Each node wants ~22 px of breathing room.
-    n_nodes = len(data["nodes"])
-    densest_col = max(1, n_nodes // 3)
-    chart_height = max(600, min(1400, densest_col * 22))
+    # AI-118: the densest column sets the height, so small branches keep
+    # some room; positions are fixed, so the chart never grows past it.
+    chart_height = plot_px + _SANKEY_MARGIN_TOP + _SANKEY_MARGIN_BOTTOM
+    labels = _sankey_labels(data, size, height, plot_px, amount, percent)
 
     fig = go.Figure(
         go.Sankey(
-            arrangement="perpendicular",
+            arrangement="fixed",
             node=dict(
-                label=data["nodes"],
+                label=labels,
+                x=x, y=y,
                 color=node_colors,
-                pad=22, thickness=18,
+                pad=_SANKEY_PAD_PX, thickness=18,
             ),
             link=dict(
                 source=data["link_source"],
@@ -431,7 +559,7 @@ def _render_sankey(data: dict, palette) -> None:
     fig.update_layout(
         title=_t("home.charts.sankey_title"),
         height=chart_height,
-        margin=dict(l=10, r=10, t=60, b=10),
+        margin=dict(l=10, r=10, t=_SANKEY_MARGIN_TOP, b=_SANKEY_MARGIN_BOTTOM),
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -515,11 +643,27 @@ def render_home_page(engine) -> None:
         return
 
     settings = SettingsService(engine)
-    expense_categories = set(settings.get_taxonomy().expenses)
+    taxonomy = settings.get_taxonomy()
+    # A category in both directions is money set aside (spec 30): what comes
+    # back from it is income, not a refund.
+    set_aside = set(taxonomy.expenses) & set(taxonomy.income)
+    expense_categories = set(taxonomy.expenses) - set_aside
     palette = settings.get_palette()
+    # The Sankey first, the months below (founder, 2026-10-22).
+    t1, t2, t3 = st.columns(3)
+    spending_only = t1.toggle(_t("home.charts.sankey_spending_only"), value=False,
+                              key="_home_sankey_spending_only",
+                              help=_t("home.charts.sankey_spending_only_help"))
+    subcategories = t2.toggle(_t("home.charts.sankey_subcategories"), value=False,
+                              key="_home_sankey_subcategories",
+                              help=_t("home.charts.sankey_subcategories_help"))
+    percent = t3.toggle(_t("home.charts.sankey_percent"), value=True, key="_home_sankey_percent",
+                        help=_t("home.charts.sankey_percent_help"))
+    sankey = _build_sankey_data(df, expense_categories, subcategories, spending_only)
+    if sankey is not None:
+        _dec = settings.get("amount_decimal_sep", ",")
+        _thou = settings.get("amount_thousands_sep", ".")
+        _render_sankey(sankey, palette, lambda v: format_amount_display(v, _dec, _thou), percent)
     flow = _build_monthly_flow(df, expense_categories)
     if flow is not None:
         _render_monthly_flow(flow, palette)
-    sankey = _build_sankey_data(df, expense_categories)
-    if sankey is not None:
-        _render_sankey(sankey, palette)

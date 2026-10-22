@@ -17,6 +17,7 @@ from __future__ import annotations
 # Ordine: dal più recente al più vecchio.
 # (group_id, boundary_commit, descrizione)
 ACCURACY_GROUPS = [
+    ("G12", "1376f50", "savings category in both directions, direction-aware subcategory lookups"),
     ("G11", "0ec4b92", "every rule has a direction"),
     ("G10", "6c0b70a", "checked movements, no reuse of the fallback, model answers rewrite the past"),
     ("G9", "c8d4851", "own names applied before cleaning"),
@@ -51,6 +52,11 @@ for _c in ["6c0b70a", "e57f8aa"]:
 # G11: rules hold only for the movements in their direction.
 for _c in ["0ec4b92"]:
     _GROUP_COMMITS[_c] = "G11"
+
+# G12: new taxonomy for money set aside; rules and model answers are
+# validated on their own direction's subcategories; place hints renamed.
+for _c in ["1376f50"]:
+    _GROUP_COMMITS[_c] = "G12"
 
 for _c in ["6988086"]:
     _GROUP_COMMITS[_c] = "G8"

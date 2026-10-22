@@ -81,7 +81,7 @@ def test_ledger_row_keys_cover_the_column_config():
         row = rp.build_ledger_row(_Tx(), show_raw, {"llm": "🤖"})
         attese = {
             rp.COL_ID, rp.COL_SEL, rp.COL_DATE, rp.COL_DESC, rp.COL_INCOME, rp.COL_EXPENSE,
-            rp.COL_ACCOUNT, rp.COL_TYPE, rp.COL_CAT_SUB, rp.COL_CONTEXT,
+            rp.COL_CAT_SUB, rp.COL_CONTEXT,
             rp.COL_SOURCE, rp.COL_FLAG_REVIEW, rp.COL_FLAG_VALID, rp.COL_FLAG_TRANSFER,
             rp.COL_VALIDATED, rp.COL_TRANSFER,
         }
@@ -214,9 +214,26 @@ def test_every_registry_column_explains_itself():
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "ui" / "registry_page.py").read_text(encoding="utf-8")
     block = source[source.index("_col_cfg: dict = {"):source.index("edited_df = st.data_editor(")]
-    for col in ("COL_SEL", "COL_DATE", "COL_DESC", "COL_INCOME", "COL_EXPENSE", "COL_ACCOUNT",
-                "COL_TYPE", "COL_CAT_SUB", "COL_CONTEXT", "COL_SOURCE", "COL_FLAG_REVIEW",
+    for col in ("COL_SEL", "COL_DATE", "COL_DESC", "COL_INCOME", "COL_EXPENSE", "COL_CAT_SUB", "COL_CONTEXT", "COL_SOURCE", "COL_FLAG_REVIEW",
                 "COL_FLAG_VALID", "COL_FLAG_TRANSFER", "COL_VALIDATED", "COL_TRANSFER", "COL_RAW"):
         start = block.index(col)
         end = block.find("COL_", start + len(col) + 2)
         assert "help=" in block[start:end if end > 0 else None], col
+
+
+def test_registry_column_order():
+    """Founder, 2026-10-22: what you read, what you decide, the rule tick,
+    then the symbols that only inform; no account or type column."""
+    from ui import registry_page as rp
+
+    class _Tx:
+        id, date, description, raw_description = "abc", "2026-08-28", "Coop", ""
+        amount, account_label, tx_type = -12.5, "Conto", "expense"
+        category, subcategory, context = "Alimentari", "Spesa", ""
+        category_source, to_review, human_validated = "llm", False, False
+
+    assert list(rp.build_ledger_row(_Tx(), False, {})) == [
+        rp.COL_ID, rp.COL_DATE, rp.COL_DESC, rp.COL_INCOME, rp.COL_EXPENSE,
+        rp.COL_CAT_SUB, rp.COL_CONTEXT, rp.COL_VALIDATED, rp.COL_TRANSFER, rp.COL_SEL,
+        rp.COL_SOURCE, rp.COL_FLAG_REVIEW, rp.COL_FLAG_VALID, rp.COL_FLAG_TRANSFER,
+    ]

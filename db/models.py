@@ -279,6 +279,8 @@ def create_tables(engine=None):
     _migrate_description_rule_amount(engine)
     _migrate_description_rule_direction(engine)
     _migrate_rule_direction(engine)
+    _migrate_investments_and_savings(engine)
+    _migrate_add_toll_subcategory(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -918,6 +920,19 @@ def _migrate_add_taxonomy_default(engine) -> None:
                             'VALUES (:lang, :type, :cat, :sub, :sc, :ss)'
                         ), {"lang": lang, "type": type_key, "cat": cat_name,
                             "sub": sub, "sc": sort_cat, "ss": sort_sub})
+        # Built-in rows only: what the Python tree no longer has is dropped,
+        # or a category moved out of the defaults (spec 30) stays on offer.
+        current = {
+            (lang, type_key, entry["category"], sub)
+            for lang, data in TAXONOMY_DEFAULTS.items()
+            for type_key, entries in (("expense", data["expenses"]), ("income", data["income"]))
+            for entry in entries
+            for sub in [None, *entry.get("subcategories", [])]
+        }
+        for row_id, *key in conn.execute(_text(
+                'SELECT id, language, type, category, subcategory FROM taxonomy_default')).fetchall():
+            if tuple(key) not in current:
+                conn.execute(_text('DELETE FROM taxonomy_default WHERE id = :i'), {"i": row_id})
         conn.commit()
 
 
@@ -1391,6 +1406,181 @@ def _migrate_giroconti_without_category(engine) -> None:
             conn.commit()
         except Exception:
             pass  # no transaction table yet
+
+
+# Tables that name a category, with their (category, subcategory) columns.
+_CATEGORY_COLUMNS = (
+    ("transaction", "category", "subcategory"),
+    ("transaction", "model_category", "model_subcategory"),
+    ("category_rule", "category", "subcategory"),
+    ("category_correction", "original_category", "original_subcategory"),
+    ("category_correction", "new_category", "new_subcategory"),
+    ("nsi_tag_mapping", "category", "subcategory"),
+    ("budget_target", "category", None),
+)
+
+
+def _category_id(conn, type_: str, name: str):
+    from sqlalchemy import text as _text
+    return conn.execute(_text("SELECT id FROM taxonomy_category WHERE type = :t AND name = :n"),
+                        {"t": type_, "n": name}).scalar()
+
+
+def _rename_category(conn, cols, type_: str, old: str, new: str) -> None:
+    """*old* takes the name *new*, with every movement, rule and mapping that
+    names it. When *new* already exists, *old*'s subcategories join it."""
+    from sqlalchemy import text as _text
+    old_id = _category_id(conn, type_, old)
+    if old_id is None or old == new:
+        return
+    new_id = _category_id(conn, type_, new)
+    if new_id is None:
+        conn.execute(_text("UPDATE taxonomy_category SET name = :n WHERE id = :i"), {"n": new, "i": old_id})
+    else:
+        for (sub,) in conn.execute(_text("SELECT name FROM taxonomy_subcategory WHERE category_id = :c"),
+                                   {"c": old_id}).fetchall():
+            _move_subcategory(conn, cols, type_, old, sub, new, sub)
+        conn.execute(_text("DELETE FROM taxonomy_subcategory WHERE category_id = :c"), {"c": old_id})
+        conn.execute(_text("DELETE FROM taxonomy_category WHERE id = :i"), {"i": old_id})
+    # A name used in both directions stays on the other side's movements.
+    other = "income" if type_ == "expense" else "expense"
+    if _category_id(conn, other, old) is None:
+        for table, cat_col, _ in cols:
+            conn.execute(_text(f'UPDATE "{table}" SET {cat_col} = :n WHERE {cat_col} = :o'),
+                         {"n": new, "o": old})
+
+
+def _move_subcategory(conn, cols, type_: str, cat: str, sub: str, new_cat: str, new_sub: str) -> None:
+    """Subcategory *cat*/*sub* becomes *new_cat*/*new_sub*, created if missing
+    (the category at the end of its side, the subcategory at the end of its
+    category). Every movement, rule and mapping that names it moves too."""
+    from sqlalchemy import text as _text
+    cat_id = _category_id(conn, type_, cat)
+    if cat_id is None:
+        return
+    sub_row = conn.execute(_text("SELECT id FROM taxonomy_subcategory WHERE category_id = :c AND name = :n"),
+                           {"c": cat_id, "n": sub}).scalar()
+    if sub_row is None:
+        return
+    new_id = _category_id(conn, type_, new_cat)
+    if new_id is None:
+        order = conn.execute(_text("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM taxonomy_category WHERE type = :t"),
+                             {"t": type_}).scalar()
+        conn.execute(_text("INSERT INTO taxonomy_category (name, type, sort_order) VALUES (:n, :t, :s)"),
+                     {"n": new_cat, "t": type_, "s": order})
+        new_id = _category_id(conn, type_, new_cat)
+    if (new_id, new_sub) != (cat_id, sub):
+        exists = conn.execute(_text("SELECT id FROM taxonomy_subcategory WHERE category_id = :c AND name = :n"),
+                              {"c": new_id, "n": new_sub}).scalar()
+        if exists is None:
+            order = conn.execute(_text("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM taxonomy_subcategory "
+                                       "WHERE category_id = :c"), {"c": new_id}).scalar()
+            conn.execute(_text("INSERT INTO taxonomy_subcategory (category_id, name, sort_order) VALUES (:c, :n, :s)"),
+                         {"c": new_id, "n": new_sub, "s": order})
+        conn.execute(_text("DELETE FROM taxonomy_subcategory WHERE id = :i"), {"i": sub_row})
+    for table, cat_col, sub_col in cols:
+        if sub_col is None:
+            continue
+        conn.execute(_text(f'UPDATE "{table}" SET {cat_col} = :nc, {sub_col} = :ns '
+                           f'WHERE {cat_col} = :c AND {sub_col} = :s'),
+                     {"nc": new_cat, "ns": new_sub, "c": cat, "s": sub})
+
+
+def _ensure_subcategories(conn, type_: str, cat: str, subs: list[str]) -> None:
+    """*cat* has every subcategory of *subs*, in that order before any other."""
+    from sqlalchemy import text as _text
+    cat_id = _category_id(conn, type_, cat)
+    if cat_id is None:
+        return
+    for i, sub in enumerate(subs):
+        row = conn.execute(_text("SELECT id FROM taxonomy_subcategory WHERE category_id = :c AND name = :n"),
+                           {"c": cat_id, "n": sub}).scalar()
+        if row is None:
+            conn.execute(_text("INSERT INTO taxonomy_subcategory (category_id, name, sort_order) VALUES (:c, :n, :s)"),
+                         {"c": cat_id, "n": sub, "s": i})
+        else:
+            conn.execute(_text("UPDATE taxonomy_subcategory SET sort_order = :s WHERE id = :i"), {"s": i, "i": row})
+
+
+def _drop_category_if_empty(conn, cols, type_: str, cat: str) -> None:
+    """Remove *cat* when it has no subcategory left and nothing names it."""
+    from sqlalchemy import text as _text
+    cat_id = _category_id(conn, type_, cat)
+    if cat_id is None:
+        return
+    if conn.execute(_text("SELECT COUNT(*) FROM taxonomy_subcategory WHERE category_id = :c"), {"c": cat_id}).scalar():
+        return
+    if _category_id(conn, "income" if type_ == "expense" else "expense", cat) is None:
+        for table, cat_col, _ in cols:
+            if conn.execute(_text(f'SELECT COUNT(*) FROM "{table}" WHERE {cat_col} = :c'), {"c": cat}).scalar():
+                return
+    conn.execute(_text("DELETE FROM taxonomy_category WHERE id = :i"), {"i": cat_id})
+
+
+def _migrate_investments_and_savings(engine) -> None:
+    """Money set aside gets one category in both directions, bank charges one
+    of their own, finance keeps only insurance (spec 30). Applied in the
+    language of the user's taxonomy, recognised by the earlier default
+    names; categories the user created or renamed are not touched.
+    Idempotent: once moved, the earlier names are gone."""
+    from sqlalchemy import inspect as _inspect, text as _text
+    from db.taxonomy_defaults import INVESTMENTS_MOVES, TAXONOMY_DEFAULTS
+    if not _inspect(engine).has_table("taxonomy_category"):
+        return
+    # Only the tables and columns this database has (older ones lack some).
+    insp = _inspect(engine)
+    tables = set(insp.get_table_names())
+    cols = tuple(c for c in _CATEGORY_COLUMNS if c[0] in tables
+                 and {c[1], c[2] or c[1]} <= {col["name"] for col in insp.get_columns(c[0])})
+    with engine.connect() as conn:
+        for lang, moves in INVESTMENTS_MOVES.items():
+            tree = TAXONOMY_DEFAULTS[lang]
+            new_tree = {"expense": {e["category"]: e["subcategories"] for e in tree["expenses"]},
+                        "income": {e["category"]: e["subcategories"] for e in tree["income"]}}
+            # The language is recognised by the categories the new tree no
+            # longer has; once they are gone the migration has nothing to do.
+            earlier = {(t, c) for t, c, _, _, _ in moves if c not in new_tree[t]}
+            if not any(_category_id(conn, t, c) is not None for t, c in earlier):
+                continue
+            for type_, cat, sub, new_cat, new_sub in moves:
+                if sub is None:
+                    _rename_category(conn, cols, type_, cat, new_cat)
+                else:
+                    _move_subcategory(conn, cols, type_, cat, sub, new_cat, new_sub)
+            for type_, cat in earlier:
+                _drop_category_if_empty(conn, cols, type_, cat)
+            for type_, new_cat in {(m[0], m[3]) for m in moves}:
+                _ensure_subcategories(conn, type_, new_cat, new_tree[type_].get(new_cat, []))
+            break
+        fill_category_colors(conn)
+        conn.commit()
+
+
+def _migrate_add_toll_subcategory(engine) -> None:
+    """The Italian transport category gets "Pedaggio" (founder, 2026-10-22):
+    the other languages already had tolls next to parking. Added once, after
+    "Parcheggio / ZTL" when the user still has it; never added twice."""
+    from sqlalchemy import inspect as _inspect, text as _text
+    if not _inspect(engine).has_table("taxonomy_category"):
+        return
+    with engine.connect() as conn:
+        cat_id = _category_id(conn, "expense", "Trasporti")
+        if cat_id is None:
+            return
+        subs = dict(conn.execute(_text("SELECT name, sort_order FROM taxonomy_subcategory WHERE category_id = :c"),
+                                 {"c": cat_id}).fetchall())
+        if "Pedaggio" in subs:
+            return
+        after = subs.get("Parcheggio / ZTL")
+        if after is None:
+            order = max((o or 0 for o in subs.values()), default=-1) + 1
+        else:
+            order = (after or 0) + 1
+            conn.execute(_text("UPDATE taxonomy_subcategory SET sort_order = sort_order + 1 "
+                               "WHERE category_id = :c AND sort_order >= :o"), {"c": cat_id, "o": order})
+        conn.execute(_text("INSERT INTO taxonomy_subcategory (category_id, name, sort_order) VALUES (:c, :n, :s)"),
+                     {"c": cat_id, "n": "Pedaggio", "s": order})
+        conn.commit()
 
 
 def _migrate_add_category_color(engine) -> None:

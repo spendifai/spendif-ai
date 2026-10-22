@@ -334,3 +334,115 @@ class TestBuildMonthlyFlow:
         df = _rows((pd.Timestamp("2026-01-20"), -20.0, "expense", None, None, False))
         out = _build_monthly_flow(df, set())
         assert list(out["expense"].columns) == [_t("home.charts.uncategorised")]
+
+
+class TestSankeySidesAndLevels:
+    """Where the money comes from on the left, where it goes on the right;
+    subcategories only on request."""
+
+    @staticmethod
+    def _df(*rows):
+        return pd.DataFrame(list(rows), columns=["date", "amount", "tx_type", "category", "subcategory", "reconciled"])
+
+    _ROWS = (
+        (pd.Timestamp("2026-01-10"), 3000.0, "income", "Lavoro dipendente", "Stipendio", False),
+        (pd.Timestamp("2026-01-11"), 500.0, "income", "Lavoro autonomo", "Parcella", False),
+        (pd.Timestamp("2026-01-20"), -800.0, "expense", "Casa", "Affitto", False),
+        (pd.Timestamp("2026-01-21"), -200.0, "card_tx", "Alimentari", "Spesa", False),
+    )
+
+    def _flows(self, out):
+        n = out["nodes"]
+        return {(n[s], n[t]): v for s, t, v in zip(out["link_source"], out["link_target"], out["link_value"])}
+
+    def test_income_categories_feed_the_total(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"})
+        flows = self._flows(out)
+        total = _t("home.charts.income_total")
+        assert flows[("Lavoro dipendente", total)] == 3000.0
+        assert flows[("Lavoro autonomo", total)] == 500.0
+        assert flows[(total, "Casa")] == 800.0
+
+    def test_categories_only_by_default(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"})
+        kinds = {k[0] for k in out["node_kinds"]}
+        assert "subcategory" not in kinds and "in_subcategory" not in kinds
+
+    def test_subcategories_on_both_sides_on_request(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"}, subcategories=True)
+        flows = self._flows(out)
+        assert flows[("Stipendio (Lavoro dipendente)", "Lavoro dipendente")] == 3000.0
+        assert flows[("Casa", "Affitto (Casa)")] == 800.0
+
+    def test_a_deficit_is_a_source_next_to_income(self):
+        rows = self._ROWS + ((pd.Timestamp("2026-01-25"), -4000.0, "expense", "Casa", "Mutuo", False),)
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"})
+        flows = self._flows(out)
+        assert flows[(_t("home.charts.unknown"), _t("home.charts.income_total"))] == 1500.0
+
+    def test_same_name_income_and_spending_are_two_nodes(self):
+        rows = self._ROWS + (
+            (pd.Timestamp("2026-01-26"), -300.0, "expense", "Investimenti e risparmi", "Fondi", False),
+            (pd.Timestamp("2026-01-27"), 40.0, "income", "Investimenti e risparmi", "Interessi", False),
+        )
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"})
+        assert out["nodes"].count("Investimenti e risparmi") == 2
+
+    def test_spending_only_drops_the_sources(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"}, spending_only=True)
+        kinds = {k[0] for k in out["node_kinds"]}
+        assert "in_category" not in kinds
+        flows = self._flows(out)
+        assert flows[(_t("home.charts.income_total"), "Casa")] == 800.0
+
+    def test_every_column_reads_from_the_biggest_branch_down(self):
+        from ui.home_page import _sankey_layout
+        rows = self._ROWS + (
+            (pd.Timestamp("2026-01-26"), -1200.0, "expense", "Investimenti e risparmi", "Fondi", False),
+            (pd.Timestamp("2026-01-27"), -50.0, "expense", "Casa", "Acqua", False),
+        )
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"}, subcategories=True)
+        x, y, size, _ = _sankey_layout(out)
+        kinds = out["node_kinds"]
+        cats = sorted((i for i, k in enumerate(kinds) if k[0] == "category"), key=lambda i: y[i])
+        assert [size[i] for i in cats] == sorted((size[i] for i in cats), reverse=True)
+        incomes = sorted((i for i, k in enumerate(kinds) if k[0] == "in_category"), key=lambda i: y[i])
+        assert [kinds[i][1] for i in incomes] == ["Lavoro dipendente", "Lavoro autonomo"]
+        # Casa's subcategories stay together, under the bigger Investimenti one
+        subs = sorted((i for i, k in enumerate(kinds) if k[0] == "subcategory"), key=lambda i: y[i])
+        assert [kinds[i][1] for i in subs][:1] == ["Investimenti e risparmi"]
+        assert [kinds[i][2] for i in subs if kinds[i][1] == "Casa"] == ["Affitto", "Acqua"]
+
+    def test_labels_carry_euro_or_percent_only_where_they_fit(self):
+        from ui.home_page import _sankey_labels, _sankey_layout
+        rows = self._ROWS + ((pd.Timestamp("2026-01-27"), -5.0, "expense", "Svago", None, False),)
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"})
+        _, _, size, height = _sankey_layout(out)
+        euro = _sankey_labels(out, size, height, 600, lambda v: f"{v:.0f} EUR")
+        pct = _sankey_labels(out, size, height, 600, lambda v: f"{v:.0f} EUR", percent=True)
+        casa = out["nodes"].index("Casa")
+        assert euro[casa] == "Casa  800 EUR"
+        assert pct[casa] == "Casa  23%"                     # 800 of 3500
+        svago = out["nodes"].index("Svago")
+        assert euro[svago] == "Svago"                       # 5 euro: no room
+        sub = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"}, subcategories=True)
+        _, _, s2, h2 = _sankey_layout(sub)
+        assert _sankey_labels(sub, s2, h2, 600, str) == sub["nodes"]
+
+    def test_nodes_stay_inside_the_chart(self):
+        from ui.home_page import _SANKEY_PAD_PX, _sankey_columns, _sankey_layout, _sankey_plot_px
+        rows = list(self._ROWS) + [
+            (pd.Timestamp("2026-01-20"), -float(10 + i), "expense", f"C{i}", f"S{i}", False) for i in range(25)
+        ]
+        out = _build_sankey_data(self._df(*rows), {f"C{i}" for i in range(25)} | {"Casa", "Alimentari"},
+                                 subcategories=True)
+        plot_px = _sankey_plot_px(out)
+        _, y, _, h = _sankey_layout(out, plot_px)
+        columns, _ = _sankey_columns(out)
+        for c in set(columns):
+            nodes = sorted((i for i in range(len(y)) if columns[i] == c), key=lambda i: y[i])
+            bottom = max(y[i] + h[i] / 2 for i in nodes)
+            assert bottom <= 1.0 + 1e-9                        # nothing below the chart
+            for a, b in zip(nodes, nodes[1:]):                 # no overlap, the pad kept
+                gap = (y[b] - h[b] / 2) - (y[a] + h[a] / 2)
+                assert gap * plot_px >= _SANKEY_PAD_PX - 1e-6

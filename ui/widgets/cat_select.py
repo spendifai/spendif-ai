@@ -28,25 +28,24 @@ def build_cat_options(
 
     For categories with subcategories: one entry per subcategory ("Cat / Sub").
     For categories without subcategories: one entry for the category alone ("Cat").
-    Spending categories come first, income first with *income_first*.
+    Spending categories come first, income first with *income_first*. A
+    category in both directions (spec 30) appears once.
     """
     options: list[str] = []
     if include_empty:
         options.append("")
-    sides = [taxonomy.all_expense_categories, taxonomy.all_income_categories]
+    sides = ["expense", "income"]
     if income_first:
         sides.reverse()
-    if only == "expense":
-        sides = [taxonomy.all_expense_categories, []]
-    elif only == "income":
-        sides = [taxonomy.all_income_categories, []]
-    for cat in sides[0] + sides[1]:
-        subs = taxonomy.valid_subcategories(cat)
-        if subs:
-            for sub in subs:
-                options.append(f"{cat}{SEP}{sub}")
-        else:
-            options.append(cat)
+    if only in ("expense", "income"):
+        sides = [only]
+    for side in sides:
+        names = taxonomy.all_expense_categories if side == "expense" else taxonomy.all_income_categories
+        for cat in names:
+            subs = taxonomy.valid_subcategories(cat, side)
+            for option in [f"{cat}{SEP}{sub}" for sub in subs] or [cat]:
+                if option not in options:
+                    options.append(option)
     return options
 
 
