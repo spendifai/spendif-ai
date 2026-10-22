@@ -975,6 +975,8 @@
   "home.charts.expense_side": "Ausgaben",
   "home.charts.other": "Sonstiges",
   "home.charts.sankey_title": "Fluss Einnahmen → Ausgaben",
+  "home.charts.sankey_subcategories": "Unterkategorien anzeigen",
+  "home.charts.sankey_subcategories_help": "Aus: nur Kategorien, links woher das Geld kommt, rechts wohin es geht. An: auch Unterkategorien, auf beiden Seiten.",
   "home.charts.month": "Monat",
   "home.charts.amount": "Betrag (€)",
   "home.charts.income_total": "Gesamteinnahmen",

@@ -975,6 +975,8 @@
   "home.charts.expense_side": "Gastos",
   "home.charts.other": "Otros",
   "home.charts.sankey_title": "Flujo ingresos → gastos",
+  "home.charts.sankey_subcategories": "Mostrar subcategorías",
+  "home.charts.sankey_subcategories_help": "Apagado: solo categorías, a la izquierda de dónde viene el dinero y a la derecha adónde va. Encendido: también subcategorías, en los dos lados.",
   "home.charts.month": "Mes",
   "home.charts.amount": "Importe (€)",
   "home.charts.income_total": "Ingresos totales",

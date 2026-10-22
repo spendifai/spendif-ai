@@ -334,3 +334,56 @@ class TestBuildMonthlyFlow:
         df = _rows((pd.Timestamp("2026-01-20"), -20.0, "expense", None, None, False))
         out = _build_monthly_flow(df, set())
         assert list(out["expense"].columns) == [_t("home.charts.uncategorised")]
+
+
+class TestSankeySidesAndLevels:
+    """Where the money comes from on the left, where it goes on the right;
+    subcategories only on request."""
+
+    @staticmethod
+    def _df(*rows):
+        return pd.DataFrame(list(rows), columns=["date", "amount", "tx_type", "category", "subcategory", "reconciled"])
+
+    _ROWS = (
+        (pd.Timestamp("2026-01-10"), 3000.0, "income", "Lavoro dipendente", "Stipendio", False),
+        (pd.Timestamp("2026-01-11"), 500.0, "income", "Lavoro autonomo", "Parcella", False),
+        (pd.Timestamp("2026-01-20"), -800.0, "expense", "Casa", "Affitto", False),
+        (pd.Timestamp("2026-01-21"), -200.0, "card_tx", "Alimentari", "Spesa", False),
+    )
+
+    def _flows(self, out):
+        n = out["nodes"]
+        return {(n[s], n[t]): v for s, t, v in zip(out["link_source"], out["link_target"], out["link_value"])}
+
+    def test_income_categories_feed_the_total(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"})
+        flows = self._flows(out)
+        total = _t("home.charts.income_total")
+        assert flows[("Lavoro dipendente", total)] == 3000.0
+        assert flows[("Lavoro autonomo", total)] == 500.0
+        assert flows[(total, "Casa")] == 800.0
+
+    def test_categories_only_by_default(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"})
+        kinds = {k[0] for k in out["node_kinds"]}
+        assert "subcategory" not in kinds and "in_subcategory" not in kinds
+
+    def test_subcategories_on_both_sides_on_request(self):
+        out = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"}, subcategories=True)
+        flows = self._flows(out)
+        assert flows[("Stipendio (Lavoro dipendente)", "Lavoro dipendente")] == 3000.0
+        assert flows[("Casa", "Affitto (Casa)")] == 800.0
+
+    def test_a_deficit_is_a_source_next_to_income(self):
+        rows = self._ROWS + ((pd.Timestamp("2026-01-25"), -4000.0, "expense", "Casa", "Mutuo", False),)
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"})
+        flows = self._flows(out)
+        assert flows[(_t("home.charts.unknown"), _t("home.charts.income_total"))] == 1500.0
+
+    def test_same_name_income_and_spending_are_two_nodes(self):
+        rows = self._ROWS + (
+            (pd.Timestamp("2026-01-26"), -300.0, "expense", "Investimenti e risparmi", "Fondi", False),
+            (pd.Timestamp("2026-01-27"), 40.0, "income", "Investimenti e risparmi", "Interessi", False),
+        )
+        out = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"}, {"Investimenti e risparmi"})
+        assert out["nodes"].count("Investimenti e risparmi") == 2

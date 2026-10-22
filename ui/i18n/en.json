@@ -975,6 +975,8 @@
   "home.charts.expense_side": "Expenses",
   "home.charts.other": "Other",
   "home.charts.sankey_title": "Income → expense flow",
+  "home.charts.sankey_subcategories": "Show subcategories",
+  "home.charts.sankey_subcategories_help": "Off: categories only, where the money comes from on the left and where it goes on the right. On: subcategories too, on both sides.",
   "home.charts.month": "Month",
   "home.charts.amount": "Amount (€)",
   "home.charts.income_total": "Total income",

@@ -264,7 +264,7 @@ def _render_monthly_flow(data: dict, palette) -> None:
 
 def _build_sankey_data(
     df: pd.DataFrame, expense_categories: Optional[set[str]] = None,
-    set_aside: Optional[set[str]] = None,
+    set_aside: Optional[set[str]] = None, subcategories: bool = False,
 ) -> Optional[dict]:
     """Build node/link arrays for the Sankey. Returns None if there is no
     income AND no expense (chart pointless), otherwise dict with keys:
@@ -274,6 +274,9 @@ def _build_sankey_data(
         link_value:  list[float]
         unknown_kind: 'surplus' | 'deficit' | 'parity'  (informational)
 
+    Where the money comes from on the left (income categories), where it
+    goes on the right (spending categories): production and consumption of
+    the period. *subcategories* adds the second level on both sides.
     *set_aside*: categories of money set aside (spec 30), drawn after the
     others, next to the money left in the accounts.
     """
@@ -292,23 +295,46 @@ def _build_sankey_data(
     uncat_cat_label = _t("home.charts.uncategorised")
     uncat_sub_label = _t("home.charts.uncategorised_sub")
 
-    nodes: list[str] = [income_label]  # 0 = income source
-    node_idx: dict[str, int] = {income_label: 0}
-    # What each node is, for its colour (spec 25): ("income",),
-    # ("category", cat), ("subcategory", cat, sub) or ("unknown",).
+    nodes: list[str] = [income_label]  # 0 = total income
+    # What each node is, for its colour (spec 25) and as its identity: the
+    # same name can be an income and a spending category. ("income",),
+    # ("in_category", cat), ("in_subcategory", cat, sub), ("category", cat),
+    # ("subcategory", cat, sub) or ("unknown",).
     node_kinds: list[tuple] = [("income",)]
+    node_idx: dict[tuple, int] = {("income",): 0}
 
     def _node(label: str, kind: tuple) -> int:
-        if label not in node_idx:
-            node_idx[label] = len(nodes)
+        if kind not in node_idx:
+            node_idx[kind] = len(nodes)
             nodes.append(label)
             node_kinds.append(kind)
-        return node_idx[label]
+        return node_idx[kind]
 
     link_source: list[int] = []
     link_target: list[int] = []
     link_value: list[float] = []
 
+    # ── Left: where the money comes from ────────────────────────────────────
+    inc_df = inc_df.copy()
+    inc_df["category"] = inc_df["category"].fillna(uncat_cat_label)
+    inc_df["subcategory"] = inc_df["subcategory"].fillna(uncat_sub_label)
+    in_totals = inc_df.groupby("category")["amount"].sum()
+    for cat, amount in in_totals.sort_values(ascending=False).items():
+        if amount <= 0:
+            continue
+        cat_idx = _node(f"{cat}", ("in_category", cat))
+        if subcategories:
+            subs = inc_df[inc_df["category"] == cat].groupby("subcategory")["amount"].sum()
+            for sub, sub_amount in subs.sort_values(ascending=False).items():
+                if sub_amount > 0:
+                    link_source.append(_node(f"{sub} ({cat})", ("in_subcategory", cat, sub)))
+                    link_target.append(cat_idx)
+                    link_value.append(float(sub_amount))
+        link_source.append(cat_idx)
+        link_target.append(0)
+        link_value.append(float(amount))
+
+    # ── Right: where it goes ────────────────────────────────────────────────
     # Expense category aggregation (with "uncategorised" fallback).
     exp_df["category"] = exp_df["category"].fillna(uncat_cat_label)
     exp_df["subcategory"] = exp_df["subcategory"].fillna(uncat_sub_label)
@@ -339,7 +365,7 @@ def _build_sankey_data(
         by=["set_aside", "cat_total", "abs_amount"],
         ascending=[True, False, False],
     )
-    for _, row in subcat_totals.iterrows():
+    for _, row in (subcat_totals.iterrows() if subcategories else ()):
         amount = float(row["abs_amount"])
         if amount <= 0:
             continue
@@ -364,14 +390,9 @@ def _build_sankey_data(
         link_value.append(delta)
         unknown_kind = "surplus"
     elif delta < 0:
-        # Deficit: Unknown supplies the missing budget.
+        # Deficit: a source on the left, next to the income categories, so
+        # what enters the total equals what is spent.
         unknown_idx = _node(unknown_label, ("unknown",))
-        # Each category currently gets its abs amount from income (0). Re-balance:
-        # Unknown is an extra source; we model it as a separate flow that goes
-        # collectively to a virtual "expense pool". Simplest: Unknown → income_label
-        # is unsound; Sankey needs Unknown → each category for the deficit slice.
-        # We instead add a synthetic flow Unknown → income_label so the balance
-        # math reads cleanly (the total entering "income" equals total expenses).
         link_source.append(unknown_idx)
         link_target.append(0)
         link_value.append(-delta)
@@ -392,6 +413,10 @@ def _build_sankey_data(
 def _node_color(kind: tuple, palette) -> str:
     if kind[0] == "income":
         return palette.tokens["income"]
+    if kind[0] == "in_category":
+        return palette.category(kind[1], "income")
+    if kind[0] == "in_subcategory":
+        return palette.subcategory(kind[1], kind[2], "income")
     if kind[0] == "category":
         return palette.category(kind[1], "expense")
     if kind[0] == "subcategory":
@@ -533,6 +558,9 @@ def render_home_page(engine) -> None:
     flow = _build_monthly_flow(df, expense_categories)
     if flow is not None:
         _render_monthly_flow(flow, palette)
-    sankey = _build_sankey_data(df, expense_categories, set_aside)
+    subcategories = st.toggle(_t("home.charts.sankey_subcategories"), value=False,
+                              key="_home_sankey_subcategories",
+                              help=_t("home.charts.sankey_subcategories_help"))
+    sankey = _build_sankey_data(df, expense_categories, set_aside, subcategories)
     if sankey is not None:
         _render_sankey(sankey, palette)

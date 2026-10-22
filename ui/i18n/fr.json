@@ -975,6 +975,8 @@
   "home.charts.expense_side": "Dépenses",
   "home.charts.other": "Autre",
   "home.charts.sankey_title": "Flux revenus → dépenses",
+  "home.charts.sankey_subcategories": "Afficher les sous-catégories",
+  "home.charts.sankey_subcategories_help": "Désactivé : seulement les catégories, à gauche d'où vient l'argent, à droite où il va. Activé : aussi les sous-catégories, des deux côtés.",
   "home.charts.month": "Mois",
   "home.charts.amount": "Montant (€)",
   "home.charts.income_total": "Revenus totaux",

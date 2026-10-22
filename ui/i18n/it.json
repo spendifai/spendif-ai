@@ -975,6 +975,8 @@
   "home.charts.expense_side": "Uscite",
   "home.charts.other": "Altro",
   "home.charts.sankey_title": "Flusso entrate → uscite",
+  "home.charts.sankey_subcategories": "Mostra le sottocategorie",
+  "home.charts.sankey_subcategories_help": "Spento: solo le categorie, a sinistra da dove arrivano i soldi e a destra dove vanno. Acceso: anche le sottocategorie, dai due lati.",
   "home.charts.month": "Mese",
   "home.charts.amount": "Importo (€)",
   "home.charts.income_total": "Entrate totali",
