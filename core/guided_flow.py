@@ -455,10 +455,9 @@ def check_progress(
 # Steps in order; the UI numbers only the steps listed here. "counterparts"
 # checks the spending, "transfers" that the money moved between the user's
 # own accounts has both sides, "income" the income left once the transfers
-# are out: after them, so a transfer is never asked as income. "check" is
-# optional: the movements one account at a time, once the categories are set
-# (spec 31).
-STEPS: list[str] = ["checklist", "import", "counterparts", "mixed", "transfers", "income", "check", "report"]
+# are out: after them, so a transfer is never asked as income. Checking the
+# movements is a flow of its own, not a step here (spec 31).
+STEPS: list[str] = ["checklist", "import", "counterparts", "mixed", "transfers", "income", "report"]
 
 
 def resume_step(steps: list[str], saved: str | None, closed: set[str]) -> str:

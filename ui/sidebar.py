@@ -74,19 +74,18 @@ def render_sidebar() -> str:
             st.session_state.pop(GUIDED_STEP, None)
             st.session_state["page"] = GUIDED_PAGE
         st.rerun()
-    # The check of the movements, right under it: the same workflow opened
-    # at its check step, from the list of accounts (spec 31).
+    # The check of the movements, right under it: a flow of its own, started
+    # by the user, never reached from the workflow's steps (spec 31).
     if st.sidebar.button(
         t("nav.check"), key="nav_check", width="stretch",
         help=t("nav.check.desc"),
     ):
         if llm_running:
-            st.session_state["_pending_nav_target"] = GUIDED_PAGE
+            st.session_state["_pending_nav_target"] = "check"
         else:
-            st.session_state[GUIDED_RETURN] = st.session_state["page"]
-            st.session_state[GUIDED_STEP] = "check"
+            st.session_state["_check_return"] = st.session_state["page"]
             st.session_state.pop("_check_phase", None)
-            st.session_state["page"] = GUIDED_PAGE
+            st.session_state["page"] = "check"
         st.rerun()
     st.sidebar.divider()
 

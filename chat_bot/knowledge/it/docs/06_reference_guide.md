@@ -17,8 +17,8 @@
 | **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
 | **Impostazioni** | Backend LLM, API key, formati data/importo, lingua |
 | **Lista di controllo** | Tabella pivot mese × conto: presenza e quantità delle transazioni; cosa caricare negli ultimi 4 mesi, file preparati per conto, conti chiusi |
-| **Prepariamo i tuoi movimenti** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Se vuoi controllare, Resoconti. Riprende dal passo lasciato |
-| **Se vuoi controllare** | Passo facoltativo: un conto alla volta dall'ultimo movimento controllato, griglia del Registro sui soli movimenti da controllare, poi i giroconti senza l'altro lato |
+| **Prepariamo i tuoi movimenti** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Resoconti. Riprende dal passo lasciato |
+| **Se vuoi controllare** | Voce di menu a sé, separata dal percorso: un conto alla volta dall'ultimo movimento controllato, griglia del Registro sui soli movimenti da controllare, poi i giroconti senza l'altro lato |
 | **Controparti** | Statistiche per controparte con creazione rapida di regole |
 | **Categorie miste** | Passo del flusso: controparti con movimenti in più categorie, da risolvere con una regola o uno per uno |
 | **Giroconti** | Passo del flusso: coppie di giroconto da confermare e giroconti con un lato solo |

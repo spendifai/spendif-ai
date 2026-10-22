@@ -20,8 +20,10 @@ from support.formatting import format_amount_display, format_date_display
 from ui.i18n import t
 from ui.registry_page import render_check_grid
 from ui.transfers_page import render_singles
+from ui.widgets.immersive import hide_chrome
 
 CHECK_PHASE = "_check_phase"
+CHECK_RETURN = "_check_return"
 CHECK_ACCOUNT = "_check_account"
 CHECK_SINCE = "_check_since"
 _LIST, _GRID, _TRANSFERS = "list", "grid", "transfers"
@@ -99,7 +101,15 @@ def _render_transfers_phase(engine, svc: CheckingService, date_fmt: str, fmt) ->
 
 
 def render_checking_page(engine) -> None:
-    st.header(t("check.title"))
+    """A flow of its own (spec 31): full screen, entered from its menu
+    entry, left with its own button; the workflow's steps never lead here."""
+    hide_chrome(narrow=False)
+    c_title, c_exit = st.columns([4, 1])
+    c_title.header(t("check.title"))
+    if c_exit.button(t("check.exit"), key="check_exit"):
+        st.session_state.pop(CHECK_PHASE, None)
+        st.session_state["page"] = st.session_state.pop(CHECK_RETURN, None) or "home"
+        st.rerun()
     settings = SettingsService(engine).get_all()
     date_fmt = settings.get("date_display_format", "%d/%m/%Y")
     dec = settings.get("amount_decimal_sep", ",")

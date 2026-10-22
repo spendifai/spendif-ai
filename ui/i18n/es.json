@@ -1491,7 +1491,6 @@
   "intermediaries.added": "Añadido: {prefix}.",
   "rules.on_intermediary": "Hay {n} reglas que ya no sirven: {rules}. Estaban escritas sobre el servicio de pago (por ejemplo PayPal), pero ahora en lugar del servicio aparece la tienda que pagaste, así que estas reglas ya no encuentran ningún movimiento. Puedes borrarlas; si necesitas una regla, escríbela sobre la tienda.",
   "rules.on_intermediary_delete": "🗑️ Borrar estas {n} reglas",
-  "guided.step.check": "Si quieres comprobar",
   "check.title": "Si quieres comprobar",
   "check.intro": "Una cuenta cada vez, desde el último movimiento que comprobaste. Te propongo la cuenta más atrasada: puedes elegir otra y cambiar la fecha. Vuelve a la lista cuando quieras.",
   "check.no_accounts": "Todavía no hay movimientos que comprobar.",
@@ -1516,5 +1515,6 @@
   "guided.welcome_ok": "Entendido",
   "nav.check": "✅ Si quieres comprobar",
   "nav.check.desc": "Comprueba tus movimientos cuenta por cuenta, desde el último que comprobaste.",
-  "check.col.first_unchecked": "Primero por comprobar"
+  "check.col.first_unchecked": "Primero por comprobar",
+  "check.exit": "Salir de la comprobación"
 }

@@ -142,3 +142,17 @@ def test_the_raw_text_toggle_sits_in_the_grid_header(tmp_path):
     raw = next(t for t in app.toggle if t.key == "check_show_raw")
     raw.set_value(True).run()
     assert not app.exception, app.exception
+
+
+def test_the_check_is_a_flow_of_its_own(tmp_path):
+    """Spec 31: not a step of the workflow; it is left with its own button,
+    back to the page it was opened from."""
+    from core.guided_flow import STEPS
+    assert "check" not in STEPS
+    db, _ = _ledger(tmp_path)
+    app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
+    app.session_state["_check_return"] = "ledger"
+    app.run()
+    _button(app, "check_exit").click().run()
+    assert not app.exception, app.exception
+    assert app.session_state["page"] == "ledger"

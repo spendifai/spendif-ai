@@ -1491,7 +1491,6 @@
   "intermediaries.added": "Aggiunto: {prefix}.",
   "rules.on_intermediary": "Ci sono {n} regole che non servono più: {rules}. Erano scritte sul servizio di pagamento (per esempio PayPal), ma adesso al posto del servizio compare il negozio che hai pagato, quindi queste regole non trovano più nessun movimento. Puoi cancellarle: se ti serve una regola, scrivila sul negozio.",
   "rules.on_intermediary_delete": "🗑️ Cancella queste {n} regole",
-  "guided.step.check": "Se vuoi controllare",
   "check.title": "Se vuoi controllare",
   "check.intro": "Un conto alla volta, dall'ultimo movimento che hai controllato. Ti propongo il conto più indietro: puoi sceglierne un altro e cambiare la data. Quando vuoi, torni alla lista.",
   "check.no_accounts": "Non ci sono ancora movimenti da controllare.",
@@ -1516,5 +1515,6 @@
   "guided.welcome_ok": "Ho capito",
   "nav.check": "✅ Se vuoi controllare",
   "nav.check.desc": "Controlla i movimenti un conto alla volta, dall'ultimo che hai controllato.",
-  "check.col.first_unchecked": "Primo da controllare"
+  "check.col.first_unchecked": "Primo da controllare",
+  "check.exit": "Esci dal controllo"
 }

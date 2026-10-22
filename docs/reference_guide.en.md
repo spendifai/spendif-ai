@@ -17,8 +17,8 @@
 | **Taxonomy** | Customizable category/subcategory structure |
 | **Settings** | LLM backend, API keys, date/amount formats, language |
 | **Checklist** | Month × account pivot table: presence and quantity of transactions; what to load for the last 4 months, files prepared per account, closed accounts |
-| **Let's prepare your movements** | Guided path in steps, where every session starts: Checklist, Import, Spending, Mixed categories, Transfers, Income, If you want to check, Report. Picks up from the step left |
-| **If you want to check** | Optional step: one account at a time from the last checked movement, the Registry grid on the movements still to check, then the transfers without their other side |
+| **Let's prepare your movements** | Guided path in steps, where every session starts: Checklist, Import, Spending, Mixed categories, Transfers, Income, Report. Picks up from the step left |
+| **If you want to check** | Menu entry of its own, separate from the path: one account at a time from the last checked movement, the Registry grid on the movements still to check, then the transfers without their other side |
 | **Counterparts** | Per-counterpart statistics with quick rule creation |
 | **Mixed categories** | Step of Let's prepare your movements: counterparts whose movements sit in more than one category, solved with a rule or one by one |
 | **Transfers** | Step of Let's prepare your movements: transfer pairs to confirm and one-sided transfers |

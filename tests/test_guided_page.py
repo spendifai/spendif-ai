@@ -46,7 +46,7 @@ def _button(at, key):
 def test_starts_from_first_open_step_with_header():
     at = AppTest.from_function(_app).run(timeout=30)
     assert "STEP:checklist" in _texts(at)
-    assert at.caption[0].value == "Step 1 of 8: What to load"
+    assert at.caption[0].value == "Step 1 of 7: What to load"
     assert _button(at, "guided_back").disabled
 
 
