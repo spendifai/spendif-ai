@@ -210,8 +210,8 @@ Useful for:
 **Path:** Settings → 🤖 LLM Configuration
 
 The LLM backend is used for:
-- **Category classification** — assigns category/subcategory to each transaction
-- **Counterpart extraction** — normalises the bank's raw description
+- **Category classification**: assigns category/subcategory to each transaction
+- **Counterpart extraction**: normalises the bank's raw description
 
 | Backend | Privacy | Cost | Speed | Quality |
 |---|---|---|---|---|
@@ -236,7 +236,7 @@ The default choice for **new installations**: no external service needed. Spendi
 | **Free RAM** | 4 GB (3B models) | 8 GB (7B models) |
 | **CPU** | Any x86-64 or ARM64 from the last 5 years | Apple Silicon (M1+) or CPU with AVX2 |
 | **GPU** | Not required | Apple Metal or CUDA/ROCm (3-5x speed-up) |
-| **VRAM** | — (CPU-only or unified memory) | >= model size (e.g. 8 GB for 7B Q4) |
+| **VRAM** | - (CPU-only or unified memory) | >= model size (e.g. 8 GB for 7B Q4) |
 | **Disk** | 2.5 GB per model | 5-7 GB per 7B model |
 
 > **Note:** If your hardware does not meet the minimum requirements, use a remote backend (OpenAI, Claude) — see sections 9.2 and 9.3.

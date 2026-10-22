@@ -38,6 +38,12 @@ logger = setup_logging()
 capture_unhandled_exceptions()
 logger.info("Starting Spendif.ai")
 
+# The server never outlives the desktop launcher (support/parent_watchdog.py):
+# once per process, a no-op when run without the launcher.
+from support.parent_watchdog import start as _watch_launcher
+
+_watch_launcher()
+
 # ── S-01: Prompt integrity check ─────────────────────────────────────────────
 from core.prompt_guard import verify_prompt_integrity
 
@@ -53,6 +59,11 @@ if _prompt_errors:
 # ── DB bootstrap ──────────────────────────────────────────────────────────────
 DB_URL = os.getenv("SPENDIFAI_DB", "sqlite:///ledger.db")
 engine = create_tables(get_engine(DB_URL))
+
+# Payment intermediaries shipped with the app (spec 20): an update can add some.
+from services.intermediary_service import sync_seed_once
+
+sync_seed_once(engine)
 
 # ── Dev mode (AI-193) ─────────────────────────────────────────────────────────
 # When SPENDIFAI_DEV_MODE=1 the developer-only pages (e.g. the pipeline
@@ -112,23 +123,9 @@ _cfg_check = _SvcCheck(engine)
 # step 6, so the user can finish choosing between "upload now" vs "skip".
 _in_step6 = st.session_state.get("_ob_step") == 6
 if not _cfg_check.is_onboarding_done() or _in_step6:
-    # Hide chrome — full-screen immersive look while onboarding.
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="stHeader"] { display: none !important; }
-        [data-testid="stToolbar"] { display: none !important; }
-        section[data-testid="stSidebarUserContent"] { display: none !important; }
-        .main .block-container {
-            max-width: 820px;
-            padding-top: 2rem;
-            padding-bottom: 4rem;
-        }
-        /* Streamlit injects a small "Manage app"/"Deploy" button — hide it too.
-           Both the legacy class and the current testid (Streamlit rinomina spesso). */
-        .stDeployButton, [data-testid="stAppDeployButton"] { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
+    # Hide chrome: full-screen immersive look while onboarding.
+    from ui.widgets.immersive import hide_chrome
+    hide_chrome()
 
     # Live download status (banner-only, sits above the wizard).
     from ui.widgets.model_download_banner import render_model_download_banner
@@ -216,6 +213,14 @@ def _route(page: str, engine) -> None:
         from ui.report_page import render_report_page
         render_report_page(engine)
 
+    elif page == "mixed":
+        from ui.mixed_page import render_mixed_page
+        render_mixed_page(engine)
+
+    elif page == "transfers":
+        from ui.transfers_page import render_transfers_page
+        render_transfers_page(engine)
+
     elif page == "budget":
         from ui.budget_page import render_budget_page
         render_budget_page(engine)
@@ -231,10 +236,17 @@ def _route(page: str, engine) -> None:
     elif page == "rules":
         from ui.rules_page import render_rules_page
         render_rules_page(engine)
+    elif page == "intermediaries":
+        from ui.intermediaries_page import render_intermediaries_page
+        render_intermediaries_page(engine)
 
     elif page == "counterparts":
         from ui.counterparts_page import render_counterparts_page
         render_counterparts_page(engine)
+
+    elif page == "income":
+        from ui.counterparts_page import render_income_page
+        render_income_page(engine)
 
     elif page == "taxonomy":
         from ui.taxonomy_page import render_taxonomy_page
@@ -256,9 +268,18 @@ def _route(page: str, engine) -> None:
         from ui.checklist_page import render_checklist_page
         render_checklist_page(engine)
 
+    elif page == "check":
+        from ui.checking_page import render_checking_page
+        render_checking_page(engine)
+
     elif page == "chat":
         from ui.chat_page import render_chat_page
         render_chat_page(engine)
+
+    elif page == "guided":
+        # The workflow renders the regular pages through this same router.
+        from ui.guided_page import render_guided_page
+        render_guided_page(engine, _route)
 
     elif _DEV_MODE and page == "debugger":
         from ui.debugger_page import render_debugger_page

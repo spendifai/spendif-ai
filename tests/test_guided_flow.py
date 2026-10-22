@@ -1,0 +1,258 @@
+"""Tests for core/guided_flow.py: Check List guidance, reference period, resume."""
+from __future__ import annotations
+
+from datetime import date
+
+import pytest
+
+from core.guided_flow import (
+    Guidance,
+    GuidanceKind,
+    checklist_guidance,
+    group_by_account,
+    is_stale,
+    old_holes,
+    reference_period,
+    resume_step,
+)
+
+TODAY = date(2026, 10, 12)
+
+
+# ── Check List guidance ──────────────────────────────────────────────────────
+
+def test_no_accounts_asks_for_them():
+    assert checklist_guidance([], {}, TODAY) == [Guidance(GuidanceKind.no_accounts)]
+
+
+def test_first_round_suggests_last_month_only_for_every_account():
+    result = checklist_guidance(["BBVA", "Fineco"], {}, TODAY)
+    assert [g.kind for g in result] == [GuidanceKind.nothing_imported] * 2
+    assert [g.account for g in result] == ["BBVA", "Fineco"]
+    for g in result:
+        assert (g.date_from, g.date_to) == (date(2026, 9, 1), date(2026, 9, 30))
+
+
+def test_up_to_date_when_last_month_is_loaded():
+    loaded = {"BBVA": {"2026-08", "2026-09"}, "Fineco": {"2026-09"}}
+    result = checklist_guidance(["BBVA", "Fineco"], loaded, TODAY)
+    assert result == [Guidance(GuidanceKind.up_to_date, last_loaded=date(2026, 9, 1))]
+
+
+def test_current_month_is_never_required():
+    # Loaded up to September on 12 October: nothing missing.
+    result = checklist_guidance(["BBVA"], {"BBVA": {"2026-09"}}, TODAY)
+    assert result[0].kind is GuidanceKind.up_to_date
+
+
+def test_behind_suggests_from_first_day_after_last_loaded_month():
+    result = checklist_guidance(["BBVA"], {"BBVA": {"2026-07", "2026-08"}}, TODAY)
+    assert result == [Guidance(
+        GuidanceKind.behind, "BBVA",
+        date_from=date(2026, 9, 1), date_to=TODAY, last_loaded=date(2026, 8, 1),
+    )]
+
+
+def test_most_behind_account_comes_first():
+    loaded = {"BBVA": {"2026-08"}, "Fineco": {"2026-06"}, "Amex": {"2026-09"}}
+    result = checklist_guidance(["BBVA", "Fineco", "Amex"], loaded, TODAY)
+    assert [(g.kind, g.account) for g in result] == [
+        (GuidanceKind.behind, "Fineco"),
+        (GuidanceKind.behind, "BBVA"),
+    ]
+
+
+def test_never_loaded_account_comes_before_behind_ones():
+    loaded = {"BBVA": {"2026-06"}}
+    result = checklist_guidance(["BBVA", "Satispay"], loaded, TODAY)
+    assert [(g.kind, g.account) for g in result] == [
+        (GuidanceKind.never_loaded, "Satispay"),
+        (GuidanceKind.behind, "BBVA"),
+    ]
+    assert (result[0].date_from, result[0].date_to) == (date(2026, 9, 1), date(2026, 9, 30))
+
+
+def test_gap_in_the_middle_is_one_month_range():
+    loaded = {"Fineco": {"2026-05", "2026-07", "2026-09"}}
+    result = checklist_guidance(["Fineco"], loaded, TODAY)
+    gaps = [g for g in result if g.kind is GuidanceKind.gap]
+    assert [(g.date_from, g.date_to) for g in gaps] == [
+        (date(2026, 6, 1), date(2026, 6, 30)),
+        (date(2026, 8, 1), date(2026, 8, 31)),
+    ]
+
+
+def test_consecutive_missing_months_are_one_gap():
+    loaded = {"Fineco": {"2026-05", "2026-09"}}
+    gaps = [g for g in checklist_guidance(["Fineco"], loaded, TODAY) if g.kind is GuidanceKind.gap]
+    assert [(g.date_from, g.date_to) for g in gaps] == [(date(2026, 6, 1), date(2026, 8, 31))]
+
+
+def test_gap_across_year_end():
+    loaded = {"BBVA": {"2025-11", "2026-02"}}
+    result = checklist_guidance(["BBVA"], loaded, date(2026, 3, 10))
+    gaps = [g for g in result if g.kind is GuidanceKind.gap]
+    assert (gaps[0].date_from, gaps[0].date_to) == (date(2025, 12, 1), date(2026, 1, 31))
+
+
+def test_behind_comes_before_gaps():
+    loaded = {"BBVA": {"2026-05", "2026-07"}}
+    result = checklist_guidance(["BBVA"], loaded, TODAY)
+    assert [g.kind for g in result] == [GuidanceKind.behind, GuidanceKind.gap]
+
+
+def test_accounts_only_seen_in_movements_are_included():
+    # A label in the data that was never declared as an account.
+    result = checklist_guidance([], {"Old bank": {"2026-07"}}, TODAY)
+    assert [(g.kind, g.account) for g in result] == [(GuidanceKind.behind, "Old bank")]
+
+
+def test_january_last_month_is_december_of_previous_year():
+    result = checklist_guidance(["BBVA"], {}, date(2027, 1, 5))
+    assert (result[0].date_from, result[0].date_to) == (date(2026, 12, 1), date(2026, 12, 31))
+
+
+# ── Reference period ─────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("last, expected", [
+    (date(2026, 8, 14), (date(2026, 6, 1), date(2026, 8, 31))),
+    (date(2026, 8, 31), (date(2026, 6, 1), date(2026, 8, 31))),
+    (date(2026, 8, 1), (date(2026, 6, 1), date(2026, 8, 31))),
+    (date(2026, 2, 3), (date(2025, 12, 1), date(2026, 2, 28))),   # across year end
+    (date(2028, 2, 10), (date(2027, 12, 1), date(2028, 2, 29))),  # leap year
+])
+def test_reference_period_is_three_months_ending_with_last_movement(last, expected):
+    assert reference_period(last) == expected
+
+
+@pytest.mark.parametrize("last, stale", [
+    (date(2026, 10, 3), False),
+    (date(2026, 9, 1), False),
+    (date(2026, 8, 31), True),
+    (date(2025, 12, 20), True),
+])
+def test_is_stale_uses_last_month_threshold(last, stale):
+    assert is_stale(last, TODAY) is stale
+
+
+# ── Resume ───────────────────────────────────────────────────────────────────
+
+STEPS = ["checklist", "import", "counterparts", "rules", "report"]
+
+
+def test_resume_returns_saved_step_when_still_open():
+    assert resume_step(STEPS, "counterparts", set()) == "counterparts"
+
+
+def test_resume_skips_steps_closed_by_the_data():
+    assert resume_step(STEPS, "counterparts", {"counterparts"}) == "rules"
+
+
+def test_resume_without_saved_step_starts_from_first_open():
+    assert resume_step(STEPS, None, {"checklist"}) == "import"
+
+
+def test_resume_unknown_saved_step_starts_from_beginning():
+    assert resume_step(STEPS, "transfers", set()) == "checklist"
+
+
+def test_resume_restarts_cycle_when_everything_after_is_closed():
+    assert resume_step(STEPS, "rules", {"rules", "report"}) == "checklist"
+
+
+def test_resume_rejects_empty_steps():
+    with pytest.raises(ValueError):
+        resume_step([], None, set())
+
+
+# ── Grouping by account ──────────────────────────────────────────────────────
+
+def test_same_account_suggestions_are_grouped_together():
+    """Satispay behind and with a hole further back: one group, not two places."""
+    guidance = checklist_guidance(
+        ["Satispay", "BBVA"],
+        {"Satispay": {"2026-05", "2026-07"}, "BBVA": {"2026-06", "2026-09"}},
+        date(2026, 10, 14),
+    )
+    groups = group_by_account(guidance)
+    accounts = [acc for acc, _ in groups]
+    assert accounts.count("Satispay") == 1 and accounts.count("BBVA") == 1
+    satispay = dict(groups)["Satispay"]
+    assert [g.kind for g in satispay] == [GuidanceKind.behind, GuidanceKind.gap]
+
+
+def test_groups_follow_urgency_of_first_appearance():
+    guidance = checklist_guidance(
+        ["A", "B"],
+        {"A": {"2026-08"}, "B": {"2026-06"}},
+        date(2026, 10, 14),
+    )
+    assert [acc for acc, _ in group_by_account(guidance)] == ["B", "A"]
+
+
+def test_without_account_strips_the_heading_in_every_language():
+    from ui.checklist_page import _without_account
+
+    assert _without_account("**Satispay**: mancano i movimenti", "Satispay") == "Mancano i movimenti"
+    assert _without_account("**Satispay** : il manque", "Satispay") == "Il manque"
+    assert _without_account("Non hai ancora importato niente.", "Satispay") == \
+        "Non hai ancora importato niente."
+
+
+# ── Window: how far back the Check List asks ─────────────────────────────────
+# On 12 October 2026 the window is June to September 2026 (4 complete months).
+
+def test_holes_before_the_window_are_not_asked():
+    loaded = {"Revolut": {"2024-02", "2024-08", "2025-03", "2026-09"}}
+    gaps = [g for g in checklist_guidance(["Revolut"], loaded, TODAY)
+            if g.kind is GuidanceKind.gap]
+    # only the stretch April 2025 - August 2026 reaches the window, from June
+    assert [(g.date_from, g.date_to) for g in gaps] == [(date(2026, 6, 1), date(2026, 8, 31))]
+
+
+def test_hole_crossing_the_window_start_is_cut_to_the_window():
+    loaded = {"Satispay": {"2026-04", "2026-08", "2026-09"}}
+    gaps = [g for g in checklist_guidance(["Satispay"], loaded, TODAY)
+            if g.kind is GuidanceKind.gap]
+    assert [(g.date_from, g.date_to) for g in gaps] == [(date(2026, 6, 1), date(2026, 7, 31))]
+
+
+def test_account_silent_since_before_the_window_is_dormant():
+    [g] = checklist_guidance(["Amex"], {"Amex": {"2026-03"}}, TODAY)
+    assert g.kind is GuidanceKind.dormant
+    assert g.date_from == date(2026, 4, 1)        # resumes where it stopped: no new hole
+    assert g.last_loaded == date(2026, 3, 1)
+
+
+def test_old_holes_are_counted_not_forgotten():
+    loaded = {"Revolut": {"2024-02", "2024-08", "2025-03", "2026-09"},
+              "BBVA": {"2026-06", "2026-09"}}
+    assert old_holes(["Revolut", "BBVA"], loaded, TODAY) == {"Revolut": 2}
+
+
+def test_old_holes_skip_closed_accounts():
+    loaded = {"Revolut": {"2024-02", "2024-08", "2026-09"}}
+    assert old_holes(["Revolut"], loaded, TODAY, closed={"Revolut": date(2026, 9, 30)}) == {}
+
+
+# ── Movements dated in the future ────────────────────────────────────────────
+
+def test_a_future_month_does_not_open_a_hole_that_ends_in_the_future():
+    from core.guided_flow import GuidanceKind, checklist_guidance
+    today = date(2026, 10, 14)
+    loaded = {"A": {"2026-06", "2026-07", "2026-08", "2026-09", "2026-12"}}   # December: a misread date
+    result = checklist_guidance(["A"], loaded, today)
+    assert [g.kind for g in result] == [GuidanceKind.up_to_date]
+
+
+def test_behind_with_a_future_month_asks_from_the_last_real_month_to_today():
+    from core.guided_flow import GuidanceKind, checklist_guidance
+    today = date(2026, 10, 14)
+    loaded = {"A": {"2026-07", "2026-08", "2026-12"}}
+    g = checklist_guidance(["A"], loaded, today)[0]
+    assert (g.kind, g.date_from, g.date_to) == (GuidanceKind.behind, date(2026, 9, 1), today)
+
+
+def test_closing_date_ignores_future_months():
+    from core.guided_flow import suggested_closing_date
+    assert suggested_closing_date({"2026-08", "2026-12"}, date(2026, 10, 14)) == date(2026, 8, 31)

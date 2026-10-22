@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import create_engine
 
-from db.models import Base, Transaction, get_session
+from db.models import Base, CategoryCorrection, Transaction, get_session
 from services.transaction_service import TransactionService
 
 
@@ -177,3 +177,58 @@ def test_has_transactions_after_first_insert(seeded_engine):
     """At least one row in `transaction` → returns True."""
     from services.transaction_service import TransactionService
     assert TransactionService(seeded_engine).has_transactions() is True
+
+
+# ── Rule applied to existing movements ───────────────────────────────────────
+
+def _counterpart(engine, description: str) -> dict:
+    stats = TransactionService(engine).get_counterpart_stats()
+    return next(s for s in stats if s["description"].upper() == description.upper())
+
+
+def test_apply_rule_category_records_rule_source(seeded_engine):
+    svc = TransactionService(seeded_engine)
+    assert svc.apply_rule_category("t1", "Intrattenimento", "Streaming", origin="counterparts")
+    with get_session(seeded_engine) as s:
+        tx = s.get(Transaction, "t1")
+        assert (tx.category, tx.subcategory) == ("Intrattenimento", "Streaming")
+        assert tx.category_source == "rule"
+        assert tx.validated_at is None          # categorized, not checked as spent
+        correction = s.query(CategoryCorrection).filter_by(tx_id="t1").one()
+        assert correction.original_source == "llm"
+        assert correction.correction_origin == "counterparts"
+
+
+def test_confirmed_counterpart_stays_single_source_after_import(engine):
+    """Confirm a counterpart, then import more of it through the same rule."""
+    with get_session(engine) as s:
+        for i in range(3):
+            _make_tx(s, tx_id=f"old{i}", description="PASTICCERIA X", category="Alimentari")
+    svc = TransactionService(engine)
+    for i in range(3):
+        svc.apply_rule_category(f"old{i}", "Ristorazione", "Bar", origin="counterparts")
+    with get_session(engine) as s:                 # import: matched by the exact rule
+        new = _make_tx(s, tx_id="new0", description="PASTICCERIA X", category="Ristorazione")
+        new.category_source = "rule"
+        s.commit()
+
+    stats = _counterpart(engine, "PASTICCERIA X")
+    assert stats["source_mode"] == "rule"
+    assert stats["categorized_by_user"] is True
+
+
+def test_one_off_edit_makes_the_counterpart_mixed(engine):
+    """A movement changed by hand is an exception to the rule: "mixed" is right."""
+    with get_session(engine) as s:
+        for i in range(2):
+            _make_tx(s, tx_id=f"p{i}", description="PASTICCERIA X")
+    svc = TransactionService(engine)
+    svc.apply_rule_category("p0", "Ristorazione", "Bar")
+    svc.update_category("p1", "Regali", "Regali")
+    assert _counterpart(engine, "PASTICCERIA X")["source_mode"] == "mixed"
+
+
+def test_unknown_source_is_rejected(seeded_engine):
+    from db import repository
+    with get_session(seeded_engine) as s, pytest.raises(ValueError):
+        repository.update_transaction_category(s, "t1", "A", "B", source="llm")

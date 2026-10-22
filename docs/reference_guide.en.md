@@ -10,13 +10,18 @@
 |---|---|
 | **Import** | Upload CSV/XLSX files, start the processing pipeline |
 | **Ledger** | Table view of all imported transactions |
-| **Bulk Edit** | Bulk operations: category, context, internal transfer, **deletion by filter** |
+| **Edit several movements** | Bulk operations: category, context, internal transfer, **deletion by filter** |
 | **Analytics** | Aggregated charts and reports by period/account/category |
 | **Review** | Transactions with uncertain classification or requiring review |
 | **Rules** | Management of deterministic categorization rules |
 | **Taxonomy** | Customizable category/subcategory structure |
 | **Settings** | LLM backend, API keys, date/amount formats, language |
-| **Checklist** | Month × account pivot table: presence and quantity of transactions |
+| **Checklist** | Month × account pivot table: presence and quantity of transactions; what to load for the last 4 months, files prepared per account, closed accounts |
+| **Let's prepare your movements** | Guided path in steps, where every session starts: Checklist, Import, Spending, Mixed categories, Transfers, Income, Report. Picks up from the step left |
+| **If you want to check** | Menu entry of its own, separate from the path: one account at a time from the last checked movement, the Registry grid on the movements still to check, then the transfers without their other side |
+| **Counterparts** | Per-counterpart statistics with quick rule creation |
+| **Mixed categories** | Step of Let's prepare your movements: counterparts whose movements sit in more than one category, solved with a rule or one by one |
+| **Transfers** | Step of Let's prepare your movements: transfer pairs to confirm and one-sided transfers |
 | **Assistant** | Adaptive support chatbot (RAG cloud/local or deterministic FAQ) |
 
 ---
@@ -126,11 +131,21 @@ No configuration required. If you still see a duplicate, check in Review.
 
 An internal transfer is a transfer between two of your own accounts (e.g., "Transfer to Savings Account"). If counted on both sides it distorts the balance.
 
-**How it is detected:** amount matching + time window (±3 days) between different accounts of the same holder.
+**How it is detected:** amount matching + time window (5 days at most) between different accounts of the same holder.
+
+**Pairing across imports:** the two sides of a transfer come with different files, often in different imports. After every import the new movements are compared with the stored movements of the other accounts: same amount with opposite sign, different accounts, 5 days apart at most. Card purchases are never one side of a transfer. How sure a pair is:
+
+| Level | When |
+|---|---|
+| **high** | Both sides already read as transfers: the pair is a transfer |
+| **medium** | One side read as transfer, the other as spending or income: proposed to the user |
+| **low** | Neither side, but 1 day apart at most: proposed to the user |
+
+**Transfers step of Let's prepare your movements:** shows the pairs of the last 4 months, where the user answers yes (a transfer) or no (kept apart, never proposed again), and the one-sided transfers, where the user says once per beneficiary where the money went: *an account of mine not loaded yet*, *an account of mine I do not follow* (stays a transfer) or *another person* (becomes spending or income, also in later imports). The beneficiary is recognised by the IBAN in the description, otherwise by the cleaned description.
 
 **How it is marked:** 🔄 icon in the Ledger, excluded from Analytics totals.
 
-**"Rileva giroconti cross-account" button** in Review: re-runs detection globally on all transactions. Useful if you imported both sides of the transfer in separate sessions.
+**"Re-run internal transfer detection" button** in Review: re-runs detection and cross-account pairing on the whole history. Useful if you imported both sides of the transfer in separate sessions.
 
 ---
 
@@ -138,8 +153,8 @@ An internal transfer is a transfer between two of your own accounts (e.g., "Tran
 
 | Backend | Runs | Privacy | Configuration |
 |---|---|---|---|
-| **Ollama** | Local (default) | Total — no data leaves your PC | Requires Ollama installed and model downloaded |
-| **llama.cpp** | Local (Docker container) | Total — no data leaves your PC | GGUF files in `models/`, URL `http://llama-cpp:8080/v1` |
+| **Ollama** | Local | Total: no data leaves your PC | Requires Ollama installed and model downloaded |
+| **llama.cpp** | Local, inside the app (desktop app default) | Total: no data leaves your PC | GGUF files in `~/.spendifai/models/`, downloaded from the LLM Models page; one model in memory, shared by import and assistant |
 | **OpenAI** | Remote | PII redacted before sending | API key in Settings |
 | **Claude** | Remote | PII redacted before sending | API key in Settings |
 
@@ -154,10 +169,10 @@ Built-in chatbot on the **💬 Assistant** page. Three modes auto-selected from 
 | Mode | Required backend | How it works |
 |------|-----------------|--------------|
 | **RAG Cloud** | OpenAI / Claude / Compatible (with API key) | Semantic retrieval + cloud LLM generates answer |
-| **RAG Local** | Ollama / vLLM | Semantic retrieval + local LLM generates answer |
-| **FAQ Match** | llama.cpp or none | Deterministic TF-IDF match against pre-built FAQ |
+| **RAG Local** | llama.cpp / Ollama / vLLM | Semantic retrieval + local LLM generates answer |
+| **FAQ Match** | none | Deterministic TF-IDF match against pre-built FAQ |
 
-The knowledge base is in `chat_bot/knowledge/<lang>/` with FAQ (JSON/Markdown) and documents for RAG.
+The knowledge base is in `chat_bot/knowledge/<lang>/` with FAQ (JSON/Markdown) and documents for RAG. The documents are copies of the guides in `docs/` (user guide, installation, configuration, classification, reference guide), generated by `tools/build_chat_knowledge.py`. With llama.cpp the assistant uses the same model already loaded for the import: one copy in memory.
 
 ---
 
@@ -215,9 +230,9 @@ Distinct from categorization rules. Used to replace unreadable raw descriptions 
 
 ---
 
-## Bulk Edit — dedicated page
+## Edit several movements: dedicated page
 
-The **✏️ Bulk Edit** page collects all operations that act on multiple transactions simultaneously.
+The **✏️ Edit several movements** page collects all operations that act on multiple transactions simultaneously.
 
 ### Sections 1–3: operations on a reference transaction
 
@@ -253,6 +268,14 @@ Allows bulk deletion of transactions selected via combinable filters:
 ## Checklist — dedicated page
 
 The **✅ Checklist** page shows a **month × account** pivot table with the number of transactions present for each combination.
+
+### What to load
+
+- **Window:** the page asks for the data of the last **4** complete **months** (last month plus the three before it) and, for each account, points out missing months, gaps between loaded months or an account silent since before the window.
+- **Files per account:** the file to import is prepared under each account; the import button hands them all to the Import page, which already knows the account of each one.
+- **Closed accounts:** *I no longer use it* records the closing date (`account.closed_on`); from then on the account is not asked for, the movements already loaded stay and *Reopen* brings it back.
+- **Estimated time:** Import estimates the duration from the number of rows and the pace of the previous imports on this computer (`import_job.n_rows`), then follows the pace observed during the run.
+- **Dates in the future:** a movement dated after the day of the import does not enter the ledger: it is set aside whole (`held_movement`), and here the date is corrected (proposed with day and month swapped when that gives a past date) to import it, or it is discarded. Months after the current one never count as loaded.
 
 ### Layout
 
@@ -300,12 +323,15 @@ Main tables:
 | `import_batch` | Metadata for each import (file, schema, counts) |
 | `document_schema` | Schema template for Flow 1 (column fingerprint → configuration) |
 | `reconciliation_link` | Reconciled card–account pairs |
-| `internal_transfer_link` | Internal transfer pairs |
+| `internal_transfer_link` | Internal transfer pairs with confidence level and the user's answer (`user_decision`: `yes` / `no`) |
+| `held_movement` | Movements set aside at import because the date is in the future: whole, waiting for the corrected date or to be discarded |
+| `transfer_destination` | Destination of one-sided transfers, one per beneficiary (key: IBAN or cleaned description; answer: `unloaded` / `untracked` / `other_person`) |
+| `account` | The user's accounts, with optional closing date (`closed_on`) |
 | `category_rule` | User categorization rules |
 | `description_rule` | Bulk description cleaning rules |
 | `taxonomy_category` | Taxonomy categories |
 | `taxonomy_subcategory` | Taxonomy subcategories |
-| `import_job` | Current state of the import job |
+| `import_job` | Current state of the import job, with total rows (`n_rows`) for the time estimate |
 | `user_settings` | User preferences (date format, separators, LLM, contexts) |
 
 Schema migrations are idempotent: they run automatically at every startup without data loss.

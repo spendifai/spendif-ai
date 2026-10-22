@@ -14,12 +14,12 @@ Scarichi i file movimenti dalla banca, li trascini in Spendif.ai, lui li unifica
 
 **Situazione:** Hai appena installato Spendif.ai e lo avvii per la prima volta.
 
-L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step). Non devi cercare nessun menu. *In parallelo* parte il download del modello LLM più adatto al tuo hardware — un banner in cima a ogni step mostra il progresso ("📚 78% · ~3 min").
+L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step). Non devi cercare nessun menu. *In parallelo* parte il download del modello LLM più adatto al tuo hardware: un banner in cima a ogni step mostra il progresso ("📚 78% · ~3 min").
 
-1. **Step 1 — Lingua:** scegli la lingua della tassonomia. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
-2. **Step 2 — Titolari:** inserisci il tuo nome (e le varianti usate dalla banca — es. `Mario Rossi, ROSSI MARIO`). Questi nomi vengono usati per proteggere la tua privacy nei prompt LLM e per riconoscere i tuoi bonifici interni.
-3. **Step 3 — Conti:** aggiungi i tuoi conti bancari (nome + banca + tipo conto). Il tipo conto è obbligatorio e indica lo strumento finanziario: *Conto corrente*, *Carta di credito*, *Carta di debito*, *Carta prepagata*, *Conto risparmio* o *Contanti*. Almeno un conto è obbligatorio.
-4. **Step 4 — Riepilogo e Avvia:** controlla il riepilogo e clicca **Avvia**. Il bottone è disabilitato finché il modello AI non è scaricato al 100% (indicatore live "⏳ Attendi modello AI — 78% · ~3 min"): garantisce che la pagina Import sia subito utilizzabile dopo il wizard. Solo a questo punto i dati vengono salvati.
+1. **Step 1 (Lingua):** scegli la lingua della tassonomia. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
+2. **Step 2 (Titolari):** inserisci il tuo nome (e le varianti usate dalla banca, es. `Mario Rossi, ROSSI MARIO`). Questi nomi vengono usati per proteggere la tua privacy nei prompt LLM e per riconoscere i tuoi bonifici interni.
+3. **Step 3 (Conti):** aggiungi i tuoi conti bancari (nome + banca + tipo conto). Il tipo conto è obbligatorio e indica lo strumento finanziario: *Conto corrente*, *Carta di credito*, *Carta di debito*, *Carta prepagata*, *Conto risparmio* o *Contanti*. Almeno un conto è obbligatorio.
+4. **Step 4 (Riepilogo e Avvia):** controlla il riepilogo e clicca **Avvia**. Il bottone è disabilitato finché il modello AI non è scaricato al 100% (indicatore live "⏳ Attendi modello AI - 78% · ~3 min"): garantisce che la pagina Import sia subito utilizzabile dopo il wizard. Solo a questo punto i dati vengono salvati.
 
 > **Default LLM invisibili:** il wizard scrive anche `llm_backend=local_llama_cpp`, il path del modello scaricato, e i parametri di inferenza (4096 token di contesto, CPU di default). Modificabili dopo da **⚙️ Impostazioni**.
 
@@ -47,8 +47,8 @@ L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step
 
 Spendif.ai analizza la struttura di ogni file e calcola un **punteggio di confidenza** (da 0 a 100%) su quanto ha capito del formato.
 
-- **Confidenza >= 80%** — l'importazione procede in automatico, senza chiederti nulla.
-- **Confidenza < 80%** — compare un form di revisione dove puoi verificare le colonne rilevate (data, importo, descrizione, tipo documento) e correggerle se necessario. Dopo la conferma manuale, la confidenza sale a 100%.
+- **Confidenza >= 80%**: l'importazione procede in automatico, senza chiederti nulla.
+- **Confidenza < 80%**: compare un form di revisione dove puoi verificare le colonne rilevate (data, importo, descrizione, tipo documento) e correggerle se necessario. Dopo la conferma manuale, la confidenza sale a 100%.
 
 Una volta confermato lo schema di un file, tutte le importazioni successive dello stesso formato saranno automatiche — Spendif.ai ricorda la struttura.
 
@@ -66,6 +66,8 @@ Se però il rilevamento automatico **non è riuscito** (file con formato insolit
 
 Una volta confermato lo schema del file, alle importazioni successive non vedrai più questo campo — Spendif.ai lo ricorda automaticamente.
 
+**Quanto ci vuole.** Prima di partire l'import ti dice il tempo stimato, calcolato sulle righe dei file e sulla velocità delle importazioni precedenti su questo computer. La prima volta è una stima iniziale e si corregge appena l'import parte; durante l'import, accanto alla percentuale, vedi quanto manca.
+
 ### Riepilogo importazione
 
 Al termine dell'elaborazione, per ogni file importato viene mostrato un riepilogo dettagliato:
@@ -79,10 +81,10 @@ Al termine dell'elaborazione, per ogni file importato viene mostrato un riepilog
 | **Scartate** | Righe che non è stato possibile importare |
 
 Se ci sono righe scartate, un avviso mostra il motivo per ciascuna:
-- **Data mancante** — la cella della data è vuota
-- **Data non parsabile** — il formato della data non corrisponde allo schema
-- **Importo non parsabile** — il valore dell'importo non è riconoscibile
-- **Importo: entrambe le colonne Dare/Avere vuote** — nei file con colonne separate per dare e avere, nessuna delle due contiene un valore per quella riga
+- **Data mancante**: la cella della data è vuota
+- **Data non parsabile**: il formato della data non corrisponde allo schema
+- **Importo non parsabile**: il valore dell'importo non è riconoscibile
+- **Importo: entrambe le colonne Dare/Avere vuote**: nei file con colonne separate per dare e avere, nessuna delle due contiene un valore per quella riga
 
 Puoi espandere il dettaglio per vedere i dati originali di ogni riga scartata, utile per capire se c'è un problema nel file o nello schema.
 
@@ -110,8 +112,8 @@ Vai su **Ledger**. Trovi la lista completa in ordine cronologico, con filtri per
 - 🔄 = giroconto interno (es. bonifico tra tuoi conti, escluso dai totali) — mostra "·" quando inattivo
 
 **Colonne checkbox (dopo le emoji):**
-- **Validato ☐** — checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato (non serve premere Salva). Quando validi, il flag ⚠️ viene automaticamente rimosso. Quando rimuovi la validazione, `human_validated` torna a False.
-- **🔄 Giroconto ☐** — checkbox cliccabile per segnare/rimuovere un giroconto (si salva con il pulsante Salva)
+- **Validato ☐**: checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato (non serve premere Salva). Quando validi, il flag ⚠️ viene automaticamente rimosso. Quando rimuovi la validazione, `human_validated` torna a False.
+- **🔄 Giroconto ☐**: checkbox cliccabile per segnare/rimuovere un giroconto (si salva con il pulsante Salva)
 
 **Ordine colonne (parte destra della griglia):**
 `... | Fonte | ⚠️ | ✅ | 🔄 | Validato ☐ | 🔄 Giroconto ☐`
@@ -155,7 +157,7 @@ Vai su **Review**. Trovi le transazioni con il ⚠️. Per ognuna puoi:
 - ✅ = transazione validata dall'utente — mostra "·" quando inattivo
 
 **Colonne checkbox (dopo le emoji):**
-- **Validato ☐** — checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato. Quando validi, il flag ⚠️ viene automaticamente rimosso.
+- **Validato ☐**: checkbox cliccabile per validare/invalidare una transazione. Il salvataggio è immediato. Quando validi, il flag ⚠️ viene automaticamente rimosso.
 
 **Colonna Fonte (tracking classificazione):**
 - Badge che indica chi ha assegnato la categoria: 🧠 AI, 📏 Regola, 👤 Manuale, 📚 Storico
@@ -194,11 +196,11 @@ Se hai creato molte regole in sessioni diverse e vuoi applicarle tutte in una vo
 
 ---
 
-## 6. Modifiche massive: categoria, contesto e eliminazione in blocco
+## 6. Modifica più movimenti: categoria, contesto e eliminazione in blocco
 
 **Situazione:** Hai importato anni di movimenti e vuoi pulire dati sbagliati o rimuovere un intero conto che non vuoi più tracciare.
 
-Vai su **✏️ Modifiche massive**. La pagina è divisa in due aree principali.
+Vai su **✏️ Modifica più movimenti**. La pagina è divisa in due aree principali.
 
 ### 6a — Operazioni su transazione di riferimento
 
@@ -219,7 +221,7 @@ Vai su **✏️ Modifiche massive**. La pagina è divisa in due aree principali.
 4. Digita **`ELIMINA`** nel campo di conferma — solo allora il pulsante si abilita
 5. Clicca il pulsante rosso
 
-> ⚠️ **L'eliminazione è irreversibile.** Fai sempre un backup del file `ledger.db` prima di eliminare grandi quantità di dati (vedi la sezione 16 — *Backup e trasferimento dei dati*).
+> ⚠️ **L'eliminazione è irreversibile.** Fai sempre un backup del file `ledger.db` prima di eliminare grandi quantità di dati (vedi la sezione 16, *Backup e trasferimento dei dati*).
 
 > **Esempio:** Hai importato per errore il file movimenti di un conto corrente che non è tuo. Filtri per conto, vedi 200 transazioni nell'anteprima, digiti ELIMINA e le rimuovi in un colpo solo.
 
@@ -238,35 +240,43 @@ Tutte le transazioni che corrispondono vengono aggiornate immediatamente e la re
 
 ---
 
-## 8. Analytics: i grafici
+## 8. Analisi: i grafici
 
 **Situazione:** Vuoi capire dove spendi di più.
 
-Vai su **Analytics**. Trovi:
+Vai su **Analisi**. Trovi:
 - Grafico a torta spese per categoria
 - Andamento mensile entrate/uscite
 - Saldo netto nel tempo
 
 Usa i filtri in alto per restringere a un periodo o a un conto specifico.
 
+### La Home: entrate e uscite per mese
+
+La **Home** apre con un grafico a barre per mese: le entrate sopra lo zero, le uscite sotto, ciascuna divisa per categoria. Le categorie piu' grandi del periodo hanno il loro colore (verdi le entrate, toni caldi le uscite), le altre stanno in **Altro**. Si vede subito se un mese chiude in positivo.
+
+- I **giroconti** fra i tuoi conti non sono ne' entrate ne' uscite e non compaiono.
+- Un **rimborso** (un reso, soldi restituiti su un acquisto: un'entrata con una categoria di spesa) abbassa quella spesa nel suo mese invece di contare come entrata. Lo stesso vale per il diagramma di flusso sotto.
+- Se un mese sembra strano, per esempio un'entrata molto grossa, controlla la sua categoria nel **Registro**: il grafico mostra i movimenti per come sono categorizzati.
+
 ### Filtro ad albero tassonomico
 
-Nella pagina Analytics (e nella pagina Tassonomia) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
+Nella pagina Analisi (e nella pagina Tassonomia) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
 - Espandere e collassare i nodi dell'albero
 - Selezionare un nodo padre per selezionare automaticamente tutti i figli
 - Usare i pulsanti **Seleziona tutto** / **Deseleziona tutto** per operazioni rapide
 - Gli indicatori tri-state mostrano se un nodo è completamente selezionato, parzialmente selezionato o deselezionato
 
-> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analytics, Tassonomia). Non è presente nel Ledger e nella Review, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
+> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analisi, Tassonomia). Non è presente nel Registro e nella Revisione, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
 
 ### Associazioni controparte (auto-apprendimento)
 
-Nella sezione Analytics trovi anche la vista **Associazioni controparte → categoria**, che mostra come Spendif.ai ha imparato ad associare ogni controparte (es. ESSELUNGA, AMAZON) alle categorie nel tempo.
+Nella sezione Analisi trovi anche la vista **Associazioni controparte → categoria**, che mostra come Spendif.ai ha imparato ad associare ogni controparte (es. ESSELUNGA, AMAZON) alle categorie nel tempo.
 
 Per ogni controparte vengono mostrati:
 - **Categoria/Sottocategoria** più frequente tra le transazioni validate
 - **Conteggio** delle ricorrenze validate
-- **Omogenità** — un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
+- **Omogenità**: un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
   - 🟢 **≥ 0.90** — auto-categorizzabile (es. ESSELUNGA: sempre Alimentari)
   - 🟡 **0.50–0.89** — mista (es. ROSSOPOMODORO: quasi sempre Ristorazione, a volte Vacanze)
   - 🔴 **< 0.50** — eterogenea (es. AMAZON: Tecnologia, Alimentari, Abbigliamento...)
@@ -300,13 +310,14 @@ Grafici interattivi (Plotly) che mostrano:
 ### Vista 3 — Export Excel
 
 Pulsante per scaricare un file `.xlsx` con tre tipi di foglio:
-- **Riepilogo** — la tabella pivot completa
-- **Trend** — dati mensili per categoria
-- **Un foglio per ogni contesto** — dettaglio transazioni
+- **Riepilogo**: la tabella pivot completa
+- **Trend**: dati mensili per categoria
+- **Un foglio per ogni contesto**: dettaglio transazioni
 
 ### Filtri disponibili
 
 - **Periodo:** date range picker con pulsanti rapidi — *Mese*, *3 mesi*, *Anno*, *Tutto*
+  All'apertura il periodo è già impostato sui tre mesi che finiscono con l'ultimo movimento caricato, non con oggi: se non importi da un po', vedi dove eri rimasto invece di una pagina vuota. Se manca il mese scorso, un avviso ti ricorda fino a quando sei arrivato e ti manda alla Lista di controllo.
 - **Conti:** multiselect per filtrare uno o più conti
 
 > **Esempio pratico:** Vuoi sapere quanto hai speso in "Alimentari" negli ultimi 3 mesi. Apri Report, clicca "3 mesi", guarda la riga Alimentari nella tabella pivot. Poi passa alla Vista 2 per vedere se la spesa è in crescita o in calo.
@@ -387,17 +398,42 @@ Per ogni categoria con obiettivo definito:
 
 ---
 
-## 13. Check List: tutto in ordine?
+## 13. Lista di controllo: tutto in ordine?
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
-Vai su **✅ Check List**. Trovi una tabella con:
+> **Prepariamo i tuoi movimenti.** La voce **🧭 Prepariamo i tuoi movimenti**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ci arrivi in ogni caso: *Carica ora* ti porta al passo dell'import, *Lo faccio dopo* al primo passo.
+>
+> **Se vuoi controllare.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
+>
+> **Il passo delle uscite.** Mostra solo le controparti di spesa ancora da controllare, dalla più grande. Spunta *Sempre così* quando una controparte ha sempre la categoria indicata: basta una volta, da lì i suoi movimenti, anche quelli dei prossimi import, prendono quella categoria da soli. L'obiettivo suggerito è controllare le controparti che fanno 8 euro su 10 delle spese del periodo: in alto vedi quanto hai controllato, quanto manca e quante controparti bastano. È un suggerimento: puoi andare avanti quando vuoi.
+>
+> **Il passo delle categorie miste.** Mostra le controparti di spesa con movimenti in più categorie. Se è un errore (la pasticceria metà alimentari e metà bar), scegli la categoria giusta e premi *È sempre questa*: diventa una regola. Se dipende da cosa hai comprato (il supermercato dove prendi anche l'elettronica), premi *Dipende: li guardo uno a uno* e sistema ogni movimento: nessuna regola può distinguerli, perché il nome è lo stesso. I movimenti che hai già guardato non te li richiediamo: la volta dopo vedi solo quelli arrivati con l'ultimo import.
+>
+> **Il passo dei giroconti.** Quando sposti soldi da un tuo conto a un altro, l'estratto del conto di partenza mostra un'uscita e quello di arrivo un'entrata: non sono né spese né entrate. I due lati arrivano con file diversi, spesso in import diversi: dopo ogni import Spendif.ai confronta i movimenti nuovi con quelli già salvati degli altri conti (stesso importo, segno opposto, al massimo 5 giorni di distanza) e li mette insieme. Il passo mostra cosa ha trovato negli ultimi 4 mesi completi, in due tabelle:
+>
+> - **Coppie da approvare**: data e conto di partenza, data e conto di arrivo, importo e affidabilità a parole con il motivo (per esempio "Bassa: stesso importo, lo stesso giorno, nessuno dei due letto come giroconto"). Rispondi *Sì* se è un giroconto, *No* se non lo è: una coppia rifiutata non te la riproponiamo. Le coppie sicure e quelle che hai già approvato non compaiono più: una riga le conta.
+> - **Con un lato solo**: soldi usciti verso un conto, o arrivati da un conto, che non hai caricato. Il lato che manca resta vuoto. Scegli dove sono andati: *Mio conto non ancora caricato* (aggiungilo in Impostazioni e caricalo dalla Lista di controllo: la coppia si chiude da sola), *Mio conto che non seguo* (un deposito, un risparmio: resta giroconto, fuori dalle spese) oppure *Un'altra persona* (non è un giroconto e diventa una spesa o un'entrata). La risposta vale per tutti i movimenti con la stessa controparte, riconosciuta dall'IBAN quando c'è, anche nei prossimi import.
+>
+> Quelli più vecchi di 4 mesi non te li chiediamo: una riga li conta. Il pulsante *Riesegui rilevamento giroconti* in Revisione rifà l'accoppiamento su tutto lo storico.
+>
+> **Il passo delle entrate.** Viene dopo i giroconti, così i soldi spostati fra i tuoi conti sono già fuori e restano le entrate vere: stipendio, fatture, rimborsi. Mostra le controparti di entrata del periodo ancora da guardare, dalla più grande. Funziona come il passo delle uscite (*Sempre così* crea la regola), ma senza obiettivo: le entrate sono poche e ognuna pesa, quindi si guardano tutte. Un rimborso o un reso su un acquisto non è un'entrata: scegli la categoria della spesa (per esempio Alimentari) e quella spesa si abbassa, anche nei grafici della Home. Se una controparte ha anche delle spese (il negozio che ti ha rimborsato un acquisto), la scelta vale solo per le sue entrate già caricate e non diventa una regola: una regola cambierebbe anche le spese con lo stesso nome.
+
+In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Ogni conto ha la sua riga, con quello che manca e due pulsanti. *Carica il file* ti fa scegliere i file di quel conto e li mette da parte, già assegnati al conto: puoi prepararne per più conti, poi premi *Importa N file* e l'import parte con i conti già fissati. Nella pagina di import restano solo la sistemazione di intestazione e piè di pagina, l'avanzamento e il resoconto. *Non lo uso più* chiude il conto (vedi sotto). Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
+
+**Fin dove ti chiediamo i dati.** La lista guarda solo gli ultimi 4 mesi completi: un trimestre più un mese per mettersi in pari. I periodi senza movimenti più vecchi non te li chiediamo: una riga in fondo li conta, così sai che ci sono. Se un conto non ha movimenti da prima di quei 4 mesi, probabilmente l'hai chiuso e ti suggeriamo *Non lo uso più*; se invece lo usi ancora, riparti dal giorno dopo l'ultimo mese caricato, così non si apre un nuovo buco.
+
+**Movimenti con data nel futuro.** Un movimento datato dopo il giorno dell'import non può esistere: di solito la data è stata letta male dal file della banca (giorno e mese scambiati, data valuta, riga di piè di pagina). L'import non lo scarta e non lo mette nel registro: lo **mette da parte**, già con descrizione e categoria, e il riepilogo dell'import te lo dice. Qui nella Lista di controllo trovi la tabella dei movimenti messi da parte: data letta, conto, descrizione, importo e la **data corretta**, già proposta quando scambiare giorno e mese dà una data passata (2 dicembre diventa 12 febbraio). Scegli *Importa con questa data* oppure *Scarta* e premi *Applica*. Un movimento già presente nel registro non viene inserito due volte. Finché restano da parte non contano da nessuna parte, e la lista non ti chiede mai periodi che devono ancora arrivare.
+
+**Un conto che non usi più.** Se hai chiuso una carta o un conto, sotto il suo nome premi *Non lo uso più* e scegli la data di chiusura (ti proponiamo la fine dell'ultimo mese con movimenti). Da lì la Lista di controllo non te lo chiede più, nemmeno per i mesi mancanti prima della chiusura: li trovi riassunti in *Conti chiusi*, dove puoi anche premere *Riapri*. I movimenti già caricati restano, anche nei resoconti, e nella tabella la sua colonna è segnata come chiusa. Puoi chiudere e riaprire un conto anche da **Impostazioni**, nell'elenco dei conti.
+
+Vai su **✅ Lista di controllo**. Trovi una tabella con:
 - **Una riga per ogni mese**, dal mese corrente in poi verso il passato
 - **Una colonna per ogni conto** che hai configurato in Impostazioni
 
 Ogni cella mostra il numero di transazioni importate per quel mese e quel conto. Se il numero è **—** (grigio), non hai transazioni per quella combinazione.
 
-> **Esempio pratico:** Hai tre conti — Conto Corrente, Carta Visa, Conto Deposito. Guardi la check list e vedi che Luglio 2024 ha "—" per il Conto Deposito. Significa che non hai mai importato i movimenti del conto deposito di quel mese. Vai a scaricarli dalla banca e importali.
+> **Esempio pratico:** Hai tre conti: Conto Corrente, Carta Visa, Conto Deposito. Guardi la lista di controllo e vedi che Luglio 2024 ha "—" per il Conto Deposito. Significa che non hai mai importato i movimenti del conto deposito di quel mese. Vai a scaricarli dalla banca e importali.
 
 **Come leggere i colori:**
 - **—** grigio = nessuna transazione
@@ -425,8 +461,8 @@ Clicca su **💬 Assistente** nella sidebar. Si apre una chat dove puoi scrivere
 Il chatbot si adatta automaticamente al backend LLM che hai configurato nelle Impostazioni:
 
 - **Se usi un servizio cloud** (OpenAI, Claude, ecc.) — il chatbot cerca nelle FAQ e nella documentazione, poi genera una risposta con l'AI. Le risposte sono più naturali e flessibili.
-- **Se usi Ollama o vLLM** — stesso comportamento, ma il modello gira sul tuo computer.
-- **Se usi llama.cpp o non hai configurato nessun LLM** — il chatbot usa un sistema deterministico che cerca la domanda più simile nelle FAQ preconfezionate. Nessun LLM coinvolto, funziona su qualsiasi hardware.
+- **Se usi Ollama o vLLM**: stesso comportamento, ma il modello gira sul tuo computer.
+- **Se usi llama.cpp o non hai configurato nessun LLM**: il chatbot usa un sistema deterministico che cerca la domanda più simile nelle FAQ preconfezionate. Nessun LLM coinvolto, funziona su qualsiasi hardware.
 
 ### Domande suggerite
 
@@ -511,7 +547,7 @@ Per qualsiasi backend (llama.cpp, Ollama, OpenAI, Claude, Compatible):
 
 Spendif.ai invia un prompt di prova ("PAGAMENTO POS FARMACIA") e mostra:
 - La risposta del modello (categoria + livello di confidenza)
-- **📐 Finestra di contesto** — token configurati e massimo nativo del modello (es. `📐 configurato: 8192 token · max modello: 131072 token`)
+- **📐 Finestra di contesto**: token configurati e massimo nativo del modello (es. `📐 configurato: 8192 token · max modello: 131072 token`)
 
 La finestra di contesto viene rilevata automaticamente al cambio di modello per tutti i backend. Se qualcosa non va, il messaggio di errore indica se il problema è la connessione, l'API key o il modello.
 
@@ -527,7 +563,7 @@ Spendif.ai memorizza la struttura di ogni file importato (colonne, formato date,
 
 > **Quando serve:** se il riepilogo import mostra righe scartate con motivo "Importo non parsabile" per le entrate (o le uscite), lo schema salvato probabilmente usa una convenzione di segno sbagliata. Cancella e reimporta.
 
-> **Auto-invalidazione:** Spendif.ai rileva automaticamente gli schema corrotti. Se un file importato con uno schema salvato produce meno del 10% di transazioni parsabili, lo schema viene eliminato e il file viene rianalizzato da zero con l'LLM — senza intervento manuale.
+> **Auto-invalidazione:** Spendif.ai rileva automaticamente gli schema corrotti. Se un file importato con uno schema salvato produce meno del 10% di transazioni parsabili, lo schema viene eliminato e il file viene rianalizzato da zero con l'LLM, senza intervento manuale.
 
 **Reset tassonomia:** se vuoi cambiare la lingua della tassonomia dopo l'onboarding, vai in **⚙️ Impostazioni → 🔄 Reset tassonomia**, scegli la lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto.
 
@@ -541,22 +577,22 @@ Tutti i tuoi dati stanno in **un unico file** (`ledger.db`) dentro una cartella 
 
 | Sistema operativo | Dove trovarla |
 |-------------------|---------------|
-| **macOS** | `/Users/<tuonome>/.spendifai/` — nel Finder premi `Cmd+Shift+.` per vedere le cartelle nascoste |
-| **Linux** | `/home/<tuonome>/.spendifai/` — nel file manager premi `Ctrl+H` |
+| **macOS** | `/Users/<tuonome>/.spendifai/`: nel Finder premi `Cmd+Shift+.` per vedere le cartelle nascoste |
+| **Linux** | `/home/<tuonome>/.spendifai/`: nel file manager premi `Ctrl+H` |
 | **Windows** | `C:\Users\<tuonome>\.spendifai\` |
 
 ### Come trasferire i dati (funziona tra qualsiasi combinazione: Windows, Mac, Linux)
 
 1. **Chiudi Spendif.ai** sul computer di partenza (esci del tutto).
 2. Apri la cartella `.spendifai` e copia su una chiavetta o su un cloud questi file:
-   - `ledger.db` — i tuoi dati (obbligatorio)
-   - `.env` — le tue impostazioni e chiavi AI (⚠️ contiene le chiavi in chiaro: trattalo come una password)
-   - `system_settings.yaml` — solo se c'è
+   - `ledger.db`: i tuoi dati (obbligatorio)
+   - `.env`: le tue impostazioni e chiavi AI (⚠️ contiene le chiavi in chiaro: trattalo come una password)
+   - `system_settings.yaml`: solo se c'è
 3. **Installa Spendif.ai** sul nuovo computer e **avvialo una volta**, poi chiudilo (così crea la cartella `.spendifai`).
 4. **Incolla** i file copiati dentro la cartella `.spendifai` del nuovo computer, sovrascrivendo.
 5. **Riavvia Spendif.ai**: ritrovi tutto com'era.
 
-> Il file dei dati è **portabile**: puoi passare da Windows a Mac, da Mac a Mac, da Linux a Windows — funziona sempre, senza conversioni.
+> Il file dei dati è **portabile**: puoi passare da Windows a Mac, da Mac a Mac, da Linux a Windows: funziona sempre, senza conversioni.
 
 > **I modelli AI** (cartella `models/`) non serve copiarli: vengono riscaricati al primo avvio sul nuovo computer. Copiali solo se il nuovo computer resterà **senza connessione**.
 
@@ -564,12 +600,29 @@ Tutti i tuoi dati stanno in **un unico file** (`ledger.db`) dentro una cartella 
 
 ---
 
+## 17. Diagnostica: quando qualcosa non va
+
+**Situazione:** L'import si ferma con un errore, l'analisi è molto lenta o l'applicazione non fa quello che ti aspetti, e vuoi chiedere aiuto.
+
+Vai su **Diagnostica** nel menu. La pagina **Informazioni tecniche** raccoglie un riepilogo del tuo computer e di come è configurata l'applicazione: sistema operativo, memoria, scheda grafica, modello in uso, tempi delle ultime importazioni. **Non contiene nessun dato delle tue transazioni** e non viene inviata a nessuno: la salvi tu e decidi tu se allegarla.
+
+Cosa fare:
+1. Premi **Salva il documento**: è esattamente ciò che vedi nel riquadro.
+2. Premi **Scrivi all'assistenza**: si apre il programma di posta con un messaggio già impostato. Descrivi cosa stavi facendo e allega il documento salvato. Se il programma di posta non si apre, la pagina ti dice a quale indirizzo scrivere.
+3. Se hai un account GitHub puoi usare invece **Invia come resoconto di prova su GitHub**: apre un modulo pubblico con il documento già inserito, e non parte niente finché non lo invii tu.
+
+La pagina ti avvisa anche da sola di due problemi frequenti: un computer con una scheda grafica che l'applicazione non sta usando (l'analisi gira sul processore ed è più lenta) e un testo inviato al modello che si avvicina allo spazio disponibile (quando lo spazio finisce l'analisi fallisce).
+
+> **Esempio pratico:** L'import di un estratto conto si interrompe a metà. Vai su Diagnostica, salvi il documento, premi Scrivi all'assistenza e nel messaggio scrivi "import del file di settembre del conto BBVA, si ferma al 60%". Con il documento allegato chi ti risponde vede subito modello, memoria e tempi, senza doverti fare domande.
+
+---
+
 ## Strumenti di benchmark (per utenti avanzati)
 
 Spendif.ai include due script di benchmark nella cartella `benchmark/`:
 
-- **`benchmark_classifier.py`** — misura la qualita del riconoscimento schema (header, colonne, formato date, convenzione segno).
-- **`benchmark_categorizer.py`** — misura la qualita della categorizzazione LLM in isolamento (senza database, regole o storico). Metriche: accuratezza esatta, accuratezza fuzzy (primo livello), tasso di fallback.
+- **`benchmark_classifier.py`**: misura la qualita del riconoscimento schema (header, colonne, formato date, convenzione segno).
+- **`benchmark_categorizer.py`**: misura la qualita della categorizzazione LLM in isolamento (senza database, regole o storico). Metriche: accuratezza esatta, accuratezza fuzzy (primo livello), tasso di fallback.
 
 Entrambi supportano gli stessi argomenti CLI: `--runs`, `--files`, `--backend`, `--model`, `--model-path`. Utili per confrontare modelli diversi prima di scegliere quale usare in produzione.
 
@@ -587,7 +640,7 @@ No. Le transazioni duplicate vengono ignorate.
 Spendif.ai gestisce questa cosa automaticamente (si chiama "riconciliazione carta-conto"). Se vedi ancora un duplicato, controlla in Review se una delle due ha l'icona 🔄.
 
 **Voglio esportare i dati.**
-In Analytics trovi il pulsante **Esporta** che genera HTML, CSV o XLSX.
+In Analisi trovi il pulsante **Esporta** che genera HTML, CSV o XLSX.
 
 **Ho cambiato la tassonomia ma le transazioni vecchie non si sono aggiornate.**
 Le categorie vecchie rimangono come sono. Puoi rielaborarle manualmente dalla pagina Review o ri-applicando le regole.
@@ -600,8 +653,8 @@ Spendif.ai è in alpha test. Le funzioni che aggiungeremo le decidiamo insieme a
 
 Funzioni in valutazione in base ai feedback degli alpha tester:
 
-- **Tracking del cash** — registrare manualmente le spese in contanti, senza estratto bancario
-- **Performance degli investimenti** — vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio
-- **App mobile compagna** — registrare cash al volo dal telefono e sincronizzare col desktop
+- **Tracking del cash**: registrare manualmente le spese in contanti, senza estratto bancario
+- **Performance degli investimenti**: vedere a colpo d'occhio come stanno andando gli strumenti del portafoglio
+- **App mobile compagna**: registrare cash al volo dal telefono e sincronizzare col desktop
 
 Una di queste ti servirebbe? Faccelo sapere su [GitHub Discussions](https://github.com/spendifai/spendif-ai/discussions). Quando arrivano abbastanza richieste sulla stessa funzione, sale in cima alla coda.

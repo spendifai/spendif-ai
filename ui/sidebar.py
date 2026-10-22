@@ -4,6 +4,7 @@ import streamlit as st
 
 from ui.i18n import t
 from ui.components.update_checker import render_update_warning
+from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
 
 # Navigation entries: (i18n_key_suffix, page_key)
 _NAV_KEYS = [
@@ -23,6 +24,7 @@ _NAV_KEYS = [
     ("llm_models",      "llm_models"),
     ("settings",        "settings"),
     ("diagnostics",     "diagnostics"),
+    ("intermediaries",  "intermediaries"),   # for experts (spec 20); level 4 in the tiered menu
     ("checklist",       "checklist"),
     ("chat",            "chat"),
 ]
@@ -59,6 +61,33 @@ def render_sidebar() -> str:
         # While confirmation is pending, still show nav but don't process clicks
         _render_build_info()
         return st.session_state["page"]
+
+    # Guided workflow first, apart from the rest: it reopens where it was left.
+    if st.sidebar.button(
+        t("nav.guided"), key="nav_guided", width="stretch", type="primary",
+        help=t("nav.guided.desc"),
+    ):
+        if llm_running:
+            st.session_state["_pending_nav_target"] = GUIDED_PAGE
+        else:
+            st.session_state[GUIDED_RETURN] = st.session_state["page"]
+            st.session_state.pop(GUIDED_STEP, None)
+            st.session_state["page"] = GUIDED_PAGE
+        st.rerun()
+    # The check of the movements, right under it: a flow of its own, started
+    # by the user, never reached from the workflow's steps (spec 31).
+    if st.sidebar.button(
+        t("nav.check"), key="nav_check", width="stretch",
+        help=t("nav.check.desc"),
+    ):
+        if llm_running:
+            st.session_state["_pending_nav_target"] = "check"
+        else:
+            st.session_state["_check_return"] = st.session_state["page"]
+            st.session_state.pop("_check_phase", None)
+            st.session_state["page"] = "check"
+        st.rerun()
+    st.sidebar.divider()
 
     for nav_suffix, key in _NAV_KEYS:
         label = t(f"nav.{nav_suffix}")

@@ -36,6 +36,7 @@
 │  ImportService · TransactionService · RuleService         │
 │  SettingsService · CategoryService · NsiTaxonomyService   │
 │  ReviewService · BudgetService                            │
+│  GuidedFlowService · TransferService                      │
 └──────┬────────────────────────────────────┬──────────┘
        │                                    │
 ┌──────▼──────┐                    ┌────────▼────────┐
@@ -50,7 +51,7 @@
 
 **Fundamental rule:** `ui/` modules import **only** from `services.*`.
 They must never import directly from `core.*`, `db.*`, or `support.*`.
-This rule is enforced automatically in CI (see §5).
+This rule is enforced automatically in CI (see §6). Note: `tools/coupling_check.py` checks only `core.*` and `db.*`; imports from `support.*` (formatting, logging) are present in several pages today and are not flagged.
 
 ---
 
@@ -127,13 +128,19 @@ spendifai/
 │   ├── rule_service.py
 │   ├── settings_service.py
 │   ├── category_service.py
-│   └── review_service.py
+│   ├── review_service.py
+│   ├── guided_flow_service.py # workflow: steps, Checklist, closed accounts
+│   └── transfer_service.py  # transfers across accounts and imports
 ├── core/                   # pure domain logic (no UI, no DB)
 │   ├── orchestrator.py     # pipeline entry point
 │   ├── normalizer.py
 │   ├── classifier.py
 │   ├── categorizer.py
 │   ├── description_cleaner.py
+│   ├── guided_flow.py      # workflow STEPS, 4-month window, step resume
+│   ├── transfer_pairing.py # pairs the two sides of a transfer (rules, no model)
+│   ├── import_eta.py       # import duration estimate
+│   ├── llm_backends.py     # LLM backends + SHARED_MODELS (llama.cpp model pool)
 │   └── sanitizer.py
 ├── db/                     # ORM, migrations, repository
 │   ├── models.py           # SQLAlchemy tables + idempotent migrations
@@ -146,10 +153,12 @@ spendifai/
 ├── api/                    # FastAPI REST API (optional)
 │   ├── main.py
 │   └── routers/
-├── tests/                  # pytest — 453+ tests, no DB mocks
+├── tests/                  # pytest: over 1200 tests, no DB mocks
 ├── tools/                  # development tools
 │   ├── coupling_check.py   # static analysis of UI → service imports
-│   └── coupling_baseline.json
+│   ├── coupling_baseline.json
+│   ├── build_chat_knowledge.py # copies the docs/ guides into the chatbot knowledge
+│   └── eval_chat_bot.py    # measures the chatbot on the test question set
 └── docs/                   # public documentation in the repo
     ├── reference_guide.en.md
     └── developer_guide.en.md  # ← this file
@@ -176,6 +185,32 @@ svc.persist_result(result)
 ```
 
 > **Note:** `giroconto_mode` (`neutral`/`exclude`) controls only the visibility in views (Ledger, Analytics, Reports). Internal transfers are **always detected and always persisted** to the database as `internal_in`/`internal_out`, regardless of the chosen mode. This ensures reconciliation and data integrity.
+
+After saving, `persist_result()` calls `TransferService` to pair the new movements with the stored movements of the other accounts and to apply the destinations the user already gave. A pairing error is logged and does not undo the import. `estimate_import_seconds(n_rows)` estimates the duration with `core/import_eta.py` from the previous imports (`import_job.n_rows`).
+
+### GuidedFlowService: workflow
+
+The workflow (`ui/guided_page.py`) shows the regular pages one step at a time, in the order of `STEPS` in `core/guided_flow.py`: `checklist`, `import`, `counterparts` (spending), `mixed`, `transfers`, `income`, `report`. Checking the movements is a flow of its own, not a step: the `check` page (`ui/checking_page.py`, `services/checking_service.py`, spec 31), opened only from its menu entry; it checks movements one account at a time with the Registry grid (`render_check_grid`), which in this mode opens a fresh editor at every save and blocks saving while a rule is in progress. The step pages are `ui/checklist_page.py`, the Import page, the Counterparts page, `ui/mixed_page.py`, `ui/transfers_page.py`, `render_income_page` in `ui/counterparts_page.py` and Report. The `income` step comes after the transfers and shows every income counterpart of the period not seen yet (`income_counterparts()`, `unchecked_income()`), with no coverage goal; for a counterpart that also has spending (`also_spending`) the category goes to its income movements only, one by one, without a rule, since rules do not tell the sign apart. `GuidedFlowService` saves the step left and, on return, reopens the first step still open (`resume()`).
+
+- **Checklist:** `checklist_guidance()` asks for the months of the last `CHECK_WINDOW_MONTHS = 4` (last month plus the three before it) for each account.
+- **Outside the window:** `check_window_start(today)` gives the first day of the window; `old_holes()` counts the earlier gaps without asking for them; `GuidanceKind.dormant` flags an account with no movement since before the window (maybe closed), with `suggested_closing_date()` as the proposed date; `closed_accounts()` lists closed accounts with their remaining gaps; `group_by_account()` groups the guidance per account.
+- **Closed accounts:** `close_account()` / `reopen_account()` write `account.closed_on`; a closed account is no longer asked for.
+- **Files per account:** `ui/widgets/staged_import.py` keeps in the session the files prepared account by account in the Checklist until the import starts.
+
+### HeldMovementService: movements set aside
+
+`repository.persist_import_result()` does not save to the ledger a movement dated after the day of the import: it puts it, whole, in `held_movement` (`hold_movement()`), and `ImportResult.held_count` counts it for the summary. Reconciliation and transfer links touching it are not created. `services/held_movement_service.py`: `held()` lists the movements with a proposed date (`core.guided_flow.swapped_date()`: day and month swapped, only when that gives a past date), `release(id, date)` imports it with the corrected date (refuses a date still in the future; never inserts it twice; then `TransferService.pair_new`), `discard(id)`, `hold_existing()` moves the future-dated movements already in the ledger. The table lives in the Check List (`ui/checklist_page._render_held`).
+
+### TransferService: transfers across accounts and imports
+
+The two sides of a transfer sit on different accounts, so they arrive with different files and often different imports. `core/transfer_pairing.py` (`pair_across_accounts()`) pairs them with plain rules, no model: same amount with opposite sign, different accounts, 5 days apart at most; card purchases are excluded. The level depends on what the import already read: `high` when both sides were transfers (the pair becomes a transfer), `medium` when only one was, `low` when neither was but they are 1 day apart at most (both proposed to the user).
+
+`services/transfer_service.py`:
+
+- `pair_new(new_ids)` after every import from `ImportService.persist_result()`; `pair_all_once()` the first time on an existing ledger; `pair_all()` from the re-run button in Review (`ReviewService.rerun_transfer_detection()`).
+- `decide(out_id, in_id, "yes" | "no")` stores the answer in `internal_transfer_link.user_decision`; a rejected pair is never proposed again.
+- `answer(key, answer)` stores in `transfer_destination` where a one-sided transfer went, once per beneficiary (key: the IBAN in the description, otherwise the cleaned description): `unloaded`, `untracked` or `other_person` (becomes spending or income, also in later imports).
+- `view()` returns the pairs and one-sided transfers in the Checklist window; older ones are only counted.
 
 ### SettingsService — user configuration
 
@@ -316,6 +351,7 @@ Every LLM call (all backends: llama.cpp, Ollama, OpenAI, Claude) is logged to th
 ### Architecture
 
 - **`call_with_fallback()`** (`core/llm_backends.py`): accepts `caller`, `step`, `source_name`, `batch_size` parameters. After each successful call, persists the log via `_log_usage_to_db()` (best-effort, never blocking).
+- **Shared local model** (`SHARED_MODELS` in `core/llm_backends.py`): one llama.cpp model loaded per process for each `(path, n_ctx, n_gpu_layers)`, served to every backend that asks for it (import and chatbot). A lock per call lets one caller use it at a time; it is released after 900 s without use and reloaded on the next call; `atexit` frees it when the process exits.
 - **Pre-call token check** (LlamaCppBackend only): before sending the prompt, tokenizes the input with `self._llm.tokenize()` and verifies at least 256 tokens remain for the output. If the budget is insufficient, raises `LLMValidationError` with a diagnostic message.
 
 ### Statistics queries
@@ -389,21 +425,26 @@ chat_bot/
 ├── kb_store.py         # Loads FAQ (JSON/MD) and doc chunks
 ├── prompts.json        # System prompts + multi-language no-answer messages
 └── knowledge/<lang>/   # FAQ and docs per language (it, en)
-    ├── faq.json        # [{"q": "...", "a": "...", "page": "<page_key>"}] — 150 items
+    ├── faq.json        # [{"q": "...", "a": "...", "page": "<page_key>"}] (158 entries per language)
     └── docs/           # .md/.txt files chunked for RAG (manuals, guides, etc.)
 ```
 
-**Corpus status (2026-04-05):** `knowledge/it/` and `knowledge/en/` populated with 150 Q&A
-(`faq_can_do` + `faq_cannot_do`) and 5 markdown manuals in `docs/`.
-Canonical source: `documents/06_knowledge_base/` — edit there and regenerate.
+**Corpus:** `knowledge/it/` and `knowledge/en/` hold the FAQ and 5 markdown manuals in `docs/`
+(installation, user guide, configuration, classification guide, reference guide).
+Retrieval uses the user's language plus "common", falling back to English when the language has
+no knowledge of its own. The context budget comes from the backend's `n_ctx` (`_context_budget()`:
+40% of the window at about 3.5 characters per token, between 3000 and 12000 characters) and
+`_select_within_budget()` keeps the best passages that fit, at least one.
+The manuals are copies of the guides in `sw_artifacts/docs/`, written only by `tools/build_chat_knowledge.py`;
+`--check` fails when a copy differs from its guide.
 
 ### Three modes
 
 | Mode | Condition (from user settings) | Behaviour |
 |------|-------------------------------|-----------|
 | `rag_cloud` | Backend = `openai` / `claude` / `openai_compatible` with API key | TF-IDF retrieval → cloud LLM generates answer |
-| `rag_local` | Backend = `local_ollama` / `vllm` | TF-IDF retrieval → local LLM generates answer |
-| `faq_match` | Backend = `local_llama_cpp` or none | Cosine similarity on FAQ, pre-built answer |
+| `rag_local` | Backend = `local_llama_cpp` / `local_ollama` / `vllm` | TF-IDF retrieval → local LLM generates answer |
+| `faq_match` | No backend configured, or a cloud backend without API key | Cosine similarity on FAQ, pre-built answer |
 
 **Note:** `ChatBotEngine` is cached in `st.session_state["chatbot"]` and automatically
 invalidated when the LLM backend changes (cleared in `settings_page.py` on save).
@@ -411,12 +452,15 @@ invalidated when the LLM backend changes (cleared in `settings_page.py` on save)
 ### Source display
 
 `kb_store.py` exposes a `page_ref` field (`FAQEntry.page_ref`) containing the app page key
-(e.g. `"import"`, `"review"`). `chat_page.py` renders it as a navigable label (`→ 📥 Import`).
-Doc chunk sources show the filename (`📄 user_guide.md`). Sources without a `page_ref` are suppressed.
+(e.g. `"import"`, `"review"`). `chat_page.py` shows **one** button under the answer (`→ 📥 Import`)
+that opens the page: the one named in the answer text (`pages_to_link()`: the first menu label
+found, the longest when two start at the same place), otherwise the best source. The guide's
+filename (`📄 user_guide.md`) shows only when no page is known. Sources without a `page_ref` are suppressed.
 
 ### Project integration
 
-- **LLM Backend:** Uses `BackendFactory` from `core/llm_backends.py` — same backend as the user's
+- **LLM Backend:** Uses `BackendFactory` from `core/llm_backends.py`: same backend as the user's. With llama.cpp the parameters match the import's, so chat and import share the same model in `SHARED_MODELS`: one copy of the weights, released after a period of inactivity
+- **Evaluation:** `tools/eval_chat_bot.py` asks the questions in `tests/chat_bot/questions.json` in Italian and English and measures whether the answer points to the expected page and contains the expected facts; it compares the chatbot before and after a change
 - **Settings:** Reads `llm_backend` and API keys from `user_settings` (DB) via `get_all_user_settings()`
 - **UI:** `ui/chat_page.py` follows the `render_X_page(engine)` pattern, with `st.chat_message`
 - **i18n:** Keys `chat.*` and `nav.chat*` in `ui/i18n/{it,en}.json`
@@ -436,9 +480,9 @@ print(response.sources)  # ["import", "review", ...] — page_ref keys
 
 ### Populating the knowledge base
 
-1. Edit `documents/06_knowledge_base/faq_can_do.en.json` / `faq_cannot_do.en.json`
-2. Run the conversion script to regenerate `knowledge/{lang}/faq.json`
-3. For manuals: edit `.md` files in `documents/06_knowledge_base/` and copy to `knowledge/en/docs/`
+1. FAQ entries are edited directly in `chat_bot/knowledge/{lang}/faq.json` (same entries in Italian and English)
+2. Check the answers with `python tools/eval_chat_bot.py` (questions in `tests/chat_bot/questions.json`)
+3. For manuals: edit the `.md` guides in `sw_artifacts/docs/` and run `python tools/build_chat_knowledge.py` (verify with `--check`)
 4. Never index sensitive data (credentials, personal data, business strategies)
 
 ---
@@ -740,7 +784,7 @@ See [`tests/README.md`](../tests/README.md) for full benchmark documentation.
 | `LlamaCppBackend.get_context_info()` — `n_ctx_train` fallback | `llama-cpp-python >= 0.3.x` removed `n_ctx_train()`. Code now catches `AttributeError` and falls back to GGUF metadata (`read_gguf_context_length`) or `n_ctx()`. |
 | Match preview in "New rule" form (issue #15) | Before creating a rule, `rules_page.py` calls `tx_svc.get_by_rule_pattern()` and shows how many existing transactions match. If N > 0, a checkbox (default True) lets the user also apply the category to those transactions — same behaviour as the edit-rule form. |
 | Chatbot: `ChatBotEngine` invalidated on backend change | The chatbot is cached in `st.session_state["chatbot"]`. `settings_page.py` clears it on LLM settings save, forcing re-initialisation with the new backend on next visit to the Chat page. |
-| Chatbot: TF-IDF over 150 Q&A + 5 manuals, no vector DB | Total corpus < 1 MB: in-memory TF-IDF is sufficient. A vector DB (Chroma/Qdrant) would only be added if the corpus exceeded ~500 items. Canonical source in `documents/06_knowledge_base/`; `knowledge/{lang}/` is a generated artifact. |
+| Chatbot: TF-IDF over about 160 FAQ entries + 5 manuals, no vector DB | Total corpus < 1 MB: in-memory TF-IDF is sufficient. A vector DB (Chroma/Qdrant) would only be added if the corpus exceeded ~500 items. FAQ entries are curated in `knowledge/{lang}/faq.json`; the manuals in `knowledge/{lang}/docs/` are copies generated from `docs/`. |
 | Cached schema auto-invalidation | If Flow 1 produces < 10% parseable transactions, the schema is broken. The orchestrator deletes it from the DB and retries with Flow 2 (LLM). Threshold: `_SCHEMA_INVALIDATION_THRESHOLD = 0.10` in `orchestrator.py`. On startup, the `_migrate_purge_orphan_schemas` migration deletes `document_schema` rows without `header_sha256`. |
 
 ---

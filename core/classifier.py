@@ -26,8 +26,8 @@ from pathlib import Path
 import pandas as pd
 
 from core.llm_backends import LLMBackend, SanitizationRequiredError, call_with_fallback
-from core.models import Confidence, INVERT_SIGN_TYPES, NO_INVERT_TYPES
-from core.normalizer import compute_columns_key, parse_date_safe
+from core.models import Confidence
+from core.normalizer import compute_columns_key, parse_amount, parse_date_safe
 from core.sanitizer import SanitizationConfig, sanitize_dataframe_descriptions
 from core.schemas import (
     DocumentSchema, fill_llm_defaults,
@@ -518,30 +518,11 @@ def classify_document(
         )
         result["doc_type"] = doc_type_override
 
-    # What the model made of the direction, before anything deterministic
-    # touches it. Kept because the disagreement between the two is the only
-    # thing worth interrupting a person for.
-    _llm_verdict = bool(result.get("invert_sign"))
-
-    result = _apply_step0_invert_sign(result, source_name)
-
-    # AI-149: deterministic sign decision driven by the document-type prior.
-    # On single-amount-column files this OVERRIDES the LLM's sign_convention/
-    # invert_sign/ratios: the direction of the sign is an accounting fact, not
-    # a semantic guess. See documents/04_software_engineering/07_deterministic_pipeline.md.
-    result = _apply_doc_type_sign_prior(result, df_raw, source_name)
-
-    _prior_decided = bool(result.pop("sign_prior_applied", False))
-    result["sign_llm_verdict"] = _llm_verdict
-    result["sign_deterministic_verdict"] = (
-        bool(result.get("invert_sign")) if _prior_decided else None
-    )
-    if _prior_decided and _llm_verdict != result["sign_deterministic_verdict"]:
-        logger.info(
-            "classify_document [%s]: the two readings of the direction disagree "
-            "(model=%s, measured=%s)",
-            source_name, _llm_verdict, result["sign_deterministic_verdict"],
-        )
+    # The direction of the amounts on single-column files is measured on the
+    # data and OVERRIDES whatever the model said about it: the model sees
+    # column names and a few rows, the convention of the file is in the amounts.
+    # See documents/04_software_engineering/07_deterministic_pipeline.md.
+    result = _measure_sign_from_data(result, df_raw, source_name)
 
     # Compute deterministic confidence score from merged result
     score = compute_confidence_score(result, header_certain=header_certain)
@@ -671,10 +652,6 @@ _AMOUNT_NEUTRAL_SYNONYMS: frozenset[str] = frozenset({
     "betrag", "wert", "summe",
     "importe", "monto", "valor",
 })
-
-# Use centralized sets from core.models (INVERT_SIGN_TYPES, NO_INVERT_TYPES)
-_NO_INVERT_DOC_TYPES: frozenset[str] = frozenset(t.value for t in NO_INVERT_TYPES)
-_INVERT_DOC_TYPES: frozenset[str] = frozenset(t.value for t in INVERT_SIGN_TYPES)
 
 # ── Content-type detection regexes (Phase 0 data-driven) ─────────────────────
 # Date: three digit-groups separated by / - . with optional time component
@@ -1057,11 +1034,7 @@ def _inspect_neutral_column_sign(step0: _Step0Result, df: pd.DataFrame, source_n
         return step0
 
     # Parse numeric, dropping unparseable cells (currency symbols, separators…)
-    vals = pd.to_numeric(
-        df[col].astype(str).str.replace(r"[€$£\s]", "", regex=True)
-                           .str.replace(",", ".", regex=False),
-        errors="coerce",
-    ).dropna()
+    vals = _parsed_amounts(df[col]).dropna()
 
     if len(vals) == 0:
         return step0
@@ -1255,102 +1228,56 @@ def _merge_step0_into_result(result: dict, step0: _Step0Result, source_name: str
     return out
 
 
-# ── Post-LLM safety net ───────────────────────────────────────────────────────
+# ── Direction of the amounts, measured on the data ─────────────────────────────
+# The convention of a single amount column (are expenses written negative or
+# positive?) is a fact about the file, and it shows in the file: on any account
+# most movements are money going out. So the verdict is the same for every
+# account and every document type: the more frequent sign is the spending one.
+#
+# The document type the model guesses is deliberately not consulted. It used
+# to decide whether this measurement ran at all, which is how an American
+# Express export the model took for a bank account came in with 44 of its 52
+# charges recorded as income and no question asked. Whether the verdict is
+# worth a question is decided downstream, against how the person uses the
+# account (core.orchestrator._sign_needs_a_question).
 
 
-def _apply_step0_invert_sign(
-    result: dict, source_name: str,
-) -> dict:
-    """Post-merge safety net: re-enforce invert_sign from the detected doc_type.
+def _parsed_amounts(series) -> pd.Series:
+    """The amount column as floats, read the way the normalizer reads it.
 
-    Runs after _merge_step0_into_result so both the LLM's doc_type and Phase 0
-    column findings are available.  Only applies when sign_convention == signed_single.
-
-    Rule: credit_card doc_type → invert_sign=True always (positive=charge,
-    negative=payment).  What the person called the account is deliberately not
-    consulted: it used to force the inversion on its own, which is how a file
-    could have every amount flipped because of a label chosen months earlier in
-    a form.  All other role assignments come from the LLM (Phase 1): no
-    language-dependent synonym matching here.
+    A plain to_numeric after swapping the comma for a dot turned "2.934,73"
+    into "2.934.73" and dropped it: every amount from a thousand up, written
+    the Italian way. On a bank account those are salaries and pensions, so
+    the count of signs leaned towards spending.
     """
-    out = dict(result)
-
-    convention = str(out.get("sign_convention", "")).lower()
-    if convention not in ("signed_single", ""):
-        return out
-
-    doc_type = str(out.get("doc_type", "")).lower()
-
-    # credit card → charges are positive → must invert
-    if doc_type in _INVERT_DOC_TYPES:
-        if not out.get("invert_sign"):
-            logger.info(
-                f"classify_document [{source_name}]: safety-net — "
-                f"doc_type=credit_card → invert_sign=True"
-            )
-            out["invert_sign"] = True
-
-    return out
-
-
-# ── AI-149: deterministic sign decision by account-type prior ───────────────────
-# Each account type carries a prior on the DOMINANT transaction direction, hence
-# the canonical sign that the dominant transactions should have (internal canon:
-# income positive, expenses negative).
-#   ⚠️ DRAFT — table reviewed jointly (see 07_deterministic_pipeline.md). `cash`
-#   and `bank_account` behaviour still to be re-validated.
-_EXPENSE_DOMINANT_TYPES = frozenset({"credit_card", "debit_card", "prepaid_card", "cash"})
-_INCOME_DOMINANT_TYPES = frozenset({"savings_account"})
-# bank_account → mixed → no prior (existing logic stays).
-
-
-def _expected_dominant_sign(type_str: str) -> int | None:
-    """+1 if dominant tx should be positive (income-dominant), -1 if negative
-    (expense-dominant), None when the type carries no reliable prior."""
-    t = (type_str or "").lower()
-    if t in _EXPENSE_DOMINANT_TYPES:
-        return -1
-    if t in _INCOME_DOMINANT_TYPES:
-        return +1
-    return None
+    parsed = [parse_amount(v) if not pd.isna(v) else None for v in series.tolist()]
+    return pd.Series([float(v) if v is not None else float("nan") for v in parsed])
 
 
 def _ordered_nonzero_amounts(df, amount_col: str) -> list[float]:
     """Parse the amount column to signed floats in row order, dropping
-    unparseable and zero cells. Mirrors _inspect_neutral_column_sign parsing."""
+    unparseable and zero cells."""
     if amount_col not in df.columns:
         return []
-    vals = pd.to_numeric(
-        df[amount_col].astype(str)
-                      .str.replace(r"[€$£\s]", "", regex=True)
-                      .str.replace(",", ".", regex=False),
-        errors="coerce",
-    )
+    vals = _parsed_amounts(df[amount_col])
     return [float(v) for v in vals.tolist() if pd.notna(v) and float(v) != 0.0]
 
 
-def _apply_doc_type_sign_prior(
-    result: dict, df_raw, source_name: str
-) -> dict:
-    """Deterministic sign decision for SINGLE-amount-column files (AI-149).
+def _measure_sign_from_data(result: dict, df_raw, source_name: str) -> dict:
+    """Decide invert_sign for SINGLE-amount-column files from the amounts alone.
 
-    Forces signed_single (S3), computes positive/negative ratios in Python (S2),
-    and decides invert_sign from the account-type prior + measured majority (S1)
-    or, with ≤2 movements / a tie, from the first non-zero tx (S0 — single billing
-    cycle; the last tx is only a coherence check). Bank accounts (no prior) keep
-    the existing logic.
+    Forces signed_single, records the positive/negative ratios, and sets
+    invert_sign so that the more frequent sign becomes spending. With fewer
+    than three movements or a tie there is no majority: the first movement is
+    taken as spending and the measure is marked inconclusive, which is what
+    makes the import ask. Two-column debit/credit layouts carry the direction
+    in their structure and are left alone.
     """
     out = dict(result)
     amount_col = out.get("amount_col")
-    debit_col = out.get("debit_col")
-    credit_col = out.get("credit_col")
-
-    # Only single-amount-column layouts. Debit/credit two-column files are
-    # structural and handled upstream (Step 0.6).
-    if not amount_col or debit_col or credit_col:
+    if not amount_col or out.get("debit_col") or out.get("credit_col"):
         return out
 
-    # S3 — single column ⇒ signed_single, never debit_positive/credit_negative.
     if str(out.get("sign_convention", "")).lower() != "signed_single":
         logger.info(
             f"classify_document [{source_name}]: single amount column → "
@@ -1358,7 +1285,6 @@ def _apply_doc_type_sign_prior(
         )
         out["sign_convention"] = "signed_single"
 
-    # S2 — deterministic ratios from the data (also used for S0 first/last).
     signed = _ordered_nonzero_amounts(df_raw, amount_col)
     n = len(signed)
     if n == 0:
@@ -1368,30 +1294,16 @@ def _apply_doc_type_sign_prior(
     out["positive_ratio"] = round(n_pos / n, 4)
     out["negative_ratio"] = round(n_neg / n, 4)
 
-    # Prior: the detected document type, and only that. It used to be the
-    # user's declaration first, which meant a wrong label beat the file.
-    expected = _expected_dominant_sign(out.get("doc_type", ""))
-    if expected is None:
-        # No prior (bank_account/unknown) → leave invert_sign as decided upstream.
-        return out
+    conclusive = n >= 3 and n_pos != n_neg
+    spending_is_positive = (n_pos > n_neg) if conclusive else (signed[0] > 0)
 
-    # S1 (majority) when the sample is meaningful, else S0 (single-cycle guard).
-    if n >= 3 and n_pos != n_neg:
-        measured = +1 if n_pos > n_neg else -1
-        basis = "S1-majority"
-    else:
-        measured = +1 if signed[0] > 0 else -1   # first non-zero tx
-        basis = "S0-single-cycle"
-
-    out["invert_sign"] = (measured != expected)
-    # This is what makes the two readings comparable: without it, "the
-    # deterministic one agrees" cannot be told apart from "it never ran".
-    out["sign_prior_applied"] = True
+    out["invert_sign"] = spending_is_positive
+    out["sign_deterministic_verdict"] = spending_is_positive
+    out["sign_measure_conclusive"] = conclusive
     logger.info(
-        f"classify_document [{source_name}]: sign prior [{basis}] "
-        f"type={out.get('doc_type')} n_pos={n_pos} n_neg={n_neg} "
-        f"measured={'+' if measured > 0 else '-'} expected={'+' if expected > 0 else '-'} "
-        f"→ invert_sign={out['invert_sign']} (ratios {out['positive_ratio']}/{out['negative_ratio']})"
+        f"classify_document [{source_name}]: sign measured on {n} movements "
+        f"(n_pos={n_pos} n_neg={n_neg}, {'majority' if conclusive else 'no majority, first movement'}) "
+        f"→ invert_sign={spending_is_positive}"
     )
     return out
 

@@ -104,7 +104,7 @@ def test_the_plugins_are_registered_before_the_model_is_built():
 
     source = inspect.getsource(llm_backends.LlamaCppBackend)
     load_at = source.find("load_ggml_backend_plugins()")
-    model_at = source.find("self._llm = Llama(")
+    model_at = source.find("return Llama(")
 
     assert load_at != -1, "the plugins are never registered"
     assert model_at != -1

@@ -14,7 +14,7 @@ from decimal import Decimal as _Decimal
 import pandas as pd
 from sqlalchemy.orm import sessionmaker
 
-from db.models import Transaction, get_session
+from db.models import Transaction, get_session, same_counterpart
 from db import repository
 
 
@@ -112,7 +112,7 @@ class ReviewService:
             return (
                 s.query(Transaction)
                 .filter(
-                    Transaction.description == description,
+                    same_counterpart(Transaction.description, description),
                     Transaction.id != exclude_id,
                 )
                 .count()
@@ -227,7 +227,7 @@ class ReviewService:
                     tx.category_source = result.source.value
                     tx.category_model = result.model_name or None
                     tx.to_review = result.to_review
-                    # human_validated NOT reset: means "user saw this tx", not "user approves category"
+                    # human_validated NOT reset: it says the money was spent, not how
                     n_categorized += 1
             s.commit()
 
@@ -288,7 +288,7 @@ class ReviewService:
 
         changed = df_result[df_result["tx_type"] != df["tx_type"]]
         if changed.empty:
-            return 0
+            return self._pair_across_accounts()
 
         with self._session() as s:
             updated = 0
@@ -303,7 +303,13 @@ class ReviewService:
             if updated:
                 s.commit()
 
-        return updated
+        return updated + self._pair_across_accounts()
+
+    def _pair_across_accounts(self) -> int:
+        """The two sides across accounts and imports, read transfers included;
+        returns the movements paired."""
+        from services.transfer_service import TransferService
+        return 2 * len(TransferService(self.engine).pair_all())
 
     # ── Bulk description fix ──────────────────────────────────────────────────
 
@@ -391,7 +397,7 @@ class ReviewService:
                         tx.category_source = result.source.value
                         tx.category_model = result.model_name or None
                         tx.to_review = result.to_review
-                        # human_validated NOT reset: means "user saw this tx", not "user approves category"
+                        # human_validated NOT reset: it says the money was spent, not how
                         n_categorized += 1
                 s.commit()
 
@@ -490,7 +496,7 @@ class ReviewService:
                     )
                     tx.category_model = r.model_name or None
                     tx.to_review = r.to_review
-                    # human_validated NOT reset: means "user saw this tx", not "user approves category"
+                    # human_validated NOT reset: it says the money was spent, not how
                     n_cat_updated += 1
                     if r.to_review:
                         n_review += 1

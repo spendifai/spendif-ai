@@ -2,9 +2,46 @@
 
 All notable changes to Spendif.ai are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2026.10.0 (year, month without leading zero, release of the month from 0); earlier releases used Semantic Versioning.
 
 ## [Unreleased]
+
+## [2026.10.0] - 2026-10-22
+
+### Added
+- Let's prepare your movements (formerly Workflow): the page every session starts from. Both endings of the onboarding land on it, and the first time it says so, once
+- If you want to check: a flow of its own, from its menu entry, to check movements one account at a time. A list shows every account with its last checked movement and the first one still to check; the account furthest behind is proposed, from its oldest unchecked movement. Then a full-page Registry grid with only that account's unchecked movements, oldest first: at every save the checked ones leave and the next ones come in, and a confirmed button marks all those shown as checked. While a rule is being created, saving waits for it; the rule saves the grid's other edits first. When the account is done, its transfers without the other side are asked, then back to the list
+- Your own name for a bank movement: renaming one description asks whether to rename every equal movement, only those with the same amount (installments that change) or only this one, and can fix the category as a rule at the same time. The Rules page lists your own names
+- Investments and savings: one category in both directions. Spending by asset (property, shares, pension, funds, fixed-term), income by where the money comes from (rent and annuities, coupons and dividends, interest, sales and redemptions). Bank charges get their own category, what is left of finance becomes Insurance, the pension joins employment income, Italian transport gets tolls. Existing movements, rules and budgets move once, in the language of your categories; categories you created stay where they are
+- Home Sankey from income to spending: income categories on the left, spending on the right, every column from the biggest branch down. Toggles for spending only, subcategories, and values in percent or euro on branches tall enough for the text. It now comes before the monthly chart
+- Every Registry column explains itself on its header, and the totals say which movements they leave out
+- One category column in every grid ("Category / Subcategory"), editable grids, and menus that offer only the categories of the movement's direction
+- Transfers are paired across imports, movements dated in the future are held until their date, and income has its own workflow step
+- The assistant answers from the local model, grounded in the current guides
+- Workflow (now Let's prepare your movements): a new entry at the top of the menu takes the user one step at a time, on a clean screen like the onboarding, from what to load through the import, the counterparts and the mixed categories to the period at a glance. Leaving saves the step, and the next visit picks up there, skipping steps already done in the meantime. After the onboarding, "Upload now" opens it at the import step
+- Workflow, counterparts step: only the spending counterparts still to check, largest first. One tick per counterpart is enough, and later imports do not ask again. At the top it explains the goal, the counterparts that make 8 euros out of 10 of the period's spending, and says how much has been checked, how much is missing and how many counterparts are enough. The goal is a suggestion: Next always works
+- Workflow, mixed categories step: the spending counterparts whose movements sit in more than one category. If the split is a mistake, one category becomes a rule for every movement; if it depends on what was bought, the movements are looked at one by one, since no rule can tell apart movements with the same name. Movements already looked at are never asked again: a counterpart comes back only with what the last import added, and the page says how many were already sorted out. The counterparts step also says how much of the period's spending earlier ticks categorized on their own
+- Workflow, import step: when the import is done and nothing waits for an answer, a button at the bottom of the page moves on to the counterparts, so the next step is not missed
+
+### Changed
+- The sign of every movement comes from how the account is used and is measured on the data; counterparts are written one way only, and a counterpart has one category
+- Every rule has a direction: it holds only for money out or only for money in. Rules that held both ways were split by the movements they covered; 27 movements that an opposite-direction rule had categorized were freed for review
+- Home and Registry count the same movements: every movement of the period except internal transfers and card settlements. Card spending now reaches the Home charts
+- Registry columns are in reading order: what you read, what you decide, the rule tick, then the symbols that only inform, at half width. Account and type are filters, no longer columns
+- Movements you checked keep their category: rules, spreading to similar movements and the model leave them alone. The fallback category is never reused as an example
+- Versions follow the calendar from this release: YYYY.M.N
+- The Checklist now says what to download next, with the exact dates, above the grid: the account furthest behind comes first with a button to the import, then the other accounts and the empty months in between. With no account yet it asks only for a name; the first time it suggests a single month, so the first round stays short
+- Home and Report open on the three months ending with the last transaction loaded, instead of a window ending today. After weeks without importing, the charts no longer open empty: they show where you left off, and a notice says how far you got and points to the Checklist. On Home this is the new default choice, "Last 3 months loaded"; the other periods are unchanged
+- The Home period caption no longer says "Last 12 months" whatever period is selected
+- On the counterparts page a counterpart can be ticked as checked when its category is already right: the category shown becomes a rule for every movement of the counterpart, past and future. Before, a counterpart became checked only by changing its category
+- The Checklist has one name per language, the same in the menu, on the page, in the messages, in the chat and in the guides. French, German and Spanish used the English "Check List" and now read "Liste de contrôle", "Checkliste" and "Lista de control"; the page title names movements with the word the banks use
+
+### Fixed
+- Renaming all equal movements also spreads the transfer mark
+- Sankey branches no longer spill under the monthly chart
+- Dependencies: pillow 13.0.0 and streamlit 1.66.1 for nine pillow CVEs, certifi 2026.10.19 for PYSEC-2026-4320
+- The workflow no longer asks again for counterparts that already have one of your rules. The counterparts step used to propose them again, and every import brought them back with the old movements settled and the new ones to settle. "Checked" and "categorized" are now two things: **Category set by you** (how you spent) holds for the counterpart, and a rule decides it for every import; it is what the whole workflow asks. **Checked by you** (you really spent the money) holds for one movement only, is never inherited and is ticked in the Ledger only. Changing a movement's category no longer marks it as checked, and the history learns only from categories you set
+- A counterpart you confirmed no longer turns "mixed" after the next import. Confirming a counterpart, or applying a rule to the movements already imported, recorded those movements as changed by hand, while the import records the new ones as categorized by the rule: same category, two sources, and the counterpart looked mixed until the rules were applied again. Movements categorized through a rule are now recorded as such. A counterpart is mixed only when you changed one of its movements by hand, which is a real exception to the rule
 
 ## [0.3.5] - 2026-10-12
 

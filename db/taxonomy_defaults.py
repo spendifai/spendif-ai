@@ -31,7 +31,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Trasporti", "subcategories": [
                 "Carburante", "Assicurazione auto", "Bollo auto",
-                "Manutenzione auto", "Parcheggio / ZTL",
+                "Manutenzione auto", "Parcheggio / ZTL", "Pedaggio",
                 "Trasporto pubblico", "Taxi / ride-sharing", "Altro trasporti",
             ]},
             {"category": "Salute", "subcategories": [
@@ -57,10 +57,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             {"category": "Animali domestici", "subcategories": [
                 "Cibo", "Veterinario", "Accessori",
             ]},
-            {"category": "Finanza e assicurazioni", "subcategories": [
+            {"category": "Assicurazioni", "subcategories": [
                 "Assicurazione vita", "Assicurazione casa", "Polizze varie",
-                "Commissioni bancarie", "Investimenti / risparmio",
-                "Fondo pensione",
+            ]},
+            {"category": "Commissioni bancarie", "subcategories": [
+                "Canone conto e carte", "Commissioni su operazioni", "Bolli e imposte sul conto", "Interessi passivi",
+            ]},
+            {"category": "Investimenti e risparmi", "subcategories": [
+                "Immobili", "Azioni", "Pensione", "Fondi", "Vincolato",
             ]},
             {"category": "Cura personale", "subcategories": [
                 "Parrucchiere / barbiere", "Cosmetici e igiene",
@@ -78,26 +82,22 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
         ],
         "income": [
             {"category": "Lavoro dipendente", "subcategories": [
-                "Stipendio", "Tredicesima / quattordicesima",
+                "Stipendio", "Pensione", "Tredicesima / quattordicesima",
                 "Bonus e premi", "Rimborso spese lavorative",
             ]},
             {"category": "Lavoro autonomo", "subcategories": [
-                "Fattura / parcella", "Collaborazione occasionale",
+                "Parcella", "Collaborazione occasionale",
                 "Diritti d'autore / royalties",
             ]},
-            {"category": "Rendite finanziarie", "subcategories": [
-                "Dividendi", "Interessi attivi", "Plusvalenze",
-                "Cedole obbligazionarie",
-            ]},
-            {"category": "Rendite immobiliari", "subcategories": [
-                "Affitto percepito", "Vendita immobile",
+            {"category": "Investimenti e risparmi", "subcategories": [
+                "Rendita", "Cedole e dividendi", "Interessi", "Vendite e riscatti",
             ]},
             {"category": "Trasferimenti e rimborsi", "subcategories": [
                 "Rimborso generico", "Storno / rettifica bancaria",
                 "Giroconto entrata", "Indennizzo / risarcimento",
             ]},
             {"category": "Prestazioni sociali", "subcategories": [
-                "Pensione / rendita", "Sussidio / bonus statale",
+                "Sussidio / bonus statale",
                 "Indennità (NASpI, maternità, ecc.)",
             ]},
             {"category": "Altro entrate", "is_fallback": True, "subcategories": [
@@ -152,9 +152,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             {"category": "Pets", "subcategories": [
                 "Food", "Vet", "Accessories",
             ]},
-            {"category": "Finance & insurance", "subcategories": [
+            {"category": "Insurance", "subcategories": [
                 "Life insurance", "Home insurance", "Other insurance",
-                "Bank charges", "Investments / Savings", "Pension fund",
+            ]},
+            {"category": "Bank charges", "subcategories": [
+                "Account & card fees", "Transaction fees", "Stamp duty & account taxes", "Interest paid",
+            ]},
+            {"category": "Investments & savings", "subcategories": [
+                "Property", "Shares", "Pension", "Funds", "Fixed-term",
             ]},
             {"category": "Personal care", "subcategories": [
                 "Hairdresser / Barber", "Cosmetics & hygiene",
@@ -172,25 +177,21 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
         ],
         "income": [
             {"category": "Employment", "subcategories": [
-                "Salary", "Holiday / Christmas bonus",
+                "Salary", "Pension", "Holiday / Christmas bonus",
                 "Bonuses & awards", "Work reimbursements",
             ]},
             {"category": "Self-employment", "subcategories": [
                 "Invoice / Fees", "Occasional work", "Royalties",
             ]},
-            {"category": "Financial income", "subcategories": [
-                "Dividends", "Interest income", "Capital gains",
-                "Bond coupons",
-            ]},
-            {"category": "Property income", "subcategories": [
-                "Rental income", "Property sale",
+            {"category": "Investments & savings", "subcategories": [
+                "Rent & annuities", "Coupons & dividends", "Interest", "Sales & redemptions",
             ]},
             {"category": "Transfers & refunds", "subcategories": [
                 "Generic refund", "Bank reversal", "Transfer in",
                 "Compensation",
             ]},
             {"category": "Social benefits", "subcategories": [
-                "Pension / Annuity", "Government subsidy",
+                "Government subsidy",
                 "Allowance (unemployment, maternity, etc.)",
             ]},
             {"category": "Other income", "is_fallback": True, "subcategories": [
@@ -246,10 +247,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             {"category": "Animaux", "subcategories": [
                 "Nourriture", "Vétérinaire", "Accessoires",
             ]},
-            {"category": "Finances & assurances", "subcategories": [
-                "Assurance vie", "Assurance habitation",
-                "Autres assurances", "Frais bancaires",
-                "Investissements / épargne", "Fonds de retraite",
+            {"category": "Assurances", "subcategories": [
+                "Assurance vie", "Assurance habitation", "Autres assurances",
+            ]},
+            {"category": "Frais bancaires", "subcategories": [
+                "Tenue de compte & cartes", "Commissions sur opérations", "Timbres & taxes sur le compte", "Intérêts débiteurs",
+            ]},
+            {"category": "Investissements & épargne", "subcategories": [
+                "Immobilier", "Actions", "Retraite", "Fonds", "Placements bloqués",
             ]},
             {"category": "Soins personnels", "subcategories": [
                 "Coiffeur / barbier", "Cosmétiques & hygiène",
@@ -268,26 +273,22 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
         ],
         "income": [
             {"category": "Salariat", "subcategories": [
-                "Salaire", "Prime de fin d'année / de vacances",
+                "Salaire", "Retraite", "Prime de fin d'année / de vacances",
                 "Primes & récompenses", "Remboursements professionnels",
             ]},
             {"category": "Travail indépendant", "subcategories": [
                 "Facture / honoraires", "Travail occasionnel",
                 "Droits d'auteur / royalties",
             ]},
-            {"category": "Revenus financiers", "subcategories": [
-                "Dividendes", "Intérêts", "Plus-values",
-                "Coupons obligataires",
-            ]},
-            {"category": "Revenus immobiliers", "subcategories": [
-                "Loyer perçu", "Vente immobilière",
+            {"category": "Investissements & épargne", "subcategories": [
+                "Loyers & rentes", "Coupons & dividendes", "Intérêts", "Ventes & rachats",
             ]},
             {"category": "Virements & remboursements", "subcategories": [
                 "Remboursement générique", "Avoir bancaire",
                 "Virement entrant", "Indemnisation",
             ]},
             {"category": "Prestations sociales", "subcategories": [
-                "Retraite / rente", "Allocation / aide de l'État",
+                "Allocation / aide de l'État",
                 "Indemnité (chômage, maternité, etc.)",
             ]},
             {"category": "Autres revenus", "is_fallback": True, "subcategories": [
@@ -344,10 +345,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             {"category": "Haustiere", "subcategories": [
                 "Futter", "Tierarzt", "Zubehör",
             ]},
-            {"category": "Finanzen & Versicherungen", "subcategories": [
-                "Lebensversicherung", "Hausratversicherung",
-                "Sonstige Versicherungen", "Bankgebühren",
-                "Geldanlagen / Sparen", "Rentenversicherung",
+            {"category": "Versicherungen", "subcategories": [
+                "Lebensversicherung", "Hausratversicherung", "Sonstige Versicherungen",
+            ]},
+            {"category": "Bankgebühren", "subcategories": [
+                "Konto- & Kartengebühren", "Transaktionsgebühren", "Stempel & Kontosteuern", "Sollzinsen",
+            ]},
+            {"category": "Geldanlagen & Sparen", "subcategories": [
+                "Immobilien", "Aktien", "Altersvorsorge", "Fonds", "Festgeld",
             ]},
             {"category": "Körperpflege", "subcategories": [
                 "Friseur / Barbier", "Kosmetik & Hygiene",
@@ -366,26 +371,22 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
         ],
         "income": [
             {"category": "Angestellt", "subcategories": [
-                "Gehalt", "Urlaubsgeld / Weihnachtsgeld",
+                "Gehalt", "Rente", "Urlaubsgeld / Weihnachtsgeld",
                 "Boni & Prämien", "Kostenerstattungen",
             ]},
             {"category": "Selbstständig", "subcategories": [
                 "Rechnung / Honorar", "Gelegenheitsarbeit",
                 "Urheberrechte / Lizenzgebühren",
             ]},
-            {"category": "Kapitalerträge", "subcategories": [
-                "Dividenden", "Zinserträge", "Kursgewinne",
-                "Anleihekupons",
-            ]},
-            {"category": "Mieteinnahmen", "subcategories": [
-                "Erhaltene Miete", "Immobilienverkauf",
+            {"category": "Geldanlagen & Sparen", "subcategories": [
+                "Mieten & Renten", "Kupons & Dividenden", "Zinsen", "Verkäufe & Rückkäufe",
             ]},
             {"category": "Überweisungen & Erstattungen", "subcategories": [
                 "Allgemeine Erstattung", "Bankgutschrift",
                 "Eingehende Überweisung", "Entschädigung",
             ]},
             {"category": "Sozialleistungen", "subcategories": [
-                "Rente / Altersrente", "Staatliche Förderung",
+                "Staatliche Förderung",
                 "Zuwendungen (Arbeitslosengeld, Mutterschaft, etc.)",
             ]},
             {"category": "Sonstige Einnahmen", "is_fallback": True, "subcategories": [
@@ -441,10 +442,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             {"category": "Mascotas", "subcategories": [
                 "Comida", "Veterinario", "Accesorios",
             ]},
-            {"category": "Finanzas y seguros", "subcategories": [
+            {"category": "Seguros", "subcategories": [
                 "Seguro de vida", "Seguro de hogar", "Otros seguros",
-                "Comisiones bancarias", "Inversiones / ahorro",
-                "Plan de pensiones",
+            ]},
+            {"category": "Comisiones bancarias", "subcategories": [
+                "Mantenimiento de cuenta y tarjetas", "Comisiones por operaciones", "Impuestos sobre la cuenta", "Intereses deudores",
+            ]},
+            {"category": "Inversiones y ahorro", "subcategories": [
+                "Inmuebles", "Acciones", "Pensión", "Fondos", "Plazo fijo",
             ]},
             {"category": "Cuidado personal", "subcategories": [
                 "Peluquería / barbería", "Cosméticos e higiene",
@@ -463,26 +468,22 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
         ],
         "income": [
             {"category": "Trabajo por cuenta ajena", "subcategories": [
-                "Salario", "Paga extra / navidad",
+                "Salario", "Pensión", "Paga extra / navidad",
                 "Bonus y premios", "Reembolso gastos laborales",
             ]},
             {"category": "Trabajo por cuenta propia", "subcategories": [
                 "Factura / honorarios", "Colaboración ocasional",
                 "Derechos de autor / royalties",
             ]},
-            {"category": "Rentas financieras", "subcategories": [
-                "Dividendos", "Intereses", "Plusvalías",
-                "Cupones de bonos",
-            ]},
-            {"category": "Rentas inmobiliarias", "subcategories": [
-                "Alquiler percibido", "Venta de inmueble",
+            {"category": "Inversiones y ahorro", "subcategories": [
+                "Alquileres y rentas", "Cupones y dividendos", "Intereses", "Ventas y rescates",
             ]},
             {"category": "Transferencias y reembolsos", "subcategories": [
                 "Reembolso genérico", "Devolución bancaria",
                 "Traspaso recibido", "Indemnización",
             ]},
             {"category": "Prestaciones sociales", "subcategories": [
-                "Pensión / renta", "Subsidio / ayuda estatal",
+                "Subsidio / ayuda estatal",
                 "Prestación (desempleo, maternidad, etc.)",
             ]},
             {"category": "Otros ingresos", "is_fallback": True, "subcategories": [
@@ -498,3 +499,78 @@ SUPPORTED_LANGUAGES: list[tuple[str, str]] = [
     (code, data["label"])
     for code, data in TAXONOMY_DEFAULTS.items()
 ]
+
+
+# Money set aside gets one category in both directions (spec 30): where each
+# category and subcategory of the earlier default tree went. Per language:
+# (type, old category, old subcategory or None to rename the whole category,
+#  new category, new subcategory). Spending keeps the asset, income only the
+# origin of the money; categories left empty by the moves go.
+INVESTMENTS_MOVES: dict[str, list[tuple[str, str, str | None, str, str | None]]] = {
+    "it": [
+        ("expense", "Finanza e assicurazioni", None, "Assicurazioni", None),
+        ("expense", "Assicurazioni", "Commissioni bancarie", "Commissioni bancarie", "Canone conto e carte"),
+        ("expense", "Assicurazioni", "Investimenti / risparmio", "Investimenti e risparmi", "Fondi"),
+        ("expense", "Assicurazioni", "Fondo pensione", "Investimenti e risparmi", "Pensione"),
+        ("income", "Rendite finanziarie", "Dividendi", "Investimenti e risparmi", "Cedole e dividendi"),
+        ("income", "Rendite finanziarie", "Interessi attivi", "Investimenti e risparmi", "Interessi"),
+        ("income", "Rendite finanziarie", "Plusvalenze", "Investimenti e risparmi", "Vendite e riscatti"),
+        ("income", "Rendite finanziarie", "Cedole obbligazionarie", "Investimenti e risparmi", "Cedole e dividendi"),
+        ("income", "Rendite immobiliari", "Affitto percepito", "Investimenti e risparmi", "Rendita"),
+        ("income", "Rendite immobiliari", "Vendita immobile", "Investimenti e risparmi", "Vendite e riscatti"),
+        ("income", "Prestazioni sociali", "Pensione / rendita", "Lavoro dipendente", "Pensione"),
+        ("income", "Lavoro autonomo", "Fattura / parcella", "Lavoro autonomo", "Parcella"),
+    ],
+    "en": [
+        ("expense", "Finance & insurance", None, "Insurance", None),
+        ("expense", "Insurance", "Bank charges", "Bank charges", "Account & card fees"),
+        ("expense", "Insurance", "Investments / Savings", "Investments & savings", "Funds"),
+        ("expense", "Insurance", "Pension fund", "Investments & savings", "Pension"),
+        ("income", "Financial income", "Dividends", "Investments & savings", "Coupons & dividends"),
+        ("income", "Financial income", "Interest income", "Investments & savings", "Interest"),
+        ("income", "Financial income", "Capital gains", "Investments & savings", "Sales & redemptions"),
+        ("income", "Financial income", "Bond coupons", "Investments & savings", "Coupons & dividends"),
+        ("income", "Property income", "Rental income", "Investments & savings", "Rent & annuities"),
+        ("income", "Property income", "Property sale", "Investments & savings", "Sales & redemptions"),
+        ("income", "Social benefits", "Pension / Annuity", "Employment", "Pension"),
+    ],
+    "fr": [
+        ("expense", "Finances & assurances", None, "Assurances", None),
+        ("expense", "Assurances", "Frais bancaires", "Frais bancaires", "Tenue de compte & cartes"),
+        ("expense", "Assurances", "Investissements / épargne", "Investissements & épargne", "Fonds"),
+        ("expense", "Assurances", "Fonds de retraite", "Investissements & épargne", "Retraite"),
+        ("income", "Revenus financiers", "Dividendes", "Investissements & épargne", "Coupons & dividendes"),
+        ("income", "Revenus financiers", "Intérêts", "Investissements & épargne", "Intérêts"),
+        ("income", "Revenus financiers", "Plus-values", "Investissements & épargne", "Ventes & rachats"),
+        ("income", "Revenus financiers", "Coupons obligataires", "Investissements & épargne", "Coupons & dividendes"),
+        ("income", "Revenus immobiliers", "Loyer perçu", "Investissements & épargne", "Loyers & rentes"),
+        ("income", "Revenus immobiliers", "Vente immobilière", "Investissements & épargne", "Ventes & rachats"),
+        ("income", "Prestations sociales", "Retraite / rente", "Salariat", "Retraite"),
+    ],
+    "de": [
+        ("expense", "Finanzen & Versicherungen", None, "Versicherungen", None),
+        ("expense", "Versicherungen", "Bankgebühren", "Bankgebühren", "Konto- & Kartengebühren"),
+        ("expense", "Versicherungen", "Geldanlagen / Sparen", "Geldanlagen & Sparen", "Fonds"),
+        ("expense", "Versicherungen", "Rentenversicherung", "Geldanlagen & Sparen", "Altersvorsorge"),
+        ("income", "Kapitalerträge", "Dividenden", "Geldanlagen & Sparen", "Kupons & Dividenden"),
+        ("income", "Kapitalerträge", "Zinserträge", "Geldanlagen & Sparen", "Zinsen"),
+        ("income", "Kapitalerträge", "Kursgewinne", "Geldanlagen & Sparen", "Verkäufe & Rückkäufe"),
+        ("income", "Kapitalerträge", "Anleihekupons", "Geldanlagen & Sparen", "Kupons & Dividenden"),
+        ("income", "Mieteinnahmen", "Erhaltene Miete", "Geldanlagen & Sparen", "Mieten & Renten"),
+        ("income", "Mieteinnahmen", "Immobilienverkauf", "Geldanlagen & Sparen", "Verkäufe & Rückkäufe"),
+        ("income", "Sozialleistungen", "Rente / Altersrente", "Angestellt", "Rente"),
+    ],
+    "es": [
+        ("expense", "Finanzas y seguros", None, "Seguros", None),
+        ("expense", "Seguros", "Comisiones bancarias", "Comisiones bancarias", "Mantenimiento de cuenta y tarjetas"),
+        ("expense", "Seguros", "Inversiones / ahorro", "Inversiones y ahorro", "Fondos"),
+        ("expense", "Seguros", "Plan de pensiones", "Inversiones y ahorro", "Pensión"),
+        ("income", "Rentas financieras", "Dividendos", "Inversiones y ahorro", "Cupones y dividendos"),
+        ("income", "Rentas financieras", "Intereses", "Inversiones y ahorro", "Intereses"),
+        ("income", "Rentas financieras", "Plusvalías", "Inversiones y ahorro", "Ventas y rescates"),
+        ("income", "Rentas financieras", "Cupones de bonos", "Inversiones y ahorro", "Cupones y dividendos"),
+        ("income", "Rentas inmobiliarias", "Alquiler percibido", "Inversiones y ahorro", "Alquileres y rentas"),
+        ("income", "Rentas inmobiliarias", "Venta de inmueble", "Inversiones y ahorro", "Ventas y rescates"),
+        ("income", "Prestaciones sociales", "Pensión / renta", "Trabajo por cuenta ajena", "Pensión"),
+    ],
+}

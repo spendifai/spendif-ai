@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from db import repository
 from core.categorizer import TaxonomyConfig
+from core.palette import Palette, build_palette
 
 
 class SettingsService:
@@ -65,6 +66,29 @@ class SettingsService:
             s.commit()
             return result
 
+    def set_category_color(self, cat_id: int, color: str) -> bool:
+        """The user's colour for a category (spec 25)."""
+        with self._session() as s:
+            result = repository.set_taxonomy_category_color(s, cat_id, color)
+            s.commit()
+            return result
+
+    @staticmethod
+    def value_colors() -> dict[str, str]:
+        """The fixed colours of values and states (spec 25), no DB needed."""
+        from core.palette import TOKENS
+        return dict(TOKENS)
+
+    def get_palette(self) -> Palette:
+        """Every chart's colours (spec 25): value tokens, the colour of each
+        category, the shades of its subcategories."""
+        with self._session() as s:
+            cats = repository.get_taxonomy_categories(s)
+            return build_palette(
+                (c.type, c.name, c.color, bool(c.is_fallback), [sub.name for sub in c.subcategories])
+                for c in cats
+            )
+
     def create_subcategory(self, cat_id: int, name: str):
         with self._session() as s:
             result = repository.create_taxonomy_subcategory(s, cat_id, name)
@@ -89,11 +113,33 @@ class SettingsService:
         with self._session() as s:
             return repository.get_accounts(s)
 
-    def create_account(self, name: str, bank_name: str, account_type: str | None = None):
+    def create_account(
+        self, name: str, bank_name: str, account_type: str | None = None,
+        usage: str | None = None,
+    ):
         with self._session() as s:
-            result = repository.create_account(s, name, bank_name, account_type=account_type)
+            result = repository.create_account(
+                s, name, bank_name, account_type=account_type, usage=usage,
+            )
             s.commit()
             return result
+
+    def set_account_usage(self, name: str, usage: str | None) -> None:
+        """Record how the account is used ("payments" | "in_and_out" | None)."""
+        with self._session() as s:
+            repository.set_account_usage(s, name, usage)
+            s.commit()
+
+    def close_account(self, name: str, closed_on: str) -> None:
+        """Mark the account closed on ``closed_on`` (ISO date)."""
+        with self._session() as s:
+            repository.set_account_closed(s, name, closed_on)
+            s.commit()
+
+    def reopen_account(self, name: str) -> None:
+        with self._session() as s:
+            repository.set_account_closed(s, name, None)
+            s.commit()
 
     def delete_account(self, account_id: int) -> bool:
         with self._session() as s:
@@ -198,7 +244,7 @@ class SettingsService:
         with self._session() as s:
             cat_rows = s.execute(
                 _sql(
-                    "SELECT id, name, type, sort_order "
+                    "SELECT id, name, type, sort_order, color, is_fallback "
                     "FROM taxonomy_category "
                     "WHERE type=:t ORDER BY name COLLATE NOCASE"
                 ),

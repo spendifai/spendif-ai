@@ -149,6 +149,7 @@ hidden_imports = [
     "dotenv",
     "webview",
     "llama_cpp",
+    "desktop.signal_watch",  # imported by the launcher before app_dir is on sys.path
 ] + st_hiddenimports + llama_hiddenimports
 
 # ---------------------------------------------------------------------------

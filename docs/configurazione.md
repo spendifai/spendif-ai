@@ -72,7 +72,7 @@ Il tipo conto viene usato come vincolo nella classificazione dello schema file: 
 ### Perché definire i conti
 
 - Nella pagina Import puoi **associare ogni file a un conto specifico** invece di affidarti al rilevamento automatico.
-- Il nome del conto viene salvato con ogni transazione (`account_label`) ed è la chiave usata per la **Check List** (pivot mese × conto).
+- Il nome del conto viene salvato con ogni transazione (`account_label`) ed è la chiave usata per la **Lista di controllo** (pivot mese × conto).
 - Migliora la **deduplicazione**: transazioni dello stesso conto importate in sessioni diverse vengono riconosciute correttamente.
 
 ### Note operative
@@ -119,7 +119,7 @@ Mario Rossi, Anna Bianchi
 
 **Percorso:** Impostazioni → Formato visualizzazione
 
-Controlla come date e importi vengono mostrati nel Ledger, Analytics e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
+Controlla come date e importi vengono mostrati nel Ledger, Analisi e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
 
 ### Formato data
 
@@ -161,9 +161,9 @@ Viene passata al prompt del categorizzatore LLM per aiutarlo a interpretare corr
 
 **Percorso:** Impostazioni → 🔄 Modalità Giroconti
 
-I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Ledger, Analytics, Report).
+I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Ledger, Analisi, Report).
 
-| Modalità | Comportamento nelle viste (Ledger, Analytics, Report) |
+| Modalità | Comportamento nelle viste (Ledger, Analisi, Report) |
 |---|---|
 | **Mostra (neutral)** | Le righe 🔄 sono visibili (grigie/neutre), escluse dai totali entrate/uscite |
 | **Escludi dalle viste** | Le righe 🔄 non compaiono nelle schermate (ma restano nel database) |
@@ -182,7 +182,7 @@ Lista libera di etichette per segmentare le spese per contesto (es. `Quotidianit
 
 - Aggiungi/rimuovi contesti liberamente
 - Assegna un contesto a ogni transazione dal **Ledger** (colonna Contesto)
-- Usa il filtro Contesto in Analytics per confrontare i periodi (es. "quanto ho speso in vacanza vs quotidianità?")
+- Usa il filtro Contesto in Analisi per confrontare i periodi (es. "quanto ho speso in vacanza vs quotidianità?")
 
 **Default:** `Quotidianità`, `Lavoro`, `Vacanza`
 
@@ -211,8 +211,8 @@ Utile per:
 **Percorso:** Impostazioni → 🤖 Configurazione LLM
 
 Il backend LLM viene usato per:
-- **Classificazione categorie** — assegna categoria/sottocategoria a ogni transazione
-- **Estrazione controparte** — normalizza la descrizione grezza della banca
+- **Classificazione categorie**: assegna categoria/sottocategoria a ogni transazione
+- **Estrazione controparte**: normalizza la descrizione grezza della banca
 
 | Backend | Privacy | Costo | Velocità | Qualità |
 |---|---|---|---|---|
@@ -240,7 +240,7 @@ La scelta predefinita per le **nuove installazioni**: nessun servizio esterno ne
 | **RAM libera** | 4 GB (modelli 3B) | 8 GB (modelli 7B) |
 | **CPU** | Qualsiasi x86-64 o ARM64 degli ultimi 5 anni | Apple Silicon (M1+) o CPU con AVX2 |
 | **GPU** | Non necessaria | Apple Metal o CUDA/ROCm (accelera 3-5x) |
-| **VRAM** | — (CPU-only o memoria unificata) | >= dimensione modello (es. 8 GB per 7B Q4) |
+| **VRAM** | - (CPU-only o memoria unificata) | >= dimensione modello (es. 8 GB per 7B Q4) |
 | **Disco** | 2.5 GB per modello | 5-7 GB per modello 7B |
 
 > **Nota:** Se l'hardware non soddisfa i requisiti minimi, usa un backend remoto (OpenAI, Claude) — vedi sezioni 9.2 e 9.3.
@@ -436,13 +436,13 @@ Backend LLM:  vLLM
 Base URL:     http://localhost:8000/v1   (o IP remoto se il server è su un'altra macchina)
 ```
 
-Il modello servito viene rilevato automaticamente dal server — non serve inserirlo manualmente.
+Il modello servito viene rilevato automaticamente dal server: non serve inserirlo manualmente.
 
 | Campo | Default | Descrizione |
 |---|---|---|
 | **Base URL** | `http://localhost:8000/v1` | URL del server vLLM |
 
-> **Performance:** vLLM usa continuous batching e ottimizzazioni CUDA avanzate — significativamente più veloce di llama.cpp e Ollama su GPU NVIDIA, specialmente per modelli ≥ 7B.
+> **Performance:** vLLM usa continuous batching e ottimizzazioni CUDA avanzate: significativamente più veloce di llama.cpp e Ollama su GPU NVIDIA, specialmente per modelli ≥ 7B.
 
 ---
 

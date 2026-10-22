@@ -29,12 +29,21 @@ Il file `ledger.db` contiene **tutto** — non esistono altri file di dati da co
 | `description_rule` | Regole di pulizia delle descrizioni |
 | `document_schema` | Schemi dei file CSV/XLSX (colonne, formato, ecc.). Gli schema senza `header_sha256` vengono eliminati automaticamente all'avvio (migrazione `_migrate_purge_orphan_schemas`). A runtime, schema con parse rate < 10% vengono auto-invalidati e rimossi. |
 | `user_settings` | Impostazioni utente (LLM, locale, formato date, contesti, flag onboarding…) |
-| `account` | Conti bancari definiti dall'utente (nome + banca) |
+| `account` | Conti bancari definiti dall'utente (nome, banca, `account_type`). `closed_on` (data ISO `YYYY-MM-DD`, vuota se il conto è attivo) segna il conto chiuso: la Check List smette di chiederne i movimenti (migrazione `_migrate_add_account_closed_on`) |
 | `taxonomy_category` / `taxonomy_subcategory` | Tassonomia personalizzata (modificabile) |
 | `taxonomy_default` | Template tassonomia built-in (5 lingue — sola lettura, non modificare) |
 | `reconciliation_link` | Link carta–conto (riconciliazione RF-03) |
-| `internal_transfer_link` | Giroconti interni (RF-04) |
-| `import_batch` / `import_job` | Storico delle importazioni |
+| `internal_transfer_link` | Giroconti interni (RF-04): coppia uscita/entrata con `confidence`. `user_decision` (`"yes"`, `"no"`, NULL se non ancora risposto) registra la risposta dell'utente sulla coppia; una coppia a `"no"` non viene più proposta (migrazione `_migrate_add_transfer_link_decision`) |
+| `held_movement` | Movimenti messi da parte all'import perché la data letta è dopo il giorno dell'import: il movimento intero in `payload` (JSON dei campi di `upsert_transaction`), più data letta, conto, importo, descrizione, file, `reason` (`date_future`) e `batch_id`. Con la data corretta entra nel registro così com'era; altrimenti si scarta. Non conta da nessuna parte |
+| `transfer_destination` | Destinazione dei giroconti senza controparte, una riga per beneficiario: `key` (IBAN nella descrizione, altrimenti la descrizione pulita), `answer` (`unloaded`, `untracked`, `other_person`), `created_at`. Con `other_person` i movimenti diventano spesa o entrata, anche negli import successivi |
+| `import_batch` / `import_job` | Storico delle importazioni. `import_job.n_rows` conta le righe lette dai file del job, duplicati inclusi: base della stima dei tempi di import (migrazione `_migrate_add_import_job_n_rows`, NULL sui job precedenti) |
+| `budget_target` | Obiettivi di budget mensili in % sulle spese, per categoria |
+| `llm_usage_log` | Una riga per chiamata LLM: backend, modello, chiamante, token, durata |
+| `nsi_tag_mapping` | Mapping tag OSM verso categoria e sottocategoria, invalidato al cambio di tassonomia |
+| `category_correction` | Una riga per ogni correzione di categoria fatta dall'utente, con l'assegnazione originale |
+| `update_event` | Una riga per ogni versione dell'app eseguita su questa installazione |
+
+> Le tabelle sono 20, definite in `db/models.py`. Le colonne aggiunte dopo la prima versione arrivano con le funzioni `_migrate_*` chiamate da `create_tables()` all'avvio.
 
 > I template tassonomia (`taxonomy_default`) sono incorporati nel codice (`db/taxonomy_defaults.py`) e vengono ricreati automaticamente da zero ad ogni migrazione. Non è necessario includerli in un backup separato.
 

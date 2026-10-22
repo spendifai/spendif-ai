@@ -69,6 +69,7 @@ class CategoryService:
             taxonomy = repository.get_taxonomy_config(s)
             user_rules = repository.get_category_rules(s)
             settings = repository.get_all_user_settings(s)
+            fallback_categories = repository.get_fallback_categories(s)
         if backend is None:
             config = self._config_from_settings(settings)
             backend = _build_categorizer_backend(config) or _build_backend(config)
@@ -94,6 +95,7 @@ class CategoryService:
             user_country=settings.get("country", ""),
             progress_callback=progress_callback,
             taxonomy_map=taxonomy_map,
+            fallback_categories=fallback_categories,
         )
 
     def nsi_mapping_status(self) -> dict:

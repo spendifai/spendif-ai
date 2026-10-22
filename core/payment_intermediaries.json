@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "_note": "Transparent payment intermediaries: the money goes on to the merchant. Satispay is left out on purpose: it holds a balance. Spec: documents/04_software_engineering/20_intermediari_di_pagamento.md",
+  "intermediaries": ["PAYPAL", "SUMUP", "STRIPE", "SQ", "CKO", "ZETTLE", "ADYEN", "KLARNA", "3CPAYMENT"]
+}

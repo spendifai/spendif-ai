@@ -14,6 +14,9 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display, format_date_display, format_raw_amount_display, strftime_to_momentjs
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.cat_select import (
+    cat_sub_select, direction_of, join_cat_sub, options_for_amounts, split_cat_sub, wrong_direction,
+)
 
 logger = setup_logging()
 
@@ -67,7 +70,6 @@ def render_review_page(engine):
 
     # ── Load shared data ───────────────────────────────────────────────────────
     taxonomy = cfg_svc.get_taxonomy()
-    all_categories = taxonomy.all_expense_categories + taxonomy.all_income_categories
     settings = cfg_svc.get_all()
     _date_fmt = settings.get("date_display_format", "%d/%m/%Y")
     _date_fmt_js = strftime_to_momentjs(_date_fmt)
@@ -110,19 +112,19 @@ def render_review_page(engine):
             "sel": False,
             t("ledger.col.date"): datetime.strptime(tx.date, "%Y-%m-%d").date() if tx.date else None,
             t("ledger.col.description"): (tx.description or "")[:100],
+            # The bank's text right next to the counterpart (hidden unless asked).
+            "Desc. originale": tx.raw_description or "",
+            "Importo originale": format_raw_amount_display(tx.raw_amount),
             t("ledger.col.income"): float(tx.amount) if float(tx.amount) > 0 else None,
             t("ledger.col.expense"): abs(float(tx.amount)) if float(tx.amount) < 0 else None,
             t("ledger.col.type"): tx.tx_type,
-            t("ledger.col.category"): tx.category or "",
-            t("ledger.col.subcategory"): tx.subcategory or "",
+            t("ledger.col.cat_sub"): join_cat_sub(tx.category, tx.subcategory),
             t("ledger.col.context"): tx.context or "",
             "Confidenza": tx.category_confidence or "",
             t("ledger.col.source"): _SOURCE_BADGE.get(tx.category_source, "—"),
             "⚠️": "⚠️" if tx.to_review else "·",
             "✅": "✅" if tx.human_validated else "·",
             "Validato": bool(tx.human_validated),
-            "Desc. originale": (tx.raw_description or "")[:100],
-            "Importo originale": format_raw_amount_display(tx.raw_amount),
         }
         for tx in txs
     ]
@@ -137,8 +139,16 @@ def render_review_page(engine):
         display_df,
         use_container_width=True,
         hide_index=True,
+        # Only what is saved can be edited: category, context, checked.
+        disabled=[c for c in display_df.columns
+                  if c not in ("sel", t("ledger.col.cat_sub"), t("ledger.col.context"), "Validato")],
         column_config={
             "sel": st.column_config.CheckboxColumn("✔", width=40),
+            t("ledger.col.cat_sub"): st.column_config.SelectboxColumn(
+                t("ledger.col.cat_sub"),
+                options=[""] + options_for_amounts(taxonomy, [tx.amount for tx in txs]),
+                required=False, width="large",
+            ),
             t("ledger.col.date"): st.column_config.DateColumn(t("ledger.col.date"), format=_date_fmt_js, width="small"),
             t("ledger.col.income"): st.column_config.NumberColumn(t("ledger.col.income"), format="%.2f"),
             t("ledger.col.expense"): st.column_config.NumberColumn(t("ledger.col.expense"), format="%.2f"),
@@ -153,9 +163,11 @@ def render_review_page(engine):
         key="review_grid",
     )
 
-    # ── Detect inline edits (Validato, Contesto) ───────────────────────────
+    # ── Detect inline edits (Validato, Contesto, Categoria) ────────────────
+    _amounts = {tx.id: float(tx.amount or 0) for tx in txs}
     n_val_changed = 0
     n_ctx_changed = 0
+    n_cat_changed = 0
     for i in range(len(edited_review)):
         tx_id = df.iloc[i]["id"]
 
@@ -167,6 +179,16 @@ def render_review_page(engine):
             else:
                 tx_svc.unvalidate(tx_id)
             n_val_changed += 1
+
+        new_cs = str(edited_review.iloc[i].get(t("ledger.col.cat_sub"), "") or "")
+        old_cs = str(display_df.iloc[i].get(t("ledger.col.cat_sub"), "") or "")
+        if new_cs and new_cs != old_cs:
+            _cat, _sub = split_cat_sub(new_cs)
+            if wrong_direction(taxonomy, _cat, _amounts.get(tx_id)):
+                st.error(t("ledger.wrong_direction", row=i + 1, cat=_cat))
+            else:
+                tx_svc.update_category(tx_id, _cat, _sub, origin="review")
+                n_cat_changed += 1
 
         new_ctx = str(edited_review.iloc[i].get(t("ledger.col.context"), ""))
         old_ctx = str(display_df.iloc[i].get(t("ledger.col.context"), ""))
@@ -182,6 +204,10 @@ def render_review_page(engine):
     if n_ctx_changed:
         st.success(t("review.context_updated", n=n_ctx_changed))
         logger.info(f"review_page: updated context on {n_ctx_changed} transactions")
+        _need_rerun = True
+    if n_cat_changed:
+        st.success(t("review.grid_category_updated", n=n_cat_changed))
+        logger.info(f"review_page: updated category on {n_cat_changed} transactions")
         _need_rerun = True
     if _need_rerun:
         st.rerun()
@@ -264,22 +290,10 @@ def render_review_page(engine):
 
     # ── Correzione categoria (solo se non giroconto) ───────────────────────────
     if not is_giroconto:
-        col1, col2 = st.columns(2)
-        with col1:
-            cat_idx = all_categories.index(selected_tx.category) if selected_tx.category in all_categories else 0
-            new_cat = st.selectbox(t("review.new_category"), all_categories, index=cat_idx,
-                                   key="review_cat")
-        with col2:
-            subs = taxonomy.valid_subcategories(new_cat)
-            if subs:
-                sub_idx = subs.index(selected_tx.subcategory) \
-                    if (selected_tx.subcategory in subs and selected_tx.category == new_cat) else 0
-                new_sub = st.selectbox(t("review.new_subcategory"), subs, index=sub_idx,
-                                       key=f"review_sub_{new_cat}")
-            else:
-                new_sub = st.text_input(t("review.new_subcategory"),
-                                        value=selected_tx.subcategory or "",
-                                        key=f"review_sub_{new_cat}")
+        new_cat, new_sub = cat_sub_select(
+            t("ledger.col.cat_sub"), taxonomy, selected_tx.category, selected_tx.subcategory,
+            key=f"review_cat_sub_{selected_tx.id}", only=direction_of(selected_tx.amount),
+        )
 
         save_rule = st.checkbox(
             t("review.save_as_rule"),
@@ -290,7 +304,8 @@ def render_review_page(engine):
         # Preview and retroactive options (shown when save_rule is checked)
         if save_rule and selected_tx.description:
             _preview_pattern = selected_tx.description
-            _preview_matching = tx_svc.get_by_rule_pattern(_preview_pattern, "contains")
+            _preview_matching = tx_svc.get_by_rule_pattern(
+                _preview_pattern, "contains", "out" if float(selected_tx.amount) < 0 else "in")
             st.info(t("review.will_match", n=len(_preview_matching)))
             review_retroactive = st.checkbox(
                 t("review.apply_retroactive"),
@@ -301,7 +316,13 @@ def render_review_page(engine):
             review_retroactive = False
 
         if st.button(t("review.apply_btn"), type="primary"):
-            ok = tx_svc.update_category(selected_tx.id, new_cat, new_sub, origin="review")
+            # Saving a rule makes this a decision for every matching movement,
+            # not for this one only: record them as categorized by the rule.
+            _set_cat = (
+                tx_svc.apply_rule_category if save_rule and selected_tx.description
+                else tx_svc.update_category
+            )
+            ok = _set_cat(selected_tx.id, new_cat, new_sub, origin="review")
             if ok:
                 rule_msg = ""
                 if save_rule and selected_tx.description:
@@ -318,11 +339,13 @@ def render_review_page(engine):
                         n_matched, _ = rule_svc.apply_to_all()
                         rule_msg += f" · {n_matched} transazioni aggiornate retroattivamente."
                     else:
-                        similar = tx_svc.get_by_rule_pattern(selected_tx.description, "contains")
+                        similar = tx_svc.get_by_rule_pattern(
+                            selected_tx.description, "contains",
+                            "out" if float(selected_tx.amount) < 0 else "in")
                         n_similar = 0
                         for stx in similar:
                             if stx.id != selected_tx.id:
-                                tx_svc.update_category(stx.id, new_cat, new_sub, origin="review")
+                                tx_svc.apply_rule_category(stx.id, new_cat, new_sub, origin="review")
                                 n_similar += 1
                         if n_similar:
                             rule_msg += f" · {n_similar} transazioni simili aggiornate."

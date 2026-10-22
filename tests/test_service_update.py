@@ -35,6 +35,12 @@ def svc(engine):
         # "0.2.10" sorts before "0.2.9" alphabetically and after it as a version.
         ("0.2.10", "0.2.9", True),
         ("0.2.9", "0.2.10", False),
+        # Calendar versions from 2026.10.0 (YYYY.M.N): newer than every
+        # earlier semantic version, and months compare as numbers.
+        ("2026.10.0", "0.3.5", True),
+        ("0.3.5", "2026.10.0", False),
+        ("2026.11.0", "2026.10.3", True),
+        ("2027.1.0", "2026.12.4", True),
     ],
 )
 def test_is_newer(candidate, current, expected):

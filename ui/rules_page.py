@@ -6,11 +6,13 @@ import json
 import pandas as pd
 import streamlit as st
 
-from services.rule_service import RuleService
+from services.intermediary_service import IntermediaryService
+from services.rule_service import KEY_CHECK, KEY_KNOWN, STARTS_WITH, RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets.cat_select import build_cat_options, cat_sub_select, join_cat_sub, split_cat_sub
 
 logger = setup_logging()
 
@@ -18,6 +20,7 @@ logger = setup_logging()
 def _match_labels() -> dict[str, str]:
     return {
         t("rules.match_contains"): "contains",
+        t("rules.match_starts_with"): STARTS_WITH,
         t("rules.match_exact"): "exact",
         t("rules.match_regex"): "regex",
     }
@@ -27,17 +30,7 @@ def _label_from_type() -> dict[str, str]:
     return {v: k for k, v in _match_labels().items()}
 
 
-_MATCH_TYPES = ["contains", "exact", "regex"]
 _NO_CONTEXT   = "— nessuno —"
-
-
-def _subcategory_widget(taxonomy, category: str, current: str, base_key: str) -> str:
-    subs = taxonomy.valid_subcategories(category)
-    key = f"{base_key}__{category}"
-    if not subs:
-        return st.text_input(t("rules.subcategory"), value=current, key=key)
-    idx = subs.index(current) if current in subs else 0
-    return st.selectbox(t("rules.subcategory"), subs, index=idx, key=key)
 
 
 def render_rules_page(engine):
@@ -50,7 +43,6 @@ def render_rules_page(engine):
 
     taxonomy       = cfg_svc.get_taxonomy()
     settings       = cfg_svc.get_all()
-    all_categories = taxonomy.all_expense_categories + taxonomy.all_income_categories
     rules          = rule_svc.get_rules()
 
     try:
@@ -69,25 +61,65 @@ def render_rules_page(engine):
     else:
         # ── Tabella regole ──────────────────────────────────────────────────
         st.subheader(t("rules.active_rules", n=len(rules)))
+        # Rules on a payment intermediary take nothing once the merchant is
+        # written instead (spec 20): said, never deleted.
+        # Only the rules that really take nothing any more: a rule on a payment
+        # service still covers the movements where the bank does not write
+        # the shop (a direct debit to PayPal), and those are not said dead.
+        _on_inter = [r for r in IntermediaryService(engine).rules_on_intermediaries(rules)
+                     if not tx_svc.get_by_rule_pattern(r.pattern, r.match_type, r.direction)]
+        if _on_inter:
+            st.warning(t("rules.on_intermediary", n=len(_on_inter),
+                         rules=", ".join(f"{r.pattern}" for r in _on_inter)))
+            # Never deleted by the product: the user decides, with one click.
+            if st.button(t("rules.on_intermediary_delete", n=len(_on_inter)),
+                         key="rules_delete_on_intermediary"):
+                for _r in _on_inter:
+                    rule_svc.delete_rule(_r.id)
+                st.rerun()
+        # How sure it is that a "starts with" rule names the merchant: worked
+        # out from the rule each time, never stored (spec 18).
+        _key_label = {KEY_KNOWN: t("rules.key.known"), KEY_CHECK: t("rules.key.check")}
+        _conf = {r.id: rule_svc.key_confidence(r.pattern, r.match_type) for r in rules}
+        shown = rules
+        _q = st.text_input(t("rules.search"), key="rules_search",
+                           placeholder=t("rules.search_placeholder"))
+        if _q.strip():
+            shown = [r for r in shown
+                     if tx_svc.text_matches(_q, r.pattern, r.category, r.subcategory)]
+            if not shown:
+                st.caption(t("rules.search_none", query=_q.strip()))
+        if st.toggle(t("rules.filter_key_check"), value=False, key="rules_filter_key_check"):
+            shown = [r for r in shown if _conf[r.id] == KEY_CHECK]
+            if not shown:
+                st.caption(t("rules.no_key_check"))
         table_data = [
             {
                 "ID": r.id,
                 "Pattern": r.pattern,
                 t("rules.col_type"): label_from_type.get(r.match_type, r.match_type),
-                t("rules.col_category"): (
-                    t("rules.giroconto_value") if r.is_giroconto else r.category
+                t("rules.col_key"): _key_label.get(_conf[r.id], ""),
+                t("rules.col_direction"): (t("rules.direction_out") if r.direction == "out"
+                                           else t("rules.direction_in") if r.direction == "in" else ""),
+                t("ledger.col.cat_sub"): (
+                    t("rules.giroconto_value") if r.is_giroconto
+                    else t("rules.multi_value") if r.is_multi_category
+                    else join_cat_sub(r.category, r.subcategory)
                 ),
-                t("rules.col_subcategory"): r.subcategory or "",
                 t("rules.col_context"): r.context or "",
                 t("rules.col_priority"): r.priority,
             }
-            for r in sorted(rules, key=lambda x: x.pattern.casefold())
+            for r in sorted(shown, key=lambda x: x.pattern.casefold())
         ]
-        df_rules = pd.DataFrame(table_data)
+        df_rules = pd.DataFrame(table_data, columns=[
+            "ID", "Pattern", t("rules.col_type"), t("rules.col_key"), t("rules.col_direction"),
+            t("ledger.col.cat_sub"),
+            t("rules.col_context"), t("rules.col_priority"),
+        ])
 
         # ── Ordinamento esplicito ────────────────────────────────────
-        _sort_cols = ["Pattern", t("rules.col_category"), t("rules.col_priority"),
-                      t("rules.col_context"), t("rules.col_subcategory")]
+        _sort_cols = ["Pattern", t("ledger.col.cat_sub"), t("rules.col_priority"),
+                      t("rules.col_context")]
         _sc1, _sc2, _ = st.columns([2, 1, 4])
         with _sc1:
             _sort_col = st.selectbox(t("rules.sort_by"), _sort_cols, key="rules_sort_col")
@@ -109,10 +141,75 @@ def render_rules_page(engine):
             )
         _start = (_page - 1) * _PAGE_SIZE
         _end   = _start + _PAGE_SIZE
-        st.dataframe(
-            df_rules.iloc[_start:_end].set_index("ID"),
+        # Edited in the grid, like every grid of the app: one menu for
+        # category and subcategory (giroconto and "everything is bought"
+        # are two more choices), context and priority.
+        _col_cs = t("ledger.col.cat_sub")
+        _giro_v, _multi_v = t("rules.giroconto_value"), t("rules.multi_value")
+        _page_df = df_rules.iloc[_start:_end].reset_index(drop=True)
+        _edited_rules = st.data_editor(
+            _page_df,
             use_container_width=True,
+            hide_index=True,
+            disabled=["ID", "Pattern", t("rules.col_type"), t("rules.col_key"), t("rules.col_direction")],
+            column_config={
+                _col_cs: st.column_config.SelectboxColumn(
+                    _col_cs, options=build_cat_options(taxonomy) + [_giro_v, _multi_v],
+                    required=True, width="large",
+                ),
+                t("rules.col_context"): st.column_config.SelectboxColumn(
+                    t("rules.col_context"), options=[""] + _contexts, required=False,
+                ),
+                t("rules.col_priority"): st.column_config.NumberColumn(
+                    t("rules.col_priority"), min_value=0, max_value=100, step=1,
+                ),
+            },
+            key=f"rules_grid_{_page}_{_sort_col}_{_sort_asc}",
         )
+        if st.button(t("rules.save_changes"), type="primary", key="rules_grid_save"):
+            _by_id = {r.id: r for r in rules}
+            _n_changed = 0
+            for _i in range(len(_page_df)):
+                _old, _new = _page_df.iloc[_i], _edited_rules.iloc[_i]
+                _changes = [c for c in (_col_cs, t("rules.col_context"), t("rules.col_priority"))
+                            if str(_old[c]) != str(_new[c])]
+                if not _changes:
+                    continue
+                _r = _by_id[int(_old["ID"])]
+                _target = _new[_col_cs]
+                _giro, _multi = _target == _giro_v, _target == _multi_v
+                _cat, _sub = ("", "") if (_giro or _multi) else split_cat_sub(_target)
+                # A rule keeps its direction: a spending rule never takes an
+                # income category, nor the other way round.
+                _was_income = _r.category in taxonomy.all_income_categories
+                _was_expense = _r.category in taxonomy.all_expense_categories
+                if _cat and ((_was_expense and _cat not in taxonomy.all_expense_categories)
+                             or (_was_income and _cat not in taxonomy.all_income_categories)):
+                    st.error(t("counterparts.wrong_direction", name=_r.pattern, cat=_cat))
+                    continue
+                _ctx = _new[t("rules.col_context")] or None
+                rule_svc.update_rule(
+                    _r.id, category=_cat, subcategory=_sub, context=_ctx,
+                    priority=int(_new[t("rules.col_priority")] or 0),
+                    is_giroconto=_giro, is_multi_category=_multi,
+                )
+                # The movements the rule covers follow it, as in the editor below.
+                if _giro != bool(_r.is_giroconto):
+                    tx_svc.set_giroconto_by_rule_pattern(_r.pattern, _r.match_type, make_giroconto=_giro,
+                                                          direction=_r.direction)
+                if not _giro and not _multi and _old[_col_cs] != _target:
+                    for _tx in tx_svc.get_by_rule_pattern(_r.pattern, _r.match_type, _r.direction):
+                        tx_svc.apply_rule_category(_tx.id, _cat, _sub, origin="rule_apply")
+                _n_changed += 1
+            if any(str(_page_df.iloc[_i][_col_cs]) != str(_edited_rules.iloc[_i][_col_cs])
+                   and _multi_v in (str(_page_df.iloc[_i][_col_cs]), str(_edited_rules.iloc[_i][_col_cs]))
+                   for _i in range(len(_page_df))):
+                rule_svc.apply_to_all()
+            if _n_changed:
+                st.success(t("rules.grid_saved", n=_n_changed))
+                st.rerun()
+            else:
+                st.info(t("ledger.no_changes"))
         st.caption(t("rules.rows_info", start=_start + 1, end=min(_end, len(df_rules)), total=len(df_rules)))
 
         # ── Esegui tutte le regole ───────────────────────────────────────
@@ -148,6 +245,8 @@ def render_rules_page(engine):
         def _rule_target(r) -> str:
             if r.is_giroconto:
                 return t("rules.giroconto_value")
+            if r.is_multi_category:
+                return t("rules.multi_value")
             return f"{r.category} / {r.subcategory or '-'}"
 
         rule_opts = {f"[{r.id}] {r.pattern[:60]}  →  {_rule_target(r)}": r
@@ -175,11 +274,10 @@ def render_rules_page(engine):
                 if new_giro:
                     new_cat, new_sub = "", ""
                 else:
-                    all_idx = all_categories.index(sel_rule.category) if sel_rule.category in all_categories else 0
-                    new_cat = st.selectbox(t("rules.category"), all_categories, index=all_idx,
-                                           key=f"rule_edit_cat_{rid}")
-                    new_sub = _subcategory_widget(taxonomy, new_cat,
-                                                  sel_rule.subcategory or "", f"rule_edit_sub_{rid}")
+                    new_cat, new_sub = cat_sub_select(
+                        t("ledger.col.cat_sub"), taxonomy, sel_rule.category, sel_rule.subcategory,
+                        key=f"rule_edit_cat_sub_{rid}",
+                    )
                 _cur_ctx = sel_rule.context or _NO_CONTEXT
                 _ctx_idx = _ctx_options.index(_cur_ctx) if _cur_ctx in _ctx_options else 0
                 new_ctx_raw = st.selectbox(
@@ -192,7 +290,8 @@ def render_rules_page(engine):
                                            min_value=0, max_value=100, step=1,
                                            key=f"rule_edit_prio_{rid}")
 
-                affected = tx_svc.get_by_rule_pattern(sel_rule.pattern, sel_rule.match_type)
+                affected = tx_svc.get_by_rule_pattern(sel_rule.pattern, sel_rule.match_type,
+                                                     sel_rule.direction)
                 n_affected = len(affected)
                 also_fix_txs = st.checkbox(
                     t("rules.also_update_txs", n=n_affected),
@@ -216,10 +315,11 @@ def render_rules_page(engine):
                         if new_giro or sel_rule.is_giroconto:
                             tx_svc.set_giroconto_by_rule_pattern(
                                 new_pattern, new_match, make_giroconto=new_giro,
+                                direction=sel_rule.direction,
                             )
                         if not new_giro:
                             for tx in affected:
-                                tx_svc.update_category(tx.id, new_cat, new_sub, origin="rule_apply")
+                                tx_svc.apply_rule_category(tx.id, new_cat, new_sub, origin="rule_apply")
                                 if new_ctx:
                                     tx_svc.update_context(tx.id, new_ctx)
                     if ok:
@@ -236,7 +336,8 @@ def render_rules_page(engine):
         with col_del:
             st.write("")
             st.write("")
-            del_affected = tx_svc.get_by_rule_pattern(sel_rule.pattern, sel_rule.match_type)
+            del_affected = tx_svc.get_by_rule_pattern(sel_rule.pattern, sel_rule.match_type,
+                                                     sel_rule.direction)
             n_del = len(del_affected)
 
             if n_del > 0:
@@ -253,6 +354,24 @@ def render_rules_page(engine):
                 else:
                     st.error(t("rules.rule_not_found"))
 
+    # ── Nomi tuoi (spec 27) ──────────────────────────────────────────────────
+    _own = rule_svc.get_own_names()
+    if _own:
+        st.divider()
+        st.subheader(t("rules.own_names_title", n=len(_own)))
+        st.caption(t("rules.own_names_caption"))
+        for _o in _own:
+            _c_txt, _c_del = st.columns([6, 1])
+            with _c_txt:
+                st.markdown(t("rules.own_names_row", name=_o["name"],
+                              amount=(f"{_o['amount']:.2f}" if _o["amount"] is not None
+                                      else t("rules.own_names_variable")),
+                              n=_o["n"], example=(_o["example"] or _o["signature"])[:90]))
+            with _c_del:
+                if st.button(t("rules.delete_btn"), key=f"own_name_del_{_o['id']}"):
+                    rule_svc.delete_description_rule(_o["id"])
+                    st.rerun()
+
     # ── Nuova regola manuale ─────────────────────────────────────────────────
     st.divider()
     st.subheader(t("rules.new_rule_title"))
@@ -267,12 +386,9 @@ def render_rules_page(engine):
     if nr_giro:
         nr_cat, nr_sub = "", ""
     else:
-        nr_cat = st.selectbox(t("rules.category"), all_categories, key="new_rule_cat")
-        nr_subs = taxonomy.valid_subcategories(nr_cat)
-        if nr_subs:
-            nr_sub = st.selectbox(t("rules.subcategory"), nr_subs, key=f"new_rule_sub__{nr_cat}")
-        else:
-            nr_sub = st.text_input(t("rules.subcategory"), key=f"new_rule_sub__{nr_cat}")
+        nr_cat, nr_sub = cat_sub_select(
+            t("ledger.col.cat_sub"), taxonomy, None, None, key="new_rule_cat_sub",
+        )
     nr_ctx_raw = st.selectbox(
         t("rules.context_optional"), _ctx_options, index=0, key="new_rule_ctx",
         help=t("rules.context_help"),
@@ -286,7 +402,12 @@ def render_rules_page(engine):
     _nr_preview_count = 0
     if nr_pattern.strip():
         try:
-            _nr_preview_txs = tx_svc.get_by_rule_pattern(nr_pattern.strip(), nr_match)
+            # Only the movements in the rule's direction (spec 18): the
+            # category's type tells it; a giroconto covers both ways.
+            _nr_dir = (None if nr_giro else
+                       "out" if nr_cat in taxonomy.all_expense_categories else
+                       "in" if nr_cat in taxonomy.all_income_categories else None)
+            _nr_preview_txs = tx_svc.get_by_rule_pattern(nr_pattern.strip(), nr_match, _nr_dir)
             _nr_preview_count = len(_nr_preview_txs)
             if _nr_preview_count > 0:
                 st.info(t("rules.preview_match", n=_nr_preview_count))
@@ -332,7 +453,7 @@ def render_rules_page(engine):
                 )
             elif nr_also_apply and _nr_preview_txs:
                 for _tx in _nr_preview_txs:
-                    tx_svc.update_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
+                    tx_svc.apply_rule_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
                     if nr_ctx:
                         tx_svc.update_context(_tx.id, nr_ctx)
                 logger.info(

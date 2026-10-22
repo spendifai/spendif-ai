@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
 import streamlit as st
 
@@ -214,16 +215,16 @@ def render_settings_page(engine):
         t("settings.lang.de"): "de",
     }
 
-    _ACCOUNT_TYPES = {
-        t("settings.account_type.bank_account"): "bank_account",
-        t("settings.account_type.credit_card"): "credit_card",
-        t("settings.account_type.debit_card"): "debit_card",
-        t("settings.account_type.prepaid_card"): "prepaid_card",
-        t("settings.account_type.savings_account"): "savings_account",
-        t("settings.account_type.cash"): "cash",
-    }
+    # How the person uses the account, in two answers anybody can give. It
+    # replaced the banking types (credit, debit, prepaid...), which asked for
+    # knowledge most people do not have.
+    _USAGES = ("payments", "in_and_out")
 
-    _ACCOUNT_TYPE_LABELS = {v: k for k, v in _ACCOUNT_TYPES.items()}
+    def _usage_label(u: str | None) -> str:
+        return t(f"account.usage.{u}") if u else ""
+
+    def _usage_short(u: str | None) -> str:
+        return t(f"account.usage.{u}.short") if u else t("account.usage.unset")
 
     _GIROCONTO_OPTIONS = {
         t("settings.giroconto.neutral"): "neutral",
@@ -467,15 +468,15 @@ def render_settings_page(engine):
         col_name, col_bank, col_type, col_btn = st.columns([2, 2, 2, 1])
         new_acc_name = col_name.text_input(t("settings.account_name"), placeholder="Conto corrente POPSO")
         new_acc_bank = col_bank.text_input(t("settings.account_bank"), placeholder="Banca Popolare di Sondrio")
-        new_acc_type_label = col_type.selectbox(
-            t("settings.account_type"), list(_ACCOUNT_TYPES.keys()), index=0,
+        new_acc_usage = col_type.selectbox(
+            t("account.usage"), _USAGES, index=None, format_func=_usage_label,
+            placeholder=t("account.usage.placeholder"), help=t("account.usage.help"),
         )
         if col_btn.form_submit_button(t("settings.add_account"), width="stretch"):
             if new_acc_name.strip():
                 try:
                     cfg_svc.create_account(
-                        new_acc_name, new_acc_bank or "",
-                        account_type=_ACCOUNT_TYPES[new_acc_type_label],
+                        new_acc_name, new_acc_bank or "", usage=new_acc_usage,
                     )
                     st.success(t("settings.account_added", name=new_acc_name))
                     st.rerun()
@@ -486,10 +487,27 @@ def render_settings_page(engine):
 
     if _accounts:
         for acc in _accounts:
-            c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 1, 1])
+            c1, c2, c3, c6, c4, c5 = st.columns([3, 2, 2, 2, 1, 1])
             c1.markdown(f"**{acc.name}**")
+            closed_on = getattr(acc, "closed_on", None)
+            if closed_on:
+                _d = date.fromisoformat(closed_on)
+                c1.caption(t("guided.checklist.closed_on", date=t(
+                    "common.date_long", d=_d.day, month=t(f"common.month.{_d.month}"), y=_d.year)))
+                if c6.button(t("guided.checklist.reopen_btn"), key=f"reopen_acc_{acc.id}"):
+                    cfg_svc.reopen_account(acc.name)
+                    st.rerun()
+            else:
+                with c6.popover(t("guided.checklist.close_btn")):
+                    st.caption(t("guided.checklist.close_help"))
+                    picked = st.date_input(t("guided.checklist.close_date"),
+                                           key=f"close_acc_date_{acc.id}", format="DD/MM/YYYY")
+                    if st.button(t("guided.checklist.close_confirm"), key=f"close_acc_{acc.id}",
+                                 type="primary"):
+                        cfg_svc.close_account(acc.name, picked.isoformat())
+                        st.rerun()
             c2.caption(acc.bank_name or "—")
-            c3.caption(_ACCOUNT_TYPE_LABELS.get(acc.account_type or "", acc.account_type or "—"))
+            c3.caption(_usage_short(getattr(acc, "usage", None)))
             edit_key = f"edit_acc_{acc.id}"
             if c4.button("✏️", key=edit_key, help=t("settings.edit_account")):
                 st.session_state[f"_editing_acc"] = acc.id
@@ -506,12 +524,12 @@ def render_settings_page(engine):
                     edited_bank = ec2.text_input(
                         t("settings.account_bank"), value=acc.bank_name or "", key=f"ren_bank_{acc.id}"
                     )
-                    _current_type = acc.account_type or "bank_account"
-                    _type_labels = list(_ACCOUNT_TYPES.keys())
-                    _type_values = list(_ACCOUNT_TYPES.values())
-                    _type_idx = _type_values.index(_current_type) if _current_type in _type_values else 0
-                    edited_type_label = ec3.selectbox(
-                        t("settings.account_type"), _type_labels, index=_type_idx, key=f"ren_type_{acc.id}"
+                    _cur_usage = getattr(acc, "usage", None)
+                    edited_usage = ec3.selectbox(
+                        t("account.usage"), _USAGES,
+                        index=_USAGES.index(_cur_usage) if _cur_usage in _USAGES else None,
+                        format_func=_usage_label, placeholder=t("account.usage.placeholder"),
+                        help=t("account.usage.help"), key=f"ren_usage_{acc.id}",
                     )
                     bc1, bc2 = st.columns(2)
                     if bc1.button(t("common.save"), key=f"save_acc_{acc.id}", type="primary"):
@@ -521,8 +539,9 @@ def render_settings_page(engine):
                             try:
                                 n = cfg_svc.rename_account(
                                     acc.id, edited_name, edited_bank or None,
-                                    new_account_type=_ACCOUNT_TYPES[edited_type_label],
+                                    new_account_type=acc.account_type,
                                 )
+                                cfg_svc.set_account_usage(edited_name.strip(), edited_usage)
                                 st.session_state.pop("_editing_acc", None)
                                 st.success(t("settings.account_renamed", n=n))
                                 st.rerun()

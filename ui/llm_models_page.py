@@ -45,12 +45,17 @@ _URL_DEPENDENT_BACKENDS = {
     "vllm": "vllm_base_url",
 }
 
-# state → (border/accent color, translucent background, icon)
+# state → (status colour of the app palette, icon)
 _PRIVACY_BAR_STYLE = {
-    "green":  ("#3fb950", "rgba(63,185,80,.12)",  "🔒"),
-    "orange": ("#e3762b", "rgba(227,118,43,.12)", "🔐"),
-    "red":    ("#f85149", "rgba(248,81,73,.12)",  "⚠️"),
+    "green":  ("status_ok", "🔒"),
+    "orange": ("status_warn", "🔐"),
+    "red":    ("status_danger", "⚠️"),
 }
+
+
+def _translucent(color: str, alpha: float = 0.12) -> str:
+    r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 def _url_is_local(url: str) -> bool:
@@ -98,7 +103,9 @@ def _privacy_state(backend: str, settings: dict) -> str:
 def _render_privacy_bar(backend: str, settings: dict) -> None:
     """Render the traffic-light privacy bar for the selected main backend."""
     state = _privacy_state(backend, settings)
-    color, bg, icon = _PRIVACY_BAR_STYLE[state]
+    token, icon = _PRIVACY_BAR_STYLE[state]
+    color = SettingsService.value_colors()[token]
+    bg = _translucent(color)
     msg = t(f"llm_models.privacy.{state}")
     st.markdown(
         f"""

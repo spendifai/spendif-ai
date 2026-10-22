@@ -10,13 +10,18 @@
 |---|---|
 | **Import** | Carica file CSV/XLSX, avvia la pipeline di elaborazione |
 | **Ledger** | Vista tabellare di tutte le transazioni importate |
-| **Modifiche massive** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
-| **Analytics** | Grafici e report aggregati per periodo/conto/categoria |
+| **Modifica più movimenti** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
+| **Analisi** | Grafici e report aggregati per periodo/conto/categoria |
 | **Review** | Transazioni con classificazione incerta o da rivedere |
 | **Regole** | Gestione regole deterministiche di categorizzazione |
 | **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
 | **Impostazioni** | Backend LLM, API key, formati data/importo, lingua |
-| **Check List** | Tabella pivot mese × conto: presenza e quantità delle transazioni |
+| **Lista di controllo** | Tabella pivot mese × conto: presenza e quantità delle transazioni; cosa caricare negli ultimi 4 mesi, file preparati per conto, conti chiusi |
+| **Prepariamo i tuoi movimenti** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Resoconti. Riprende dal passo lasciato |
+| **Se vuoi controllare** | Voce di menu a sé, separata dal percorso: un conto alla volta dall'ultimo movimento controllato, griglia del Registro sui soli movimenti da controllare, poi i giroconti senza l'altro lato |
+| **Controparti** | Statistiche per controparte con creazione rapida di regole |
+| **Categorie miste** | Passo del flusso: controparti con movimenti in più categorie, da risolvere con una regola o uno per uno |
+| **Giroconti** | Passo del flusso: coppie di giroconto da confermare e giroconti con un lato solo |
 | **Assistente** | Chatbot di supporto adattivo (RAG cloud/locale o FAQ deterministico) |
 
 ---
@@ -122,11 +127,21 @@ Non richiede configurazione. Se vedi comunque un duplicato, controlla in Review.
 
 Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Deposito"). Se contato su entrambi i lati falsifica il saldo.
 
-**Come viene rilevato:** matching importo + finestra temporale (±3 giorni) tra conti diversi dello stesso titolare.
+**Come viene rilevato:** matching importo + finestra temporale (al massimo 5 giorni) tra conti diversi dello stesso titolare.
 
-**Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analytics.
+**Accoppiamento fra import diversi:** i due lati di un giroconto arrivano con file diversi, spesso in import diversi. Dopo ogni import i movimenti nuovi vengono confrontati con quelli già salvati degli altri conti: stesso importo con segno opposto, conti diversi, al massimo 5 giorni di distanza. Gli acquisti con carta non sono mai un lato di giroconto. Affidabilità della coppia:
 
-**Pulsante "Rileva giroconti cross-account"** in Review: riesegue la detection globalmente su tutte le transazioni. Utile se hai importato i due lati del giroconto in sessioni separate.
+| Livello | Quando |
+|---|---|
+| **alta** | Entrambi i lati già letti come giroconto: la coppia è un giroconto |
+| **media** | Un lato letto come giroconto, l'altro come spesa o entrata: proposta all'utente |
+| **bassa** | Nessuno dei due lati, ma al massimo 1 giorno di distanza: proposta all'utente |
+
+**Passo Giroconti di Prepariamo i tuoi movimenti:** mostra le coppie degli ultimi 4 mesi, dove l'utente risponde sì (giroconto) o no (tenuti separati, mai più proposti), e i giroconti con un lato solo, dove indica una volta per beneficiario dove sono andati i soldi: *mio conto non ancora caricato*, *mio conto che non seguo* (resta giroconto) o *un'altra persona* (diventa spesa o entrata, anche negli import successivi). Il beneficiario è riconosciuto dall'IBAN nella descrizione, altrimenti dalla descrizione pulita.
+
+**Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analisi.
+
+**Pulsante "Riesegui rilevamento giroconti"** in Revisione: riesegue la detection e l'accoppiamento fra conti su tutto lo storico. Utile se hai importato i due lati del giroconto in sessioni separate.
 
 ---
 
@@ -134,8 +149,8 @@ Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Depos
 
 | Backend | Dove gira | Privacy | Configurazione |
 |---|---|---|---|
-| **Ollama** | Locale (default) | Totale — nessun dato lascia il tuo PC | Richiede Ollama installato e modello scaricato |
-| **llama.cpp** | Locale (container Docker) | Totale — nessun dato lascia il tuo PC | File GGUF in `models/`, URL `http://llama-cpp:8080/v1` |
+| **Ollama** | Locale | Totale: nessun dato lascia il tuo PC | Richiede Ollama installato e modello scaricato |
+| **llama.cpp** | Locale, dentro l'app (default dell'app desktop) | Totale: nessun dato lascia il tuo PC | File GGUF in `~/.spendifai/models/`, scaricati dalla pagina Modelli LLM; un solo modello in memoria, condiviso fra import e assistente |
 | **OpenAI** | Remoto | PII redatte prima dell'invio | API key in Impostazioni |
 | **Claude** | Remoto | PII redatte prima dell'invio | API key in Impostazioni |
 
@@ -150,10 +165,10 @@ Chatbot integrato nella pagina **💬 Assistente**. Tre modalità auto-seleziona
 | Modalità | Backend richiesto | Come funziona |
 |----------|-------------------|---------------|
 | **RAG Cloud** | OpenAI / Claude / Compatible (con API key) | Retrieval semantico + risposta generata dal LLM cloud |
-| **RAG Local** | Ollama / vLLM | Retrieval semantico + risposta generata dal LLM locale |
-| **FAQ Match** | llama.cpp o nessuno | Match deterministico TF-IDF su FAQ preconfezionate |
+| **RAG Local** | llama.cpp / Ollama / vLLM | Retrieval semantico + risposta generata dal LLM locale |
+| **FAQ Match** | nessuno | Match deterministico TF-IDF su FAQ preconfezionate |
 
-La knowledge base è in `chat_bot/knowledge/<lang>/` con FAQ (JSON/Markdown) e documenti per RAG.
+La knowledge base è in `chat_bot/knowledge/<lang>/` con FAQ (JSON/Markdown) e documenti per RAG. I documenti sono copie delle guide in `docs/` (guida utente, installazione, configurazione, classificazione, reference guide), generate da `tools/build_chat_knowledge.py`. Con llama.cpp l'assistente usa lo stesso modello già caricato per l'import: una sola copia in memoria.
 
 ---
 
@@ -190,7 +205,7 @@ Ogni transazione viene identificata da un hash SHA-256 calcolato su: data, impor
 
 ## Export
 
-Dalla pagina Analytics → pulsante **Esporta**:
+Dalla pagina Analisi → pulsante **Esporta**:
 
 | Formato | Contenuto |
 |---|---|
@@ -211,9 +226,9 @@ Distinte dalle regole di categorizzazione. Servono a sostituire descrizioni grez
 
 ---
 
-## Modifiche massive — pagina dedicata
+## Modifica più movimenti: pagina dedicata
 
-La pagina **✏️ Modifiche massive** raccoglie tutte le operazioni che agiscono su più transazioni contemporaneamente.
+La pagina **✏️ Modifica più movimenti** raccoglie tutte le operazioni che agiscono su più transazioni contemporaneamente.
 
 ### Sezioni 1–3: operazioni su transazione di riferimento
 
@@ -246,9 +261,17 @@ Permette di eliminare in blocco transazioni selezionate tramite filtri combinabi
 
 ---
 
-## Check List — pagina dedicata
+## Lista di controllo: pagina dedicata
 
-La pagina **✅ Check List** mostra una tabella pivot **mese × conto** con il numero di transazioni presenti per ogni combinazione.
+La pagina **✅ Lista di controllo** mostra una tabella pivot **mese × conto** con il numero di transazioni presenti per ogni combinazione.
+
+### Cosa caricare
+
+- **Finestra:** la pagina chiede i dati degli ultimi **4 mesi** completi (il mese scorso più i tre precedenti) e, per ogni conto, segnala mesi mancanti, buchi fra mesi caricati o un conto fermo da prima della finestra.
+- **File per conto:** sotto ogni conto si prepara il file da importare; il pulsante di import li passa tutti alla pagina Import, che sa già a quale conto appartiene ciascuno.
+- **Conti chiusi:** *Non lo uso più* registra la data di chiusura (`account.closed_on`); da lì il conto non viene più chiesto, i movimenti già caricati restano e *Riapri* lo riattiva.
+- **Tempo stimato:** l'Import stima la durata dal numero di righe e dalla velocità degli import precedenti su questo computer (`import_job.n_rows`), poi segue il ritmo osservato durante l'esecuzione.
+- **Date nel futuro:** un movimento con data dopo il giorno dell'import non entra nel registro: resta da parte (`held_movement`), intero, e qui si corregge la data (proposta con giorno e mese scambiati quando dà una data passata) per importarlo, oppure si scarta. I mesi dopo quello in corso non contano mai come caricati.
 
 ### Layout
 
@@ -296,12 +319,15 @@ Tabelle principali:
 | `import_batch` | Metadati di ogni importazione (file, schema, conteggi) |
 | `document_schema` | Template schema per Flow 1 (fingerprint colonne → configurazione) |
 | `reconciliation_link` | Coppie carta–c/c riconciliate |
-| `internal_transfer_link` | Coppie giroconto |
+| `internal_transfer_link` | Coppie giroconto con livello di affidabilità e risposta dell'utente (`user_decision`: `yes` / `no`) |
+| `held_movement` | Movimenti messi da parte all'import perché la data è nel futuro: interi, in attesa della data corretta o dello scarto |
+| `transfer_destination` | Destinazione dei giroconti con un lato solo, una per beneficiario (chiave: IBAN o descrizione pulita; risposta: `unloaded` / `untracked` / `other_person`) |
+| `account` | Conti dell'utente, con data di chiusura opzionale (`closed_on`) |
 | `category_rule` | Regole di categorizzazione utente |
 | `description_rule` | Regole di pulizia descrizione in blocco |
 | `taxonomy_category` | Categorie tassonomia |
 | `taxonomy_subcategory` | Sottocategorie tassonomia |
-| `import_job` | Stato corrente del job di importazione |
+| `import_job` | Stato corrente del job di importazione, con righe totali (`n_rows`) per la stima dei tempi |
 | `user_settings` | Preferenze utente (formato date, separatori, LLM, contesti) |
 
 Le migrazioni dello schema sono idempotenti: vengono eseguite automaticamente ad ogni avvio senza perdita di dati.

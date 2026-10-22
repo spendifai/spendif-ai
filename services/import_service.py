@@ -33,7 +33,9 @@ from core.orchestrator import (
 )
 from core.sanitizer import SanitizationConfig
 from core.schemas import DocumentSchema  # noqa: F401 — re-exported for UI
+from support.logging import setup_logging
 
+logger = setup_logging()
 
 # ── Re-exported public types (UI can import these from services.import_service) ──
 __all__ = [
@@ -251,6 +253,17 @@ class ImportService:
             taxonomy = repository.get_taxonomy_config(s)
             user_rules = repository.get_category_rules(s)
             history_cache = HistoryCache(s)
+            # The category each counterpart already has: the model is not
+            # asked again (spec 22). Built per file, so the files of the
+            # same import saved before this one count too.
+            known_categories = repository.known_counterpart_categories(s)
+            # The counterpart each raw signature already has (spec 22).
+            known_signatures = repository.known_signatures(s)
+            # The user's own names (spec 27), before everything else.
+            own_names = repository.own_names(s)
+            # The taxonomy's generic category, for the multi-category
+            # counterparts and the fallback (spec 24).
+            fallback_categories = repository.get_fallback_categories(s)
             # C-08-cascade: load (or build) NSI taxonomy_map
             from core.orchestrator import _build_backend
             _backend_for_nsi = _build_backend(config)
@@ -259,6 +272,15 @@ class ImportService:
         def _existing_checker(tx_ids: list[str]) -> set[str]:
             with self._session() as s:
                 return repository.get_existing_tx_ids(s, tx_ids)
+
+        def _other_files(account: str, dates: list[str], source_file: str) -> list[dict]:
+            with self._session() as s:
+                return repository.get_movements_from_other_files(s, account, dates, source_file)
+
+        # How the person uses the account decides only whether a measured
+        # direction is applied in silence or asked about; never the direction.
+        with self._session() as s:
+            account_usage = repository.get_account_usage(s, account_label_override)
 
         return _process_file(
             raw_bytes=raw_bytes,
@@ -269,13 +291,25 @@ class ImportService:
             known_schema=known_schema,
             progress_callback=progress_callback,
             existing_tx_ids_checker=existing_tx_ids_checker or _existing_checker,
+            other_files_loader=_other_files,
+            intermediary_prefixes=_active_intermediaries(self.engine),
+            known_categories=known_categories,
+            known_signatures=known_signatures,
+            own_names=own_names,
+            fallback_categories=fallback_categories,
             account_label_override=account_label_override,
             skip_rows_override=skip_rows_override,
             history_cache=history_cache,
             taxonomy_map=taxonomy_map,
             doc_type_override=doc_type_override,
             llm_trace=llm_trace,
+            account_usage=account_usage,
         )
+
+    def learn_intermediaries(self, files: list[tuple[str, bytes]]) -> list[str]:
+        """At the start of an import, on all its files together (spec 20)."""
+        from services.intermediary_service import IntermediaryService
+        return IntermediaryService(self.engine).learn_from_files(files)
 
     # ── Full-batch import (legacy) ─────────────────────────────────────────────
 
@@ -298,12 +332,75 @@ class ImportService:
     def persist_result(self, result: ImportResult) -> None:
         with self._session() as s:
             repository.persist_import_result(s, result)
+        # The model's answers hold for each counterpart's past too (spec 22).
+        try:
+            with self._session() as s:
+                n = repository.rewrite_with_model_answers(s, result.transactions)
+                s.commit()
+            if n:
+                logger.info(f"persist_result: {n} saved movements took the model's new answer")
+        except Exception:  # the import is saved: a failed rewrite must not undo it
+            logger.exception("persist_result: rewrite with the model's answers failed")
+        # The other side of a transfer usually came with another account's
+        # file: pair the new movements with those already stored.
+        from services.transfer_service import TransferService
+        try:
+            transfers = TransferService(self.engine)
+            transfers.pair_all_once()
+            new_ids = {tx["id"] for tx in result.transactions if tx.get("id")}
+            transfers.pair_new(new_ids)
+            transfers.apply_destinations(new_ids)
+        except Exception:  # the import is saved: a failed pairing must not undo it
+            logger.exception("persist_result: transfer pairing failed")
 
     # ── Job management ────────────────────────────────────────────────────────
 
-    def create_job(self, n_files: int):
+    def create_job(self, n_files: int, n_rows: int | None = None):
         with self._session() as s:
-            return repository.create_import_job(s, n_files)
+            return repository.create_import_job(s, n_files, n_rows)
+
+    def count_rows(self, files: list[tuple[str, bytes]]) -> int:
+        """Rows read from ``files`` (name, bytes): the basis of the time estimate.
+
+        Counted on every file, known formats included: ``analyze_file`` skips
+        reading a file whose format is cached, and reports 0 rows for it.
+        """
+        total = 0
+        for name, data in files:
+            try:
+                df_raw, _, _ = load_raw_dataframe(data, name)
+                total += len(df_raw)
+            except Exception:  # unreadable here: the import will say why
+                total += max(data.count(b"\n") - 1, 0)
+        return total
+
+    @staticmethod
+    def remaining_seconds(elapsed: float, progress: float, prior_total: float) -> float:
+        from core.import_eta import remaining_seconds
+        return remaining_seconds(elapsed, progress, prior_total)
+
+    @staticmethod
+    def remaining_range(elapsed: float, progress: float, prior_total: float) -> tuple[float, float]:
+        from core.import_eta import remaining_range
+        return remaining_range(elapsed, progress, prior_total)
+
+    @staticmethod
+    def file_spans(rows_per_file: list[int]) -> list[tuple[float, float]]:
+        from core.import_eta import file_spans
+        return file_spans(rows_per_file)
+
+    @staticmethod
+    def duration_parts(seconds: float) -> tuple[int, int]:
+        from core.import_eta import duration_parts
+        return duration_parts(seconds)
+
+    def estimate_import_seconds(self, n_rows: int) -> tuple[float, bool]:
+        """Expected duration for ``n_rows`` rows, and whether it comes from this
+        computer's past imports (False: a first, rough estimate)."""
+        from core.import_eta import estimate_total
+        with self._session() as s:
+            history = repository.get_import_timings(s)
+        return estimate_total(n_rows, history)
 
     def update_job(self, job_id: int, **kwargs) -> None:
         with self._session() as s:
@@ -376,6 +473,64 @@ class ImportService:
                 repository.upsert_document_schema(session, schema)
 
             session.commit()
-            return moved
         finally:
             session.close()
+
+        if moved:
+            self.recategorize_batch(batch_sha256)
+        return moved
+
+    def recategorize_batch(self, batch_sha256: str) -> int:
+        """Categorize one import again, after its amounts were turned round.
+
+        The categories were chosen when the expenses still looked like income,
+        so they came from the income side of the taxonomy. Turning the amounts
+        round without this left charges filed under "Rendite finanziarie".
+        What the person set by hand is kept; their rules apply again.
+
+        Returns how many movements were categorized again.
+        """
+        from db import repository
+        from db.models import AUTOMATIC_CATEGORY_SOURCES, Transaction, get_session
+        from services.category_service import CategoryService
+
+        categorizable = {"expense", "income", "card_tx", "unknown"}
+        session = get_session(self.engine)
+        try:
+            batch = repository.get_import_batch(session, batch_sha256)
+            if batch is None:
+                return 0
+            rows = [
+                r for r in session.query(Transaction).filter(Transaction.batch_id == batch.id).all()
+                if r.category_source != "manual" and r.tx_type in categorizable
+            ]
+            if not rows:
+                return 0
+            columns = [c.name for c in Transaction.__table__.columns]
+            txs = [{c: getattr(r, c) for c in columns} for r in rows]
+            results = CategoryService(self.engine).categorize_many(txs)
+            for row, res in zip(rows, results):
+                row.category = res.category
+                row.subcategory = res.subcategory
+                row.category_confidence = res.confidence.value
+                row.category_source = res.source.value
+                row.category_model = res.model_name or None
+                row.to_review = res.to_review
+                if res.source.value in AUTOMATIC_CATEGORY_SOURCES:
+                    row.model_category = res.category
+                    row.model_subcategory = res.subcategory
+                    row.model_confidence = res.confidence.value
+            session.commit()
+            return len(rows)
+        finally:
+            session.close()
+
+
+def _active_intermediaries(engine) -> set[str]:
+    """Active payment intermediaries; never stops an import."""
+    try:
+        from services.intermediary_service import IntermediaryService
+        return IntermediaryService(engine).active()
+    except Exception as exc:
+        logger.warning(f"import: intermediaries not read ({exc})")
+        return set()
