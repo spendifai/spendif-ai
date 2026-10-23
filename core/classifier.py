@@ -709,6 +709,35 @@ def _is_categorical(series: pd.Series) -> bool:
     return n_distinct <= 5 or (n_distinct / n) <= 0.03
 
 
+def _description_columns(df_raw: pd.DataFrame, cols: list[str]) -> list[str]:
+    """The text columns that make up the description, out of `cols`.
+
+    A column whose values are not mostly letters says nothing about the
+    counterpart: a reference code ("AT240500047000010032630", two letters
+    out of 23), an exchange rate read as text. A description, even a bank
+    transfer full of numbers, is at least a third letters. Among the others
+    the richest column, the one with most distinct values, is the
+    description; another column stays only with at least half as many
+    distinct values. A month or a bank's own category repeats over the
+    whole file and only adds noise for the model.
+    """
+    def _values(c: str) -> pd.Series:
+        v = df_raw[c].dropna().astype(str).str.strip()
+        return v[v != ""]
+
+    def _letter_share(c: str) -> float:
+        chars = _values(c).str.replace(r"\s", "", regex=True)
+        letters = chars.str.count(r"[^\W\d_]")
+        return (letters / chars.str.len().clip(lower=1)).median()
+
+    worded = [c for c in cols if _letter_share(c) >= 0.3]
+    if not worded:
+        return cols
+    distinct = {c: _values(c).nunique() for c in worded}
+    richest = max(distinct.values())
+    return [c for c in worded if 2 * distinct[c] >= richest]
+
+
 def _classify_column_content(
     series: pd.Series,
     amount_plausibility_cap: float = _AMOUNT_PLAUSIBILITY_CAP_DEFAULT,
@@ -889,6 +918,8 @@ def _run_step0_analysis(
         if col_type.get(c) == "text"
         and (df_raw is None or not _is_categorical(df_raw[c]))
     ]
+    if text_cols_found and df_raw is not None:
+        text_cols_found = _description_columns(df_raw, text_cols_found)
 
     # ── Description columns (all text columns) ────────────────────────────────
     if text_cols_found:
@@ -970,13 +1001,18 @@ def _run_step0_analysis(
         # Complementary = sum ≈ 1.0 (>0.85) and neither is 100% (<1.00).
         # A bank account may have 90% expenses / 10% income — perfectly normal.
         # A savings account might be 98% debit / 2% credit — still complementary.
+        # The two columns must also fill different rows: an original-currency
+        # amount and its fee are filled on the same rows and only add up to
+        # more than 85% by chance.
         best_pair = None
         best_complement = 0.0
         for i, c1 in enumerate(amount_cols_found):
             for c2 in amount_cols_found[i + 1:]:
                 d1, d2 = densities[c1], densities[c2]
                 complement = d1 + d2
-                if complement > 0.85 and max(d1, d2) < 1.00 and complement > best_complement:
+                overlap = (df_raw[c1].notna() & df_raw[c2].notna()).mean()
+                if (complement > 0.85 and max(d1, d2) < 1.00 and overlap < 0.05
+                        and complement > best_complement):
                     best_pair = (c1, c2, d1, d2)
                     best_complement = complement
 
@@ -1000,8 +1036,9 @@ def _run_step0_analysis(
                 sign_conv,
             )
         else:
-            # No complementary pattern; fall back to single column
-            r.amount_col = amount_cols_found[0]
+            # No complementary pattern; fall back to the densest column (the
+            # first one on a tie): the amount is on every row, extras are not.
+            r.amount_col = max(amount_cols_found, key=lambda c: densities[c])
             r.amount_semantics = "neutral"
             logger.info(
                 "Phase 0: no complementary pattern found among %s → single amount_col='%s'",
