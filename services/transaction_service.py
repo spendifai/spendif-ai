@@ -422,12 +422,14 @@ class TransactionService:
 
         The counterpart is matched as the stats group it (spec 21). With `uncategorized_only` the movements whose category the user
         already decided are left out: only what came in since is shown again.
+        Movements the user already checked are never shown, as in the stats.
         """
         with self._session() as s:
             q = s.query(Transaction).filter(
                 same_counterpart(Transaction.description, description),
                 Transaction.date >= date_from,
                 Transaction.date <= date_to,
+                Transaction.human_validated.isnot(True),
             )
             if uncategorized_only:
                 q = q.filter(or_(

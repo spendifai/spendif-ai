@@ -3027,9 +3027,9 @@ def get_counterpart_stats(
       modal_subcategory, variability_pct, source_mode, categorized_by_user,
       is_giroconto, categories, uncategorized_count
 
-    Everything here is about how the money was spent, never about whether it
-    was spent: that is checked movement by movement in the registry
-    (human_validated) and plays no part in these figures.
+    Movements the user already checked (human_validated) are left out, of
+    the list and of the figures: like a counterpart where one buys a bit of
+    everything, they are not asked about again (founder, 2026-10-23).
 
     `categorized_by_user` is True when one of the user's rules covers the
     counterpart, or when every movement of it got its category from the
@@ -3066,6 +3066,7 @@ def get_counterpart_stats(
             Transaction.description.isnot(None),
             Transaction.description != "",
             Transaction.tx_type.in_(tx_types),
+            Transaction.human_validated.isnot(True),
             *([Transaction.amount < 0] if negative_only else []),
             *([Transaction.amount > 0] if positive_only else []),
         )

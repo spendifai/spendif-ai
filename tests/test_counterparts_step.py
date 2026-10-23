@@ -19,6 +19,7 @@ from db.models import Transaction, create_tables, get_session
 from db.repository import create_category_rule, get_category_rules, get_counterpart_stats
 from services.guided_flow_service import GuidedFlowService
 from services.settings_service import SettingsService
+from services.transaction_service import TransactionService
 from ui.i18n import get_language, set_language
 
 
@@ -103,19 +104,27 @@ def test_a_rule_makes_the_counterpart_categorized_for_every_import(engine):
     ]
 
 
-def test_categorized_comes_from_the_category_source_not_from_the_check(engine):
-    """Checking a movement in the ledger says the money was spent, not how:
-    it does not categorize the counterpart. A category set by hand does."""
+def test_checked_movements_are_not_asked_about_again(engine):
+    """A movement the user already checked is left out of the counterparts,
+    of the list and of the figures, like a counterpart where one buys a bit
+    of everything: a counterpart with every movement checked disappears.
+    A category set by hand still categorizes the counterpart."""
     with get_session(engine) as s:
         _tx(s, "a", "Coop", -30, "2026-08-02", validated=True)
+        _tx(s, "a2", "Coop", -12, "2026-08-05")
         _tx(s, "b", "Bar", -5, "2026-08-11", source="manual")
+        _tx(s, "c", "Edicola", -2, "2026-08-12", validated=True)
         s.commit()
         stats = {x["description"]: x for x in get_counterpart_stats(
             s, date_from="2026-06-01", date_to="2026-08-31")}
+        movements = TransactionService(engine).get_counterpart_movements(
+            "Coop", "2026-06-01", "2026-08-31")
+    assert "Edicola" not in stats
+    assert stats["Coop"]["tx_count"] == 1
+    assert stats["Coop"]["total_amount"] == 12
     assert stats["Coop"]["categorized_by_user"] is False
-    assert stats["Coop"]["uncategorized_count"] == 1
     assert stats["Bar"]["categorized_by_user"] is True
-    assert stats["Bar"]["uncategorized_count"] == 0
+    assert [tx.id for tx in movements] == ["a2"]
 
 
 def test_reimport_under_an_existing_rule_does_not_ask_again(engine):
