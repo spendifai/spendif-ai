@@ -283,6 +283,7 @@ def create_tables(engine=None):
     _migrate_add_toll_subcategory(engine)
     _migrate_meals_and_lodging(engine)
     _migrate_split_fuel(engine)
+    _migrate_empty_category_to_fallback(engine)  # after every migration that empties categories
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -1563,7 +1564,8 @@ def _migrate_meals_and_lodging(engine) -> None:
     (founder, 2026-10-23). Dining becomes meals and lodging: one subcategory
     for food someone else prepared, and the hotel;
     public transport and taxi become one subcategory; the travel subcategory
-    goes. Its movements lose the category and go back to review, with the
+    goes. Its movements go back to review with the fallback category (given
+    by _migrate_empty_category_to_fallback, which runs after), with the
     holiday context when they had none; the rules and corrections that name
     it go with it, its OSM mappings move to the hotel. Applied in the
     language of the user's taxonomy, recognised by the earlier default names;
@@ -1680,6 +1682,41 @@ def _migrate_split_fuel(engine) -> None:
                 conn.execute(_text("INSERT INTO taxonomy_subcategory (category_id, name, sort_order) "
                                    "VALUES (:c, :n, :s)"), {"c": cat_id, "n": f["electric"], "s": order + 1})
             break
+        conn.commit()
+
+
+def _migrate_empty_category_to_fallback(engine) -> None:
+    """A movement that is not a giroconto never stays without a category
+    (founder, 2026-10-23): it takes the product's proposal from the import
+    when there is one, as a giroconto turned back does, otherwise the
+    fallback category of its direction; either way it goes to review.
+    Repairs the giroconti turned back into spending or income without one,
+    and the movements of a subcategory that went. Idempotent."""
+    from sqlalchemy import inspect as _inspect, text as _text
+    insp = _inspect(engine)
+    if not (insp.has_table("transaction") and insp.has_table("taxonomy_category")):
+        return
+    with engine.connect() as conn:
+        fallback = {"expense": ("Altro", "Spese non classificate"),
+                    "income": ("Altro entrate", "Entrate non classificate")}
+        for cat_id, name, cat_type in conn.execute(_text(
+                "SELECT id, name, type FROM taxonomy_category WHERE is_fallback = 1")).fetchall():
+            sub = conn.execute(_text("SELECT name FROM taxonomy_subcategory WHERE category_id = :c "
+                                     "ORDER BY sort_order DESC, id DESC LIMIT 1"), {"c": cat_id}).scalar()
+            fallback[cat_type] = (name, sub or "")
+        empty = ("tx_type NOT IN ('internal_out', 'internal_in') "
+                 "AND (category IS NULL OR category = '')")
+        conn.execute(_text(
+            'UPDATE "transaction" SET category = model_category, subcategory = model_subcategory, '
+            "category_source = 'llm', category_confidence = COALESCE(model_confidence, 'low'), "
+            f"to_review = 1 WHERE {empty} AND model_category IS NOT NULL AND model_category != ''"))
+        for direction, sign in (("expense", "< 0"), ("income", ">= 0")):
+            cat, sub = fallback[direction]
+            conn.execute(_text(
+                'UPDATE "transaction" SET category = :c, subcategory = :s, category_source = \'llm\', '
+                "category_confidence = 'low', to_review = 1 "
+                f"WHERE {empty} AND CAST(amount AS REAL) {sign}"),
+                {"c": cat, "s": sub})
         conn.commit()
 
 

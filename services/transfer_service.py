@@ -226,7 +226,7 @@ class TransferService:
                 if ids is not None and t.id not in ids:
                     continue
                 if destination_key(t.description or "", t.raw_description or "") in others:
-                    t.tx_type = "expense" if Decimal(str(t.amount or 0)) < 0 else "income"
+                    repository.leave_giroconto(s, t)
                     changed += 1
             if changed:
                 s.commit()
