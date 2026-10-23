@@ -5,6 +5,7 @@ import everything they need from services.* only, without touching core.* or db.
 """
 from __future__ import annotations
 
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -36,6 +37,27 @@ from core.schemas import DocumentSchema  # noqa: F401 — re-exported for UI
 from support.logging import setup_logging
 
 logger = setup_logging()
+
+# Databases whose stale jobs this process has already reset (see
+# reset_stale_jobs_once).
+_stale_jobs_reset: set[str] = set()
+_stale_jobs_lock = threading.Lock()
+
+
+def reset_stale_jobs_once(engine) -> int:
+    """Reset the jobs left running by a previous process, once per process.
+
+    A job still marked running when the app starts belongs to a process
+    that died. Done once per browser session instead, a second tab or a
+    reconnection during an import declared that live import interrupted
+    (2026-10-23). Returns how many jobs were reset.
+    """
+    key = str(engine.url)
+    with _stale_jobs_lock:
+        if key in _stale_jobs_reset:
+            return 0
+        _stale_jobs_reset.add(key)
+    return ImportService(engine).reset_stale_jobs()
 
 # ── Re-exported public types (UI can import these from services.import_service) ──
 __all__ = [

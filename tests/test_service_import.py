@@ -86,3 +86,19 @@ def test_create_multiple_jobs_get_latest(engine):
     latest = svc.get_latest_job()
     assert latest is not None
     assert latest.n_files == 5
+
+
+def test_stale_jobs_are_reset_once_per_process_not_per_session(engine, monkeypatch):
+    """A second browser session during an import must not declare it
+    interrupted: only the jobs left by a previous process are reset."""
+    from services import import_service
+    monkeypatch.setattr(import_service, "_stale_jobs_reset", set())
+    from sqlalchemy import text
+    svc = ImportService(engine)
+    svc.create_job(n_files=1)                                      # left by a dead process
+    assert import_service.reset_stale_jobs_once(engine) == 1      # app start
+    svc.create_job(n_files=2)                                      # import running now
+    assert import_service.reset_stale_jobs_once(engine) == 0      # another tab
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT n_files, status FROM import_job ORDER BY id")).fetchall()
+    assert [tuple(r) for r in rows] == [(1, "error"), (2, "running")]
