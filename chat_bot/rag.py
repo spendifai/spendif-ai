@@ -97,6 +97,7 @@ class RAGEngine:
         self,
         question: str,
         history: list[dict[str, str]] | None = None,
+        state_note: str = "",
     ) -> RAGResult:
         """Retrieve relevant context and generate an answer via LLM.
 
@@ -106,6 +107,8 @@ class RAGEngine:
                      ``{"role": "user"|"assistant", "content": "..."}``.
                      The last ``_MAX_HISTORY_TURNS`` turns are included in
                      the prompt so the model can resolve follow-up questions.
+            state_note: What the model must know about the person's data
+                     (e.g. nothing loaded yet), added to the system prompt.
         """
         # ── Step 1: analyze query — intent + key terms (lang-agnostic via LLM) ──
         terms = self._analyze_query(question)
@@ -118,6 +121,8 @@ class RAGEngine:
             # the question part — fall back to the raw question for retrieval.
             if "?" not in question and len(question.strip()) <= 30:
                 system_prompt = self._prompts.get("system_greeting", "You are a helpful support assistant.")
+                if state_note:
+                    system_prompt = f"{system_prompt}\n\n{state_note}"
                 answer = self._call_llm(system_prompt, question)
                 return RAGResult(answer=answer, sources=[], context_used="")
             terms = question  # retrieval on raw question as fallback
@@ -178,6 +183,8 @@ class RAGEngine:
         # ── Step 4: generate answer ───────────────────────────────────────────
         system_key = f"system_rag_{self._lang}" if f"system_rag_{self._lang}" in self._prompts else "system_rag"
         system_prompt = self._prompts[system_key]
+        if state_note:
+            system_prompt = f"{system_prompt}\n\n{state_note}"
         user_prompt_template = (
             self._prompts.get("user_template_with_history")
             if history_text else None

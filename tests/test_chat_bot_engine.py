@@ -82,3 +82,68 @@ def test_busy_model_answers_from_faq_and_says_why():
     eng._rag.query.assert_not_called()
     assert resp.mode == ChatMode.FAQ_MATCH
     assert resp.text.startswith(eng._busy_note())
+
+
+# ── Nothing loaded yet after the onboarding ──────────────────────────────────
+
+@pytest.fixture
+def empty_archive():
+    from sqlalchemy import create_engine, text
+    from db.models import create_tables
+    db = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    create_tables(db)
+    with db.begin() as conn:
+        conn.execute(text("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('onboarding_done', 'true')"))
+        conn.execute(text("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('llm_backend', '')"))
+    return db
+
+
+def _add_movement(db):
+    from decimal import Decimal
+    from db.models import Transaction, get_session
+    with get_session(db) as s:
+        s.add(Transaction(id="t1", date="2026-10-01", amount=Decimal("-5"), currency="EUR",
+                          description="Bar", source_file="f.csv", doc_type="bank_account",
+                          account_label="A", tx_type="expense", reconciled=False, to_review=False))
+        s.commit()
+
+
+def test_without_a_model_the_answer_opens_with_the_advice_to_load(empty_archive):
+    eng = ChatBotEngine(db_engine=empty_archive, lang="it")
+    assert eng.mode == ChatMode.FAQ_MATCH
+    resp = eng.ask("Come importo un file?")
+    assert resp.text.startswith(eng._note("state_no_data_user"))
+
+
+def test_a_question_without_answer_gets_the_advice_alone(empty_archive):
+    eng = ChatBotEngine(db_engine=empty_archive, lang="it")
+    eng._classifier = None
+    assert eng.ask("Quanto ho speso al supermercato?").text == eng._note("state_no_data_user")
+
+
+def test_the_model_is_told_that_nothing_is_loaded(empty_archive):
+    eng = ChatBotEngine(db_engine=empty_archive, lang="it")
+    eng._mode = ChatMode.RAG_LOCAL
+    eng._rag = MagicMock()
+    eng._rag.query.return_value = MagicMock(answer="Prima carica un estratto.", sources=[])
+    eng.ask("Quanto ho speso al supermercato?")
+    assert eng._rag.query.call_args.kwargs["state_note"] == eng._note("state_no_data_model")
+
+
+def test_the_first_movement_ends_it(empty_archive):
+    _add_movement(empty_archive)
+    eng = ChatBotEngine(db_engine=empty_archive, lang="it")
+    eng._mode = ChatMode.RAG_LOCAL
+    eng._rag = MagicMock()
+    eng._rag.query.return_value = MagicMock(answer="ok", sources=[])
+    eng.ask("Quanto ho speso al supermercato?")
+    assert eng._rag.query.call_args.kwargs["state_note"] == ""
+    eng._mode = ChatMode.FAQ_MATCH
+    assert not eng.ask("Come importo un file?").text.startswith(eng._note("state_no_data_user"))
+
+
+@pytest.mark.parametrize("key", ["state_no_data_model", "state_no_data_user"])
+def test_the_advice_is_in_every_language(key):
+    import json
+    from chat_bot.engine import _PROMPTS_PATH
+    assert set(json.loads(_PROMPTS_PATH.read_text(encoding="utf-8"))[key]) == {"it", "en", "fr", "de", "es"}

@@ -95,9 +95,22 @@ class ChatBotEngine:
         if not question:
             return ChatResponse(text=self._no_answer(), mode=self._mode)
 
+        # Nothing loaded yet after the onboarding: the model is told, so it
+        # sends the person to load a statement first and invents no figures;
+        # without a model the answer opens with the same advice.
+        no_data = self._no_data_yet()
         if self._mode in (ChatMode.RAG_CLOUD, ChatMode.RAG_LOCAL):
-            return self._ask_rag(question, history=history)
-        return self._ask_faq(question)
+            resp = self._ask_rag(question, history=history,
+                                 state_note=self._note("state_no_data_model") if no_data else "")
+        else:
+            resp = self._ask_faq(question)
+        if no_data:
+            user_note = self._note("state_no_data_user")
+            if resp.text == self._no_answer():
+                resp.text = user_note
+            elif resp.mode == ChatMode.FAQ_MATCH:
+                resp.text = f"{user_note}\n\n{resp.text}"
+        return resp
 
     # ── mode detection ───────────────────────────────────────────────
 
@@ -130,6 +143,23 @@ class ChatBotEngine:
         # unconfigured → deterministic FAQ
         return ChatMode.FAQ_MATCH
 
+    def _no_data_yet(self) -> bool:
+        """True when the person finished the onboarding and has done nothing
+        else: no movement and no import in the archive. Counted in the DB,
+        at every question, so the first import ends it at once."""
+        if self._db_engine is None:
+            return False
+        try:
+            from sqlalchemy.orm import Session
+            from db.models import ImportBatch, Transaction
+            if self._read_settings().get("onboarding_done", "false").lower() != "true":
+                return False
+            with Session(self._db_engine) as session:
+                return (session.query(Transaction.id).limit(1).first() is None
+                        and session.query(ImportBatch.id).limit(1).first() is None)
+        except Exception:
+            return False
+
     def _read_settings(self) -> dict[str, str]:
         """Read user settings from DB."""
         from db.repository import get_all_user_settings
@@ -143,6 +173,7 @@ class ChatBotEngine:
         self,
         question: str,
         history: list[dict[str, str]] | None = None,
+        state_note: str = "",
     ) -> ChatResponse:
         """Answer using RAG (cloud or local)."""
         if self._rag is None:
@@ -156,7 +187,7 @@ class ChatBotEngine:
             resp = self._ask_faq(question)
             resp.text = f"{self._busy_note()}\n\n{resp.text}"
             return resp
-        result: RAGResult = self._rag.query(question, history=history)
+        result: RAGResult = self._rag.query(question, history=history, state_note=state_note)
         return ChatResponse(
             text=result.answer,
             mode=self._mode,
@@ -253,6 +284,10 @@ class ChatBotEngine:
         return None
 
     # ── helpers ──────────────────────────────────────────────────────
+
+    def _note(self, key: str) -> str:
+        note = self._prompts.get(key, {})
+        return note.get(self._lang, note.get("en", ""))
 
     def _busy_note(self) -> str:
         note = self._prompts.get("model_busy", {})
