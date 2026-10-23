@@ -278,7 +278,7 @@ Per ogni controparte vengono mostrati:
 - **Conteggio** delle ricorrenze validate
 - **Omogenità**: un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
   - 🟢 **≥ 0.90** — auto-categorizzabile (es. ESSELUNGA: sempre Alimentari)
-  - 🟡 **0.50–0.89** — mista (es. ROSSOPOMODORO: quasi sempre Ristorazione, a volte Vacanze)
+  - 🟡 **0.50-0.89**: mista (es. AUTOGRILL: quasi sempre Vitto e alloggio, a volte Trasporti)
   - 🔴 **< 0.50** — eterogenea (es. AMAZON: Tecnologia, Alimentari, Abbigliamento...)
 
 > **Come funziona:** Spendif.ai conta solo le transazioni che hai **validato** (checkbox ✅ nel Ledger o nella Review). Più transazioni validi, più il sistema impara. Quando importi nuovi file, le controparti con alta omogenità vengono classificate automaticamente dallo storico — senza chiamare l'AI.

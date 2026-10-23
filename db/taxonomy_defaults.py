@@ -26,13 +26,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
                 "Spesa supermercato", "Mercato / freschi",
                 "Macelleria / pescheria", "Altro alimentari",
             ]},
-            {"category": "Ristorazione", "subcategories": [
-                "Ristorante", "Bar / caffè", "Asporto / delivery",
+            {"category": "Vitto e alloggio", "subcategories": [
+                "Pasti", "Albergo / B&B",
             ]},
             {"category": "Trasporti", "subcategories": [
-                "Carburante", "Assicurazione auto", "Bollo auto",
+                "Carburante gasolio / benzina / GPL", "Ricarica elettrica",
+                "Assicurazione auto", "Bollo auto",
                 "Manutenzione auto", "Parcheggio / ZTL", "Pedaggio",
-                "Trasporto pubblico", "Taxi / ride-sharing", "Altro trasporti",
+                "Mezzi pubblici e taxi", "Altro trasporti",
             ]},
             {"category": "Salute", "subcategories": [
                 "Medico di base / specialista", "Farmaci",
@@ -51,7 +52,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Svago e tempo libero", "subcategories": [
                 "Sport e palestra", "Cinema / teatro / eventi",
-                "Streaming / abbonamenti digitali", "Viaggi e vacanze",
+                "Streaming / abbonamenti digitali",
                 "Hobby", "Libri / riviste", "Altro svago",
             ]},
             {"category": "Animali domestici", "subcategories": [
@@ -121,12 +122,13 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
                 "Supermarket", "Fresh market", "Butcher / Fishmonger",
                 "Other groceries",
             ]},
-            {"category": "Dining out", "subcategories": [
-                "Restaurant", "Bar / Café", "Takeaway / Delivery",
+            {"category": "Meals & lodging", "subcategories": [
+                "Meals", "Hotel / B&B",
             ]},
             {"category": "Transport", "subcategories": [
-                "Fuel", "Car insurance", "Vehicle tax", "Car maintenance",
-                "Parking / Tolls", "Public transport", "Taxi / Ride-sharing",
+                "Fuel (diesel / petrol / LPG)", "EV charging",
+                "Car insurance", "Vehicle tax", "Car maintenance",
+                "Parking / Tolls", "Public transport & taxi",
                 "Other transport",
             ]},
             {"category": "Health", "subcategories": [
@@ -146,7 +148,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Entertainment", "subcategories": [
                 "Sport & gym", "Cinema / Theatre / Events",
-                "Streaming & subscriptions", "Travel & holidays",
+                "Streaming & subscriptions",
                 "Hobbies", "Books & magazines", "Other entertainment",
             ]},
             {"category": "Pets", "subcategories": [
@@ -215,13 +217,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
                 "Supermarché", "Marché / produits frais",
                 "Boucherie / poissonnerie", "Autre alimentation",
             ]},
-            {"category": "Restauration", "subcategories": [
-                "Restaurant", "Bar / café", "Vente à emporter / livraison",
+            {"category": "Repas & hébergement", "subcategories": [
+                "Repas", "Hôtel / B&B",
             ]},
             {"category": "Transports", "subcategories": [
-                "Carburant", "Assurance auto", "Taxe automobile",
+                "Carburant (gazole / essence / GPL)", "Recharge électrique",
+                "Assurance auto", "Taxe automobile",
                 "Entretien auto", "Parking / péages",
-                "Transports en commun", "Taxi / VTC", "Autres transports",
+                "Transports en commun & taxi", "Autres transports",
             ]},
             {"category": "Santé", "subcategories": [
                 "Médecin généraliste / spécialiste", "Médicaments",
@@ -241,7 +244,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Loisirs", "subcategories": [
                 "Sport & salle de sport", "Cinéma / théâtre / événements",
-                "Streaming & abonnements numériques", "Voyages & vacances",
+                "Streaming & abonnements numériques",
                 "Loisirs créatifs", "Livres & revues", "Autres loisirs",
             ]},
             {"category": "Animaux", "subcategories": [
@@ -312,13 +315,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
                 "Supermarkt", "Markt / Frischprodukte",
                 "Metzger / Fischhändler", "Sonstige Lebensmittel",
             ]},
-            {"category": "Gastronomie", "subcategories": [
-                "Restaurant", "Bar / Café", "Takeaway / Lieferservice",
+            {"category": "Verpflegung & Unterkunft", "subcategories": [
+                "Mahlzeiten", "Hotel / Pension",
             ]},
             {"category": "Transport", "subcategories": [
-                "Kraftstoff", "Kfz-Versicherung", "Kfz-Steuer",
+                "Kraftstoff (Diesel / Benzin / Autogas)", "Ladestrom",
+                "Kfz-Versicherung", "Kfz-Steuer",
                 "Kfz-Wartung", "Parken / Maut",
-                "Öffentliche Verkehrsmittel", "Taxi / Ridesharing",
+                "Öffentliche Verkehrsmittel & Taxi",
                 "Sonstiger Transport",
             ]},
             {"category": "Gesundheit", "subcategories": [
@@ -339,7 +343,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Freizeit", "subcategories": [
                 "Sport & Fitnessstudio", "Kino / Theater / Veranstaltungen",
-                "Streaming & digitale Abonnements", "Reisen & Urlaub",
+                "Streaming & digitale Abonnements",
                 "Hobbys", "Bücher & Zeitschriften", "Sonstige Freizeit",
             ]},
             {"category": "Haustiere", "subcategories": [
@@ -410,13 +414,14 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
                 "Supermercado", "Mercado / frescos",
                 "Carnicería / pescadería", "Otros alimentación",
             ]},
-            {"category": "Restauración", "subcategories": [
-                "Restaurante", "Bar / cafetería", "Comida para llevar / delivery",
+            {"category": "Comidas y alojamiento", "subcategories": [
+                "Comidas", "Hotel / B&B",
             ]},
             {"category": "Transporte", "subcategories": [
-                "Combustible", "Seguro de coche", "Impuesto de circulación",
+                "Combustible (gasóleo / gasolina / GLP)", "Recarga eléctrica",
+                "Seguro de coche", "Impuesto de circulación",
                 "Mantenimiento coche", "Aparcamiento / peajes",
-                "Transporte público", "Taxi / ride-sharing",
+                "Transporte público y taxi",
                 "Otros transporte",
             ]},
             {"category": "Salud", "subcategories": [
@@ -436,7 +441,7 @@ TAXONOMY_DEFAULTS: dict[str, dict] = {
             ]},
             {"category": "Ocio y tiempo libre", "subcategories": [
                 "Deporte y gimnasio", "Cine / teatro / eventos",
-                "Streaming / suscripciones digitales", "Viajes y vacaciones",
+                "Streaming / suscripciones digitales",
                 "Hobbies", "Libros / revistas", "Otros ocio",
             ]},
             {"category": "Mascotas", "subcategories": [
@@ -573,4 +578,64 @@ INVESTMENTS_MOVES: dict[str, list[tuple[str, str, str | None, str, str | None]]]
         ("income", "Rentas inmobiliarias", "Venta de inmueble", "Inversiones y ahorro", "Ventas y rescates"),
         ("income", "Prestaciones sociales", "Pensión / renta", "Trabajo por cuenta ajena", "Pensión"),
     ],
+}
+
+
+# The category says why the money went, the context the occasion it went for
+# (founder, 2026-10-23): a hotel is a night's stay on holiday as on business.
+# Dining becomes meals and lodging: one subcategory for every meal out,
+# restaurant, bar or delivery alike, and the hotel; the travel subcategory
+# named an occasion and goes, its movements back to review with the holiday
+# context; bus, train, plane and taxi are one way of being carried by
+# someone else, against fuel in a vehicle of your own. Per
+# language: the earlier names and the ones that take their place.
+MEALS_LODGING_MOVES: dict[str, dict] = {
+    "it": {"dining": "Ristorazione", "meals": "Vitto e alloggio",
+           "eating": "Pasti", "eaten": ["Ristorante", "Bar / caffè", "Asporto / delivery"],
+           "lodging": "Albergo / B&B",
+           "leisure": "Svago e tempo libero", "travel": "Viaggi e vacanze", "holiday": "Vacanza",
+           "transport": "Trasporti", "public": "Trasporto pubblico", "taxi": "Taxi / ride-sharing",
+           "carried": "Mezzi pubblici e taxi"},
+    "en": {"dining": "Dining out", "meals": "Meals & lodging",
+           "eating": "Meals", "eaten": ["Restaurant", "Bar / Café", "Takeaway / Delivery"],
+           "lodging": "Hotel / B&B",
+           "leisure": "Entertainment", "travel": "Travel & holidays", "holiday": "Holiday",
+           "transport": "Transport", "public": "Public transport", "taxi": "Taxi / Ride-sharing",
+           "carried": "Public transport & taxi"},
+    "fr": {"dining": "Restauration", "meals": "Repas & hébergement",
+           "eating": "Repas", "eaten": ["Restaurant", "Bar / café", "Vente à emporter / livraison"],
+           "lodging": "Hôtel / B&B",
+           "leisure": "Loisirs", "travel": "Voyages & vacances", "holiday": "Vacances",
+           "transport": "Transports", "public": "Transports en commun", "taxi": "Taxi / VTC",
+           "carried": "Transports en commun & taxi"},
+    "de": {"dining": "Gastronomie", "meals": "Verpflegung & Unterkunft",
+           "eating": "Mahlzeiten", "eaten": ["Restaurant", "Bar / Café", "Takeaway / Lieferservice"],
+           "lodging": "Hotel / Pension",
+           "leisure": "Freizeit", "travel": "Reisen & Urlaub", "holiday": "Urlaub",
+           "transport": "Transport", "public": "Öffentliche Verkehrsmittel", "taxi": "Taxi / Ridesharing",
+           "carried": "Öffentliche Verkehrsmittel & Taxi"},
+    "es": {"dining": "Restauración", "meals": "Comidas y alojamiento",
+           "eating": "Comidas", "eaten": ["Restaurante", "Bar / cafetería", "Comida para llevar / delivery"],
+           "lodging": "Hotel / B&B",
+           "leisure": "Ocio y tiempo libre", "travel": "Viajes y vacaciones", "holiday": "Vacaciones",
+           "transport": "Transporte", "public": "Transporte público", "taxi": "Taxi / ride-sharing",
+           "carried": "Transporte público y taxi"},
+}
+
+
+# Fuel splits by what goes into the vehicle (founder, 2026-10-23): diesel,
+# petrol and LPG on one side, electric charging on the other. The earlier
+# subcategory takes the first name, its movements and rules with it (they
+# are fuel stations); charging starts empty, right after it. Per language.
+FUEL_SPLIT: dict[str, dict[str, str]] = {
+    "it": {"transport": "Trasporti", "fuel": "Carburante",
+           "fossil": "Carburante gasolio / benzina / GPL", "electric": "Ricarica elettrica"},
+    "en": {"transport": "Transport", "fuel": "Fuel",
+           "fossil": "Fuel (diesel / petrol / LPG)", "electric": "EV charging"},
+    "fr": {"transport": "Transports", "fuel": "Carburant",
+           "fossil": "Carburant (gazole / essence / GPL)", "electric": "Recharge électrique"},
+    "de": {"transport": "Transport", "fuel": "Kraftstoff",
+           "fossil": "Kraftstoff (Diesel / Benzin / Autogas)", "electric": "Ladestrom"},
+    "es": {"transport": "Transporte", "fuel": "Combustible",
+           "fossil": "Combustible (gasóleo / gasolina / GLP)", "electric": "Recarga eléctrica"},
 }

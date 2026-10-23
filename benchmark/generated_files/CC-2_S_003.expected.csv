@@ -1,6 +1,6 @@
 row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_category
 1,2026-01-03,2934.73,Bonif. v/fav. - RIF:219426865 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
-2,2026-01-08,-12.79,"Pagam. POS - PAGAMENTO POS 12,79 EUR DEL 08.01.2026 A (ITA) RISTORANTE DA GINO",expense,false,Ristorazione/Ristorante
+2,2026-01-08,-12.79,"Pagam. POS - PAGAMENTO POS 12,79 EUR DEL 08.01.2026 A (ITA) RISTORANTE DA GINO",expense,false,Vitto e alloggio/Pasti
 3,2026-01-08,-303.52,GIROCONTO DA CC 0075849 A CC 0123456,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 4,2026-01-09,2143.72,Bonif. v/fav. - RIF:215545923 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 5,2026-01-11,-157.88,Addebito SDD - GITHUB INC. PRO PLAN,expense,false,Tasse e tributi/Imposte varie

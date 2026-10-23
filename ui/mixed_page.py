@@ -34,7 +34,7 @@ _OPEN = "_mixed_open"
 
 
 def _split(categories: list[tuple[str, int]]) -> str:
-    """'17 Alimentari · 16 Ristorazione'."""
+    """'17 Alimentari · 16 Vitto e alloggio'."""
     return " · ".join(f"{n} {cat}" for cat, n in categories)
 
 

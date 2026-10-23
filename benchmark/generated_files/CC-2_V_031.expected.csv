@@ -5,7 +5,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 4,2026-01-07,-231.55,RICARICA HYPE DA CONTO 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 5,2026-01-08,4670.17,Bonif. v/fav. - RIF:211295544 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 6,2026-01-11,2659.32,Bonif. v/fav. - RIF:216543922 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
-7,2026-01-12,-45.37,"Pagam. POS - PAGAMENTO POS 45,37 EUR DEL 12.01.2026 A (ITA) SPIZZICO",expense,false,Ristorazione/Asporto / delivery
+7,2026-01-12,-45.37,"Pagam. POS - PAGAMENTO POS 45,37 EUR DEL 12.01.2026 A (ITA) SPIZZICO",expense,false,Vitto e alloggio/Pasti
 8,2026-01-12,2591.59,Bonif. v/fav. - RIF:214915693 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
 9,2026-01-12,4110.14,Bonif. v/fav. - RIF:213942906 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 10,2026-01-15,4270.88,Bonif. v/fav. - RIF:219173706 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella

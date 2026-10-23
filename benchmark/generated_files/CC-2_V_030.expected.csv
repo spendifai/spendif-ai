@@ -21,7 +21,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 20,2026-01-19,3605.33,Bonif. v/fav. - RIF:213813029 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
 21,2026-01-19,3146.04,Bonif. v/fav. - RIF:218813729 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
 22,2026-01-19,-219.74,RICARICA HYPE DA CONTO 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
-23,2026-01-21,-60.62,Disposizione - RIF:212115786 BEN. OFFICINA MECCANICA BRAMBILLA,expense,false,Trasporti/Carburante
+23,2026-01-21,-60.62,Disposizione - RIF:212115786 BEN. OFFICINA MECCANICA BRAMBILLA,expense,false,Trasporti/Carburante gasolio / benzina / GPL
 24,2026-01-21,4920.96,Bonif. v/fav. - RIF:215239391 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
 25,2026-01-24,1802.23,Bonif. v/fav. - RIF:217962835 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
 26,2026-01-24,4758.97,Bonif. v/fav. - RIF:214216037 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella

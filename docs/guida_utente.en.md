@@ -278,7 +278,7 @@ For each counterpart it shows:
 - **Count** of validated occurrences
 - **Homogeneity**: a 0-to-1 indicator measuring how "stable" the counterpart's classification is:
   - 🟢 **>= 0.90** — auto-categorisable (e.g. ESSELUNGA: always Food)
-  - 🟡 **0.50–0.89** — mixed (e.g. ROSSOPOMODORO: almost always Dining, sometimes Holidays)
+  - 🟡 **0.50-0.89**: mixed (e.g. AUTOGRILL: almost always Meals & lodging, sometimes Transport)
   - 🔴 **< 0.50** — heterogeneous (e.g. AMAZON: Technology, Food, Clothing...)
 
 > **How it works:** Spendif.ai only counts transactions you have **validated** (the checkbox in Ledger or Review). The more transactions you validate, the more the system learns. When you import new files, counterparts with high homogeneity are classified automatically from history — without calling the AI.

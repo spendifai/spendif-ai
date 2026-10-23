@@ -88,14 +88,31 @@ Oltre alle regole, Spendif.ai impara automaticamente dalle categorie che decidi 
 Metti a mano 12 transazioni ESSELUNGA in Alimentari
   → Prossimo import con ESSELUNGA: classificata automaticamente, zero interventi
 
-Metti a mano 8 ROSSOPOMODORO in Ristorazione + 2 in Vacanze
-  → Prossimo import: suggerisce Ristorazione, ma te la mette in review
+Metti a mano 8 AUTOGRILL in Vitto e alloggio + 2 in Trasporti
+  → Prossimo import: suggerisce Vitto e alloggio, ma te la mette in review
 
 AMAZON con 5 categorie diverse
   → Prossimo import: chiama l'AI (troppo eterogenea per lo storico)
 ```
 
 > **Importante:** contano per lo storico solo le transazioni con una categoria **decisa da te** (a mano o da una tua regola). Quelle categorizzate dall'AI hanno classificazioni incerte e non vengono usate per l'apprendimento automatico. La spunta *Controllato da te* non c'entra: dice che la spesa e vera, non come l'hai fatta.
+
+---
+
+## Categoria e contesto
+
+Ogni movimento risponde a due domande diverse, e ciascuna ha il suo campo:
+
+- **Categoria: perché ho speso questi soldi?** È il motivo della spesa: mangiare, dormire fuori, spostarsi, la casa.
+- **Contesto: in quale occasione?** È lo scopo più alto per cui hai fatto la spesa: Quotidianità, Lavoro, Vacanza.
+
+Il confine fra **Alimentari** e **Vitto e alloggio > Pasti** è chi ha preparato il cibo: in Alimentari compri da cucinare in casa, in Pasti mangi cibo preparato da altri, al ristorante, al bar o con la consegna a domicilio. Per questo Pasti non si divide in ristorante, bar e asporto.
+
+L'albergo è sempre un pernottamento, che tu sia in vacanza o in trasferta: la categoria resta **Vitto e alloggio > Albergo / B&B**, è il contesto a dire Vacanza o Lavoro. Per questo nessuna categoria nomina un'occasione: una categoria "Viaggi e vacanze" mescolerebbe il motivo con l'occasione, e la cena della vacanza finirebbe in un posto diverso dalla cena di tutti i giorni.
+
+Lo stesso vale per gli spostamenti. Conta se hai messo carburante nel tuo mezzo o sei andato con il mezzo di altri: bus, treni, aerei, traghetti e taxi stanno tutti in **Trasporti > Mezzi pubblici e taxi**. Il tuo mezzo invece si divide per cosa ci metti dentro: **Carburante gasolio / benzina / GPL** oppure **Ricarica elettrica**.
+
+Il quadro per contesto lo trovi nei **Resoconti**: quanto è costata la vacanza, divisa per categoria.
 
 ---
 

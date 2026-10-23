@@ -281,6 +281,8 @@ def create_tables(engine=None):
     _migrate_rule_direction(engine)
     _migrate_investments_and_savings(engine)
     _migrate_add_toll_subcategory(engine)
+    _migrate_meals_and_lodging(engine)
+    _migrate_split_fuel(engine)
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
 
@@ -1553,6 +1555,131 @@ def _migrate_investments_and_savings(engine) -> None:
                 _ensure_subcategories(conn, type_, new_cat, new_tree[type_].get(new_cat, []))
             break
         fill_category_colors(conn)
+        conn.commit()
+
+
+def _migrate_meals_and_lodging(engine) -> None:
+    """The category says why the money went, the context the occasion
+    (founder, 2026-10-23). Dining becomes meals and lodging: one subcategory
+    for food someone else prepared, and the hotel;
+    public transport and taxi become one subcategory; the travel subcategory
+    goes. Its movements lose the category and go back to review, with the
+    holiday context when they had none; the rules and corrections that name
+    it go with it, its OSM mappings move to the hotel. Applied in the
+    language of the user's taxonomy, recognised by the earlier default names;
+    categories the user created or renamed are not touched. Idempotent: once
+    moved, the earlier names are gone."""
+    import json as _json
+    from sqlalchemy import inspect as _inspect, text as _text
+    from db.taxonomy_defaults import MEALS_LODGING_MOVES, TAXONOMY_DEFAULTS
+    insp = _inspect(engine)
+    if not insp.has_table("taxonomy_category"):
+        return
+    tables = set(insp.get_table_names())
+    cols = tuple(c for c in _CATEGORY_COLUMNS if c[0] in tables
+                 and {c[1], c[2] or c[1]} <= {col["name"] for col in insp.get_columns(c[0])})
+
+    def _sub_id(conn, cat: str, sub: str):
+        cat_id = _category_id(conn, "expense", cat)
+        if cat_id is None:
+            return None
+        return conn.execute(_text("SELECT id FROM taxonomy_subcategory WHERE category_id = :c AND name = :n"),
+                            {"c": cat_id, "n": sub}).scalar()
+
+    with engine.connect() as conn:
+        for lang, m in MEALS_LODGING_MOVES.items():
+            travel = _sub_id(conn, m["leisure"], m["travel"])
+            if (_category_id(conn, "expense", m["dining"]) is None and travel is None
+                    and _sub_id(conn, m["transport"], m["taxi"]) is None):
+                continue
+            meals = {e["category"]: e["subcategories"] for e in TAXONOMY_DEFAULTS[lang]["expenses"]}[m["meals"]]
+            _rename_category(conn, cols, "expense", m["dining"], m["meals"])
+            for sub in m["eaten"]:
+                _move_subcategory(conn, cols, "expense", m["meals"], sub, m["meals"], m["eating"])
+            _ensure_subcategories(conn, "expense", m["meals"], meals)
+            # The merged subcategory keeps the place public transport had.
+            public = _sub_id(conn, m["transport"], m["public"])
+            order = conn.execute(_text("SELECT sort_order FROM taxonomy_subcategory WHERE id = :i"),
+                                 {"i": public}).scalar() if public is not None else None
+            _move_subcategory(conn, cols, "expense", m["transport"], m["public"], m["transport"], m["carried"])
+            _move_subcategory(conn, cols, "expense", m["transport"], m["taxi"], m["transport"], m["carried"])
+            carried = _sub_id(conn, m["transport"], m["carried"])
+            if order is not None and carried is not None:
+                conn.execute(_text("UPDATE taxonomy_subcategory SET sort_order = :o WHERE id = :i"),
+                             {"o": order, "i": carried})
+            if travel is not None:
+                where = {"c": m["leisure"], "s": m["travel"]}
+                if "transaction" in tables:
+                    raw = conn.execute(_text("SELECT value FROM user_settings WHERE key = 'contexts'")).scalar() \
+                        if "user_settings" in tables else None
+                    try:
+                        contexts = _json.loads(raw) if raw else []
+                    except ValueError:
+                        contexts = []
+                    if m["holiday"] in contexts:
+                        conn.execute(_text(
+                            'UPDATE "transaction" SET context = :h WHERE category = :c AND subcategory = :s '
+                            "AND (context IS NULL OR context = '')"), {**where, "h": m["holiday"]})
+                    conn.execute(_text(
+                        'UPDATE "transaction" SET category = NULL, subcategory = NULL, category_source = NULL, '
+                        "category_confidence = NULL, category_model = NULL, to_review = 1 "
+                        "WHERE category = :c AND subcategory = :s"), where)
+                    conn.execute(_text(
+                        'UPDATE "transaction" SET model_category = NULL, model_subcategory = NULL, '
+                        "model_confidence = NULL WHERE model_category = :c AND model_subcategory = :s"), where)
+                if "category_rule" in tables:
+                    conn.execute(_text("DELETE FROM category_rule WHERE category = :c AND subcategory = :s"), where)
+                if "category_correction" in tables:
+                    conn.execute(_text("DELETE FROM category_correction "
+                                       "WHERE new_category = :c AND new_subcategory = :s"), where)
+                if "nsi_tag_mapping" in tables:
+                    conn.execute(_text(
+                        "UPDATE nsi_tag_mapping SET category = :mc, subcategory = :ms "
+                        "WHERE category = :c AND subcategory = :s "
+                        "AND (osm_tag LIKE 'tourism=%' OR osm_tag = 'office=travel_agent')"),
+                        {**where, "mc": m["meals"], "ms": m["lodging"]})
+                    conn.execute(_text("DELETE FROM nsi_tag_mapping WHERE category = :c AND subcategory = :s"),
+                                 where)
+                conn.execute(_text("DELETE FROM taxonomy_subcategory WHERE id = :i"), {"i": travel})
+            break
+        fill_category_colors(conn)
+        conn.commit()
+
+
+def _migrate_split_fuel(engine) -> None:
+    """Fuel splits into diesel/petrol/LPG and electric charging (founder,
+    2026-10-23). The earlier subcategory takes the first name in its place,
+    with every movement, rule and mapping that names it; charging is added
+    right after it. Recognised by the earlier default name; idempotent."""
+    from sqlalchemy import inspect as _inspect, text as _text
+    from db.taxonomy_defaults import FUEL_SPLIT
+    insp = _inspect(engine)
+    if not insp.has_table("taxonomy_category"):
+        return
+    tables = set(insp.get_table_names())
+    cols = tuple(c for c in _CATEGORY_COLUMNS if c[0] in tables
+                 and {c[1], c[2] or c[1]} <= {col["name"] for col in insp.get_columns(c[0])})
+    with engine.connect() as conn:
+        for f in FUEL_SPLIT.values():
+            cat_id = _category_id(conn, "expense", f["transport"])
+            if cat_id is None:
+                continue
+            fuel = conn.execute(_text("SELECT id, sort_order FROM taxonomy_subcategory "
+                                      "WHERE category_id = :c AND name = :n"),
+                                {"c": cat_id, "n": f["fuel"]}).first()
+            if fuel is None:
+                continue
+            order = fuel.sort_order or 0
+            _move_subcategory(conn, cols, "expense", f["transport"], f["fuel"], f["transport"], f["fossil"])
+            conn.execute(_text("UPDATE taxonomy_subcategory SET sort_order = sort_order + 1 "
+                               "WHERE category_id = :c AND sort_order > :o"), {"c": cat_id, "o": order})
+            conn.execute(_text("UPDATE taxonomy_subcategory SET sort_order = :o "
+                               "WHERE category_id = :c AND name = :n"), {"o": order, "c": cat_id, "n": f["fossil"]})
+            if conn.execute(_text("SELECT id FROM taxonomy_subcategory WHERE category_id = :c AND name = :n"),
+                            {"c": cat_id, "n": f["electric"]}).scalar() is None:
+                conn.execute(_text("INSERT INTO taxonomy_subcategory (category_id, name, sort_order) "
+                                   "VALUES (:c, :n, :s)"), {"c": cat_id, "n": f["electric"], "s": order + 1})
+            break
         conn.commit()
 
 

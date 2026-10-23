@@ -151,14 +151,14 @@ def test_always_this_makes_a_rule_for_every_movement(ledger):
     app = _run(db_path)
     # As in a browser: the choice redraws the page, then the button is enabled.
     next(sb for sb in app.selectbox if sb.key == "mx_cat_Pasticceria X").set_value(
-        "Ristorazione / Bar / caffè").run(timeout=30)
+        "Vitto e alloggio / Pasti").run(timeout=30)
     _button(app, "mx_always_Pasticceria X").click().run(timeout=30)
     assert not app.exception, app.exception
     with get_session(eng) as s:
         assert [(r.pattern, r.category, r.subcategory) for r in get_category_rules(s)] == [
-            ("Pasticceria X", "Ristorazione", "Bar / caffè"),
+            ("Pasticceria X", "Vitto e alloggio", "Pasti"),
         ]
-        assert {s.get(Transaction, i).category for i in ("p1", "p2")} == {"Ristorazione"}
+        assert {s.get(Transaction, i).category for i in ("p1", "p2")} == {"Vitto e alloggio"}
         assert {s.get(Transaction, i).category_source for i in ("p1", "p2")} == {"rule"}
     assert any("No counterpart" in m.value for m in app.success)
 
