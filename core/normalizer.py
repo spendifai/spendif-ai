@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -30,6 +31,17 @@ from core.initials import join_initials
 from support.logging import setup_logging
 
 logger = setup_logging()
+
+# The rows the header detection looks at are movements, and above the table
+# banks put the holder's name and the IBAN. Their values reach the log only
+# when this is set by hand for a diagnosis: somebody asking for help attaches
+# the log, and with the values in it they would be sending their statement.
+_LOG_ROW_VALUES = os.environ.get("SPENDIFAI_LOG_ROW_VALUES") == "1"
+
+
+def _shown(values):
+    """What the log may carry of a row: the values only when asked for."""
+    return values if _LOG_ROW_VALUES else "(hidden)"
 
 
 # ── Pre-processing constants ───────────────────────────────────────────────────
@@ -180,7 +192,7 @@ def detect_header_row(lines: list[str]) -> tuple[int, bool]:
         logger.info(
             "  row %2d | density=%.2f | text_fields=%d | filled=%d/%d | preview=%.80s",
             i, density, text_count, n_fields, len(fields),
-            lines[i][:80].replace("\n", ""),
+            _shown(lines[i][:80].replace("\n", "")),
         )
 
         # Prefer higher density; tiebreak by more non-numeric (text) fields
@@ -428,7 +440,7 @@ def detect_header_row_excel(
 
                 logger.info(
                     "  [border] row %2d | density=%.2f | text=%d | values=%s",
-                    i, density, text_count, [f[:30] for f in fields if f][:6],
+                    i, density, text_count, _shown([f[:30] for f in fields if f][:6]),
                 )
 
                 # Cross-check: first row with 100% density = header
@@ -485,7 +497,7 @@ def detect_header_row_excel(
             logger.info(
                 "  row %2d | density=%.2f | text_fields=%d | filled=%d/%d | values=%s",
                 i, density, text_count, n_fields, len(fields),
-                [f[:30] for f in fields if f][:6],
+                _shown([f[:30] for f in fields if f][:6]),
             )
 
             if (density > best_density) or (density == best_density and text_count > best_text_count):
@@ -1087,7 +1099,7 @@ def detect_and_strip_preheader_rows(
         return df, 0
 
     total_rows = len(df) + 1  # +1 for the reconstructed header row
-    logger.info("  total_rows (incl header)=%d, columns=%s", total_rows, list(df.columns)[:8])
+    logger.info("  total_rows (incl header)=%d, columns=%s", total_rows, _shown(list(df.columns)[:8]))
 
     # Step 1 – Reconstruct the pandas-consumed header row.
     header_values: list = [
@@ -1095,7 +1107,7 @@ def detect_and_strip_preheader_rows(
         for c in df.columns
     ]
     n_cols = len(header_values)
-    logger.info("  pandas header (row 0): %s", [str(v)[:25] for v in header_values])
+    logger.info("  pandas header (row 0): %s", _shown([str(v)[:25] for v in header_values]))
 
     header_series = pd.Series(header_values, index=df.columns)
     df_full = pd.concat(
@@ -1112,7 +1124,7 @@ def detect_and_strip_preheader_rows(
     # Log first 25 rows with density
     for i, d in enumerate(densities[:25]):
         row_vals = [str(v)[:20] for v in df_full.iloc[i] if pd.notna(v)][:5]
-        logger.info("  row %2d | density=%.2f | values=%s", i, d, row_vals)
+        logger.info("  row %2d | density=%.2f | values=%s", i, d, _shown(row_vals))
 
     # Step 3 – Median density.
     med = median(densities)
@@ -1424,7 +1436,7 @@ def detect_internal_transfers(
                 df.at[idx, "transfer_confidence"] = Confidence.high.value
                 logger.info(
                     f"detect_internal_transfers: owner-name match → "
-                    f"idx={idx} desc='{desc[:40]}' "
+                    f"idx={idx} "
                     f"type={df.at[idx, 'tx_type']}"
                 )
 

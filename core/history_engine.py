@@ -298,8 +298,7 @@ def find_similar_uncategorized(
 
     results = query.order_by(Transaction.date.desc()).all()
     logger.debug(
-        f"find_similar_uncategorized: description={description!r} "
-        f"found={len(results)} (excluded={exclude_tx_id})"
+        f"find_similar_uncategorized: found={len(results)} (excluded={exclude_tx_id})"
     )
     return results
 

@@ -112,7 +112,7 @@ class RAGEngine:
         """
         # ── Step 1: analyze query — intent + key terms (lang-agnostic via LLM) ──
         terms = self._analyze_query(question)
-        logger.info("RAG query analysis: question=%r terms=%r", question, terms)
+        logger.info("RAG query analysis: question of %d chars, %d terms", len(question), len(terms))
 
         if not terms:
             # Treat as greeting only when the message is clearly just a salutation:
@@ -282,7 +282,7 @@ class RAGEngine:
             )
             if result and "answer" in result:
                 return result["answer"]
-            logger.warning("RAG _call_llm: result missing 'answer' key: %r", result)
+            logger.warning("RAG _call_llm: result missing 'answer' key, keys: %s", sorted(result) if isinstance(result, dict) else type(result).__name__)
         except Exception as exc:
             logger.warning("RAG _call_llm failed (%s: %s) — falling back to no-answer",
                            type(exc).__name__, exc)

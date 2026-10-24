@@ -457,7 +457,7 @@ def render_review_page(engine):
                     rule_note = t("review.rule_saved") if bulk_save_rule else ""
                     st.success(t("review.bulk_done", updated=n_upd, categorized=n_cat, extra=rule_note))
                     logger.info(
-                        f"review_page: bulk_desc: pattern={bulk_pattern!r} "
+                        f"review_page: bulk_desc: "
                         f"match={bulk_match_type} updated={n_upd} categorized={n_cat}"
                     )
                     st.rerun()
