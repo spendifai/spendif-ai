@@ -110,3 +110,12 @@ def test_stopwords_do_not_count():
     tokens = RAGEngine._tokenize("Come faccio a creare una regola per il supermercato?")
     assert "come" not in tokens and "faccio" not in tokens and "il" not in tokens
     assert {"creare", "regola", "supermercato"} <= set(tokens)
+
+
+def test_the_state_note_reaches_the_system_prompt():
+    rag = _rag(["Per importare un file apri Importa e trascina il file."], budget=3000)
+    seen = {}
+    rag._analyze_query = lambda q: q
+    rag._call_llm = lambda system, user: seen.setdefault("system", system) and "ok"
+    rag.query("Come importo un file?", state_note="NIENTE CARICATO")
+    assert seen["system"].endswith("NIENTE CARICATO")

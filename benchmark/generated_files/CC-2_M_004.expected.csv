@@ -30,7 +30,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 29,2026-01-31,-251.18,RICARICA HYPE DA CONTO 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 30,2026-02-03,4034.27,Bonif. v/fav. - RIF:219707824 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 31,2026-02-04,4810.09,Bonif. v/fav. - RIF:217057906 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
-32,2026-02-06,-73.18,"Pagam. POS - PAGAMENTO POS 73,18 EUR DEL 06.02.2026 A (ITA) ROSTICCERIA DA MARIO",expense,false,Ristorazione/Ristorante
+32,2026-02-06,-73.18,"Pagam. POS - PAGAMENTO POS 73,18 EUR DEL 06.02.2026 A (ITA) ROSTICCERIA DA MARIO",expense,false,Vitto e alloggio/Pasti
 33,2026-02-08,2070.85,Bonif. v/fav. - RIF:218569884 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
 34,2026-02-08,1885.19,Bonif. v/fav. - RIF:218915915 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
 35,2026-02-08,3542.19,Bonif. v/fav. - RIF:210605005 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella

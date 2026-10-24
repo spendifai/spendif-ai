@@ -88,14 +88,31 @@ In addition to rules, Spendif.ai automatically learns from the categories you de
 You put 12 ESSELUNGA transactions in Food by hand
   -> Next import with ESSELUNGA: classified automatically, zero interventions
 
-You put 8 ROSSOPOMODORO in Dining + 2 in Holidays by hand
-  -> Next import: suggests Dining, but puts it in review
+You put 8 AUTOGRILL in Meals & lodging + 2 in Transport by hand
+  -> Next import: suggests Meals & lodging, but puts it in review
 
 AMAZON with 5 different categories
   -> Next import: calls the AI (too heterogeneous for history)
 ```
 
 > **Important:** only transactions with a category **set by you** (by hand or by one of your rules) count for history. Those categorized by the AI have uncertain classifications and are not used for auto-learning. The *Checked by you* tick plays no part: it says the expense is real, not how you spent.
+
+---
+
+## Category and context
+
+Every movement answers two different questions, each with its own field:
+
+- **Category: why did I spend this money?** The reason for the spending: eating, staying overnight, getting around, the home.
+- **Context: on what occasion?** The larger purpose the spending served: Daily life, Work, Holiday.
+
+The line between **Groceries** and **Meals & lodging > Meals** is who prepared the food: in Groceries you buy food to cook at home, in Meals you eat food someone else prepared, at a restaurant, at a bar or delivered. That is why Meals is not split into restaurant, bar and takeaway.
+
+A hotel is always a night's stay, whether you are on holiday or on a business trip: the category stays **Meals & lodging > Hotel / B&B**, and the context says Holiday or Work. That is why no category names an occasion: a "Travel & holidays" category would mix the reason with the occasion, and a dinner on holiday would land somewhere else than an everyday dinner.
+
+The same goes for getting around. What matters is whether you put fuel in your own vehicle or travelled in someone else's: buses, trains, planes, ferries and taxis all go in **Transport > Public transport & taxi**. Your own vehicle splits by what goes into it: **Fuel (diesel / petrol / LPG)** or **EV charging**.
+
+The picture by context is in **Reports**: what the holiday cost, broken down by category.
 
 ---
 

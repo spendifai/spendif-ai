@@ -1,6 +1,6 @@
 [project]
 name = "spendif-ai"
-version = "2026.10.0"
+version = "2026.10.1"
 description = "Unified personal finance ledger with hybrid LLM pipeline"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -52,9 +52,10 @@ dependencies = [
     # 13.0.0, which needs streamlit>=1.66).
     # gitpython<3.1.58 carries GHSA-9rj7-rf2p-w77r, GHSA-4gmw-gg2m-w46p,
     # CVE-2026-76217, GHSA-wvpp-8hx9-p66j, GHSA-jm78-9fvv-mhgr (all fixed in 3.1.58);
-    # 3.1.59 carries PYSEC-2026-3982, PYSEC-2026-3983, PYSEC-2026-3984 (fixed in 3.1.60).
+    # 3.1.59 carries PYSEC-2026-3982, PYSEC-2026-3983, PYSEC-2026-3984 (fixed in 3.1.60);
+    # 3.1.62 carries CVE-2026-114145 (fixed in 3.2.1).
     "pillow>=13.0.0",
-    "gitpython>=3.1.60",
+    "gitpython>=3.2.1",
     # certifi<2026.10.19 carries PYSEC-2026-4320 (pip-audit gate); transitive
     # dep of requests/httpx, floor declared so a fresh `uv lock` resolves to it.
     "certifi>=2026.10.19",
@@ -62,6 +63,12 @@ dependencies = [
     # Transitive dep of azure-identity/msal; floor declared here so a fresh
     # `uv lock` resolves to >=50.0.0.
     "cryptography>=50.0.0",
+    # Security pin: opentelemetry-api<1.45.1 carries CVE-2026-114603 (pip-audit
+    # gate). Transitive dep of azure-ai-ml through azure-monitor-opentelemetry.
+    "opentelemetry-api>=1.45.1",
+    # Security pin: filelock<4.2.1 carries CVE-2026-112907, 112913, 112940
+    # (pip-audit gate). Transitive dep of huggingface-hub.
+    "filelock>=4.2.1",
     # Testing
     "pytest>=8.0",
     "pytest-cov>=5.0",

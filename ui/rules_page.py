@@ -443,10 +443,10 @@ def render_rules_page(engine):
             ctx_label = f" · {t('rules.col_context').lower()}: {nr_ctx}" if nr_ctx else ""
             if created:
                 st.success(t("rules.created", pattern=nr_pattern, cat=nr_cat, sub=nr_sub) + ctx_label)
-                logger.info(f"rules_page: created rule pattern={nr_pattern!r} cat={nr_cat!r} ctx={nr_ctx!r}")
+                logger.info(f"rules_page: created rule cat={nr_cat!r} ctx={nr_ctx!r}")
             else:
                 st.warning(t("rules.existing_updated", pattern=nr_pattern, cat=nr_cat, sub=nr_sub) + ctx_label)
-                logger.info(f"rules_page: updated existing rule pattern={nr_pattern!r} cat={nr_cat!r} ctx={nr_ctx!r}")
+                logger.info(f"rules_page: updated existing rule cat={nr_cat!r} ctx={nr_ctx!r}")
             if nr_also_apply and _nr_preview_txs and nr_giro:
                 tx_svc.set_giroconto_by_rule_pattern(
                     nr_pattern.strip(), nr_match, make_giroconto=True,
@@ -458,6 +458,5 @@ def render_rules_page(engine):
                         tx_svc.update_context(_tx.id, nr_ctx)
                 logger.info(
                     f"rules_page: applied new rule to {len(_nr_preview_txs)} existing transactions"
-                    f" (pattern={nr_pattern!r})"
                 )
             st.rerun()

@@ -355,7 +355,7 @@ def render_analysis_page(engine):
     _BENCHMARK_2P: dict[str, float] = {
         "Casa":                    26.0,
         "Alimentari":              17.0,
-        "Ristorazione":             6.0,
+        "Vitto e alloggio":         6.0,
         "Trasporti":               12.0,
         "Salute":                   7.0,
         "Istruzione":               1.0,

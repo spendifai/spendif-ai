@@ -155,3 +155,38 @@ def test_schema_parsing_no_rows_goes_to_review(monkeypatch):
     assert result.transactions == []
     assert result.total_file_rows == 8
     assert result.errors and "0 of 8" in result.errors[0]
+
+
+def test_schema_leaving_rows_without_amount_goes_to_review(monkeypatch):
+    # Every date parses, but 3 rows of 8 have no amount: more than a few rows
+    # without amount means the amount column is the wrong one.
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["Data", "Descrizione", "Importo"])
+    for i in range(1, 9):
+        w.writerow([f"0{i}/03/2026", f"Movimento {i}", "" if i > 5 else f"-{i}0,00"])
+    schema = DocumentSchema(
+        doc_type=DocumentType.bank_account,
+        date_col="Data",
+        amount_col="Importo",
+        description_col="Descrizione",
+        sign_convention=SignConvention.signed_single,
+        date_format="%d/%m/%Y",
+        account_label="bank",
+        confidence=Confidence.high,
+        confidence_score=1.0,
+    )
+    monkeypatch.setattr(orchestrator, "_build_backend", lambda config: _NoLLM())
+    monkeypatch.setattr(orchestrator, "_build_phase_backend", lambda config, phase: None)
+    monkeypatch.setattr(orchestrator, "classify_document", lambda **kwargs: schema)
+
+    result = process_file(
+        buf.getvalue().encode("utf-8"),
+        "statement.csv",
+        ProcessingConfig(),
+        TaxonomyConfig(expenses={"Altro": ["Altro"]}, income={"Altro entrate": ["Altro"]}),
+        [],
+    )
+
+    assert result.needs_schema_review is True
+    assert result.transactions == []

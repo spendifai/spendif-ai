@@ -1,7 +1,7 @@
 row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_category
 1,2026-01-01,2817.71,Bonif. v/fav. - RIF:215451176 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 2,2026-01-01,3079.74,Bonif. v/fav. - RIF:218004743 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
-3,2026-01-02,-60.14,"Pagam. POS - PAGAMENTO POS 60,14 EUR DEL 02.01.2026 A (ITA) SUSHIKO TORINO",expense,false,Ristorazione/Ristorante
+3,2026-01-02,-60.14,"Pagam. POS - PAGAMENTO POS 60,14 EUR DEL 02.01.2026 A (ITA) SUSHIKO TORINO",expense,false,Vitto e alloggio/Pasti
 4,2026-01-02,3382.94,Bonif. v/fav. - RIF:216435734 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 5,2026-01-02,1761.46,Bonif. v/fav. - RIF:218030449 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 6,2026-01-02,3977.59,Bonif. v/fav. - RIF:212043299 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
@@ -9,7 +9,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 8,2026-01-02,5192.45,Bonif. v/fav. - RIF:211492779 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
 9,2026-01-02,4284.13,Bonif. v/fav. - RIF:213510288 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
 10,2026-01-02,3188.02,Bonif. v/fav. - RIF:214493758 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
-11,2026-01-03,-74.68,"Pagam. POS - PAGAMENTO POS 74,68 EUR DEL 03.01.2026 A (ITA) COSTANTIN NORD",expense,false,Trasporti/Carburante
+11,2026-01-03,-74.68,"Pagam. POS - PAGAMENTO POS 74,68 EUR DEL 03.01.2026 A (ITA) COSTANTIN NORD",expense,false,Trasporti/Carburante gasolio / benzina / GPL
 12,2026-01-03,5011.12,Bonif. v/fav. - RIF:219023946 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
 13,2026-01-03,4167.99,Bonif. v/fav. - RIF:215555122 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
 14,2026-01-03,4248.21,Bonif. v/fav. - RIF:215591674 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
@@ -69,7 +69,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 68,2026-01-15,118.27,Bonif. v/fav. - RIF:211472955 ORD. REGIONE LOMBARDIA BONUS,income,false,Trasferimenti e rimborsi/Rimborso generico
 69,2026-01-15,2232.57,Bonif. v/fav. - RIF:212743996 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
 70,2026-01-16,-23.39,PAGAMENTO CONTACTLESS CARTA **** 3539 UNIEURO,expense,false,Casa/Elettrodomestici
-71,2026-01-16,-17.62,PAGAMENTO CONTACTLESS CARTA **** 1983 O'TACOS,expense,false,Ristorazione/Asporto / delivery
+71,2026-01-16,-17.62,PAGAMENTO CONTACTLESS CARTA **** 1983 O'TACOS,expense,false,Vitto e alloggio/Pasti
 72,2026-01-16,5189.08,Bonif. v/fav. - RIF:218219709 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 73,2026-01-16,3791.59,Bonif. v/fav. - RIF:215524481 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
 74,2026-01-16,4450.99,Bonif. v/fav. - RIF:213702106 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
@@ -77,7 +77,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 76,2026-01-16,-189.21,RICARICA HYPE DA CONTO 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 77,2026-01-17,4608.95,Bonif. v/fav. - RIF:212497360 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 78,2026-01-17,2865.34,Bonif. v/fav. - RIF:213105251 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
-79,2026-01-18,-72.03,PAGAMENTO CONTACTLESS CARTA **** 1362 EUROPAM NAPOLI,expense,false,Trasporti/Carburante
+79,2026-01-18,-72.03,PAGAMENTO CONTACTLESS CARTA **** 1362 EUROPAM NAPOLI,expense,false,Trasporti/Carburante gasolio / benzina / GPL
 80,2026-01-18,2097.28,Bonif. v/fav. - RIF:210255965 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 81,2026-01-18,4577.44,Bonif. v/fav. - RIF:212717339 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 82,2026-01-18,3592.35,Bonif. v/fav. - RIF:212928445 ORD. DELTA SOLUTIONS SPA,income,false,Lavoro autonomo/Fattura / parcella
@@ -165,8 +165,8 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 164,2026-02-03,4055.79,Bonif. v/fav. - RIF:213251673 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 165,2026-02-03,4134.19,Bonif. v/fav. - RIF:212405308 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 166,2026-02-03,-76.31,RICARICA HYPE DA CONTO 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
-167,2026-02-04,-78.53,"Pagam. POS - PAGAMENTO POS 78,53 EUR DEL 04.02.2026 A (ITA) B-PETROL LIVORNO",expense,false,Trasporti/Carburante
-168,2026-02-04,-71.82,"Pagam. POS - PAGAMENTO POS 71,82 EUR DEL 04.02.2026 A (ITA) ENERCOOP",expense,false,Trasporti/Carburante
+167,2026-02-04,-78.53,"Pagam. POS - PAGAMENTO POS 78,53 EUR DEL 04.02.2026 A (ITA) B-PETROL LIVORNO",expense,false,Trasporti/Carburante gasolio / benzina / GPL
+168,2026-02-04,-71.82,"Pagam. POS - PAGAMENTO POS 71,82 EUR DEL 04.02.2026 A (ITA) ENERCOOP",expense,false,Trasporti/Carburante gasolio / benzina / GPL
 169,2026-02-04,3805.41,Bonif. v/fav. - RIF:219531968 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella
 170,2026-02-04,469.27,Bonif. v/fav. - RIF:217048611 ORD. REGIONE LOMBARDIA BONUS,income,false,Trasferimenti e rimborsi/Rimborso generico
 171,2026-02-05,2612.45,Bonif. v/fav. - RIF:210820721 ORD. EPSILON DIGITAL SRL,income,false,Lavoro autonomo/Fattura / parcella
@@ -255,7 +255,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 254,2026-02-22,2631.87,Bonif. v/fav. - RIF:213026104 ORD. BETA CONSULTING SRL,income,false,Lavoro autonomo/Fattura / parcella
 255,2026-02-22,2513.52,Bonif. v/fav. - RIF:218446398 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 256,2026-02-22,-655.11,GIROCONTO DA CC 0075849 A CC 0123456,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
-257,2026-02-23,-52.70,PAGAMENTO CONTACTLESS CARTA **** 5454 GNP,expense,false,Trasporti/Carburante
+257,2026-02-23,-52.70,PAGAMENTO CONTACTLESS CARTA **** 5454 GNP,expense,false,Trasporti/Carburante gasolio / benzina / GPL
 258,2026-02-23,-187.63,"Pagam. POS - PAGAMENTO POS 187,63 EUR DEL 23.02.2026 A (ITA) ARUBA S.P.A. HOSTING",expense,false,Tasse e tributi/Imposte varie
 259,2026-02-23,2880.30,Bonif. v/fav. - RIF:210881193 ORD. GAMMA TECHNOLOGIES SRL,income,false,Lavoro autonomo/Fattura / parcella
 260,2026-02-23,4747.11,Bonif. v/fav. - RIF:215692259 ORD. CLIENTE ALFA S.P.A.,income,false,Lavoro autonomo/Fattura / parcella

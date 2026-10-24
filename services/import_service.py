@@ -5,8 +5,10 @@ import everything they need from services.* only, without touching core.* or db.
 """
 from __future__ import annotations
 
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import pandas as pd
 from sqlalchemy.orm import sessionmaker
@@ -36,6 +38,27 @@ from core.schemas import DocumentSchema  # noqa: F401 — re-exported for UI
 from support.logging import setup_logging
 
 logger = setup_logging()
+
+# Databases whose stale jobs this process has already reset (see
+# reset_stale_jobs_once).
+_stale_jobs_reset: set[str] = set()
+_stale_jobs_lock = threading.Lock()
+
+
+def reset_stale_jobs_once(engine) -> int:
+    """Reset the jobs left running by a previous process, once per process.
+
+    A job still marked running when the app starts belongs to a process
+    that died. Done once per browser session instead, a second tab or a
+    reconnection during an import declared that live import interrupted
+    (2026-10-23). Returns how many jobs were reset.
+    """
+    key = str(engine.url)
+    with _stale_jobs_lock:
+        if key in _stale_jobs_reset:
+            return 0
+        _stale_jobs_reset.add(key)
+    return ImportService(engine).reset_stale_jobs()
 
 # ── Re-exported public types (UI can import these from services.import_service) ──
 __all__ = [
@@ -417,6 +440,34 @@ class ImportService:
     def reset_stale_jobs(self) -> int:
         with self._session() as s:
             return repository.reset_stale_jobs(s)
+
+    # A batch of descriptions takes under a minute on a graphics card and up
+    # to about two on the processor alone (measured 2026-10-23). Five minutes
+    # without a single update is not slowness any more.
+    STALL_SECONDS = 300
+
+    @staticmethod
+    def seconds_without_progress(job, now: datetime | None = None) -> float:
+        """How long a job has gone without any update; 0 if it is not running.
+
+        A model that hangs while loading or answering leaves the job running
+        with the bar still, and nothing told slow from dead: the founder's
+        case sat two hours on 3.83%.
+        """
+        if job is None or job.status != "running":
+            return 0.0
+        last = job.last_ping or job.started_at
+        if last is None:
+            return 0.0
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        return max(0.0, ((now or datetime.now(timezone.utc)) - last).total_seconds())
+
+    def stop_job(self, job_id: int, message: str) -> None:
+        """Close a job the user has given up on, so a new import can start."""
+        logger.info(f"import: job {job_id} stopped by the user after it stopped moving")
+        self.update_job(job_id, status="error", status_message=message,
+                        completed_at=datetime.now(timezone.utc))
 
     # ── Import history & undo ──────────────────────────────────────────────────
 

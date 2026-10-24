@@ -9,7 +9,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 8,2026-01-17,-38.71,PAGAMENTO CONTACTLESS CARTA **** 1626 CONAD SUPERSTORE,expense,false,Alimentari/Spesa supermercato
 9,2026-01-18,-160.33,Addebito SDD - ENI PLENITUDE GAS E LUCE,expense,false,Casa/Energia elettrica
 10,2026-01-20,-83.46,"Pagam. POS - PAGAMENTO POS 83,46 EUR DEL 20.01.2026 A (ITA) DECATHLON ASSAGO",expense,false,Abbigliamento/Abbigliamento adulti
-11,2026-01-22,-30.58,PAGAMENTO CONTACTLESS CARTA **** 4505 SUSHIKO CINISELLO BALSAMO,expense,false,Ristorazione/Ristorante
+11,2026-01-22,-30.58,PAGAMENTO CONTACTLESS CARTA **** 4505 SUSHIKO CINISELLO BALSAMO,expense,false,Vitto e alloggio/Pasti
 12,2026-01-23,150.90,Bonif. v/fav. - RIF:210520596 ORD. AGENZIA ENTRATE RIMBORSO 730,income,false,Trasferimenti e rimborsi/Rimborso generico
 13,2026-01-27,-13.01,"Pagam. POS - PAGAMENTO POS 13,01 EUR DEL 27.01.2026 A (ITA) UNIEURO S.P.A.",expense,false,Svago e tempo libero/Streaming / abbonamenti digitali
 14,2026-01-27,2144.27,Bonif. v/fav. - RIF:217030010 ORD. MINISTERO PUBBLICA ISTRUZIONE STIPENDIO,income,false,Lavoro dipendente/Stipendio
@@ -30,7 +30,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 29,2026-02-08,-796.85,Disposizione - RIF:215213522 BEN. VERDI ROSA AIUTO NIPOTE,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 30,2026-02-11,-174.59,RICARICA POSTEPAY DA CONTO 0123456 BEN. SOFIA ROSSI,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 31,2026-02-12,-95.69,Disposizione - RIF:213971793 BEN. UNIVERSITA' DEGLI STUDI DI BOLOGNA,expense,false,Istruzione/Rette scolastiche
-32,2026-02-12,-55.64,"Pagam. POS - PAGAMENTO POS 55,64 EUR DEL 12.02.2026 A (ITA) FLOWER BURGER",expense,false,Ristorazione/Asporto / delivery
+32,2026-02-12,-55.64,"Pagam. POS - PAGAMENTO POS 55,64 EUR DEL 12.02.2026 A (ITA) FLOWER BURGER",expense,false,Vitto e alloggio/Pasti
 33,2026-02-12,-10.30,Addebito SDD - APPLE.COM/BILL,expense,false,Svago e tempo libero/Streaming / abbonamenti digitali
 34,2026-02-14,-74.04,"Pagam. POS - PAGAMENTO POS 74,04 EUR DEL 14.02.2026 A (ITA) DESPAR",expense,false,Alimentari/Altro alimentari
 35,2026-02-17,-593.57,PAGAMENTO CONTACTLESS CARTA **** 6143 LA FELTRINELLI CENTRO COMMERCIALE LE GRANGE,expense,false,Svago e tempo libero/Libri / riviste

@@ -278,7 +278,7 @@ Per ogni controparte vengono mostrati:
 - **Conteggio** delle ricorrenze validate
 - **Omogenità**: un indicatore da 0 a 1 che misura quanto la controparte è "stabile" nella classificazione:
   - 🟢 **≥ 0.90** — auto-categorizzabile (es. ESSELUNGA: sempre Alimentari)
-  - 🟡 **0.50–0.89** — mista (es. ROSSOPOMODORO: quasi sempre Ristorazione, a volte Vacanze)
+  - 🟡 **0.50-0.89**: mista (es. AUTOGRILL: quasi sempre Vitto e alloggio, a volte Trasporti)
   - 🔴 **< 0.50** — eterogenea (es. AMAZON: Tecnologia, Alimentari, Abbigliamento...)
 
 > **Come funziona:** Spendif.ai conta solo le transazioni che hai **validato** (checkbox ✅ nel Ledger o nella Review). Più transazioni validi, più il sistema impara. Quando importi nuovi file, le controparti con alta omogenità vengono classificate automaticamente dallo storico — senza chiamare l'AI.
@@ -402,7 +402,7 @@ Per ogni categoria con obiettivo definito:
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
-> **Prepariamo i tuoi movimenti.** La voce **🧭 Prepariamo i tuoi movimenti**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ci arrivi in ogni caso: *Carica ora* ti porta al passo dell'import, *Lo faccio dopo* al primo passo.
+> **Prepariamo i tuoi movimenti.** La voce **🧭 Prepariamo i tuoi movimenti**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ti chiedo se andiamo avanti a caricare i tuoi dati: *Sì, andiamo* ti porta qui, al primo passo; *No, prima ho qualche domanda* ti porta all'**💬 Assistente**.
 >
 > **Se vuoi controllare.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
 >

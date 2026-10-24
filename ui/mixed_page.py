@@ -34,7 +34,7 @@ _OPEN = "_mixed_open"
 
 
 def _split(categories: list[tuple[str, int]]) -> str:
-    """'17 Alimentari · 16 Ristorazione'."""
+    """'17 Alimentari · 16 Vitto e alloggio'."""
     return " · ".join(f"{n} {cat}" for cat, n in categories)
 
 
@@ -50,7 +50,7 @@ def _always(desc: str, cat_sub: str, tx_svc: TransactionService, rule_svc: RuleS
     n, note = write_and_apply(rule_svc, tx_svc, desc, pattern, match_type, cat, sub,
                               origin="mixed")
     remember([note], t("counterparts.saved_ok", n=1))
-    logger.info(f"mixed_page: rule {match_type} {pattern!r} for {desc!r} -> {cat!r}/{sub!r}, {n} movements")
+    logger.info(f"mixed_page: rule {match_type} -> {cat!r}/{sub!r}, {n} movements")
 
 
 def _render_movements(
@@ -162,7 +162,7 @@ def render_mixed_page(engine) -> None:
             if st.button(t("mixed.multi_btn"), key=f"mx_multi_{desc}", help=t("mixed.multi_help")):
                 n = rule_svc.set_multi_category(desc)
                 remember([t("mixed.multi_done", name=desc, n=n)])
-                logger.info(f"mixed_page: multi-category {desc!r}, {n} movements")
+                logger.info(f"mixed_page: multi-category, {n} movements")
                 st.rerun()
 
             if st.session_state.get(_OPEN) == desc:

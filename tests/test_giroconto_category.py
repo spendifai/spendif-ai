@@ -73,11 +73,14 @@ def test_leaving_the_giroconto_gives_back_the_proposal_to_review(session):
     assert tx.to_review is True
 
 
-def test_leaving_the_giroconto_without_a_proposal_leaves_it_to_decide(session):
+def test_leaving_the_giroconto_without_a_proposal_takes_the_fallback(session):
+    """Never without a category (founder, 2026-10-23): the fallback of the
+    direction, to review."""
     tx = _tx(session, tx_type="internal_out", category=None, subcategory=None,
              category_source=None, model_category=None, model_subcategory=None)
     toggle_transaction_giroconto(session, tx.id)
-    assert tx.tx_type == "expense" and tx.category is None and tx.to_review is True
+    assert tx.tx_type == "expense" and tx.to_review is True
+    assert (tx.category, tx.subcategory) == ("Altro", "Spese non classificate")
 
 
 def test_a_category_rule_does_not_categorize_a_giroconto(session):

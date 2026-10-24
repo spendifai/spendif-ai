@@ -480,7 +480,7 @@ def _render_grid(
                     # A place where everything is bought, or no longer (spec 24).
                     applied += rule_svc.set_multi_category(r["description"], r["multi"])
                     saved += 1
-                    logger.info(f"counterparts_page: multi-category {r['multi']} for {r['description']!r}")
+                    logger.info(f"counterparts_page: multi-category {r['multi']}")
                     continue
                 if r["giroconto"]:
                     _, created = rule_svc.create_rule(
@@ -493,8 +493,7 @@ def _render_grid(
                     )
                     saved += 1
                     logger.info(
-                        f"counterparts_page: {'created' if created else 'updated'} giroconto"
-                        f" rule pattern={r['description']!r}"
+                        f"counterparts_page: {'created' if created else 'updated'} giroconto rule"
                     )
                 elif r["set_category"]:
                     pattern, match_type = written[r["description"]]
@@ -509,16 +508,15 @@ def _render_grid(
                     notes.append(note)
                     saved += 1
                     logger.info(
-                        f"counterparts_page: rule {match_type} {pattern!r}"
-                        f" for {r['description']!r} → {r['new_cat']!r}/{r['new_sub']!r}"
+                        f"counterparts_page: rule {match_type}"
+                        f" → {r['new_cat']!r}/{r['new_sub']!r}"
                     )
                 elif r["unmark_giroconto"]:
                     # No category chosen: the giroconto rule just goes away.
                     if rule_svc.delete_giroconto_rule(r["description"], "exact"):
                         saved += 1
                         logger.info(
-                            f"counterparts_page: deleted giroconto rule"
-                            f" pattern={r['description']!r}"
+                            "counterparts_page: deleted giroconto rule"
                         )
                 # Giroconto rules stay exact: their descriptions are often
                 # people's names (spec 18).

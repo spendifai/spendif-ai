@@ -22,21 +22,20 @@ expenses:
       - "Macelleria / pescheria"
       - "Altro alimentari"
 
-  - category: "Ristorazione"
+  - category: "Vitto e alloggio"
     subcategories:
-      - "Ristorante"
-      - "Bar / caffè"
-      - "Asporto / delivery"
+      - "Pasti"
+      - "Albergo / B&B"
 
   - category: "Trasporti"
     subcategories:
-      - "Carburante"
+      - "Carburante gasolio / benzina / GPL"
+      - "Ricarica elettrica"
       - "Assicurazione auto"
       - "Bollo auto"
       - "Manutenzione auto"
       - "Parcheggio / ZTL"
-      - "Trasporto pubblico"
-      - "Taxi / ride-sharing"
+      - "Mezzi pubblici e taxi"
       - "Altro trasporti"
 
   - category: "Salute"
@@ -73,7 +72,6 @@ expenses:
       - "Sport e palestra"
       - "Cinema / teatro / eventi"
       - "Streaming / abbonamenti digitali"
-      - "Viaggi e vacanze"
       - "Hobby"
       - "Libri / riviste"
       - "Altro svago"
