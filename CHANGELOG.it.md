@@ -8,6 +8,27 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-24
+
+### Aggiunto
+- Un import in corso che smette di avanzare lo dice: dopo cinque minuti senza progressi il pannello dice da quanto è fermo e propone di interromperlo, così se ne può avviare uno nuovo. I file già completati in quell'import restano salvati
+- Subito dopo l'onboarding, con l'archivio ancora vuoto, l'assistente ti manda prima a caricare un estratto e non inventa cifre. Nuove FAQ rispondono a "L'ho installato, e adesso?"
+- L'ultimo passo dell'onboarding chiede se andare avanti a caricare i tuoi dati: sì apre Prepariamo i tuoi movimenti, no apre l'assistente
+
+### Modificato
+- La categoria dice perché, il contesto dice l'occasione. Ristorazione diventa Vitto e alloggio (Pasti, Albergo / B&B); la sottocategoria viaggi sotto il tempo libero sparisce, perché una cena in vacanza è una cena e la vacanza è il suo contesto; autobus, treno, aereo, traghetto e taxi diventano Mezzi pubblici e taxi; il carburante si divide in gasolio/benzina/GPL e ricarica elettrica. Movimenti, regole e correzioni esistenti si spostano una volta; le categorie create da te non si toccano
+- I movimenti che hai controllato escono dalle griglie delle controparti e dai loro conteggi, nella pagina controparti e nei passi guidati
+
+### Corretto
+- Il modello locale torna a girare sulla scheda grafica. Da maggio l'onboarding scriveva zero strati sull'acceleratore, quindi ogni installazione analizzava sul processore, da cinque a otto volte più lenta. Le nuove installazioni usano la scheda che la libreria di inferenza vede, e al primo avvio di questa versione le copie già installate ci tornano, una volta sola; uno zero messo a mano dopo resta. Su Linux e Windows la scheda Vulkan ora si vede prima di caricare il primo modello
+- Diagnostica: l'accelerazione è "attiva" solo con una scheda utilizzabile e strati su di essa; se una scheda è disponibile si dice a parte
+- Il log non contiene più il contenuto dei tuoi file. Il riconoscimento dell'intestazione scriveva le prime righe di ogni file importato (esercente, importo, data, intestatario, IBAN); sono spariti anche descrizioni, pattern delle regole, nomi delle controparti e domande e risposte dell'assistente. Il log dice ancora come è stato letto un file
+- Due colonne di importo valgono come dare e avere solo se si riempiono su righe diverse: l'importo in valuta originale e la sua commissione non prendono più il posto dell'importo in euro. Un nuovo formato di file che lascia senza importo più del 10% delle righe si ferma per la revisione
+- La descrizione non unisce più mese, numeri di riferimento, categoria della banca o cambio: una colonna si unisce solo se contiene soprattutto lettere
+- Un movimento che non è un giroconto ha sempre una categoria: un giroconto tornato spesa o entrata prende la proposta del modello o il ripiego, da rivedere. Il ripiego delle entrate è la sottocategoria generica, non più "vendita beni usati". I movimenti già rimasti senza categoria si riparano all'avvio
+- Una seconda scheda del browser, o una riconnessione, durante un import non dichiara più interrotto quell'import
+- Dipendenze: gitpython 3.2.1, opentelemetry-api 1.45.1 e filelock 4.2.1 per vulnerabilità pubblicate
+
 ## [2026.10.0] - 2026-10-22
 
 ### Aggiunto

@@ -6,6 +6,27 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-24
+
+### Added
+- A running import that stops moving says so: after five minutes without progress the panel says how long it has been still and offers to stop it, so a new import can start. Files already completed in that import stay saved
+- Right after the onboarding, with nothing loaded yet, the assistant sends you to load a statement first and invents no figures. New FAQ entries answer "I have installed it, what now?"
+- The last onboarding step asks whether to go on and load your data: yes opens Let's prepare your movements, no opens the assistant
+
+### Changed
+- The category says why, the context says the occasion. Dining out becomes Meals & lodging (Meals, Hotel / B&B); the travel subcategory under leisure goes, since a holiday dinner is a dinner and the holiday is its context; bus, train, plane, ferry and taxi become Public transport & taxi; fuel splits into diesel/petrol/LPG and EV charging. Existing movements, rules and corrections move once; categories you created are not touched
+- Movements you checked leave the counterpart grids and their figures, in the counterparts page and in the guided steps
+
+### Fixed
+- The local model runs on the graphics card again. Since May the onboarding wrote zero layers on the accelerator, so every installation analysed on the processor, five to eight times slower. New installations now use the card the inference library can address, and at the first start of this version copies already installed are moved back to it, once; a zero you set by hand later is left alone. On Linux and Windows the Vulkan card is now seen before the first model is loaded
+- Diagnostics: acceleration is "active" only with a usable card and layers on it; whether a card is available is reported apart
+- The log no longer holds the content of your files. The header detection wrote the first rows of every imported file (merchant, amount, date, holder name, IBAN); descriptions, rule patterns, counterpart names and the assistant's questions and answers are gone as well. The log still says how a file was read
+- Two amount columns count as debit and credit only when they fill different rows: an amount in the original currency and its fee no longer replace the euro amount. A new file layout that leaves more than 10% of rows without an amount stops for review
+- The description no longer joins month, reference numbers, the bank's own category or the exchange rate: a column joins only when it holds mostly letters
+- A movement that is not an internal transfer always has a category: a transfer turned back into spending or income takes the model's proposal or the fallback, to review. The fallback for income is the generic subcategory, no longer "sale of used goods". Movements already left without a category are repaired at startup
+- A second browser tab, or a reconnection, during an import no longer declares that import interrupted
+- Dependencies: gitpython 3.2.1, opentelemetry-api 1.45.1 and filelock 4.2.1 for published vulnerabilities
+
 ## [2026.10.0] - 2026-10-22
 
 ### Added
