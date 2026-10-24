@@ -91,3 +91,10 @@ class CategorySource(str, Enum):
 # whether the proposal was right (2026-10-21).
 AUTOMATIC_CATEGORY_SOURCES = (CategorySource.llm.value, CategorySource.nsi.value,
                               CategorySource.history.value)
+
+# Who categorized the movement at import is kept in model_source, written once
+# and never changed: category_source turns into "rule" or "manual" as soon as
+# the user decides, and then the proposal's own source is lost. Its values are
+# the CategorySource ones plus this one, for the generic category of the
+# direction given when neither a rule, the history, NSI nor the model found one.
+MODEL_SOURCE_FALLBACK = "fallback"

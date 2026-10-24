@@ -29,7 +29,7 @@ from core.history_engine import (
     get_top_associations_text,
 )
 from core.llm_backends import LLMBackend, call_with_fallback
-from core.models import CategorySource, Confidence
+from core.models import MODEL_SOURCE_FALLBACK, CategorySource, Confidence
 from core.sanitizer import SanitizationConfig, redact_pii
 from core.schemas import build_categorization_batch_schema
 from support.logging import setup_logging
@@ -170,6 +170,16 @@ class CategorizationResult:
     rationale: str = ""
     to_review: bool = False
     model_name: str = ""
+    # Set by _make_fallback: the generic category of the direction, given
+    # when nothing better was found. Its source says llm, but no model chose it.
+    fallback: bool = False
+
+    @property
+    def proposal_source(self) -> str:
+        """Who categorized the movement at import, as kept in model_source."""
+        if self.fallback and self.source == CategorySource.llm:
+            return MODEL_SOURCE_FALLBACK
+        return self.source.value
 
 
 # ── Static country rules (loaded from core/static_rules/<language>.json) ─────
@@ -293,6 +303,7 @@ def _make_fallback(
         confidence=Confidence.low,
         source=CategorySource.llm,
         to_review=True,
+        fallback=True,
     )
 
 

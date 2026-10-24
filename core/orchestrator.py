@@ -1745,6 +1745,7 @@ def process_file(
             tx["category_source"] = result.source.value
             tx["category_model"] = result.model_name or None
             tx["to_review"] = result.to_review
+            tx["model_source"] = result.proposal_source
             # The product's own proposal, kept as it is whatever the user
             # decides later; a user's rule is a decision, not a proposal.
             if result.source.value in AUTOMATIC_CATEGORY_SOURCES:

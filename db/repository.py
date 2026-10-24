@@ -318,6 +318,7 @@ def upsert_transaction(session: Session, tx: dict, batch_id: Optional[int] = Non
         model_category=tx.get("model_category"),
         model_subcategory=tx.get("model_subcategory"),
         model_confidence=tx.get("model_confidence"),
+        model_source=tx.get("model_source"),
         reconciled=bool(tx.get("reconciled", False)),
         to_review=bool(tx.get("to_review", False)),
         transfer_pair_id=tx.get("transfer_pair_id"),
@@ -341,6 +342,8 @@ _HELD_FIELDS = (
     "category_confidence", "category_source", "category_model", "reconciled",
     "to_review", "transfer_pair_id", "transfer_confidence", "raw_description",
     "raw_amount", "human_validated",
+    # The import's own proposal and its source, kept until the movement is due.
+    "model_category", "model_subcategory", "model_confidence", "model_source",
 )
 
 

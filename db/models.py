@@ -273,6 +273,7 @@ def create_tables(engine=None):
     _migrate_add_import_job_n_rows(engine)
     _migrate_add_import_job_last_ping(engine)
     _migrate_add_transaction_model_proposal(engine)
+    _migrate_add_transaction_model_source(engine)
     _migrate_counterparts_written_one_way(engine)
     _migrate_add_transfer_link_decision(engine)
     _migrate_add_category_color(engine)
@@ -455,6 +456,10 @@ class Transaction(Base):
     model_category = Column(String(128), nullable=True)
     model_subcategory = Column(String(128), nullable=True)
     model_confidence = Column(String(10), nullable=True)
+    # Who categorized the movement at import (rule, history, nsi, llm, multi,
+    # fallback), never changed afterwards; empty for movements imported before
+    # the column existed. See MODEL_SOURCE_FALLBACK.
+    model_source = Column(String(10), nullable=True)
     reconciled = Column(Boolean, default=False)
     to_review = Column(Boolean, default=False)
     transfer_pair_id = Column(String(64))
@@ -489,7 +494,9 @@ class Transaction(Base):
         elif old in INTERNAL_TX_TYPES and value not in INTERNAL_TX_TYPES and self.category is None:
             if self.model_category:
                 self.category, self.subcategory = self.model_category, self.model_subcategory
-                self.category_source = "llm"
+                self.category_source = (self.model_source
+                                        if self.model_source in AUTOMATIC_CATEGORY_SOURCES
+                                        else "llm")
                 self.category_confidence = self.model_confidence or "low"
             self.to_review = True
         return value
@@ -1804,6 +1811,30 @@ def _migrate_add_transaction_model_proposal(engine) -> None:
                 conn.commit()
             except Exception:
                 pass  # column already exists
+
+
+def _migrate_add_transaction_model_source(engine) -> None:
+    """Add model_source to transaction; fill it only where it is certain.
+
+    A movement still carrying its import category from the merchant list or
+    the history says who proposed it. The model's own proposals are not
+    filled: a generic fallback was recorded as llm too, and telling them
+    apart afterwards would be a guess. Empty means imported before the
+    column. Idempotent: rows already filled are left alone.
+    """
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE "transaction" ADD COLUMN model_source VARCHAR(10)'))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+    with engine.begin() as conn:
+        conn.execute(_text(
+            'UPDATE "transaction" SET model_source = category_source '
+            "WHERE model_source IS NULL AND category_source IN ('nsi', 'history') "
+            "AND model_category IS NOT NULL AND category = model_category "
+            "AND COALESCE(subcategory, '') = COALESCE(model_subcategory, '')"))
 
 
 def _migrate_add_import_job_last_ping(engine) -> None:
