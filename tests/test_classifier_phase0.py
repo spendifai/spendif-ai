@@ -100,6 +100,61 @@ class TestRunStep0AnalysisDescription:
         assert "Causale" in result.description_cols
         assert "Note" in result.description_cols
 
+    def test_month_reference_and_bank_category_stay_out_of_the_description(self):
+        """A month, a reference number, the bank's category and an exchange
+        rate sit next to the merchant: only the merchant describes the
+        counterpart."""
+        import numpy as np
+        n = 40
+        months = ["Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre"]
+        df = pd.DataFrame({
+            "Mese": [months[i % 7] for i in range(n)],
+            "Data": [f"{1 + i % 28:02d}/0{3 + i % 7}/2026" for i in range(n)],
+            "Riferimento": [str(800000000 + 7919 * i) for i in range(n)],
+            "Categorie": [["Altre Spese", "Alimentari", "Viaggi", "Ristoranti", "Shopping",
+                           "Salute", "Auto"][i % 7] for i in range(n)],
+            "Descrizione": [f"Negozio {i % 25} Milano" for i in range(n)],
+            "Cambio applicato": ["1,0842" if i % 5 == 0 else np.nan for i in range(n)],
+            "Importo": [f"{10 + i},50" for i in range(n)],
+        })
+        result = _run_step0_analysis(list(df.columns), df_raw=df)
+        assert result.description_cols == ["Descrizione"]
+        assert result.description_col == "Descrizione"
+
+    def test_a_reference_code_with_letters_is_not_the_description(self):
+        """A card statement's reference ("AT24...", every value different)
+        must not outrank the merchant, which repeats."""
+        n = 40
+        df = pd.DataFrame({
+            "Data": [f"{1 + i % 28:02d}/03/2026" for i in range(n)],
+            "Descrizione": [f"NEGOZIO {i % 12} MILANO" for i in range(n)],
+            "Riferimento": [f"AT2405000470000100326{i:02d}" for i in range(n)],
+            "Importo": [f"{10 + i},50" for i in range(n)],
+        })
+        result = _run_step0_analysis(list(df.columns), df_raw=df)
+        assert result.description_cols == ["Descrizione"]
+
+    def test_a_transfer_full_of_numbers_is_still_a_description(self):
+        n = 30
+        df = pd.DataFrame({
+            "Data": [f"{1 + i % 28:02d}/03/2026" for i in range(n)],
+            "Causale": [f"BONIFICO SEPA DA 01234567{i:04d} MARIO ROSSI CRO 1234{i:04d}" for i in range(n)],
+            "Importo": [f"-{10 + i},00" for i in range(n)],
+        })
+        result = _run_step0_analysis(list(df.columns), df_raw=df)
+        assert result.description_cols == ["Causale"]
+
+    def test_two_rich_text_columns_stay_together(self):
+        n = 30
+        df = pd.DataFrame({
+            "Data": [f"{1 + i % 28:02d}/03/2026" for i in range(n)],
+            "Beneficiario": [f"Persona {i % 20}" for i in range(n)],
+            "Causale": [f"Rata {i} contratto" for i in range(n)],
+            "Importo": [f"-{10 + i},00" for i in range(n)],
+        })
+        result = _run_step0_analysis(list(df.columns), df_raw=df)
+        assert result.description_cols == ["Beneficiario", "Causale"]
+
     def test_fallback_to_synonym_when_no_data(self):
         """Without df_raw, falls back to column-name synonym matching."""
         columns = ["Data operazione", "Causale", "Importo"]
@@ -201,6 +256,22 @@ class TestRunStep0AnalysisAmount:
         assert result.amount_semantics == "debit_positive"
         assert result.debit_col is not None
         assert result.credit_col is not None
+
+    def test_columns_filled_on_the_same_rows_are_not_debit_and_credit(self):
+        """An original-currency amount and its fee fill the same rows: the
+        amount is the column filled on every row, not that pair."""
+        import numpy as np
+        foreign = ["12.00", "30.00", "8.50", "40.00", np.nan, np.nan, np.nan]
+        df = pd.DataFrame({
+            "Data": [f"0{i}/03/2026" for i in range(1, 8)],
+            "Descrizione": [f"negozio {i}" for i in range(1, 8)],
+            "Importo originale in divisa": foreign,
+            "Importo (EUR)": ["11.10", "27.70", "7.85", "36.90", "15.00", "22.40", "9.90"],
+            "Commissione (EUR)": ["0.20", "0.50", "0.15", "0.70", np.nan, np.nan, np.nan],
+        })
+        result = _run_step0_analysis(list(df.columns), df_raw=df)
+        assert result.debit_col is None and result.credit_col is None
+        assert result.amount_col == "Importo (EUR)"
 
     def test_english_debit_credit_without_data_leaves_unclear(self):
         """Without df_raw, cannot detect amount columns → unclear."""

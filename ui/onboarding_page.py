@@ -831,15 +831,15 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
 
 
 def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
-    """Step 6 — invito facoltativo a caricare il primo estratto conto.
+    """Step 6: asks whether to go on and load the user's data.
 
     Reached only after `_mark_onboarding_complete` has flipped
     `onboarding_done=true` at the end of step 5, so closing the app here
-    does NOT replay the wizard on the next launch. Two buttons:
+    does NOT replay the wizard on the next launch. Two buttons (founder,
+    2026-10-23):
 
-      • "Carica ora"   → opens the guided workflow at its import step.
-      • "Lo faccio dopo" → opens the guided workflow at its first step: it is
-                            where every session starts (spec 31).
+      • Yes → the guided workflow from its first step (what to load).
+      • No  → the assistant, to ask how Spendif.ai works first.
 
     Both options call `_exit_onboarding(target_page)` which clears wizard
     session state and reruns.
@@ -857,8 +857,8 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
             key="_ob_fi_upload",
             help=t("onboarding.first_import.upload_now_help"),
         ):
-            # "Upload now" opens the guided workflow at its import step.
-            st.session_state["_guided_step"] = "import"
+            # Yes: the guided workflow from its first step.
+            st.session_state.pop("_guided_step", None)
             _exit_onboarding(target_page="guided")
     with col_skip:
         if st.button(
@@ -867,10 +867,8 @@ def _step6_first_import(cfg_svc: SettingsService, lang: str) -> None:
             key="_ob_fi_skip",
             help=t("onboarding.first_import.skip_help"),
         ):
-            # The work page in both cases: the user learns there that every
-            # session starts from it (spec 31).
-            st.session_state.pop("_guided_step", None)
-            _exit_onboarding(target_page="guided")
+            # No: the assistant, to ask first.
+            _exit_onboarding(target_page="chat")
 
 
 def _persist_choices(
@@ -946,6 +944,16 @@ def _persist_choices(
         except Exception:
             _detected_ctx = None
 
+        # Same question, asked the same way, for the accelerator. What used to
+        # be here was a flat 0 with a note that the user could opt in through
+        # Settings; nothing told them the setting existed.
+        try:
+            from services.llm_service import recommended_gpu_layers
+
+            _detected_gpu_layers = recommended_gpu_layers()
+        except Exception:
+            _detected_gpu_layers = 0
+
         cfg_svc.set_bulk({
             "date_display_format":     loc["date_display_format"],
             "amount_decimal_sep":      loc["amount_decimal_sep"],
@@ -957,7 +965,7 @@ def _persist_choices(
             # ── Invisible LLM defaults ──────────────────────────────────────
             "llm_backend":             "local_llama_cpp",
             "cat_llm_backend":         "local_llama_cpp",
-            "llama_cpp_n_gpu_layers":  "0",      # CPU by default; user can opt-in via Settings
+            "llama_cpp_n_gpu_layers":  str(_detected_gpu_layers),
             # Il contesto lo calcola recommended_llama_cpp_context, la stessa
             # funzione che usa la pagina delle impostazioni quando scegli il
             # modello a mano: capacita' del file, con il tetto del benchmark.

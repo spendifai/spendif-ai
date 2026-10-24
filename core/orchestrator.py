@@ -1340,20 +1340,24 @@ def process_file(
     # A fresh schema can look complete (score 1.0) and still parse almost
     # nothing, e.g. a date format the parser cannot read. Auto-importing then
     # stores the broken schema and reports success with zero movements. Below
-    # half the rows parsed, hand the schema to the user instead.
+    # half the rows parsed, hand the schema to the user instead. Rows without
+    # an amount have a tighter bound: in a statement every movement has one,
+    # so more than a few of them means the amount column is the wrong one.
     _AUTO_IMPORT_MIN_PARSE_RATE = 0.50
+    _AUTO_IMPORT_MAX_AMOUNT_MISSING = 0.10
+    _amount_missing = sum(1 for s in _norm_skipped if s.reason.startswith("amount_none"))
     if (
         flow_used == "flow2"
         and not config.force_schema_import
         and _total_file_rows > 0
-        and len(transactions) / _total_file_rows < _AUTO_IMPORT_MIN_PARSE_RATE
+        and (len(transactions) / _total_file_rows < _AUTO_IMPORT_MIN_PARSE_RATE
+             or _amount_missing / _total_file_rows > _AUTO_IMPORT_MAX_AMOUNT_MISSING)
     ):
         logger.warning(
-            "process_file: Flow 2 schema for %s parsed %d/%d rows (%.0f%%), below %.0f%% "
-            "→ stopping for user schema review instead of auto-importing",
+            "process_file: Flow 2 schema for %s parsed %d/%d rows (%.0f%%), %d without "
+            "amount → stopping for user schema review instead of auto-importing",
             filename, len(transactions), _total_file_rows,
-            100 * len(transactions) / _total_file_rows,
-            100 * _AUTO_IMPORT_MIN_PARSE_RATE,
+            100 * len(transactions) / _total_file_rows, _amount_missing,
         )
         _finalize_phase_timings()
         return ImportResult(

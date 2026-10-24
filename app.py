@@ -71,14 +71,13 @@ sync_seed_once(engine)
 _DEV_MODE = os.getenv("SPENDIFAI_DEV_MODE") == "1"
 
 # ── Startup cleanup ───────────────────────────────────────────────────────────
-if "stale_jobs_reset" not in st.session_state:
-    st.session_state["stale_jobs_reset"] = True
-    from db.models import get_session
-    from db.repository import reset_stale_jobs
-    with get_session(engine) as _startup_s:
-        _n_stale = reset_stale_jobs(_startup_s)
-    if _n_stale:
-        logger.info(f"startup: reset {_n_stale} stale running job(s) to error")
+# Once per process, not per browser session: a second tab during an import
+# must not declare that import interrupted.
+from services.import_service import reset_stale_jobs_once
+
+_n_stale = reset_stale_jobs_once(engine)
+if _n_stale:
+    logger.info(f"startup: reset {_n_stale} stale running job(s) to error")
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(

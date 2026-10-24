@@ -239,8 +239,8 @@ class NsiTaxonomyService:
             "- If a tag has no good match in the taxonomy, omit it from the output.\n\n"
             "EXAMPLES:\n"
             '  amenity=bank → {"category":"Finanza e assicurazioni","subcategory":"Commissioni bancarie"}\n'
-            '  amenity=cafe → {"category":"Ristorazione","subcategory":"Bar / caffè"}\n'
-            '  amenity=fuel → {"category":"Trasporti","subcategory":"Carburante"}\n\n'
+            '  amenity=cafe → {"category":"Vitto e alloggio","subcategory":"Pasti"}\n'
+            '  amenity=fuel → {"category":"Trasporti","subcategory":"Carburante gasolio / benzina / GPL"}\n\n'
             f"OSM tags to map:\n{json.dumps(osm_tags, ensure_ascii=False)}\n\n"
             f"Available expense categories:\n{taxonomy_text}\n\n"
             'Reply with JSON: {"mappings": [{"osm_tag","category","subcategory"}, ...]}.'

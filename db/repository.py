@@ -813,13 +813,27 @@ def toggle_transaction_giroconto(session: Session, tx_id: str) -> tuple[bool, st
         return False, ""
     internal = {"internal_out", "internal_in"}
     if tx.tx_type in internal:
-        # Revert to normal
-        new_type = "income" if float(tx.amount or 0) >= 0 else "expense"
+        leave_giroconto(session, tx)
     else:
         # Mark as giroconto
-        new_type = "internal_in" if float(tx.amount or 0) >= 0 else "internal_out"
-    tx.tx_type = new_type
-    return True, new_type
+        tx.tx_type = "internal_in" if float(tx.amount or 0) >= 0 else "internal_out"
+    return True, tx.tx_type
+
+
+def leave_giroconto(session: Session, tx: Transaction) -> None:
+    """A giroconto turns back into income or spending by its sign.
+
+    Setting the type gives back the product's proposal from the import, to
+    review (Transaction._giroconto_has_no_category). Without a proposal the
+    movement takes the fallback category of its direction, to review: it
+    never stays without one (founder, 2026-10-23).
+    """
+    tx.tx_type = "income" if float(tx.amount or 0) >= 0 else "expense"
+    if not tx.category:
+        tx.category, tx.subcategory = get_fallback_categories(session)[tx.tx_type]
+        tx.category_source = "llm"
+        tx.category_confidence = "low"
+        tx.to_review = True
 
 
 def update_transaction_context(session: Session, tx_id: str, context: str | None) -> bool:
@@ -899,7 +913,7 @@ def bulk_set_giroconto_by_description(
             tx.tx_type = "internal_in" if float(tx.amount or 0) >= 0 else "internal_out"
             updated += 1
         elif not make_giroconto and is_internal:
-            tx.tx_type = "income" if float(tx.amount or 0) >= 0 else "expense"
+            leave_giroconto(session, tx)
             updated += 1
     if updated:
         session.flush()
@@ -1459,7 +1473,7 @@ def set_giroconto_by_rule_pattern(
         if make_giroconto:
             changed += _make_giroconto(tx)
         elif tx.tx_type in ("internal_out", "internal_in"):
-            tx.tx_type = "income" if float(tx.amount or 0) >= 0 else "expense"
+            leave_giroconto(session, tx)
             changed += 1
     if changed:
         session.flush()
@@ -1885,11 +1899,19 @@ def get_fallback_categories(session: Session) -> dict[str, tuple[str, str]]:
     """Return fallback category names for expense and income, read from taxonomy.
 
     Returns dict like {"expense": ("Altro", "Spese non classificate"), "income": ("Altro entrate", "Entrate non classificate")}
+
+    The subcategory is the last of the fallback category: the generic one
+    closes the list in every language ("Vendita beni usati", "Regalo
+    ricevuto", "Entrate non classificate"); the first would file every
+    unclassified income as a sale of used goods.
     """
     from db.models import TaxonomyCategory, TaxonomySubcategory
     fallbacks: dict[str, tuple[str, str]] = {}
     for cat in session.query(TaxonomyCategory).filter(TaxonomyCategory.is_fallback == True).all():  # noqa: E712
-        subs = session.query(TaxonomySubcategory).filter(TaxonomySubcategory.category_id == cat.id).first()
+        subs = (session.query(TaxonomySubcategory)
+                .filter(TaxonomySubcategory.category_id == cat.id)
+                .order_by(TaxonomySubcategory.sort_order.desc(), TaxonomySubcategory.id.desc())
+                .first())
         sub_name = subs.name if subs else ""
         fallbacks[cat.type] = (cat.name, sub_name)
     # Hardcoded fallback if DB has no fallback categories (fresh install before seed)
@@ -3005,9 +3027,9 @@ def get_counterpart_stats(
       modal_subcategory, variability_pct, source_mode, categorized_by_user,
       is_giroconto, categories, uncategorized_count
 
-    Everything here is about how the money was spent, never about whether it
-    was spent: that is checked movement by movement in the registry
-    (human_validated) and plays no part in these figures.
+    Movements the user already checked (human_validated) are left out, of
+    the list and of the figures: like a counterpart where one buys a bit of
+    everything, they are not asked about again (founder, 2026-10-23).
 
     `categorized_by_user` is True when one of the user's rules covers the
     counterpart, or when every movement of it got its category from the
@@ -3044,6 +3066,7 @@ def get_counterpart_stats(
             Transaction.description.isnot(None),
             Transaction.description != "",
             Transaction.tx_type.in_(tx_types),
+            Transaction.human_validated.isnot(True),
             *([Transaction.amount < 0] if negative_only else []),
             *([Transaction.amount > 0] if positive_only else []),
         )

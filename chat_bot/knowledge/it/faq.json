@@ -433,7 +433,7 @@
     "a": "Spendif.AI non ha una password. Non c'è autenticazione, quindi non puoi dimenticare nulla. L'app si apre direttamente senza login."
   },
   {
-    "q": "Capisce da solo se una spesa è 'alimentari', 'benzina', 'salute' ecc., o lo devo scegliere io ogni volta?",
+    "q": "Capisce da solo se una spesa è 'alimentari', 'benzina', 'salutè ecc., o lo devo scegliere io ogni volta?",
     "a": "Capisce da solo. Spendif.AI usa un modello AI per categorizzare automaticamente ogni transazione in base alla descrizione. Con le regole deterministiche e lo storico delle tue validazioni, nel tempo la maggior parte delle spese viene categorizzata senza nessun intervento manuale.",
     "page": "review"
   },
@@ -695,9 +695,24 @@
     "page": ""
   },
   {
+    "q": "Ho installato e configurato Spendif.ai: e adesso cosa faccio?",
+    "page": "guided",
+    "a": "Apri 🧭 Prepariamo i tuoi movimenti, la prima voce del menu: ti accompagna un passo alla volta e, se esci, la volta dopo riprende da dove eri rimasto. Si parte da Cosa caricare, che ti dice quale estratto conto scaricare dalla banca, per quale conto e per quali mesi; poi Importa il file. Il percorso prosegue con le categorie delle uscite, le categorie miste, i soldi fra i tuoi conti, le entrate, e si chiude con il quadro del periodo. Quando il quadro è pronto, se vuoi verificare che ogni movimento sia davvero tuo, apri ✅ Se vuoi controllare, subito sotto nel menu: un conto alla volta, dall'ultimo movimento che hai controllato. È facoltativo. Al prossimo estratto conto riparti da Prepariamo i tuoi movimenti."
+  },
+  {
+    "q": "Puoi guidarmi?",
+    "page": "guided",
+    "a": "Apri 🧭 Prepariamo i tuoi movimenti, la prima voce del menu: ti accompagna un passo alla volta e, se esci, la volta dopo riprende da dove eri rimasto. Si parte da Cosa caricare, che ti dice quale estratto conto scaricare dalla banca, per quale conto e per quali mesi; poi Importa il file. Il percorso prosegue con le categorie delle uscite, le categorie miste, i soldi fra i tuoi conti, le entrate, e si chiude con il quadro del periodo. Quando il quadro è pronto, se vuoi verificare che ogni movimento sia davvero tuo, apri ✅ Se vuoi controllare, subito sotto nel menu: un conto alla volta, dall'ultimo movimento che hai controllato. È facoltativo. Al prossimo estratto conto riparti da Prepariamo i tuoi movimenti."
+  },
+  {
+    "q": "Da dove comincio?",
+    "page": "guided",
+    "a": "Apri 🧭 Prepariamo i tuoi movimenti, la prima voce del menu: ti accompagna un passo alla volta e, se esci, la volta dopo riprende da dove eri rimasto. Si parte da Cosa caricare, che ti dice quale estratto conto scaricare dalla banca, per quale conto e per quali mesi; poi Importa il file. Il percorso prosegue con le categorie delle uscite, le categorie miste, i soldi fra i tuoi conti, le entrate, e si chiude con il quadro del periodo. Quando il quadro è pronto, se vuoi verificare che ogni movimento sia davvero tuo, apri ✅ Se vuoi controllare, subito sotto nel menu: un conto alla volta, dall'ultimo movimento che hai controllato. È facoltativo. Al prossimo estratto conto riparti da Prepariamo i tuoi movimenti."
+  },
+  {
     "q": "Ho importato i file, e adesso cosa faccio?",
     "page": "guided",
-    "a": "Apri il Flusso di lavoro, la prima voce del menu: ti accompagna un passo alla volta. Dopo l'import vengono le controparti (spunti Sempre così su quelle che hanno sempre la stessa categoria), poi le categorie miste e infine il quadro del periodo nei Resoconti. In alto vedi a che passo sei, con Indietro, Avanti ed Esci dal percorso; se esci, la volta dopo riprende da dove avevi lasciato."
+    "a": "Resta in 🧭 Prepariamo i tuoi movimenti, la prima voce del menu: dopo l'import vengono le categorie delle uscite (spunti Sempre così sulle controparti che hanno sempre la stessa categoria), le categorie miste, i soldi fra i tuoi conti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con Indietro, Avanti ed Esci dal percorso; se esci, la volta dopo riprende da dove avevi lasciato. Se poi vuoi verificare i movimenti uno per uno, c'è ✅ Se vuoi controllare, facoltativo."
   },
   {
     "q": "Cosa vuol dire la spunta Sempre così nelle controparti?",

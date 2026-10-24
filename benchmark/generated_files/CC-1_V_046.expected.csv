@@ -4,7 +4,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 3,2026-01-17,488.23,Bonif. v/fav. - RIF:217014407 ORD. REGIONE LOMBARDIA BONUS,income,false,Trasferimenti e rimborsi/Rimborso generico
 4,2026-01-17,-442.80,Disposizione - RIF:217611845 BEN. ROSSI MARCO P.IVA GIROCONTO,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
 5,2026-01-19,-9.53,"Pagam. POS - PAGAMENTO POS 9,53 EUR DEL 19.01.2026 A (ITA) THUN BERGAMO",expense,false,Regali e donazioni/Regali
-6,2026-01-24,-30.81,"Pagam. POS - PAGAMENTO POS 30,81 EUR DEL 24.01.2026 A (ITA) GNP",expense,false,Trasporti/Carburante
+6,2026-01-24,-30.81,"Pagam. POS - PAGAMENTO POS 30,81 EUR DEL 24.01.2026 A (ITA) GNP",expense,false,Trasporti/Carburante gasolio / benzina / GPL
 7,2026-01-25,-13.23,"Pagam. POS - PAGAMENTO POS 13,23 EUR DEL 25.01.2026 A (ITA) WYCON COSMETICS CENTRO COMMERCIALE LE GRANGE",expense,false,Cura personale/Cosmetici e igiene
 8,2026-01-27,2143.99,ACCREDITO STIPENDIO MESE DI GENNAIO 2026,income,false,Lavoro dipendente/Stipendio
 9,2026-01-27,2076.28,ACCREDITO STIPENDIO MESE DI GENNAIO 2026,income,false,Lavoro dipendente/Stipendio
@@ -20,7 +20,7 @@ row_num,date,amount,description_raw,tx_type,is_internal_transfer,expected_catego
 19,2026-02-09,119.92,Bonif. v/fav. - RIF:213726486 ORD. AGENZIA ENTRATE RIMBORSO 730,income,false,Trasferimenti e rimborsi/Rimborso generico
 20,2026-02-10,-118.56,Addebito SDD - GRUPPO HERA TARI 2026,expense,false,Casa/Energia elettrica
 21,2026-02-11,-867.06,GIROCONTO DA CC 0123456 A CC 0075849,internal_out,true,Trasferimenti e rimborsi/Giroconto entrata
-22,2026-02-27,-414.58,Addebito SDD - BOOKING.COM B.V.,expense,false,Svago e tempo libero/Viaggi e vacanze
+22,2026-02-27,-414.58,Addebito SDD - BOOKING.COM B.V.,expense,false,Vitto e alloggio/Albergo / B&B
 23,2026-02-27,2078.87,ACCREDITO STIPENDIO MESE DI FEBBRAIO 2026,income,false,Lavoro dipendente/Stipendio
 24,2026-02-27,2137.40,Bonif. v/fav. - RIF:212647493 ORD. MINISTERO PUBBLICA ISTRUZIONE STIPENDIO,income,false,Lavoro dipendente/Stipendio
 25,2026-02-27,2111.17,ACCREDITO STIPENDIO MESE DI FEBBRAIO 2026,income,false,Lavoro dipendente/Stipendio

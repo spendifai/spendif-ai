@@ -728,5 +728,20 @@
     "q": "How do I check the transfers between my accounts?",
     "page": "transfers",
     "a": "Open the Workflow: after the Mixed categories comes the Transfers step. After every import Spendif.ai puts the two sides of a transfer together even when they come with different files and imports (same amount, opposite sign, at most 5 days apart). In the Pairs found table answer Yes or No to the pairs to confirm; a pair you turn down is not proposed again. In the With one side only table choose where the money went: my account not loaded yet, my account not followed, or another person (then it becomes spending or income). The answer holds for the same counterpart in the imports to come too."
+  },
+  {
+    "q": "I have installed and set up Spendif.ai: what do I do now?",
+    "page": "guided",
+    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
+  },
+  {
+    "q": "Can you guide me?",
+    "page": "guided",
+    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
+  },
+  {
+    "q": "Where do I start?",
+    "page": "guided",
+    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
   }
 ]
