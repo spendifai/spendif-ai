@@ -1668,8 +1668,12 @@ def update_import_job(session: Session, job_id: int, **kwargs) -> None:
     job = session.get(ImportJob, job_id)
     if job is None:
         return
+    from datetime import datetime, timezone
+
     for k, v in kwargs.items():
         setattr(job, k, v)
+    # Every update is a sign of life, whatever it changes.
+    job.last_ping = datetime.now(timezone.utc)
     session.flush()
     session.commit()
 

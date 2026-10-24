@@ -271,6 +271,7 @@ def create_tables(engine=None):
     _migrate_add_account_closed_on(engine)
     _migrate_add_account_usage(engine)
     _migrate_add_import_job_n_rows(engine)
+    _migrate_add_import_job_last_ping(engine)
     _migrate_add_transaction_model_proposal(engine)
     _migrate_counterparts_written_one_way(engine)
     _migrate_add_transfer_link_decision(engine)
@@ -683,6 +684,9 @@ class ImportJob(Base):
     n_rows = Column(Integer, nullable=True)
     started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime)
+    # When the job last moved. A job still running whose last move is old has
+    # stopped: the barely moving bar alone cannot tell slow from dead.
+    last_ping = Column(DateTime, nullable=True)
     # ── Phase timing (AI-88) — milliseconds spent in each pipeline phase
     # across all files of this job. Cumulative across the job's files
     # (one job often imports several files in a row, the value is the
@@ -1800,6 +1804,17 @@ def _migrate_add_transaction_model_proposal(engine) -> None:
                 conn.commit()
             except Exception:
                 pass  # column already exists
+
+
+def _migrate_add_import_job_last_ping(engine) -> None:
+    """Add last_ping column to import_job if not already present."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text("ALTER TABLE import_job ADD COLUMN last_ping DATETIME"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
 
 
 def _migrate_add_import_job_n_rows(engine) -> None:

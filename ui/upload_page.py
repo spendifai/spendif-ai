@@ -156,6 +156,7 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
                             + _if_fast(fast, left))
         else:
             _show_prominent(st, t_fn("upload.progress_auto", pct=int(pct * 100)))
+        _render_stall_warning(import_svc, job)
         st.session_state["_upload_job_was_running"] = True
         if not was_running:
             st.rerun()
@@ -181,6 +182,21 @@ def _render_job_status_poll(import_svc: ImportService) -> None:
         if was_running:
             st.session_state["_upload_job_was_running"] = False
             st.rerun()
+
+
+def _render_stall_warning(import_svc: ImportService, job) -> None:
+    """Say when a running import has stopped moving, and let the user end it.
+
+    Without this a hung model left the bar still for hours, and the only way
+    to tell slow from dead was a query on the database.
+    """
+    still = import_svc.seconds_without_progress(job)
+    if still < import_svc.STALL_SECONDS:
+        return
+    st.warning(t_fn("upload.stalled", minutes=int(still // 60)))
+    if st.button(t_fn("upload.stalled_stop"), key=f"_stop_stalled_{job.id}"):
+        import_svc.stop_job(job.id, t_fn("upload.stalled_stopped"))
+        st.rerun()
 
 
 def _render_guided_continue(import_svc: ImportService) -> None:
