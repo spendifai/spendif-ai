@@ -366,7 +366,14 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
             # The question a reader actually has. A card being present says
             # nothing: acceleration is a property of the build, not of the
             # machine, and the two disagree more often than one would think.
-            "acceleration_active": rt["gpu_acceleration_active"],
+            # Nor does the build alone: with 0 layers on the accelerator the
+            # model runs on the processor, and until 2026-10-23 the onboarding
+            # wrote exactly that while this field said "yes".
+            "acceleration_active": (
+                rt["gpu_acceleration_active"]
+                and str(settings.get("llama_cpp_n_gpu_layers", "-1")).strip() != "0"
+            ),
+            "accelerator_available": rt["gpu_acceleration_active"],
             "inference_devices": rt["inference_devices"],
         },
         "inference": {
@@ -456,7 +463,9 @@ def _acceleration(report: dict[str, Any]) -> str:
     graphics = report.get("graphics", {})
     if not graphics.get("acceleration_active"):
         return "cpu"
-    devices = [d for d in graphics.get("inference_devices", []) if str(d).upper() != "CPU"]
+    from core import runtime_info
+
+    devices = [d for d in graphics.get("inference_devices", []) if runtime_info.is_accelerator(d)]
     backend = re.sub(r"\d+$", "", str(devices[0])) if devices else "gpu"
     gpu = graphics.get("gpu", "")
     # Vendor words add length and nothing a reader cannot infer from the model.

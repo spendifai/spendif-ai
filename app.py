@@ -79,6 +79,13 @@ _n_stale = reset_stale_jobs_once(engine)
 if _n_stale:
     logger.info(f"startup: reset {_n_stale} stale running job(s) to error")
 
+# Installations onboarded before 2026-10-23 analyse on the processor.
+from services.llm_service import restore_accelerator_layers
+
+_layers = restore_accelerator_layers(engine)
+if _layers:
+    logger.info(f"startup: accelerator layers restored for {', '.join(_layers)}")
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Spendif.ai",
