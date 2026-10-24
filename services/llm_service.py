@@ -144,6 +144,65 @@ def recommended_gpu_layers() -> int:
     return -1 if runtime_info.accelerator_available() else 0
 
 
+# Every setting that says how many layers go on the accelerator: the main
+# backend, the legacy categorizer slot and the four phases.
+GPU_LAYER_SETTINGS = (
+    "llama_cpp_n_gpu_layers",
+    "cat_llama_cpp_n_gpu_layers",
+    "classifier_llama_cpp_n_gpu_layers",
+    "cleaner_llama_cpp_n_gpu_layers",
+    "categorizer_llama_cpp_n_gpu_layers",
+    "footer_llama_cpp_n_gpu_layers",
+)
+
+# Set once the layers written by the old onboarding have been looked at.
+GPU_LAYERS_REVIEWED = "gpu_layers_reviewed"
+_layers_checked: set[str] = set()
+
+
+def restore_accelerator_layers(engine) -> list[str]:
+    """Undo the 0 layers the old onboarding wrote, once, where it was wrong.
+
+    Until 2026-10-23 the onboarding wrote 0 flat, so every installation
+    analysed on the processor, five to eight times slower, even with a card
+    the library could use. Fixing the onboarding helps new installations
+    only: this is for the ones that already went through it.
+
+    A 0 becomes -1 only when the library can address an accelerator, which is
+    the same question the onboarding asks now. Somebody who chose 0 on
+    purpose cannot be told apart from somebody who got it from the
+    onboarding; the second case is every installation, the first is rare and
+    a setting away. The review is recorded only once it has run with an
+    accelerator present, so a later 0 chosen by hand is left alone, and a
+    machine that has no accelerator yet is asked again at the next start.
+
+    Runs once per process: app.py calls it on every rerun.
+
+    Returns the settings it changed.
+    """
+    from db.models import get_session
+    from db.repository import get_user_setting, set_user_setting
+
+    key = str(engine.url)
+    if key in _layers_checked:
+        return []
+    _layers_checked.add(key)
+    with get_session(engine) as session:
+        if get_user_setting(session, GPU_LAYERS_REVIEWED) == "true":
+            return []
+        if recommended_gpu_layers() != -1:
+            return []
+        changed = [
+            key for key in GPU_LAYER_SETTINGS
+            if (get_user_setting(session, key) or "").strip() == "0"
+        ]
+        for key in changed:
+            set_user_setting(session, key, "-1")
+        set_user_setting(session, GPU_LAYERS_REVIEWED, "true")
+        session.commit()
+        return changed
+
+
 def detect_ollama_context(model: str, base_url: str = "http://localhost:11434") -> int | None:
     """Query Ollama /api/show for the model's context length."""
     from core.llm_backends import OllamaBackend

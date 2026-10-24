@@ -126,6 +126,24 @@ def test_acceleration_is_reported_as_its_own_answer(session, settings):
     assert isinstance(graphics["acceleration_active"], bool)
 
 
+def test_a_card_the_settings_keep_off_is_not_acceleration(session, settings, monkeypatch):
+    """The library seeing a card is not the model using it.
+
+    With 0 layers on the accelerator the model runs on the processor. The
+    report said "active" in that case, and the onboarding wrote 0 on every
+    installation until 2026-10-23.
+    """
+    from core import runtime_info
+
+    monkeypatch.setattr(runtime_info, "_devices", lambda: ["MTL0", "CPU"])
+    off = diagnostics.collect(session, {**settings, "llama_cpp_n_gpu_layers": "0"})
+    on = diagnostics.collect(session, {**settings, "llama_cpp_n_gpu_layers": "-1"})
+
+    assert off["graphics"]["accelerator_available"] is True
+    assert off["graphics"]["acceleration_active"] is False
+    assert on["graphics"]["acceleration_active"] is True
+
+
 def test_logs_are_described_and_not_quoted(session, settings, tmp_path, monkeypatch):
     """The report says whether a trace exists. It does not carry the trace.
 

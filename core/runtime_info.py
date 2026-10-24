@@ -115,9 +115,8 @@ def _ggml_devices() -> list[str]:
     Importing llama_cpp is enough to register the backends that were linked at
     build time. Builds made with dynamic backends register nothing until
     somebody loads them, and the loader is called by the code that creates the
-    model; asking here before that has happened would under-report, so the
-    caller is expected to ask after a model has been built at least once, or to
-    accept the link-time list.
+    model; asking here before that has happened would under-report. Callers
+    that need the answer before the first model go through _devices().
     """
     try:
         import ctypes
@@ -148,13 +147,39 @@ def accelerator_available() -> bool:
     the build cannot address it, and setting layers on a card the build cannot
     reach is how a model fails to load at all.
 
-    The caveat from _ggml_devices applies: a build with dynamic backends
-    registers nothing until a model has been loaded once, so this can answer
-    "no" too early. Answering "no" wrongly costs speed; answering "yes"
-    wrongly costs the application failing to start a model, which is the
-    failure this project has already shipped twice.
+    Answering "no" wrongly costs speed; answering "yes" wrongly costs the
+    application failing to start a model, which is the failure this project
+    has already shipped twice.
     """
-    return any(d.upper() != "CPU" for d in _ggml_devices())
+    return any(is_accelerator(d) for d in _devices())
+
+
+# Devices ggml registers that still run on the processor: BLAS is a maths
+# library, not a card, and a CPU-only build with it is not accelerated.
+_PROCESSOR_DEVICES = ("CPU", "BLAS")
+
+
+def is_accelerator(device: str) -> bool:
+    """Whether a registered ggml device is something other than the processor."""
+    return str(device).upper() not in _PROCESSOR_DEVICES
+
+
+def _devices() -> list[str]:
+    """The registered devices, after the accelerator plugins have been loaded.
+
+    Our wheels carry the accelerators as plugins, and a plugin registers
+    nothing until somebody loads it. Asked before the first model, the plain
+    list said "CPU" on machines with a working Vulkan card: the onboarding
+    then chose the processor and the diagnostics said so too. Loading the
+    plugins is what building a model does anyway, and it happens once.
+    """
+    try:
+        from core.llm_backends import load_ggml_backend_plugins
+
+        return load_ggml_backend_plugins()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("runtime_info: cannot load ggml plugins (%s)", exc)
+        return _ggml_devices()
 
 
 def _emulated() -> bool:
@@ -202,7 +227,7 @@ def collect() -> dict[str, Any]:
     Never raises: every field falls back to a string that says so, because a
     diagnostics report that crashes tells its reader nothing at all.
     """
-    devices = _ggml_devices()
+    devices = _devices()
     os_name, os_id = _os_identity()
     return {
         "os_version": platform.platform(),          # names the OS and its exact release
@@ -219,5 +244,5 @@ def collect() -> dict[str, Any]:
         "inference_devices": devices,
         # The question a reader actually has: is anything but the processor in
         # play. Anything other than CPU is an accelerator.
-        "gpu_acceleration_active": any(d.upper() != "CPU" for d in devices),
+        "gpu_acceleration_active": any(is_accelerator(d) for d in devices),
     }
