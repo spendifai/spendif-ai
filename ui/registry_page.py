@@ -785,8 +785,7 @@ def _render_grid(tx_svc, rule_svc, taxonomy, page_txs, *, show_raw: bool, _conte
                 st.toast(t("ledger.rule_created" if _created else "ledger.rule_updated",
                            n=n_matched))
                 logger.info(
-                    f"ledger_page: rule created pattern={rule_pattern!r} "
-                    f"matched={n_matched} cleared={n_cleared}"
+                    f"ledger_page: rule created matched={n_matched} cleared={n_cleared}"
                 )
                 st.rerun()
     else:

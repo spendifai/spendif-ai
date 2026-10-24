@@ -329,7 +329,7 @@ def _reverse_match(
         assigned_names.add(j)
         logger.debug(
             f"I-17 reverse-match [{source_name}] {label}: "
-            f"idx={global_idx} score={sc:.2f} {inp!r} → {name!r}"
+            f"idx={global_idx} score={sc:.2f}"
         )
 
     return result
