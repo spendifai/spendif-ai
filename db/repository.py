@@ -494,7 +494,12 @@ def rewrite_counterpart_category(session: Session, description: str, negative: b
     5bis): every saved movement of the counterpart in that direction with an
     automatic category (llm, nsi, history, "Altro" included) takes it. Never
     touched: the user's rules and choices, checked movements, multi-category
-    counterparts, giroconti. Returns how many changed."""
+    counterparts, giroconti, and accepted counterparts, whose category the
+    user kept as it was (spec 16, 3.4). Returns how many changed."""
+    direction = "out" if negative else "in"
+    if any(r.direction in (None, direction) and r.matches(description)
+           for r in get_category_rules(session, include_accepted=True) if r.not_show_run):
+        return 0
     q = session.query(Transaction).filter(
         same_counterpart(Transaction.description, description),
         Transaction.amount < 0 if negative else Transaction.amount >= 0,
@@ -1128,8 +1133,14 @@ def set_transfer_destination(session: Session, key: str, answer: str) -> None:
 
 # ── CategoryRule ──────────────────────────────────────────────────────────────
 
-def get_category_rules(session: Session) -> list[CoreCategoryRule]:
-    rows = session.query(CategoryRule).order_by(CategoryRule.priority.desc()).all()
+def get_category_rules(session: Session, include_accepted: bool = False) -> list[CoreCategoryRule]:
+    """The rules to run and to list. Accepted counterparts (not_show_run) are
+    left out: they are neither run nor shown, and count only where the
+    question is whether a counterpart is done (include_accepted)."""
+    q = session.query(CategoryRule)
+    if not include_accepted:
+        q = q.filter(CategoryRule.not_show_run.isnot(True))
+    rows = q.order_by(CategoryRule.priority.desc()).all()
     return [
         CoreCategoryRule(
             id=row.id,
@@ -1142,6 +1153,7 @@ def get_category_rules(session: Session) -> list[CoreCategoryRule]:
             priority=row.priority or 0,
             is_giroconto=bool(row.is_giroconto),
             is_multi_category=bool(row.is_multi_category),
+            not_show_run=bool(row.not_show_run),
             direction=row.direction,
         )
         for row in rows
@@ -1316,6 +1328,7 @@ def create_category_rule(
     is_giroconto: bool = False,
     is_multi_category: bool = False,
     direction: Optional[str] = None,
+    not_show_run: bool = False,
 ) -> tuple[CategoryRule, bool]:
     """Create or update a category rule.
 
@@ -1337,7 +1350,8 @@ def create_category_rule(
             for d in sorted(found, reverse=True):  # "out" first
                 r = create_category_rule(session, pattern, match_type, category, subcategory,
                                          context, doc_type, priority, is_giroconto,
-                                         is_multi_category, direction=d)
+                                         is_multi_category, direction=d,
+                                         not_show_run=not_show_run)
                 first = first or r
             return first
         direction = found.pop() if found else "out"
@@ -1363,6 +1377,9 @@ def create_category_rule(
         existing.priority = priority
         existing.is_giroconto = is_giroconto
         existing.is_multi_category = is_multi_category
+        # Writing a rule the user can see makes an accepted counterpart a real
+        # rule; accepting never hides a rule the user already has.
+        existing.not_show_run = bool(not_show_run and existing.not_show_run)
         session.flush()
         return existing, False
 
@@ -1377,6 +1394,7 @@ def create_category_rule(
         is_giroconto=is_giroconto,
         is_multi_category=is_multi_category,
         direction=direction,
+        not_show_run=not_show_run,
     )
     session.add(rule)
     session.flush()
@@ -3094,7 +3112,8 @@ def get_counterpart_stats(
         d = row.date or ""
         return (date_from is None or d >= date_from) and (date_to is None or d <= date_to)
 
-    rules = get_category_rules(session)
+    # An accepted counterpart is done, like one with a rule (spec 16, 3.4).
+    rules = get_category_rules(session, include_accepted=True)
     stats = []
     for key, all_txs in groups.items():
         txs = [t for t in all_txs if _in_period(t)]

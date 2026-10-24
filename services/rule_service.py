@@ -239,6 +239,33 @@ class RuleService:
             s.commit()
             return result
 
+    def generalizes(self, description: str, pattern: str, match_type: str) -> bool:
+        """True when a starts-with key covers counterparts other than this one
+        already in the ledger: then a rule is worth writing (spec 16, 3.4)."""
+        if match_type != STARTS_WITH:
+            return False
+        from core.rule_key import exact_key
+        own = exact_key(description)
+        with self._session() as s:
+            matched = repository.get_transactions_by_rule_pattern(s, pattern, match_type)
+            return any(exact_key(tx.description or "") != own for tx in matched)
+
+    def accept_counterpart(self, description: str, category: str, subcategory: str) -> tuple:
+        """The user kept the counterpart's category as it was (spec 16, 3.4).
+
+        Only remembered, as an exact rule that is never run nor shown
+        (not_show_run): the movements keep their category and the source that
+        gave it, the next imports categorize the counterpart from the history,
+        and the guided flow does not ask about it again.
+        """
+        with self._session() as s:
+            result = repository.create_category_rule(
+                s, description, "exact", category, subcategory, priority=10,
+                not_show_run=True,
+            )
+            s.commit()
+            return result
+
     def update_rule(self, rule_id: int, **kwargs) -> bool:
         with self._session() as s:
             result = repository.update_category_rule(s, rule_id, **kwargs)

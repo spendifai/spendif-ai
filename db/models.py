@@ -252,6 +252,7 @@ def create_tables(engine=None):
     _migrate_add_rule_context(engine)
     _migrate_add_rule_giroconto(engine)
     _migrate_add_rule_multi_category(engine)
+    _migrate_add_rule_not_show_run(engine)
     _migrate_add_header_sha256(engine)
     _migrate_add_confidence_score(engine)
     _migrate_add_transaction_updated_at(engine)
@@ -607,6 +608,11 @@ class CategoryRule(Base):
     # everything is bought; its movements take the generic category and are
     # seen one by one. Category stays empty.
     is_multi_category = Column(Boolean, default=False, nullable=False, server_default="0")
+    # An accepted counterpart (spec 16, 3.4): the user kept the category it
+    # had. The rule says the counterpart is done and nothing else: it is never
+    # run (the movements keep their category and its source) and never shown
+    # among the rules. Writing the same rule again turns it into a real one.
+    not_show_run = Column(Boolean, default=False, nullable=False, server_default="0")
     # The rule's direction (spec 18): "out" money out, "in" money in. A rule
     # holds only for the movements in its direction.
     direction = Column(String(3), nullable=True)
@@ -1151,6 +1157,20 @@ def _migrate_add_rule_giroconto(engine) -> None:
             if "duplicate column name" in str(exc).lower():
                 pass
             else:
+                raise
+
+
+def _migrate_add_rule_not_show_run(engine) -> None:
+    """Add not_show_run to category_rule if not present (idempotent)."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text(
+                'ALTER TABLE category_rule ADD COLUMN not_show_run BOOLEAN NOT NULL DEFAULT 0'
+            ))
+            conn.commit()
+        except Exception as exc:
+            if "duplicate column name" not in str(exc).lower():
                 raise
 
 

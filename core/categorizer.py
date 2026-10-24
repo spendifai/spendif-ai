@@ -66,6 +66,10 @@ class CategoryRule:
     is_giroconto: bool = False
     # A multi-category rule (spec 24): the generic category, seen one by one.
     is_multi_category: bool = False
+    # An accepted counterpart (spec 16, 3.4): the user kept the category it
+    # had, so the rule only records that the counterpart is done. It is never
+    # run and never listed; writing the same rule again makes it a real one.
+    not_show_run: bool = False
     # The rule's direction (spec 18): "out" for money out, "in" for money in.
     # A rule never holds for both by default; None only for a rule built in
     # code without a ledger behind it.
