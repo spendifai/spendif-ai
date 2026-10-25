@@ -753,7 +753,7 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
 
     _hw = detect_system_hardware()
     _local = list_available_models()
-    _rec = get_recommended_model(_hw["ram_gb"])
+    _rec = get_recommended_model(_hw)
 
     if _local:
         st.success(
