@@ -90,3 +90,75 @@ def test_a_no_holds_for_that_direction_only(engine):
     refunds = _add(engine, 3, amount="8", start=10)
     [q_in] = svc.always_questions(refunds)
     assert q_in["direction"] == "in"
+
+
+# ── The question on the real page ────────────────────────────────────────────
+
+def _page(db_path: str) -> None:
+    from sqlalchemy import create_engine
+    from ui.registry_page import render_registry_page
+    render_registry_page(create_engine(f"sqlite:///{db_path}"))
+
+
+def _ask(tmp_path, engine):
+    from datetime import date
+
+    from streamlit.testing.v1 import AppTest
+
+    ids = _add(engine, 3)
+    _add(engine, 1, source="llm", category="Ristorazione", start=3)
+    app = AppTest.from_function(_page, args=(str(tmp_path / "l.db"),), default_timeout=60)
+    app.session_state["_always_pending"] = RuleService(engine).always_questions(ids)
+    app.session_state["ledger_from"] = date(2026, 1, 1)
+    app.session_state["ledger_to"] = date(2026, 12, 31)
+    app.run()
+    assert not app.exception, app.exception
+    assert any("Sempre" in m.value or "Always" in m.value for m in app.info)
+    return app
+
+
+def test_yes_writes_the_rule_and_applies_it(tmp_path, engine):
+    app = _ask(tmp_path, engine)
+    next(b for b in app.button if b.key == "ledger_always_yes").click().run()
+    assert not app.exception, app.exception
+    assert app.session_state["_always_pending"] == []
+    with get_session(engine) as s:
+        auto = s.get(Transaction, "t3")
+        assert (auto.category, auto.category_source) == ("Alimentari", "rule")
+        assert s.get(Transaction, "t0").category_source == "manual"
+
+
+def test_no_is_remembered(tmp_path, engine):
+    app = _ask(tmp_path, engine)
+    next(b for b in app.button if b.key == "ledger_always_no").click().run()
+    assert not app.exception, app.exception
+    assert RuleService(engine).always_questions(["t0", "t1", "t2"]) == []
+    with get_session(engine) as s:
+        assert s.get(Transaction, "t3").category == "Ristorazione"
+
+
+def test_the_third_equal_choice_saved_in_the_grid_asks(tmp_path, engine):
+    from datetime import date
+
+    from streamlit.testing.v1 import AppTest
+
+    from ui.registry_page import COL_CAT_SUB
+    from ui.widgets.cat_select import join_cat_sub
+
+    _add(engine, 2)
+    _add(engine, 1, source="llm", category="Ristorazione", start=2)
+    app = AppTest.from_function(_page, args=(str(tmp_path / "l.db"),), default_timeout=60)
+    app.session_state["ledger_from"] = date(2026, 1, 1)
+    app.session_state["ledger_to"] = date(2026, 12, 31)
+    app.run()
+    assert not app.exception, app.exception
+    # newest first: t2, the one the model categorized
+    app.session_state["ledger_editor"] = {
+        "edited_rows": {0: {COL_CAT_SUB: join_cat_sub("Alimentari", "Pasticceria")}},
+        "added_rows": [], "deleted_rows": []}
+    next(b for b in app.button if b.key == "ledger_save").click().run()
+    assert not app.exception, app.exception
+    with get_session(engine) as s:
+        assert s.get(Transaction, "t2").category_source == "manual"
+    [q] = app.session_state["_always_pending"]
+    assert (q["category"], q["n"]) == ("Alimentari", 3)
