@@ -270,7 +270,10 @@ def test_guided_view_explains_the_criterion_and_what_is_missing(ledger):
     assert list(app.dataframe[0].value.iloc[:, 0]) == ["Affitto"]   # categorized ones hidden
 
 
-def test_ticking_always_makes_the_category_a_rule_for_every_movement(ledger):
+def test_ticking_without_changing_the_category_accepts_the_counterpart(ledger):
+    """Spec 16, 3.4 (founder, 2026-10-24): the category is kept as it is, and
+    so is its source; the counterpart is remembered as done by a rule that is
+    never run nor listed."""
     from ui.i18n import t
 
     db_path, eng = ledger
@@ -287,13 +290,15 @@ def test_ticking_always_makes_the_category_a_rule_for_every_movement(ledger):
     assert not app.exception, app.exception
 
     with get_session(eng) as s:
-        rules = [(r.pattern, r.match_type, r.category) for r in get_category_rules(s)]
-        assert rules == [("Affitto", "exact", "Casa")]
+        assert get_category_rules(s) == []                  # nothing listed, nothing run
+        accepted = [(r.pattern, r.match_type, r.category, r.not_show, r.not_run)
+                    for r in get_category_rules(s, include_accepted=True)]
+        assert accepted == [("Affitto", "exact", "Casa", True, True)]
         for tx_id in ("a1", "a2"):
             tx = s.get(Transaction, tx_id)
             assert tx.category == "Casa"
-            assert tx.validated_at is None          # categorized, not checked
-            assert tx.category_source == "rule"
+            assert tx.validated_at is None          # accepted, not checked
+            assert tx.category_source == "llm"      # the source that gave it
     assert GuidedFlowService(eng).check_progress().reached
 
 
@@ -335,7 +340,7 @@ def test_a_tick_on_a_known_merchant_writes_a_starts_with_rule(tmp_path):
 
 
 def test_one_save_writes_every_ticked_rule(tmp_path, monkeypatch):
-    """Every ticked row becomes a rule in the same save. The founder's save
+    """Every ticked row is saved in the same save. The founder's save
     kept only the first: a click during the model's wait stops the run at the
     next Streamlit command, and there was one right after the first rule.
     The writes now hold none (write_and_apply returns its note instead of
@@ -368,9 +373,12 @@ def test_one_save_writes_every_ticked_rule(tmp_path, monkeypatch):
     monkeypatch.setattr("ui.counterparts_page.write_and_apply", _spy)
     [b for b in app.button if b.key == "cp_save"][0].click().run(timeout=30)
     assert not app.exception, app.exception
-    assert sorted(calls) == ["Bar Due", "Bar Tre", "Bar Uno"]
+    # Kept as they were: three accepted counterparts, no rule that acts
+    # (spec 16, 3.4).
+    assert calls == []
     with get_session(eng) as s:
-        assert len(get_category_rules(s)) == 3
+        assert get_category_rules(s) == []
+        assert len(get_category_rules(s, include_accepted=True)) == 3
 
 
 def test_card_purchases_are_spending_and_card_refunds_are_not(engine):
@@ -435,7 +443,9 @@ def test_the_rules_written_show_under_the_save_button(tmp_path):
     SettingsService(eng).set("country", "It")
     with get_session(eng) as s:
         _tx(s, "t1", "Tamoil Gaggiano", -60, "2026-08-01", category="Trasporti")
-        _tx(s, "t2", "Esselunga Corsico", -40, "2026-08-10", category="Spesa")
+        # A second station: the key generalizes, so a real rule and its note.
+        _tx(s, "t2", "Tamoil Rozzano", -40, "2026-08-10", category="Altro")
+        _tx(s, "t3", "Esselunga Corsico", -40, "2026-08-10", category="Spesa")
         s.commit()
     set_language("en")
     app = _run(db_path)

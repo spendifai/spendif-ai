@@ -144,3 +144,52 @@ def test_the_registry_filter_lists_the_movements_to_see(engine):
     RuleService(engine).set_multi_category("AMAZON MARKETPLACE")
     txs = TransactionService(engine).get_transactions(filters={"category_source": "multi"})
     assert [t.id for t in txs] == ["a"]
+
+
+# ── A reminder, not a rule that runs (spec 24 par. 3, founder 2026-10-25) ────
+
+def test_the_rule_is_not_run_but_shown(engine):
+    with get_session(engine) as s:
+        _saved(s, "a", "AMAZON MARKETPLACE", -30, "2026-08-01")
+        s.commit()
+    svc = RuleService(engine)
+    svc.set_multi_category("AMAZON MARKETPLACE")
+    with get_session(engine) as s:
+        [rule] = s.query(RuleRow).all()
+        assert (rule.not_show, rule.not_run) == (False, True)
+    assert [r.pattern for r in svc.get_rules()] == ["AMAZON MARKETPLACE"]
+
+
+def test_reapplying_the_rules_never_runs_it(engine):
+    """Once decided, the rule is not run again: a movement of the counterpart
+    that has another category (here from an older rule) is left as it is, and
+    a broader rule with a category does not take it either."""
+    svc = RuleService(engine)
+    svc.set_multi_category("AMAZON MARKETPLACE")
+    with get_session(engine) as s:
+        _saved(s, "late", "AMAZON MARKETPLACE", -15, "2026-08-03", source="rule",
+               category="Abbonamenti")
+        s.commit()
+    svc.create_rule("AMAZON", "starts_with", "Shopping", "Libri", priority=10)
+    svc.apply_to_all()
+    with get_session(engine) as s:
+        late = s.get(Transaction, "late")
+        assert (late.category, late.category_source) == ("Abbonamenti", "rule")
+
+
+def test_the_import_still_reads_it(model):
+    rule = _multi("AMAZON MARKETPLACE")
+    rule.not_run = True
+    [r] = categorize_batch([_tx("Amazon Marketplace")], _TAX, [rule],
+                           llm_backend=object(), fallback_categories=_FALLBACK)
+    assert (r.source, r.to_review) == (CategorySource.multi, True)
+    assert model == []
+
+
+def test_writing_a_category_rule_on_it_makes_it_run(engine):
+    svc = RuleService(engine)
+    svc.set_multi_category("AMAZON MARKETPLACE")
+    svc.create_rule("AMAZON MARKETPLACE", "exact", "Shopping", "Libri", priority=10)
+    with get_session(engine) as s:
+        rules = [(r.is_multi_category, r.not_run) for r in s.query(RuleRow)]
+    assert (False, False) in rules and (True, True) not in rules

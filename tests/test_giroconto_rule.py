@@ -25,6 +25,7 @@ from db.models import (
     Transaction,
     _migrate_add_rule_giroconto,
     _migrate_add_rule_multi_category,
+    _migrate_split_rule_not_show_run,
     _migrate_rule_direction,
     get_session,
 )
@@ -93,6 +94,7 @@ def test_migration_adds_the_column_to_an_old_database():
     _migrate_add_rule_giroconto(eng)
     _migrate_add_rule_giroconto(eng)  # idempotent
     _migrate_add_rule_multi_category(eng)                # the later column (spec 24)
+    _migrate_split_rule_not_show_run(eng)                # accepted and multi-category (spec 16, 24)
     _migrate_rule_direction(eng)                         # and the direction (spec 18)
 
     assert "is_giroconto" in {c["name"] for c in inspect(eng).get_columns("category_rule")}

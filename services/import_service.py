@@ -567,6 +567,7 @@ class ImportService:
                 row.category_source = res.source.value
                 row.category_model = res.model_name or None
                 row.to_review = res.to_review
+                row.model_source = res.proposal_source
                 if res.source.value in AUTOMATIC_CATEGORY_SOURCES:
                     row.model_category = res.category
                     row.model_subcategory = res.subcategory
