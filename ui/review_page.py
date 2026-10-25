@@ -345,8 +345,9 @@ def render_review_page(engine):
                         n_similar = 0
                         for stx in similar:
                             if stx.id != selected_tx.id:
-                                tx_svc.apply_rule_category(stx.id, new_cat, new_sub, origin="review")
-                                n_similar += 1
+                                # False for a choice by hand or a checked one
+                                n_similar += tx_svc.apply_rule_category(
+                                    stx.id, new_cat, new_sub, origin="review")
                         if n_similar:
                             rule_msg += f" · {n_similar} transazioni simili aggiornate."
                 st.success(t("review.category_updated", cat=new_cat, sub=new_sub, extra=rule_msg))
