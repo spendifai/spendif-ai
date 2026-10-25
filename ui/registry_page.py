@@ -15,6 +15,7 @@ from support.formatting import format_amount_display, format_date_display, strft
 from support.logging import setup_logging
 from ui.i18n import t
 from ui.widgets.file_handoff import offer_file
+from ui.widgets.written_rules import remember, show_written_rules, write_and_apply
 from ui.widgets.cat_select import (
     build_cat_options, cat_sub_select, direction_of, join_cat_sub, options_for_amounts,
     split_cat_sub, wrong_direction,
@@ -586,6 +587,13 @@ def _render_grid(tx_svc, rule_svc, taxonomy, page_txs, *, show_raw: bool, _conte
             st.success(t("ledger.saved_summary", parts=" · ".join(parts)))
             logger.info(f"ledger_page: saved cat={n_cat} ctx={n_ctx} giro={n_giro}")
 
+            # Equal choices by hand on one counterpart: "always like this?"
+            # (spec 18, 5.2), asked under the table after the rerun.
+            if _fan_out_candidates:
+                _always = rule_svc.always_questions([_i for _i, _ in _fan_out_candidates])
+                if _always:
+                    st.session_state["_always_pending"] = _always
+
             # ── C-06: Fan-out — check for similar uncategorized transactions ──
             if _fan_out_candidates:
                 _fan_out_all: dict[str, list] = {}  # tx_id -> similar txs
@@ -653,6 +661,31 @@ def _render_grid(tx_svc, rule_svc, taxonomy, page_txs, *, show_raw: bool, _conte
                 st.session_state["_own_name_pending"].pop(_p_idx)
                 st.rerun()
         break  # one question at a time
+
+    # ── "Always like this?" after equal choices by hand (spec 18, 5.2) ──────
+    show_written_rules()
+    _always_q = st.session_state.get("_always_pending") or []
+    if _always_q:
+        _q = _always_q[0]
+        _q_cat = f"{_q['category']} / {_q['subcategory']}" if _q["subcategory"] else _q["category"]
+        st.info(t("ledger.always.ask", n=_q["n"], name=_q["description"], cat=_q_cat))
+        _c_yes, _c_no, _ = st.columns([1, 1, 3])
+        with _c_yes:
+            if st.button(t("ledger.always.yes"), key="ledger_always_yes", type="primary",
+                         use_container_width=True):
+                _pattern, _mtype = rule_svc.write_rules([_q["description"]])[_q["description"]]
+                _n, _note = write_and_apply(rule_svc, tx_svc, _q["description"], _pattern, _mtype,
+                                            _q["category"], _q["subcategory"], origin="ledger_always")
+                remember([_note] if _note else [],
+                         summary=t("ledger.always.done", name=_q["description"], cat=_q_cat))
+                logger.info(f"ledger_page: always-like-this rule written, applied to {_n} movements")
+                st.session_state["_always_pending"] = _always_q[1:]
+                st.rerun()
+        with _c_no:
+            if st.button(t("ledger.always.no"), key="ledger_always_no", use_container_width=True):
+                rule_svc.decline_always(_q)
+                st.session_state["_always_pending"] = _always_q[1:]
+                st.rerun()
 
     # ── C-06: Fan-out action buttons ─────────────────────────────────────────
     if st.session_state.get("_fan_out_pending"):
