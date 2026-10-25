@@ -1346,18 +1346,24 @@ def process_file(
     _AUTO_IMPORT_MIN_PARSE_RATE = 0.50
     _AUTO_IMPORT_MAX_AMOUNT_MISSING = 0.10
     _amount_missing = sum(1 for s in _norm_skipped if s.reason.startswith("amount_none"))
+    # The same holds for the description (spec 13, 4.1).
+    _AUTO_IMPORT_MAX_DESCRIPTION_MISSING = 0.10
+    _description_missing = sum(1 for t in transactions if not t.get("raw_description"))
     if (
         flow_used == "flow2"
         and not config.force_schema_import
         and _total_file_rows > 0
         and (len(transactions) / _total_file_rows < _AUTO_IMPORT_MIN_PARSE_RATE
-             or _amount_missing / _total_file_rows > _AUTO_IMPORT_MAX_AMOUNT_MISSING)
+             or _amount_missing / _total_file_rows > _AUTO_IMPORT_MAX_AMOUNT_MISSING
+             or _description_missing / _total_file_rows > _AUTO_IMPORT_MAX_DESCRIPTION_MISSING)
     ):
         logger.warning(
             "process_file: Flow 2 schema for %s parsed %d/%d rows (%.0f%%), %d without "
-            "amount → stopping for user schema review instead of auto-importing",
+            "amount, %d without description → stopping for user schema review instead "
+            "of auto-importing",
             filename, len(transactions), _total_file_rows,
             100 * len(transactions) / _total_file_rows, _amount_missing,
+            _description_missing,
         )
         _finalize_phase_timings()
         return ImportResult(
@@ -1371,6 +1377,9 @@ def process_file(
                 f"The detected columns read only {len(transactions)} of "
                 f"{_total_file_rows} rows. Check the column mapping and the "
                 "date format before importing."
+                if _description_missing / _total_file_rows <= _AUTO_IMPORT_MAX_DESCRIPTION_MISSING
+                else f"{_description_missing} of {_total_file_rows} rows have no "
+                "description. Check which column holds the description before importing."
             ],
             flow_used=flow_used,
             total_file_rows=_total_file_rows,

@@ -719,7 +719,8 @@ def _description_columns(df_raw: pd.DataFrame, cols: list[str]) -> list[str]:
     the richest column, the one with most distinct values, is the
     description; another column stays only with at least half as many
     distinct values. A month or a bank's own category repeats over the
-    whole file and only adds noise for the model.
+    whole file and only adds noise for the model. A code (every value
+    different, no space, one length) is never the description.
     """
     def _values(c: str) -> pd.Series:
         v = df_raw[c].dropna().astype(str).str.strip()
@@ -730,7 +731,14 @@ def _description_columns(df_raw: pd.DataFrame, cols: list[str]) -> list[str]:
         letters = chars.str.count(r"[^\W\d_]")
         return (letters / chars.str.len().clip(lower=1)).median()
 
-    worded = [c for c in cols if _letter_share(c) >= 0.3]
+    def _is_code(c: str) -> bool:
+        # A transaction ID or a UUID: different on every row, so it would
+        # always be the richest, but one token of one length (spec 13, 4).
+        v = _values(c)
+        return (len(v) >= 2 and v.is_unique and not v.str.contains(r"\s").any()
+                and v.str.len().nunique() == 1)
+
+    worded = [c for c in cols if _letter_share(c) >= 0.3 and not _is_code(c)]
     if not worded:
         return cols
     distinct = {c: _values(c).nunique() for c in worded}

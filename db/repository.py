@@ -693,6 +693,56 @@ def _compute_consistency(session: Session, description: str) -> float | None:
     return round(modal_count / len(rows) * 100, 1)
 
 
+def rule_may_change(tx: Transaction) -> bool:
+    """A rule may change this movement's category: not a choice by hand
+    (a one-off exception to the rule), not a checked movement (the tick
+    confirms the category too). Spec 18 par. 6, spec 16 principle 7."""
+    return tx.category_source != "manual" and not tx.human_validated
+
+
+def always_key(description: str, category: str, subcategory: str, direction: str) -> str:
+    """One "always like this?" question: counterpart, category, direction."""
+    return "|".join((exact_key(description), category or "", subcategory or "", direction))
+
+
+def always_questions(session: Session, tx_ids: list[str], threshold: int,
+                     declined: set[str]) -> list[dict]:
+    """The "always like this?" questions after a save (spec 18, 5.2).
+
+    One per counterpart + category + direction among the saved movements
+    chosen by hand, when the counterpart has at least *threshold* movements
+    with that category chosen by hand, no rule of the user already gives it,
+    and the user has not said no to it.
+    """
+    from sqlalchemy import func
+    rules = get_category_rules(session)
+    out: list[dict] = []
+    seen: set[str] = set()
+    for tx in session.query(Transaction).filter(Transaction.id.in_(tx_ids)):
+        if tx.category_source != "manual" or not tx.category or not tx.description:
+            continue
+        direction = "out" if float(tx.amount or 0) < 0 else "in"
+        sub = tx.subcategory or ""
+        key = always_key(tx.description, tx.category, sub, direction)
+        if key in seen or key in declined:
+            continue
+        seen.add(key)
+        if any((r.category, r.subcategory or "") == (tx.category, sub)
+               and r.matches(tx.description, tx.doc_type, tx.amount) for r in rules):
+            continue
+        n = session.query(Transaction).filter(
+            same_counterpart(Transaction.description, tx.description),
+            Transaction.amount < 0 if direction == "out" else Transaction.amount >= 0,
+            Transaction.category_source == "manual",
+            Transaction.category == tx.category,
+            func.coalesce(Transaction.subcategory, "") == sub,
+        ).count()
+        if n >= threshold:
+            out.append({"description": tx.description, "category": tx.category,
+                        "subcategory": sub, "direction": direction, "n": n})
+    return out
+
+
 def update_transaction_category(
     session: Session,
     tx_id: str,
@@ -711,12 +761,17 @@ def update_transaction_category(
     counts as categorized by the user and a changed category is logged as a
     correction of the previous source. It does not count as checked: choosing
     how the money was spent says nothing on whether it was spent.
+
+    A rule never changes a choice by hand or a checked movement, from
+    whatever page it is applied: then nothing changes and it returns False.
     """
     from datetime import datetime, timezone
     if source not in ("manual", "rule"):
         raise ValueError(f"unknown category source: {source}")
     tx = session.get(Transaction, tx_id)
     if tx is None:
+        return False
+    if source == "rule" and not rule_may_change(tx):
         return False
     old_cat = tx.category
     old_sub = tx.subcategory

@@ -290,8 +290,11 @@ def render_rules_page(engine):
                                            min_value=0, max_value=100, step=1,
                                            key=f"rule_edit_prio_{rid}")
 
-                affected = tx_svc.get_by_rule_pattern(sel_rule.pattern, sel_rule.match_type,
-                                                     sel_rule.direction)
+                # A choice by hand and a checked movement stay (spec 18, 6):
+                # the count says how many will really change.
+                affected = [tx for tx in tx_svc.get_by_rule_pattern(
+                    sel_rule.pattern, sel_rule.match_type, sel_rule.direction)
+                    if tx_svc.rule_may_change(tx)]
                 n_affected = len(affected)
                 also_fix_txs = st.checkbox(
                     t("rules.also_update_txs", n=n_affected),
@@ -399,6 +402,7 @@ def render_rules_page(engine):
 
     # ── Preview: count matching transactions ─────────────────────────────────
     _nr_preview_txs: list = []
+    _nr_apply_txs: list = []
     _nr_preview_count = 0
     if nr_pattern.strip():
         try:
@@ -409,6 +413,7 @@ def render_rules_page(engine):
                        "in" if nr_cat in taxonomy.all_income_categories else None)
             _nr_preview_txs = tx_svc.get_by_rule_pattern(nr_pattern.strip(), nr_match, _nr_dir)
             _nr_preview_count = len(_nr_preview_txs)
+            _nr_apply_txs = [tx for tx in _nr_preview_txs if tx_svc.rule_may_change(tx)]
             if _nr_preview_count > 0:
                 st.info(t("rules.preview_match", n=_nr_preview_count))
             else:
@@ -416,11 +421,15 @@ def render_rules_page(engine):
         except Exception:
             st.warning(t("rules.preview_invalid_regex"))
             _nr_preview_txs = []
+            _nr_apply_txs = []
 
+    # A giroconto rule covers every movement; a category rule leaves a choice
+    # by hand and a checked movement alone (spec 18, 6).
+    _nr_apply_count = _nr_preview_count if nr_giro else len(_nr_apply_txs)
     nr_also_apply = False
-    if _nr_preview_count > 0:
+    if _nr_apply_count > 0:
         nr_also_apply = st.checkbox(
-            t("rules.new_rule_also_apply", n=_nr_preview_count),
+            t("rules.new_rule_also_apply", n=_nr_apply_count),
             value=True,
             key="new_rule_also_apply",
         )
@@ -451,12 +460,12 @@ def render_rules_page(engine):
                 tx_svc.set_giroconto_by_rule_pattern(
                     nr_pattern.strip(), nr_match, make_giroconto=True,
                 )
-            elif nr_also_apply and _nr_preview_txs:
-                for _tx in _nr_preview_txs:
+            elif nr_also_apply and _nr_apply_txs:
+                for _tx in _nr_apply_txs:
                     tx_svc.apply_rule_category(_tx.id, nr_cat, nr_sub, origin="rule_apply")
                     if nr_ctx:
                         tx_svc.update_context(_tx.id, nr_ctx)
                 logger.info(
-                    f"rules_page: applied new rule to {len(_nr_preview_txs)} existing transactions"
+                    f"rules_page: applied new rule to {len(_nr_apply_txs)} existing transactions"
                 )
             st.rerun()
