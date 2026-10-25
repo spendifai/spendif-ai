@@ -252,6 +252,7 @@ def create_tables(engine=None):
     _migrate_add_rule_context(engine)
     _migrate_add_rule_giroconto(engine)
     _migrate_add_rule_multi_category(engine)
+    _migrate_split_rule_not_show_run(engine)
     _migrate_add_header_sha256(engine)
     _migrate_add_confidence_score(engine)
     _migrate_add_transaction_updated_at(engine)
@@ -273,6 +274,7 @@ def create_tables(engine=None):
     _migrate_add_import_job_n_rows(engine)
     _migrate_add_import_job_last_ping(engine)
     _migrate_add_transaction_model_proposal(engine)
+    _migrate_add_transaction_model_source(engine)
     _migrate_counterparts_written_one_way(engine)
     _migrate_add_transfer_link_decision(engine)
     _migrate_add_category_color(engine)
@@ -455,6 +457,10 @@ class Transaction(Base):
     model_category = Column(String(128), nullable=True)
     model_subcategory = Column(String(128), nullable=True)
     model_confidence = Column(String(10), nullable=True)
+    # Who categorized the movement at import (rule, history, nsi, llm, multi,
+    # fallback), never changed afterwards; empty for movements imported before
+    # the column existed. See MODEL_SOURCE_FALLBACK.
+    model_source = Column(String(10), nullable=True)
     reconciled = Column(Boolean, default=False)
     to_review = Column(Boolean, default=False)
     transfer_pair_id = Column(String(64))
@@ -489,7 +495,9 @@ class Transaction(Base):
         elif old in INTERNAL_TX_TYPES and value not in INTERNAL_TX_TYPES and self.category is None:
             if self.model_category:
                 self.category, self.subcategory = self.model_category, self.model_subcategory
-                self.category_source = "llm"
+                self.category_source = (self.model_source
+                                        if self.model_source in AUTOMATIC_CATEGORY_SOURCES
+                                        else "llm")
                 self.category_confidence = self.model_confidence or "low"
             self.to_review = True
         return value
@@ -600,6 +608,14 @@ class CategoryRule(Base):
     # everything is bought; its movements take the generic category and are
     # seen one by one. Category stays empty.
     is_multi_category = Column(Boolean, default=False, nullable=False, server_default="0")
+    # An accepted counterpart (spec 16, 3.4): the user kept the category it
+    # had. The rule says the counterpart is done and nothing else: it is never
+    # run (the movements keep their category and its source) and never shown
+    # among the rules. Writing the same rule again turns it into a real one.
+    # An accepted counterpart is not shown and not run; a multi-category one
+    # is shown but not run, the import reads its flag (spec 16 3.4, spec 24).
+    not_show = Column(Boolean, default=False, nullable=False, server_default="0")
+    not_run = Column(Boolean, default=False, nullable=False, server_default="0")
     # The rule's direction (spec 18): "out" money out, "in" money in. A rule
     # holds only for the movements in its direction.
     direction = Column(String(3), nullable=True)
@@ -1147,6 +1163,31 @@ def _migrate_add_rule_giroconto(engine) -> None:
                 raise
 
 
+def _migrate_split_rule_not_show_run(engine) -> None:
+    """Add not_show and not_run to category_rule (idempotent).
+
+    The single not_show_run flag never shipped in a release: where a test
+    database has it, an accepted rule becomes not_show and not_run and the
+    column goes. A multi-category rule is not_run (spec 24, founder
+    2026-10-25).
+    """
+    from sqlalchemy import text as _text
+    with engine.begin() as conn:
+        cols = {r[1] for r in conn.execute(_text("PRAGMA table_info(category_rule)"))}
+        for col in ("not_show", "not_run"):
+            if col not in cols:
+                conn.execute(_text(
+                    f"ALTER TABLE category_rule ADD COLUMN {col} BOOLEAN NOT NULL DEFAULT 0"))
+        if "not_show_run" in cols:
+            conn.execute(_text(
+                "UPDATE category_rule SET not_show = 1, not_run = 1 WHERE not_show_run = 1"))
+            try:
+                conn.execute(_text("ALTER TABLE category_rule DROP COLUMN not_show_run"))
+            except Exception:
+                pass  # SQLite before 3.35: the unused column stays, with its default
+        conn.execute(_text("UPDATE category_rule SET not_run = 1 WHERE is_multi_category = 1"))
+
+
 def _migrate_add_rule_multi_category(engine) -> None:
     """Add is_multi_category to category_rule if not present (idempotent)."""
     from sqlalchemy import text as _text
@@ -1335,7 +1376,8 @@ def _assign_rule_directions(engine) -> None:
                         pattern=rule.pattern, match_type=rule.match_type, category=rule.category,
                         subcategory=rule.subcategory, context=rule.context, doc_type=rule.doc_type,
                         priority=rule.priority, is_giroconto=rule.is_giroconto,
-                        is_multi_category=rule.is_multi_category, direction="in"))
+                        is_multi_category=rule.is_multi_category, not_show=rule.not_show,
+                        not_run=rule.not_run, direction="in"))
                     continue
                 d = found.pop() if found else "out"
             rule.direction = d
@@ -1804,6 +1846,30 @@ def _migrate_add_transaction_model_proposal(engine) -> None:
                 conn.commit()
             except Exception:
                 pass  # column already exists
+
+
+def _migrate_add_transaction_model_source(engine) -> None:
+    """Add model_source to transaction; fill it only where it is certain.
+
+    A movement still carrying its import category from the merchant list or
+    the history says who proposed it. The model's own proposals are not
+    filled: a generic fallback was recorded as llm too, and telling them
+    apart afterwards would be a guess. Empty means imported before the
+    column. Idempotent: rows already filled are left alone.
+    """
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        try:
+            conn.execute(_text('ALTER TABLE "transaction" ADD COLUMN model_source VARCHAR(10)'))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+    with engine.begin() as conn:
+        conn.execute(_text(
+            'UPDATE "transaction" SET model_source = category_source '
+            "WHERE model_source IS NULL AND category_source IN ('nsi', 'history') "
+            "AND model_category IS NOT NULL AND category = model_category "
+            "AND COALESCE(subcategory, '') = COALESCE(model_subcategory, '')"))
 
 
 def _migrate_add_import_job_last_ping(engine) -> None:

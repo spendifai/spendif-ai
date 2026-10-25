@@ -90,3 +90,64 @@ def test_the_import_keeps_the_proposal_only_for_automatic_sources(monkeypatch):
     assert (by_desc["ESSELUNGA CORSICO"]["model_category"],
             by_desc["ESSELUNGA CORSICO"]["model_confidence"]) == ("Spesa", "low")
     assert by_desc["BAR ROSSI"].get("model_category") is None       # a rule decided
+    assert (by_desc["ESSELUNGA CORSICO"]["model_source"],
+            by_desc["BAR ROSSI"]["model_source"]) == ("llm", "rule")
+
+
+# ── Who proposed it (model_source) ────────────────────────────────────────────
+
+def test_the_source_of_the_proposal_survives_a_confirmation(engine):
+    with get_session(engine) as s:
+        _tx(s, "t", "nsi")
+        s.get(Transaction, "t").model_source = "nsi"
+        s.commit()
+        update_transaction_category(s, "t", "Spesa", "", origin="counterparts", source="rule")
+        s.commit()
+        tx = s.get(Transaction, "t")
+        assert (tx.category_source, tx.model_source) == ("rule", "nsi")
+
+
+def test_a_change_by_hand_leaves_the_source_alone(engine):
+    with get_session(engine) as s:
+        _tx(s, "t", "llm")
+        s.get(Transaction, "t").model_source = "llm"
+        s.commit()
+        update_transaction_category(s, "t", "Ristorazione", "", origin="ledger")
+        s.commit()
+        assert s.get(Transaction, "t").model_source == "llm"
+
+
+def test_a_fallback_is_told_apart_from_the_model():
+    from core.categorizer import _make_fallback, multi_category_result
+    from core.models import MODEL_SOURCE_FALLBACK
+
+    assert _make_fallback(Decimal("-3")).proposal_source == MODEL_SOURCE_FALLBACK
+    assert multi_category_result(Decimal("-3")).proposal_source == "multi"
+
+
+def test_the_migration_fills_only_what_is_certain(tmp_path):
+    from sqlalchemy import text
+
+    from db.models import _migrate_add_transaction_model_source
+
+    engine = create_tables(create_engine(f"sqlite:///{tmp_path / 'old.db'}"))
+    with get_session(engine) as s:
+        _tx(s, "kept", "nsi")
+        _tx(s, "changed", "history")
+        _tx(s, "model", "llm")
+        s.commit()
+    with engine.begin() as conn:
+        conn.execute(text("""UPDATE "transaction" SET model_source = NULL"""))
+        conn.execute(text("""UPDATE "transaction" SET category = 'Altro' WHERE id = 'changed'"""))
+    _migrate_add_transaction_model_source(engine)
+    _migrate_add_transaction_model_source(engine)  # idempotent
+    with get_session(engine) as s:
+        got = {t.id: t.model_source for t in s.query(Transaction)}
+    assert got == {"kept": "nsi", "changed": None, "model": None}
+
+
+def test_a_held_movement_keeps_the_proposal(engine):
+    from db.repository import _HELD_FIELDS
+
+    for field in ("model_category", "model_subcategory", "model_confidence", "model_source"):
+        assert field in _HELD_FIELDS

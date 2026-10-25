@@ -138,6 +138,7 @@ class TransactionService:
 
         The movement is recorded as categorized by the rule, not by hand,
         so it agrees with the movements the same rule matches at import.
+        A choice by hand and a checked movement stay: False, nothing changed.
         """
         with self._session() as s:
             result = repository.update_transaction_category(
@@ -145,6 +146,12 @@ class TransactionService:
             )
             s.commit()
             return result
+
+    @staticmethod
+    def rule_may_change(tx: Transaction) -> bool:
+        """Whether a rule may change this movement: what a count of the
+        movements a rule will change must leave out."""
+        return repository.rule_may_change(tx)
 
     def get_correction_benchmark(self) -> list[dict]:
         with self._session() as s:

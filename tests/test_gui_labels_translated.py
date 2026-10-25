@@ -164,6 +164,7 @@ def valori_dati(db_demo) -> set[str]:
 @pytest.mark.parametrize("page", [
     "ui.home_page:render_home_page",
     "ui.registry_page:render_registry_page",
+    "ui.expense_confirm_page:render_expense_confirm_page",
     "ui.review_page:render_review_page",
     "ui.upload_page:render_upload_page",
     "ui.rules_page:render_rules_page",

@@ -436,6 +436,8 @@ def _render_grid(
                 "multi_changed": new_multi != orig_multi and not new_giro,
                 "set_category": (cat_changed or confirm) and not new_giro and not new_multi,
                 "confirm": confirm,
+                # Ticked with the category it already had: accepted, no rule.
+                "accept": confirm and not cat_changed,
                 "orig": orig,
             }
         )
@@ -495,6 +497,15 @@ def _render_grid(
                     logger.info(
                         f"counterparts_page: {'created' if created else 'updated'} giroconto rule"
                     )
+                elif r["accept"] and not rule_svc.generalizes(
+                        r["description"], *written[r["description"]]):
+                    # The category stays as it is, and so does its source: the
+                    # counterpart is only remembered as done (spec 16, 3.4). A
+                    # starts-with key covering other counterparts is a real
+                    # rule instead, written below.
+                    rule_svc.accept_counterpart(r["description"], r["new_cat"], r["new_sub"])
+                    saved += 1
+                    logger.info("counterparts_page: counterpart accepted")
                 elif r["set_category"]:
                     pattern, match_type = written[r["description"]]
                     # A tick covers the movements already there, or it would

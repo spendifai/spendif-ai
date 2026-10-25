@@ -10,6 +10,11 @@ from core.categorizer import CategoryRule as CoreCategoryRule
 from core.rule_key import KEY_CHECK, KEY_KNOWN, STARTS_WITH, key_confidence  # noqa: F401 - re-exported for UI
 from support.logging import setup_logging
 
+# Equal choices by hand on one counterpart before the Registry asks
+# "always like this?" (spec 18, 5.2; founder 2026-10-25, to verify on data).
+ALWAYS_QUESTION_MIN = 3
+_ALWAYS_DECLINED = "always_question_declined"
+
 logger = setup_logging()
 
 
@@ -220,6 +225,32 @@ class RuleService:
         with self._session() as s:
             return repository.get_category_rules(s)
 
+    def always_questions(self, tx_ids: list[str]) -> list[dict]:
+        """The "always like this?" questions after a save of the Registry:
+        {description, category, subcategory, direction, n} (spec 18, 5.2)."""
+        with self._session() as s:
+            return repository.always_questions(s, tx_ids, ALWAYS_QUESTION_MIN,
+                                               self._always_declined(s))
+
+    def decline_always(self, question: dict) -> None:
+        """The user said no: that counterpart, category and direction are
+        not asked again."""
+        import json
+        with self._session() as s:
+            declined = self._always_declined(s)
+            declined.add(repository.always_key(question["description"], question["category"],
+                                               question["subcategory"], question["direction"]))
+            repository.set_user_setting(s, _ALWAYS_DECLINED, json.dumps(sorted(declined)))
+            s.commit()
+
+    @staticmethod
+    def _always_declined(s) -> set[str]:
+        import json
+        try:
+            return set(json.loads(repository.get_user_setting(s, _ALWAYS_DECLINED) or "[]"))
+        except ValueError:
+            return set()
+
     def create_rule(
         self,
         pattern: str,
@@ -235,6 +266,33 @@ class RuleService:
             result = repository.create_category_rule(
                 s, pattern, match_type, category, subcategory, context, doc_type, priority,
                 is_giroconto=is_giroconto,
+            )
+            s.commit()
+            return result
+
+    def generalizes(self, description: str, pattern: str, match_type: str) -> bool:
+        """True when a starts-with key covers counterparts other than this one
+        already in the ledger: then a rule is worth writing (spec 16, 3.4)."""
+        if match_type != STARTS_WITH:
+            return False
+        from core.rule_key import exact_key
+        own = exact_key(description)
+        with self._session() as s:
+            matched = repository.get_transactions_by_rule_pattern(s, pattern, match_type)
+            return any(exact_key(tx.description or "") != own for tx in matched)
+
+    def accept_counterpart(self, description: str, category: str, subcategory: str) -> tuple:
+        """The user kept the counterpart's category as it was (spec 16, 3.4).
+
+        Only remembered, as an exact rule that is not shown and not run
+        (not_show, not_run): the movements keep their category and the source that
+        gave it, the next imports categorize the counterpart from the history,
+        and the guided flow does not ask about it again.
+        """
+        with self._session() as s:
+            result = repository.create_category_rule(
+                s, description, "exact", category, subcategory, priority=10,
+                not_show=True, not_run=True,
             )
             s.commit()
             return result

@@ -21,15 +21,16 @@ def write_and_apply(rule_svc, tx_svc, description: str, pattern: str, match_type
                     apply: bool = True) -> tuple[int, str | None]:
     """Save the rule and apply it to the movements already there.
 
-    A category chosen by hand on one movement is an exception to the rule
-    and is never overwritten. Returns (movements the rule was applied to,
+    A category chosen by hand on one movement is an exception to the rule,
+    and a checked movement has its category confirmed: neither is
+    overwritten. Returns (movements the rule was applied to,
     the note to show), and calls no Streamlit command: a click during a save
     stops the run at the next one, and must not stop it between two rules.
     """
     rule_svc.create_rule(pattern=pattern, match_type=match_type, category=category,
                          subcategory=subcategory, priority=10)
     txs = tx_svc.get_by_rule_pattern(pattern, match_type)
-    targets = [tx for tx in txs if tx.category_source != "manual"] if apply else []
+    targets = [tx for tx in txs if tx_svc.rule_may_change(tx)] if apply else []
     for tx in targets:
         tx_svc.apply_rule_category(tx.id, category, subcategory, origin=origin)
     if match_type == STARTS_WITH:

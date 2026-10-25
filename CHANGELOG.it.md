@@ -8,6 +8,24 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.10.2] - 2026-10-25
+
+### Aggiunto
+- Conferma una spesa: con lo scontrino in mano scrivi o detti data e importo come si dicono ("ieri, 23 e 40") e l'app trova il movimento fra le uscite entro tre giorni. Se ce n'è uno lo confermi o ne correggi la categoria; se sono più d'uno li propone come scelta; se non c'è lo dice. La categoria viene dalle tue parole, e il modello si interpella solo quando non ne nominano nessuna: tre proposte vicine, poi l'elenco intero. Il movimento confermato diventa controllato
+- Conferma una spesa, voce: le risposte si leggono ad alta voce con la voce del sistema operativo, dentro la finestra dell'app, senza mandare niente in rete, e un interruttore la spegne. Gli importi si leggono come si dicono. Le risposte partono con Invio, scritte o dettate; con la dettatura del Mac si prende solo la parte nuova. Limite noto: mentre la dettatura del Mac ascolta il sistema trattiene la voce, quindi le risposte si sentono a dettatura spenta
+- "Sempre così?": dopo tre movimenti della stessa controparte messi a mano nella stessa categoria, il Registro chiede se diventa una regola. Sì la scrive e la applica ai movimenti già presenti, senza toccare le scelte a mano e i movimenti controllati; no si ricorda e non si chiede più
+- Ogni movimento ricorda chi l'ha categorizzato all'import: una regola, lo storico, l'elenco degli esercenti, il modello, una controparte multi-categoria o la categoria di ripiego, ora distinta dal modello. I movimenti più vecchi restano vuoti invece che indovinati
+
+### Modificato
+- Spuntare una controparte con la categoria già giusta la accetta così com'è: i suoi movimenti tengono la categoria e chi l'ha data, nessuna regola prende i prossimi import, e né i passi guidati né "Sempre così?" lo chiedono di nuovo
+- Una controparte con più categorie resta nella pagina Regole, ma la sua regola non gira mai: i suoi movimenti tengono la categoria che hanno, e nessuna regola più ampia li prende
+- "Raw" diventa "descrizione originale" ovunque, in tutte e cinque le lingue
+
+### Corretto
+- Le regole applicate da una pagina (modifica di una regola, correzione dei suoi movimenti, applicazione immediata di una regola nuova, movimenti simili in Revisione) sovrascrivevano le categorie scelte a mano e i movimenti controllati; ora li lasciano stare, come già faceva l'import, e i conteggi annunciati comprendono solo i movimenti che cambiano
+- L'export di un'app di pagamento con una colonna di ID transazione prendeva l'ID come descrizione, quindi ogni movimento arrivava con la descrizione vuota e poi prendeva lo stesso nome e la stessa categoria. Una colonna di codici tutti diversi e della stessa lunghezza non è mai la descrizione, e un nuovo formato di file che lascia senza descrizione più del 10% delle righe si ferma per la revisione
+- I movimenti con data futura tengono la categoria proposta e la sua fonte fino alla loro data
+
 ## [2026.10.1] - 2026-10-24
 
 ### Aggiunto

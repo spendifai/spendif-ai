@@ -29,7 +29,7 @@ from core.history_engine import (
     get_top_associations_text,
 )
 from core.llm_backends import LLMBackend, call_with_fallback
-from core.models import CategorySource, Confidence
+from core.models import MODEL_SOURCE_FALLBACK, CategorySource, Confidence
 from core.sanitizer import SanitizationConfig, redact_pii
 from core.schemas import build_categorization_batch_schema
 from support.logging import setup_logging
@@ -66,6 +66,13 @@ class CategoryRule:
     is_giroconto: bool = False
     # A multi-category rule (spec 24): the generic category, seen one by one.
     is_multi_category: bool = False
+    # An accepted counterpart (spec 16, 3.4): the user kept the category it
+    # had, so the rule only records that the counterpart is done. It is not
+    # shown and not run; writing the same rule again makes it a real one.
+    not_show: bool = False
+    # Never run as a rule: an accepted counterpart, and a multi-category one,
+    # whose flag the import reads (spec 24, founder 2026-10-25).
+    not_run: bool = False
     # The rule's direction (spec 18): "out" for money out, "in" for money in.
     # A rule never holds for both by default; None only for a rule built in
     # code without a ledger behind it.
@@ -170,6 +177,16 @@ class CategorizationResult:
     rationale: str = ""
     to_review: bool = False
     model_name: str = ""
+    # Set by _make_fallback: the generic category of the direction, given
+    # when nothing better was found. Its source says llm, but no model chose it.
+    fallback: bool = False
+
+    @property
+    def proposal_source(self) -> str:
+        """Who categorized the movement at import, as kept in model_source."""
+        if self.fallback and self.source == CategorySource.llm:
+            return MODEL_SOURCE_FALLBACK
+        return self.source.value
 
 
 # ── Static country rules (loaded from core/static_rules/<language>.json) ─────
@@ -293,6 +310,7 @@ def _make_fallback(
         confidence=Confidence.low,
         source=CategorySource.llm,
         to_review=True,
+        fallback=True,
     )
 
 
