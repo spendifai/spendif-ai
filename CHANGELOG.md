@@ -6,6 +6,24 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.10.2] - 2026-10-25
+
+### Added
+- Confirm an expense: with a receipt in hand, type or dictate its date and amount as people say them ("yesterday, 23 and 40") and the app finds the movement among the outflows within three days. One match is confirmed or its category corrected; several are offered as a choice; none is said plainly. The category comes from your words, and the model is asked only when they name none: three nearest proposals, then the full list. A confirmed movement is marked as checked
+- Confirm an expense, voice: replies are read aloud by the operating system's own voice, inside the app window, with nothing sent over the network, and a switch turns it off. Amounts are read as people say them. Answers go with Enter, typed or dictated; with the Mac's dictation only the new words are taken. Known limit: while the Mac's dictation is listening the system holds the voice, so replies are heard with dictation off
+- "Always like this?": after three movements of one counterpart given the same category by hand, the Registry asks whether it becomes a rule. Yes writes it and applies it to the movements already there, leaving hand choices and checked movements alone; no is remembered and not asked again
+- Every movement remembers who categorized it at import: a rule, the history, the merchant list, the model, a multi-category counterpart, or the fallback category, now told apart from the model. Older movements stay empty rather than guessed
+
+### Changed
+- Ticking a counterpart whose category is already right accepts it as it is: its movements keep their category and who gave it, no rule takes over the next imports, and neither the guided steps nor "Always like this?" ask again
+- A counterpart with several categories stays on the Rules page, but its rule never runs: its movements keep the category they have, and no broader rule takes them
+- "Raw" is now "original description" everywhere, in all five languages
+
+### Fixed
+- Rules applied from a page (editing a rule, fixing its movements, applying a new rule at once, similar movements in Review) overwrote categories chosen by hand and checked movements; they now leave them alone, as the import already did, and the counts announced include only the movements that change
+- A payment app export with a transaction ID column took the ID as the description, so every movement came in with an empty description and then got the same name and category. A column of all-different codes of one length is never the description, and a new file layout leaving more than 10% of the rows without a description stops for review
+- Movements dated in the future keep the proposed category and its source until their date
+
 ## [2026.10.1] - 2026-10-24
 
 ### Added
