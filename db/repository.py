@@ -683,6 +683,13 @@ def _compute_consistency(session: Session, description: str) -> float | None:
     return round(modal_count / len(rows) * 100, 1)
 
 
+def rule_may_change(tx: Transaction) -> bool:
+    """A rule may change this movement's category: not a choice by hand
+    (a one-off exception to the rule), not a checked movement (the tick
+    confirms the category too). Spec 18 par. 6, spec 16 principle 7."""
+    return tx.category_source != "manual" and not tx.human_validated
+
+
 def update_transaction_category(
     session: Session,
     tx_id: str,
@@ -701,12 +708,17 @@ def update_transaction_category(
     counts as categorized by the user and a changed category is logged as a
     correction of the previous source. It does not count as checked: choosing
     how the money was spent says nothing on whether it was spent.
+
+    A rule never changes a choice by hand or a checked movement, from
+    whatever page it is applied: then nothing changes and it returns False.
     """
     from datetime import datetime, timezone
     if source not in ("manual", "rule"):
         raise ValueError(f"unknown category source: {source}")
     tx = session.get(Transaction, tx_id)
     if tx is None:
+        return False
+    if source == "rule" and not rule_may_change(tx):
         return False
     old_cat = tx.category
     old_sub = tx.subcategory
