@@ -208,7 +208,11 @@ class HistoryCache:
 
         Returns (category, subcategory, confidence) or (None, None, 0.0).
         """
-        profile = self._cache.get(exact_key(description))
+        key = exact_key(description)
+        if not key:
+            # No description, no counterpart to recognise (spec 13, 4.1).
+            return None, None, 0.0
+        profile = self._cache.get(key)
         if profile is None:
             return None, None, 0.0
         return profile.top_category, profile.top_subcategory, profile.confidence

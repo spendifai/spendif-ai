@@ -113,6 +113,10 @@ def clean_descriptions_batch(
     income_indices: list[int] = []
 
     for i, tx in enumerate(txs):
+        # Nothing to clean: asked about an empty text, the model returns a
+        # name from the examples it was given (spec 13, 4.1).
+        if not str(tx.get("raw_description") or tx.get("description") or "").strip():
+            continue
         amt = tx.get("amount")
         try:
             is_expense = Decimal(str(amt)) < 0 if amt is not None else False
