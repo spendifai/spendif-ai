@@ -10,6 +10,11 @@ from core.categorizer import CategoryRule as CoreCategoryRule
 from core.rule_key import KEY_CHECK, KEY_KNOWN, STARTS_WITH, key_confidence  # noqa: F401 - re-exported for UI
 from support.logging import setup_logging
 
+# Equal choices by hand on one counterpart before the Registry asks
+# "always like this?" (spec 18, 5.2; founder 2026-10-25, to verify on data).
+ALWAYS_QUESTION_MIN = 3
+_ALWAYS_DECLINED = "always_question_declined"
+
 logger = setup_logging()
 
 
@@ -219,6 +224,32 @@ class RuleService:
     def get_rules(self) -> list[CoreCategoryRule]:
         with self._session() as s:
             return repository.get_category_rules(s)
+
+    def always_questions(self, tx_ids: list[str]) -> list[dict]:
+        """The "always like this?" questions after a save of the Registry:
+        {description, category, subcategory, direction, n} (spec 18, 5.2)."""
+        with self._session() as s:
+            return repository.always_questions(s, tx_ids, ALWAYS_QUESTION_MIN,
+                                               self._always_declined(s))
+
+    def decline_always(self, question: dict) -> None:
+        """The user said no: that counterpart, category and direction are
+        not asked again."""
+        import json
+        with self._session() as s:
+            declined = self._always_declined(s)
+            declined.add(repository.always_key(question["description"], question["category"],
+                                               question["subcategory"], question["direction"]))
+            repository.set_user_setting(s, _ALWAYS_DECLINED, json.dumps(sorted(declined)))
+            s.commit()
+
+    @staticmethod
+    def _always_declined(s) -> set[str]:
+        import json
+        try:
+            return set(json.loads(repository.get_user_setting(s, _ALWAYS_DECLINED) or "[]"))
+        except ValueError:
+            return set()
 
     def create_rule(
         self,
