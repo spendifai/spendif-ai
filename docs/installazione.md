@@ -31,7 +31,7 @@ La configurazione viene salvata nel database (`user_settings`) e persiste tra i 
 | 12 GB | Qwen2.5-7B | 4.7 GB |
 | 16+ GB | Gemma-3-12B | 6.8 GB |
 
-> **Come viene scelta la memoria effettiva?** Su Mac (Apple Silicon) la memoria è unificata, quindi coincide con la RAM. Su Linux/Windows con GPU dedicata (NVIDIA o AMD ROCm), il vincolo è la VRAM: l'app rileva la VRAM via `nvidia-smi` o `rocm-smi` e usa `min(RAM, VRAM)`. Se non viene rilevata nessuna GPU, usa la RAM di sistema.
+> **Come viene scelta la memoria effettiva?** Su Mac (Apple Silicon) la memoria è unificata, quindi coincide con la RAM. Su Linux/Windows con GPU dedicata (NVIDIA o AMD ROCm), il vincolo è la VRAM: l'app rileva la VRAM via `nvidia-smi` o `rocm-smi` e usa `min(RAM, VRAM)`, con la VRAM arrotondata al GB piu' vicino: una scheda da 12 GB ne dichiara 11,9 e deve contare come 12. Se non viene rilevata nessuna GPU, usa la RAM di sistema.
 
 > **Nota:** l'app funziona anche senza LLM attivo. Import, ledger, regole, analisi e report sono sempre disponibili. Se il LLM non è raggiungibile, le transazioni ricevono categoria "Altro" e `to_review=True`.
 

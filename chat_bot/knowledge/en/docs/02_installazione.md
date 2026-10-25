@@ -31,7 +31,7 @@ The configuration is saved in the database (`user_settings`) and persists across
 | 12 GB | Qwen2.5-7B | 4.7 GB |
 | 16+ GB | Gemma-3-12B | 6.8 GB |
 
-> **How is effective memory determined?** On Mac (Apple Silicon) memory is unified, so it equals RAM. On Linux/Windows with a discrete GPU (NVIDIA or AMD ROCm), VRAM is the bottleneck: the app detects VRAM via `nvidia-smi` or `rocm-smi` and uses `min(RAM, VRAM)`. If no GPU is detected, system RAM is used.
+> **How is effective memory determined?** On Mac (Apple Silicon) memory is unified, so it equals RAM. On Linux/Windows with a discrete GPU (NVIDIA or AMD ROCm), VRAM is the bottleneck: the app detects VRAM via `nvidia-smi` or `rocm-smi` and uses `min(RAM, VRAM)`, with VRAM rounded to the nearest GB: a 12 GB card reports 11.9 and must count as 12. If no GPU is detected, system RAM is used.
 
 > **Note:** the app works without an active LLM. Import, ledger, rules, analytics and reports are always available. If the LLM is unreachable, transactions receive the category "Other" and `to_review=True`.
 

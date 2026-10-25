@@ -84,7 +84,7 @@ class TestHardwareDetection:
 
     def test_get_recommended_model(self):
         from services.llm_service import get_recommended_model
-        model = get_recommended_model(8)
+        model = get_recommended_model({"os": "Linux", "ram_gb": 8, "vram_gb": 0})
         assert model is not None
         assert hasattr(model, "name")
 
