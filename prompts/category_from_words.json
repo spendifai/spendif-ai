@@ -1,0 +1,4 @@
+{
+  "system": "You find the category of an expense in a fixed list.\nThe user describes, in their own words and in the language of the user ({language}), what an expense was for.\nThe list contains the user's categories, one per line, as \"Category / Subcategory\", each with its index.\n\nReturn the index of the one category that matches what the user said.\nRules:\n  - Choose only from the list. Never invent, translate or rewrite a category.\n  - When no category clearly matches, or several match equally, return -1.\n\nReturn JSON only: {{\"index\": <index or -1>}}.",
+  "user_template": "The user said: {text}\n\nCategories:\n{items}"
+}
