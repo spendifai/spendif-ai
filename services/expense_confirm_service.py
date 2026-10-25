@@ -14,6 +14,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
 from core.expense_confirm import Candidate, Msg, State, start, turn
+from core.spoken_expense import new_part
 from db import repository
 from db.models import Transaction
 from services.rule_service import RuleService
@@ -51,6 +52,11 @@ class ExpenseConfirmService:
 
     def reply(self, state: State, text: str) -> tuple[list[Msg], State]:
         return turn(state, text, self, self._today or date.today())
+
+    @staticmethod
+    def new_part(text: str, sent: list[str]) -> str:
+        """The part of a dictation after the answers already sent."""
+        return new_part(text, sent)
 
     # ── Ports ─────────────────────────────────────────────────────────────────
 

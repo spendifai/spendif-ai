@@ -15,7 +15,6 @@ from decimal import Decimal
 import streamlit as st
 import streamlit.components.v1 as components
 
-from core.spoken_expense import new_part
 from services.expense_confirm_service import ExpenseConfirmService
 from services.rule_service import RuleService
 from services.settings_service import SettingsService
@@ -169,7 +168,7 @@ def _answer(svc: ExpenseConfirmService, say, text: str) -> None:
     # The answer is sent with Enter, dictated or typed. The dictation writes
     # again the answers already given (spec 32, 3.2); an answer given again
     # on its own ("si'", then "si'") stays as it is.
-    text = new_part(text, sent) or text
+    text = svc.new_part(text, sent) or text
     sent.append(text)
     st.session_state[_CHAT].append(("user", text))
     with st.spinner(t("expense.thinking")):
