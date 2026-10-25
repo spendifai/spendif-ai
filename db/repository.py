@@ -715,7 +715,8 @@ def always_questions(session: Session, tx_ids: list[str], threshold: int,
     and the user has not said no to it.
     """
     from sqlalchemy import func
-    rules = get_category_rules(session)
+    # an accepted counterpart is the user's yes already given
+    rules = get_category_rules(session, include_accepted=True)
     out: list[dict] = []
     seen: set[str] = set()
     for tx in session.query(Transaction).filter(Transaction.id.in_(tx_ids)):

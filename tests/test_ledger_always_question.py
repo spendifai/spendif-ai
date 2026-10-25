@@ -72,6 +72,14 @@ def test_a_rule_that_already_covers_it_is_not_asked_again(engine):
     assert RuleService(engine).always_questions(ids) == []
 
 
+def test_an_accepted_counterpart_is_not_asked_again(engine):
+    """Keeping the category accepts the counterpart without a rule that runs:
+    the user has already said it, so no question either."""
+    ids = _add(engine, 3)
+    RuleService(engine).accept_counterpart("PASTICCERIA CLIVATI", "Alimentari", "Pasticceria")
+    assert RuleService(engine).always_questions(ids) == []
+
+
 def test_after_a_no_it_is_not_asked_again(engine):
     ids = _add(engine, 3)
     svc = RuleService(engine)
