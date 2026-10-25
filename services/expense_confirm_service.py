@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
 from core.expense_confirm import Candidate, Msg, State, start, turn
@@ -76,6 +76,13 @@ class ExpenseConfirmService:
                               counterpart=tx.description or "", category=tx.category or None,
                               subcategory=tx.subcategory or "")
                     for tx in q.all()]
+
+    def last_date(self) -> date | None:
+        """The day of the latest movement in the ledger: after it, an expense
+        cannot be there yet (spec 32, 4.2 C 2)."""
+        with self._session() as s:
+            last = s.query(func.max(Transaction.date)).scalar()
+        return date.fromisoformat(last) if last else None
 
     def category_pairs(self) -> list[tuple[str, str]]:
         """Every expense category with each of its subcategories, in the

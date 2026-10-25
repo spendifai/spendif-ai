@@ -43,8 +43,9 @@ def _c(tx_id, amount, day, name="Esselunga", cat="Alimentari", sub="Spesa superm
 class FakeLedger:
     """The ports of the flow: what it reads and writes, recorded."""
 
-    def __init__(self, movements=(), checked=(), model=None, questions=()):
+    def __init__(self, movements=(), checked=(), model=None, questions=(), last=None):
         self.movements = list(movements)
+        self.last = last
         self.checked = list(checked)
         self.model = model
         self.questions = list(questions)
@@ -59,6 +60,9 @@ class FakeLedger:
 
     def category_pairs(self):
         return PAIRS
+
+    def last_date(self):
+        return self.last
 
     def model_pick(self, text, labels):
         return self.model(text, labels) if self.model else None
@@ -115,10 +119,57 @@ def test_the_window_is_three_days_each_side():
     assert checked is False
 
 
-def test_a_movement_outside_the_window_is_not_found():
-    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24) - timedelta(days=4))])
+def test_a_movement_outside_the_window_is_offered_as_another_day():
+    """Spec 32, 4.2 C 1: the date remembered is wrong more often than the
+    amount; the same amount within a month is offered, never confirmed."""
+    ledger = FakeLedger([_c("t1", "15.10", date(2026, 10, 13))])
     _, state = start()
-    msgs, state = _say(state, "ieri, 23,40", ledger)
+    msgs, state = _say(state, "15,10 23 ottobre", ledger)
+    assert _keys(msgs) == ["expense.not_that_day", "expense.found_one"]
+    assert msgs[0].params["day"] == date(2026, 10, 23)
+    assert state.step == CONFIRM_ONE and state.chosen.tx_id == "t1"
+
+
+def test_several_on_other_days_are_a_choice():
+    ledger = FakeLedger([_c("t1", "15.10", date(2026, 10, 13)),
+                         _c("t2", "15.10", date(2026, 10, 2), name="Bar Sole")])
+    _, state = start()
+    msgs, state = _say(state, "15,10 23 ottobre", ledger)
+    assert _keys(msgs) == ["expense.not_that_day", "expense.found_many", "expense.which"]
+    assert state.step == CHOOSE
+    assert [c.tx_id for c in state.candidates] == ["t1", "t2"]   # the closest first
+
+
+def test_on_another_day_but_already_checked_is_said():
+    ledger = FakeLedger(checked=[_c("t1", "15.10", date(2026, 10, 13))])
+    _, state = start()
+    msgs, state = _say(state, "15,10 23 ottobre", ledger)
+    assert _keys(msgs) == ["expense.already_checked", "expense.next"]
+    assert msgs[0].params["day"] == date(2026, 10, 13)
+
+
+def test_more_than_a_month_away_is_not_offered():
+    ledger = FakeLedger([_c("t1", "15.10", date(2026, 9, 1))])
+    _, state = start()
+    msgs, state = _say(state, "15,10 il 12 ottobre", ledger)
+    assert _keys(msgs) == ["expense.not_found"]
+
+
+def test_a_date_after_the_last_movement_is_not_there_yet():
+    """Spec 32, 4.2 C 2: the statements stop on the 18th, the expense of
+    the 23rd cannot be there yet."""
+    ledger = FakeLedger(last=date(2026, 10, 18))
+    _, state = start()
+    msgs, state = _say(state, "15,10 23 ottobre", ledger)
+    assert _keys(msgs) == ["expense.not_yet"]
+    assert msgs[0].params["last"] == date(2026, 10, 18)
+    assert state.step == ASK_EXPENSE
+
+
+def test_a_date_covered_by_the_data_is_not_found():
+    ledger = FakeLedger(last=date(2026, 10, 18))
+    _, state = start()
+    msgs, _ = _say(state, "15,10 il 12 ottobre", ledger)
     assert _keys(msgs) == ["expense.not_found"]
 
 

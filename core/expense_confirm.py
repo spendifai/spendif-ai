@@ -48,6 +48,9 @@ ALWAYS = "always"
 # Days before and after the date said: the card date can slip from the
 # receipt's (spec 32, 4.2; to verify on data, 7).
 WINDOW_DAYS = 3
+# The same amount on another day, offered when nothing is in the window: the
+# date remembered is wrong more often than the amount (spec 32, 4.2 C 1).
+FAR_DAYS = 31
 # Rounds of the category question before the whole list (spec 32, 4.3, 4).
 MAX_ROUNDS = 3
 _CENT = Decimal("0.01")
@@ -83,6 +86,7 @@ class Ports(Protocol):
     def outflows(self, low: Decimal, high: Decimal, date_from: date, date_to: date,
                  checked: bool) -> list[Candidate]: ...
     def category_pairs(self) -> list[Pair]: ...
+    def last_date(self) -> date | None: ...
     def model_pick(self, text: str, labels: list[str]) -> int | None: ...
     def confirm(self, tx_id: str, pair: Pair | None) -> list[dict]: ...
     def always_yes(self, question: dict) -> str | None: ...
@@ -175,10 +179,31 @@ def _search(amount: Decimal, cents_said: bool, day: date, ports):
                     State(step=CHOOSE, candidates=near))
     done = by_closeness(ports.outflows(amount, amount, d_from, d_to, True))
     if done:
-        c = done[0]
-        return ([Msg("expense.already_checked", {"amount": c.amount, "day": c.day, "name": c.counterpart}),
-                 Msg("expense.next")], State())
+        return _already_checked(done[0])
+    # Outcome C says why (spec 32, 4.2 C): the same amount on another day,
+    # then a date the statements do not reach yet, then not there.
+    f_from, f_to = day - timedelta(days=FAR_DAYS), day + timedelta(days=FAR_DAYS)
+    far = by_closeness(ports.outflows(amount, amount, f_from, f_to, False))
+    lead = [Msg("expense.not_that_day", {"day": day})]
+    if len(far) == 1:
+        msgs, new = _show_one(far[0])
+        return lead + msgs, new
+    if far:
+        return (lead + [Msg("expense.found_many", {"n": len(far), "items": list(far)}),
+                        Msg("expense.which")],
+                State(step=CHOOSE, candidates=far))
+    far_done = by_closeness(ports.outflows(amount, amount, f_from, f_to, True))
+    if far_done:
+        return _already_checked(far_done[0])
+    last = ports.last_date()
+    if last is not None and day > last:
+        return [Msg("expense.not_yet", {"last": last})], State()
     return _not_found(amount, day)
+
+
+def _already_checked(c: Candidate):
+    return ([Msg("expense.already_checked", {"amount": c.amount, "day": c.day, "name": c.counterpart}),
+             Msg("expense.next")], State())
 
 
 def _not_found(amount, day):

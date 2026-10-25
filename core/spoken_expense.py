@@ -138,7 +138,11 @@ def _read_amount(tokens: list[str]) -> tuple[Amount | None, set[int]]:
                 used.add(i + 1)
             return (Amount(dec, True) if dec > 0 else None), used
         n = _number(tok)
-        if n is None or n == 0:
+        if n is None:
+            continue
+        # "zero e 90" is 0,90; a zero alone is no amount
+        if n == 0 and (tokens[i + 1] if i + 1 < len(tokens) else "") not in (
+                "e", "virgola", "punto", *_EURO_WORDS):
             continue
         used = {i}
         j = i + 1
@@ -164,7 +168,10 @@ def _read_amount(tokens: list[str]) -> tuple[Amount | None, set[int]]:
                 used |= set(range(j, k + 1))
                 if k + 1 < len(tokens) and tokens[k + 1] in _CENT_WORDS:
                     used.add(k + 1)
-                return Amount(Decimal(n) + cents, True), used
+                if n + cents > 0:
+                    return Amount(Decimal(n) + cents, True), used
+        if n == 0:
+            continue
         return Amount(Decimal(n), False), used
     return None, set()
 
@@ -433,3 +440,37 @@ def pick_category(text: str, options: list[tuple[str, str]]) -> int | None:
         return index
     pair = category_match(text, options)
     return options.index(pair) if pair is not None else None
+
+
+# ── Only the new part of a dictation ─────────────────────────────────────────
+
+def _after(text: str, sent: str) -> int | None:
+    """Where *text* goes on after starting with *sent*, comparing letters and
+    digits only; len(text) when *text* is *sent* or a part of its start; None
+    when it does not start with it."""
+    want = [c for c in sent.casefold() if c.isalnum()]
+    if not want:
+        return None
+    k = 0
+    for i, c in enumerate(text.casefold()):
+        if not c.isalnum():
+            continue
+        if k == len(want):
+            # a number or word that only starts like the one sent is new
+            return i if not text[i - 1].isalnum() else None
+        if c != want[k]:
+            return None
+        k += 1
+    return len(text)
+
+
+def new_part(text: str, sent: list[str]) -> str:
+    """The part of *text* after the answers already sent (spec 32, 3.2): the
+    Mac's dictation writes again everything it heard since it was turned on,
+    then the new words. The longest run of the last answers wins; spaces,
+    commas and the euro sign do not count. Empty when nothing is new."""
+    for j in range(len(sent)):
+        cut = _after(text, " ".join(sent[j:]))
+        if cut is not None:
+            return re.sub(r"^\W+", "", text[cut:])
+    return text

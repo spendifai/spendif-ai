@@ -39,6 +39,9 @@ TODAY = date(2026, 10, 25)      # a Sunday
     ("23,40", "23.40", True),
     ("23.40", "23.40", True),
     ("40 centesimi", "0.40", True),
+    ("zero e 90", "0.90", True),
+    ("0 e 90", "0.90", True),
+    ("zero euro e 90", "0.90", True),
     ("23,4", "23.40", True),             # written decimals are decimals
     ("23,40 €", "23.40", True),
     ("€ 23,40", "23.40", True),
@@ -54,7 +57,7 @@ def test_the_amount_as_it_is_said(said, value, cents):
     assert (amount.value, amount.cents_said) == (Decimal(value), cents)
 
 
-@pytest.mark.parametrize("said", ["", "ieri", "boh", "zero"])
+@pytest.mark.parametrize("said", ["", "ieri", "boh", "zero", "zero e zero"])
 def test_no_amount(said):
     assert parse_amount(said) is None
 
@@ -226,3 +229,25 @@ def test_nearest_even_for_unknown_words():
 def test_choose_among_the_proposed_categories(said, index):
     options = PAIRS[:3]
     assert pick_category(said, options) == index
+
+
+# ── Only the new part of a dictation (spec 32, 3.2) ──────────────────────────
+
+@pytest.mark.parametrize("text, sent, new", [
+    ("34,44 € 22 settembre 2026 0,90 € 15 febbraio 2026", ["34,44 € 22 settembre 2026"],
+     "0,90 € 15 febbraio 2026"),
+    ("34,44 € 22 settembre 2026 0,90 € 15 febbraio 2026, 12 € 1 ottobre",
+     ["34,44 € 22 settembre 2026", "0,90 € 15 febbraio 2026"], "12 € 1 ottobre"),
+    # the dictation was turned on after the first answer
+    ("ieri 5 sì", ["oggi 3", "ieri 5"], "sì"),
+    # spaces, commas and the euro sign change from one time to the next
+    ("ieri, 23 e 40. Sì", ["ieri 23 e 40 €"], "Sì"),
+    # a number that only starts like the one sent is a new number
+    ("345", ["34"], "345"),
+    ("ieri 5", [], "ieri 5"),
+    ("sì", ["sì"], ""),
+    ("ieri 23", ["ieri 23 e 40"], ""),
+])
+def test_only_the_new_part_of_a_dictation(text, sent, new):
+    from core.spoken_expense import new_part
+    assert new_part(text, sent) == new

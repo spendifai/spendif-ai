@@ -182,3 +182,64 @@ def test_a_day_of_another_year_says_the_year():
     say = _formatter({})
     text = say([Msg("expense.not_found", {"amount": Decimal("1234.5"), "day": date(2001, 5, 12)})])
     assert "12 maggio 2001" in text and "1.234,50" in text
+
+
+# ── The bot speaks (spec 32, 3.2) ────────────────────────────────────────────
+
+def test_spoken_text_has_no_markdown():
+    from ui.expense_confirm_page import spoken_text
+    assert spoken_text("Ho trovato **Esselunga**.\n\n- 1) Bar, 12 ottobre\n- 2) Coop") == (
+        "Ho trovato Esselunga. 1) Bar, 12 ottobre. 2) Coop")
+
+
+def test_a_colon_before_a_list_is_not_read_with_a_full_stop():
+    from ui.expense_confirm_page import spoken_text
+    assert spoken_text("Ne ho trovate 2:\n\n- 1) Bar\n- 2) Coop") == "Ne ho trovate 2: 1) Bar. 2) Coop"
+
+
+def test_each_reply_has_its_own_voice():
+    """The voice of each reply is made for it, from the user's Enter: one
+    voice in the app window for every reply came late with the dictation on."""
+    from ui.expense_confirm_page import speak_script
+    js = speak_script("Ciao", "it-IT")
+    assert "window.parent" not in js and "speechSynthesis" in js
+    assert '"Ciao"' in js and '"it-IT"' in js
+
+
+# ── The answer is sent with Enter (spec 32, 3.2) ─────────────────────────────
+
+def test_nothing_sends_the_answer_by_itself():
+    import ui.expense_confirm_page as page
+    assert not hasattr(page, "newline_sends_script")
+
+
+def test_amounts_are_read_as_people_say_them(db):
+    from decimal import Decimal as D
+
+    from ui.expense_confirm_page import spoken_amount
+    from ui.i18n import set_language
+    set_language("it")
+    assert spoken_amount(D("24.90")) == "24 e 90"
+    assert spoken_amount(D("23.05")) == "23 e 05"
+    assert spoken_amount(D("0.90")) == "90 centesimi"
+    assert spoken_amount(D("24.00")) == "24 euro"
+
+
+def test_the_reply_reads_the_amount_without_comma(db):
+    _add(db, "a")
+    app = _open(db)
+    _say(app, "ieri, 23 e 40")
+    said = app.session_state["_expense_spoken"]
+    assert "23 e 40" in said and "23,40" not in said
+
+
+def test_a_dictation_that_repeats_the_last_answer_gives_only_the_new_part(db):
+    """The Mac's dictation writes again what it heard, then the new words:
+    the bot gets only these (spec 32, 3.2)."""
+    _add(db, "a")
+    app = _open(db)
+    _say(app, "ieri, 23 e 40")
+    _say(app, "ieri 23 e 40 € sì")
+    users = [m for m in app.chat_message if m.name == "user"]
+    assert users[-1].markdown[0].value == "sì"
+    assert "Controllata" in _bot(app)

@@ -179,3 +179,11 @@ def test_no_rule_is_created_by_a_confirmation(engine):
     ExpenseConfirmService(engine).confirm("a", ("Casa", "Arredamento"))
     with get_session(engine) as s:
         assert s.query(CategoryRule).count() == 0
+
+
+def test_last_date_is_the_latest_movement(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    assert svc.last_date() is None
+    _add(engine, "a", "-5", "2026-10-09")
+    _add(engine, "b", "100", "2026-10-18", tx_type="income")
+    assert svc.last_date() == date(2026, 10, 18)
