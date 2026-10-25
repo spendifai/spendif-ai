@@ -252,7 +252,7 @@ def create_tables(engine=None):
     _migrate_add_rule_context(engine)
     _migrate_add_rule_giroconto(engine)
     _migrate_add_rule_multi_category(engine)
-    _migrate_add_rule_not_show_run(engine)
+    _migrate_split_rule_not_show_run(engine)
     _migrate_add_header_sha256(engine)
     _migrate_add_confidence_score(engine)
     _migrate_add_transaction_updated_at(engine)
@@ -612,7 +612,10 @@ class CategoryRule(Base):
     # had. The rule says the counterpart is done and nothing else: it is never
     # run (the movements keep their category and its source) and never shown
     # among the rules. Writing the same rule again turns it into a real one.
-    not_show_run = Column(Boolean, default=False, nullable=False, server_default="0")
+    # An accepted counterpart is not shown and not run; a multi-category one
+    # is shown but not run, the import reads its flag (spec 16 3.4, spec 24).
+    not_show = Column(Boolean, default=False, nullable=False, server_default="0")
+    not_run = Column(Boolean, default=False, nullable=False, server_default="0")
     # The rule's direction (spec 18): "out" money out, "in" money in. A rule
     # holds only for the movements in its direction.
     direction = Column(String(3), nullable=True)
@@ -1160,18 +1163,29 @@ def _migrate_add_rule_giroconto(engine) -> None:
                 raise
 
 
-def _migrate_add_rule_not_show_run(engine) -> None:
-    """Add not_show_run to category_rule if not present (idempotent)."""
+def _migrate_split_rule_not_show_run(engine) -> None:
+    """Add not_show and not_run to category_rule (idempotent).
+
+    The single not_show_run flag never shipped in a release: where a test
+    database has it, an accepted rule becomes not_show and not_run and the
+    column goes. A multi-category rule is not_run (spec 24, founder
+    2026-10-25).
+    """
     from sqlalchemy import text as _text
-    with engine.connect() as conn:
-        try:
+    with engine.begin() as conn:
+        cols = {r[1] for r in conn.execute(_text("PRAGMA table_info(category_rule)"))}
+        for col in ("not_show", "not_run"):
+            if col not in cols:
+                conn.execute(_text(
+                    f"ALTER TABLE category_rule ADD COLUMN {col} BOOLEAN NOT NULL DEFAULT 0"))
+        if "not_show_run" in cols:
             conn.execute(_text(
-                'ALTER TABLE category_rule ADD COLUMN not_show_run BOOLEAN NOT NULL DEFAULT 0'
-            ))
-            conn.commit()
-        except Exception as exc:
-            if "duplicate column name" not in str(exc).lower():
-                raise
+                "UPDATE category_rule SET not_show = 1, not_run = 1 WHERE not_show_run = 1"))
+            try:
+                conn.execute(_text("ALTER TABLE category_rule DROP COLUMN not_show_run"))
+            except Exception:
+                pass  # SQLite before 3.35: the unused column stays, with its default
+        conn.execute(_text("UPDATE category_rule SET not_run = 1 WHERE is_multi_category = 1"))
 
 
 def _migrate_add_rule_multi_category(engine) -> None:
@@ -1362,7 +1376,8 @@ def _assign_rule_directions(engine) -> None:
                         pattern=rule.pattern, match_type=rule.match_type, category=rule.category,
                         subcategory=rule.subcategory, context=rule.context, doc_type=rule.doc_type,
                         priority=rule.priority, is_giroconto=rule.is_giroconto,
-                        is_multi_category=rule.is_multi_category, direction="in"))
+                        is_multi_category=rule.is_multi_category, not_show=rule.not_show,
+                        not_run=rule.not_run, direction="in"))
                     continue
                 d = found.pop() if found else "out"
             rule.direction = d

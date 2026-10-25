@@ -253,15 +253,15 @@ class RuleService:
     def accept_counterpart(self, description: str, category: str, subcategory: str) -> tuple:
         """The user kept the counterpart's category as it was (spec 16, 3.4).
 
-        Only remembered, as an exact rule that is never run nor shown
-        (not_show_run): the movements keep their category and the source that
+        Only remembered, as an exact rule that is not shown and not run
+        (not_show, not_run): the movements keep their category and the source that
         gave it, the next imports categorize the counterpart from the history,
         and the guided flow does not ask about it again.
         """
         with self._session() as s:
             result = repository.create_category_rule(
                 s, description, "exact", category, subcategory, priority=10,
-                not_show_run=True,
+                not_show=True, not_run=True,
             )
             s.commit()
             return result

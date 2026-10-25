@@ -67,9 +67,12 @@ class CategoryRule:
     # A multi-category rule (spec 24): the generic category, seen one by one.
     is_multi_category: bool = False
     # An accepted counterpart (spec 16, 3.4): the user kept the category it
-    # had, so the rule only records that the counterpart is done. It is never
-    # run and never listed; writing the same rule again makes it a real one.
-    not_show_run: bool = False
+    # had, so the rule only records that the counterpart is done. It is not
+    # shown and not run; writing the same rule again makes it a real one.
+    not_show: bool = False
+    # Never run as a rule: an accepted counterpart, and a multi-category one,
+    # whose flag the import reads (spec 24, founder 2026-10-25).
+    not_run: bool = False
     # The rule's direction (spec 18): "out" for money out, "in" for money in.
     # A rule never holds for both by default; None only for a rule built in
     # code without a ledger behind it.

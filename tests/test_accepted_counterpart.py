@@ -2,8 +2,8 @@
 
 Founder, 2026-10-24 (spec 16, 3.4): the movements keep their category and the
 source that gave it, the counterpart is remembered as done with an exact rule
-marked not_show_run, never run and never listed, and writing the same rule
-again makes it a normal one.
+marked not_show and not_run, never listed and never run, and writing the
+same rule again makes it a normal one.
 """
 from __future__ import annotations
 
@@ -42,7 +42,8 @@ def test_accepting_keeps_category_and_source(engine):
     with get_session(engine) as s:
         got = {t.id: (t.category, t.category_source) for t in s.query(Transaction)}
         assert got == {"a": ("Spesa", "nsi"), "b": ("Spesa", "llm")}
-        assert s.query(CategoryRule).one().not_show_run is True
+        rule = s.query(CategoryRule).one()
+        assert (rule.not_show, rule.not_run) == (True, True)
 
 
 def test_an_accepted_rule_is_neither_listed_nor_run(engine):
@@ -79,7 +80,7 @@ def test_writing_the_same_rule_makes_it_a_real_one(engine):
     svc.create_rule("PANIFICIO ROSSI", "exact", "Spesa", "", priority=10)
     with get_session(engine) as s:
         rule = s.query(CategoryRule).one()
-        assert rule.not_show_run is False
+        assert (rule.not_show, rule.not_run) == (False, False)
     assert len(svc.get_rules()) == 1
 
 
@@ -89,7 +90,8 @@ def test_accepting_never_hides_a_rule_the_user_has(engine):
     svc.create_rule("PANIFICIO ROSSI", "exact", "Spesa", "", priority=10)
     svc.accept_counterpart("PANIFICIO ROSSI", "Spesa", "")
     with get_session(engine) as s:
-        assert s.query(CategoryRule).one().not_show_run is False
+        rule = s.query(CategoryRule).one()
+        assert (rule.not_show, rule.not_run) == (False, False)
 
 
 def test_the_model_answer_leaves_an_accepted_counterpart_alone(engine):
@@ -113,8 +115,35 @@ def test_a_starts_with_key_generalizes_only_over_other_counterparts(engine):
 
 
 def test_the_migration_is_idempotent(tmp_path):
-    from db.models import _migrate_add_rule_not_show_run
+    from db.models import _migrate_split_rule_not_show_run
 
     engine = create_tables(create_engine(f"sqlite:///{tmp_path / 'o.db'}"))
-    _migrate_add_rule_not_show_run(engine)
-    _migrate_add_rule_not_show_run(engine)
+    _migrate_split_rule_not_show_run(engine)
+    _migrate_split_rule_not_show_run(engine)
+
+
+def test_the_migration_splits_the_old_flag_and_marks_multi_category(tmp_path):
+    """A database with the unreleased not_show_run column: an accepted rule
+    becomes not_show and not_run, a multi-category one not_run only, and the
+    old column goes."""
+    from sqlalchemy import text
+
+    from db.models import _migrate_split_rule_not_show_run
+
+    engine = create_tables(create_engine(f"sqlite:///{tmp_path / 'm.db'}"))
+    with engine.begin() as c:
+        c.execute(text("ALTER TABLE category_rule DROP COLUMN not_show"))
+        c.execute(text("ALTER TABLE category_rule DROP COLUMN not_run"))
+        c.execute(text("ALTER TABLE category_rule ADD COLUMN not_show_run BOOLEAN NOT NULL DEFAULT 0"))
+        for pattern, multi, old in (("PANIFICIO", 0, 1), ("AMAZON", 1, 0), ("COOP", 0, 0)):
+            c.execute(text(
+                "INSERT INTO category_rule (pattern, match_type, category, subcategory, priority, "
+                "is_giroconto, is_multi_category, not_show_run, direction) "
+                f"VALUES ('{pattern}', 'exact', '', '', 0, 0, {multi}, {old}, 'out')"))
+    _migrate_split_rule_not_show_run(engine)
+    with engine.connect() as c:
+        got = dict((p, (bool(a), bool(b))) for p, a, b in c.execute(
+            text("SELECT pattern, not_show, not_run FROM category_rule")))
+        cols = [r[1] for r in c.execute(text("PRAGMA table_info(category_rule)"))]
+    assert got == {"PANIFICIO": (True, True), "AMAZON": (False, True), "COOP": (False, False)}
+    assert "not_show_run" not in cols

@@ -291,9 +291,9 @@ def test_ticking_without_changing_the_category_accepts_the_counterpart(ledger):
 
     with get_session(eng) as s:
         assert get_category_rules(s) == []                  # nothing listed, nothing run
-        accepted = [(r.pattern, r.match_type, r.category, r.not_show_run)
+        accepted = [(r.pattern, r.match_type, r.category, r.not_show, r.not_run)
                     for r in get_category_rules(s, include_accepted=True)]
-        assert accepted == [("Affitto", "exact", "Casa", True)]
+        assert accepted == [("Affitto", "exact", "Casa", True, True)]
         for tx_id in ("a1", "a2"):
             tx = s.get(Transaction, tx_id)
             assert tx.category == "Casa"
