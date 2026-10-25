@@ -4,6 +4,7 @@ Pages:
   📥 Import             – upload + pipeline processing
   📜 Import History     – import timeline with undo
   📋 Ledger             – filterable transaction table + export
+  🧾 Confirm expense    - a receipt in hand: date and amount, then the category
   ✏️ Bulk Edit          – bulk edits: category, context, deletion, duplicates
   📊 Analytics          – interactive charts (Plotly)
   📋 Report             – spending by context/category with pivot, trends, Excel export
@@ -206,6 +207,10 @@ def _route(page: str, engine) -> None:
     elif page == "ledger":
         from ui.registry_page import render_registry_page
         render_registry_page(engine)
+
+    elif page == "expense_confirm":
+        from ui.expense_confirm_page import render_expense_confirm_page
+        render_expense_confirm_page(engine)
 
     elif page == "bulk_edit":
         from ui.bulk_edit_page import render_bulk_edit_page

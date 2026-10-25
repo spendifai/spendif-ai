@@ -12,6 +12,7 @@ _NAV_KEYS = [
     ("import",          "import"),
     ("history",         "history"),
     ("ledger",          "ledger"),
+    ("expense_confirm", "expense_confirm"),   # a receipt in hand (spec 32), next to the Registry
     ("bulk_edit",       "bulk_edit"),
     ("analytics",       "analytics"),
     ("report",          "report"),
