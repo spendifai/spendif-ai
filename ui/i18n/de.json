@@ -40,7 +40,7 @@
   "ledger.filter.type": "Typ",
   "ledger.filter.type_all": "alle",
   "ledger.filter.description": "🔍 Beschreibung",
-  "ledger.filter.description_placeholder": "in Beschreibung und ursprünglichem Verwendungszweck suchen...",
+  "ledger.filter.description_placeholder": "in der Beschreibung oder nach einem Betrag suchen...",
   "ledger.filter.category": "Kategorie",
   "ledger.filter.category_all": "alle",
   "ledger.filter.context": "Kontext",
