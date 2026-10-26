@@ -12,6 +12,7 @@ import re
 import time
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -271,6 +272,26 @@ def _follow_download() -> None:
     st.progress(float(state["progress"]), text=t("expense.ears.progress"))
 
 
+def _render_waiting(svc: ExpenseConfirmService, say) -> None:
+    """The receipts saved for the next import (spec 32, 4.4bis): how many,
+    and in the expander each one with a button to forget it."""
+    waiting = svc.pending_receipts()
+    if not waiting:
+        return
+    n = len(waiting)
+    title = t("expense.receipts_waiting_one") if n == 1 else t("expense.receipts_waiting", n=n)
+    with st.expander(f"🧾 {title}"):
+        for r in waiting:
+            c_line, c_forget = st.columns([5, 1], vertical_alignment="center")
+            line = SimpleNamespace(key="expense.receipt_line", note=None, params={
+                "what": r["what"], "day": r["day"], "amount": r["amount"],
+                "cat": (r["category"], r["subcategory"])})
+            c_line.write(say([line]))
+            if c_forget.button(t("expense.receipt_forget"), key=f"expense_receipt_forget_{r['id']}"):
+                svc.delete_receipt(r["id"])
+                st.rerun()
+
+
 def render_expense_confirm_page(engine) -> None:
     st.header(t("expense.title"))
     # Under the title, not beside it: beside it the top bar of the app hid them.
@@ -316,6 +337,7 @@ def render_expense_confirm_page(engine) -> None:
 
     if voice_svc.can_listen():
         st.toggle(t("expense.own_voice"), value=True, key="expense_own_voice", help=t("expense.own_voice_help"))
+    _render_waiting(svc, say)
 
     closed = state.step == _CLOSED
     if closed:

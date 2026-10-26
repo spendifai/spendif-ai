@@ -239,3 +239,80 @@ def test_the_answer_never_reaches_the_log(engine, monkeypatch, caplog):
         ExpenseConfirmService(engine, backend=object()).model_intent("found", "macche proprio no")
     assert "asking the model" in caplog.text           # the log is there, the words are not
     assert "macche" not in caplog.text
+
+
+# ── 4.4bis Receipts waiting for their movement ──────────────────────────────
+
+
+def _tx(engine, tx_id):
+    with get_session(engine) as s:
+        tx = s.get(Transaction, tx_id)
+        return tx.category, tx.subcategory, bool(tx.human_validated)
+
+
+def _save(svc, day="2026-10-24", amount="23.40", what="mobile", pair=("Casa", "Arredamento")):
+    svc.save_receipt(date.fromisoformat(day), Decimal(amount), what, pair)
+
+
+def test_a_receipt_waits_and_counts_nowhere(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    assert svc.pending_receipts() == [{"id": 1, "day": date(2026, 10, 24), "amount": Decimal("23.40"),
+                                       "what": "mobile", "category": "Casa", "subcategory": "Arredamento"}]
+    with get_session(engine) as s:
+        assert s.query(Transaction).count() == 0
+
+
+def test_nothing_is_checked_without_the_users_yes(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    _add(engine, "a", "-23.40", "2026-10-26")                     # two days later: in the window
+    matches = svc.receipt_matches()
+    assert [(m.receipt_id, [c.tx_id for c in m.candidates]) for m in matches] == [(1, ["a"])]
+    assert matches[0].what == "mobile" and matches[0].pair == ("Casa", "Arredamento")
+    assert _tx(engine, "a")[2] is False and len(svc.pending_receipts()) == 1
+
+
+@pytest.mark.parametrize("movements", [
+    [],                                                               # not imported yet
+    [("a", "-23.40", "2026-10-10")],                                  # out of the window
+    [("a", "-23.41", "2026-10-24")],                                  # another amount
+])
+def test_no_movement_no_match(engine, movements):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    for tx_id, amount, day in movements:
+        _add(engine, tx_id, amount, day)
+    assert svc.receipt_matches() == []
+
+
+def test_equal_movements_are_all_offered_the_closest_first(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    _add(engine, "far", "-23.40", "2026-10-26")
+    _add(engine, "near", "-23.40", "2026-10-24")
+    assert [c.tx_id for c in svc.receipt_matches()[0].candidates] == ["near", "far"]
+
+
+def test_the_users_yes_checks_with_the_receipts_category(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    _add(engine, "a", "-23.40", "2026-10-24")
+    svc.confirm_receipt(1, "a", ("Casa", "Arredamento"))
+    assert _tx(engine, "a") == ("Casa", "Arredamento", True)
+    assert svc.pending_receipts() == [] and svc.receipt_matches() == []
+
+
+def test_the_conversation_starts_with_the_receipts_found(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    _add(engine, "a", "-23.40", "2026-10-24")
+    msgs, _ = svc.start()
+    assert [m.key for m in msgs] == ["expense.receipts_found_one"]
+
+
+def test_a_receipt_can_be_forgotten(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    _save(svc)
+    svc.delete_receipt(svc.pending_receipts()[0]["id"])
+    assert svc.pending_receipts() == []
