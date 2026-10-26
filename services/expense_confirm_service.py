@@ -7,16 +7,16 @@ and the writes of spec 32, 5. It never creates a movement.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
-from core.expense_confirm import Candidate, Msg, State, start, turn
+from core.expense_confirm import WINDOW_DAYS, Candidate, Msg, ReceiptMatch, State, start, turn
 from core.spoken_expense import new_part
 from db import repository
-from db.models import Transaction
+from db.models import PendingReceipt, Transaction
 from services.rule_service import RuleService
 from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
 from support.logging import setup_logging
@@ -62,7 +62,9 @@ class ExpenseConfirmService:
     # ── The flow ──────────────────────────────────────────────────────────────
 
     def start(self) -> tuple[list[Msg], State]:
-        return start()
+        """The first turn, with the receipts saved that now have a movement
+        (spec 32, 4.4bis)."""
+        return start(self.receipt_matches())
 
     def reply(self, state: State, text: str) -> tuple[list[Msg], State]:
         return turn(state, text, self, self._today or date.today())
@@ -224,3 +226,62 @@ class ExpenseConfirmService:
 
     def always_no(self, question: dict) -> None:
         RuleService(self.engine).decline_always(question)
+
+    # ── 4.4bis Receipts waiting for their movement ───────────────────────────
+
+    def save_receipt(self, day: date, amount: Decimal, what: str, pair: tuple[str, str]) -> None:
+        """Keep a receipt whose movement is not imported yet: date, amount,
+        the user's description and category (spec 32, 4.4bis)."""
+        with self._session() as s:
+            s.add(PendingReceipt(date=day.isoformat(), amount=amount, description=what,
+                                 category=pair[0], subcategory=pair[1] or ""))
+            s.commit()
+        logger.info("expense_confirm: receipt saved for the next import")
+
+    def pending_receipts(self) -> list[dict]:
+        """The receipts still waiting, oldest day first: id, day, amount,
+        what, category, subcategory."""
+        with self._session() as s:
+            rows = (s.query(PendingReceipt).filter(PendingReceipt.matched_tx_id.is_(None))
+                    .order_by(PendingReceipt.date, PendingReceipt.id).all())
+            return [{"id": r.id, "day": date.fromisoformat(r.date),
+                     "amount": Decimal(str(r.amount)).quantize(Decimal("0.01")), "what": r.description or "",
+                     "category": r.category, "subcategory": r.subcategory or ""} for r in rows]
+
+    def delete_receipt(self, receipt_id: int) -> None:
+        """Forget a receipt that waits: the user no longer wants it found.
+
+        Args:
+            receipt_id: the PendingReceipt id.
+        """
+        with self._session() as s:
+            s.query(PendingReceipt).filter(PendingReceipt.id == receipt_id,
+                                           PendingReceipt.matched_tx_id.is_(None)).delete()
+            s.commit()
+
+    def receipt_matches(self) -> list[ReceiptMatch]:
+        """The receipts waiting that now have at least one unchecked outflow
+        with their amount, within the window of spec 32, 4.2: what the
+        conversation offers to check at its start. Nothing is written."""
+        window = timedelta(days=WINDOW_DAYS)
+        matches = []
+        for r in self.pending_receipts():
+            found = self.outflows(r["amount"], r["amount"], r["day"] - window, r["day"] + window, False)
+            if found:
+                found.sort(key=lambda c: (abs((c.day - r["day"]).days), c.day, c.tx_id))
+                matches.append(ReceiptMatch(receipt_id=r["id"], day=r["day"], amount=r["amount"],
+                                            what=r["what"], pair=(r["category"], r["subcategory"]),
+                                            candidates=tuple(found)))
+        return matches
+
+    def confirm_receipt(self, receipt_id: int, tx_id: str, pair: tuple[str, str] | None) -> list[dict]:
+        """The user's yes: the movement checked, with the receipt's category
+        by hand when *pair* is given, and the receipt no longer waiting.
+        Returns the "always like this?" questions of a change by hand, as
+        confirm does."""
+        questions = self.confirm(tx_id, pair)
+        with self._session() as s:
+            row = s.get(PendingReceipt, receipt_id)
+            row.matched_tx_id, row.matched_at = tx_id, datetime.now(timezone.utc)
+            s.commit()
+        return questions

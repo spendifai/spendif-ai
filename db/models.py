@@ -558,6 +558,30 @@ class HeldMovement(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class PendingReceipt(Base):
+    """A receipt said in the expense confirmation whose movement is not in the
+    ledger yet (spec 32, 4.4bis): date, amount, the user's own description
+    and category, nothing else.
+
+    It is not a movement and counts nowhere. At the start of the expense
+    confirmation the user checks it against the unchecked outflows that may
+    be its movement; once confirmed, ``matched_tx_id`` is set. Never matched
+    without the user's yes: equal expenses on the same day are told apart by
+    the description only.
+    """
+    __tablename__ = "pending_receipt"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(String(10), nullable=False)               # the day said, ISO
+    amount = Column(Numeric(precision=18, scale=4), nullable=False)   # positive, an outflow
+    description = Column(String(256), nullable=False, default="")   # "caffe'", as the user said it
+    category = Column(String(128), nullable=False)
+    subcategory = Column(String(128), nullable=False, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    matched_tx_id = Column(String(24), nullable=True)       # None while it waits
+    matched_at = Column(DateTime, nullable=True)
+
+
 class TransferDestination(Base):
     """Where a one-sided transfer went, answered once per beneficiary.
 
