@@ -76,8 +76,10 @@ def render_analysis_page(engine):
         st.session_state["analytics_to"]   = today
         st.rerun()
     if pc5.button(t("analytics.preset.all"),           key="an_preset_all",  use_container_width=True):
-        st.session_state.pop("analytics_from", None)
-        st.session_state.pop("analytics_to",   None)
+        # The whole registry, as in the Registry (spec 21, 7bis): taking the
+        # dates away only gave the current month back.
+        _span = tx_svc.get_date_span()
+        st.session_state["analytics_from"], st.session_state["analytics_to"] = _span or (_first_cur, today)
         st.rerun()
 
     fc1, fc2, fc3 = st.columns([2, 2, 2])
