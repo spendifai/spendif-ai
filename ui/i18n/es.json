@@ -40,7 +40,7 @@
   "ledger.filter.type": "Tipo",
   "ledger.filter.type_all": "todos",
   "ledger.filter.description": "🔍 Descripción",
-  "ledger.filter.description_placeholder": "buscar en descripción y concepto original...",
+  "ledger.filter.description_placeholder": "buscar en la descripción o un importe...",
   "ledger.filter.category": "Categoría",
   "ledger.filter.category_all": "todas",
   "ledger.filter.context": "Contexto",
