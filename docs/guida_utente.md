@@ -402,9 +402,9 @@ Per ogni categoria con obiettivo definito:
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
-> **Prepariamo i tuoi movimenti.** La voce **🧭 Prepariamo i tuoi movimenti**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ti chiedo se andiamo avanti a caricare i tuoi dati: *Sì, andiamo* ti porta qui, al primo passo; *No, prima ho qualche domanda* ti porta all'**💬 Assistente**.
+> **Carica l'estratto conto.** La voce **📥 Carica l'estratto conto**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ti chiedo se andiamo avanti a caricare i tuoi dati: *Sì, andiamo* ti porta qui, al primo passo; *No, prima ho qualche domanda* ti porta all'**💬 Chiedi a Spendif.ai**.
 >
-> **Se vuoi controllare.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
+> **Controlla i movimenti.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
 >
 > **Il passo delle uscite.** Mostra solo le controparti di spesa ancora da controllare, dalla più grande. Spunta *Sempre così* quando una controparte ha sempre la categoria indicata: basta una volta, da lì i suoi movimenti, anche quelli dei prossimi import, prendono quella categoria da soli. L'obiettivo suggerito è controllare le controparti che fanno 8 euro su 10 delle spese del periodo: in alto vedi quanto hai controllato, quanto manca e quante controparti bastano. È un suggerimento: puoi andare avanti quando vuoi.
 >
@@ -454,7 +454,7 @@ Puoi scaricare la tabella come CSV con il pulsante **⬇️ Scarica CSV**.
 
 **Situazione:** Hai un dubbio su come funziona una funzione, come importare un file o come configurare un'opzione.
 
-Clicca su **💬 Assistente** nella sidebar. Si apre una chat dove puoi scrivere la tua domanda in linguaggio naturale.
+Clicca su **💬 Chiedi a Spendif.ai** nella sidebar. Si apre una chat dove puoi scrivere la tua domanda in linguaggio naturale.
 
 ### Come funziona
 
