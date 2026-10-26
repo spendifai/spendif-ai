@@ -57,3 +57,34 @@ def test_all_dates_then_an_amount_finds_an_old_expense(db):
     app.text_input(key="ledger_desc").input("422,67").run()
     assert not app.exception, app.exception
     assert app.metric[0].value == "1"
+
+
+def _analysis(db_path: str) -> None:
+    from sqlalchemy import create_engine
+    from ui.analysis_page import render_analysis_page
+    from ui.i18n import set_language
+    set_language("it")
+    render_analysis_page(create_engine(f"sqlite:///{db_path}"))
+
+
+def _report(db_path: str) -> None:
+    from sqlalchemy import create_engine
+    from ui.i18n import set_language
+    from ui.report_page import render_report_page
+    set_language("it")
+    render_report_page(create_engine(f"sqlite:///{db_path}"))
+
+
+@pytest.mark.parametrize("page, button, keys", [
+    (_analysis, "an_preset_all", ("analytics_from", "analytics_to")),
+    (_report, "rpt_preset_all", ("report_from", "report_to")),
+])
+def test_all_dates_spans_the_registry_in_analysis_and_report(db, page, button, keys):
+    _add(db, "old", "2024-03-05", "-422.67", "NEGOZIO")
+    _add(db, "new", "2026-10-20", "-5", "BAR")
+    app = AppTest.from_function(page, args=(str(db),), default_timeout=60)
+    app.run()
+    assert not app.exception, app.exception
+    app.button(key=button).click().run()
+    assert not app.exception, app.exception
+    assert (app.session_state[keys[0]], app.session_state[keys[1]]) == (date(2024, 3, 5), date(2026, 10, 20))
