@@ -23,6 +23,6 @@ Le configurazioni che proviamo prima di una release. ✅ un resoconto dice che t
 
 ## Tutti i resoconti
 
-| Versione | Sistema operativo | Arch | Scheda grafica | Gira su | Installato con | Installa | Avvio | Import | Disinstalla | s/riga (categorie) | Resoconto |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026.10.2 | Windows 11 | amd64 | NVIDIA GeForce RTX 5070 Ti Laptop GPU | Vulkan | unknown | si' | si' | si' | si' | 0.297 | email |
+| Versione | Sistema operativo | Arch | Scheda grafica | Gira su | Installato con | Installa | Avvio | Import | Disinstalla | s/riga (categorie) | Categorie | Resoconto |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026.10.2 | Windows 11 | amd64 | NVIDIA GeForce RTX 5070 Ti Laptop GPU | Vulkan | unknown | si' | si' | si' | si' | 0.297 | 17 / 0 | email |

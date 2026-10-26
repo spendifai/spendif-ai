@@ -52,7 +52,8 @@ logger = logging.getLogger("SPENDIFY")
 #
 # 2: the operating system by name (os_name, os_id) and the last import on its
 #    own, next to the average over the last twenty.
-SCHEMA_VERSION = "2"
+# 3: categorization, whether the import produced categories and how varied.
+SCHEMA_VERSION = "3"
 
 # Where test reports are filed. The form behind it reads the document and adds
 # the machine to the compatibility table, so nobody copies a value by hand.
@@ -245,6 +246,58 @@ def _log_summary() -> dict[str, Any]:
     return summary
 
 
+# Who proposed a movement's category at import, as kept in model_source.
+_PROPOSAL_SOURCES = ("llm", "history", "nsi", "rule", "manual", "multi", "fallback")
+
+
+def _categorization(session: Any) -> dict[str, Any]:
+    """Whether the import categorized, and how varied the result is (spec 33).
+
+    Reads the proposal kept at import (model_source, model_category, ...),
+    which the user's corrections never change: it describes the product, not
+    the user's decisions. Counts only. A category name says nothing a count
+    does not, and summed up it describes the person's spending.
+    """
+    from db.models import Transaction
+
+    out: dict[str, Any] = {
+        "movements": 0, "by_source": {}, "fallback": 0, "distinct_categories": 0,
+        "distinct_subcategories": 0, "largest_category_share": 0,
+        "confidence": {"high": 0, "medium": 0, "low": 0}, "validated": 0,
+    }
+    try:
+        rows = session.query(
+            Transaction.model_source, Transaction.model_category,
+            Transaction.model_subcategory, Transaction.model_confidence,
+            Transaction.human_validated,
+        ).all()
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a query
+        logger.warning("diagnostics: cannot read the categories (%s)", exc)
+        return out
+
+    by_source: dict[str, int] = {}
+    per_category: dict[str, int] = {}
+    pairs: set[tuple[str, str]] = set()
+    for source, category, subcategory, confidence, validated in rows:
+        key = "none" if not source else source if source in _PROPOSAL_SOURCES else "other"
+        by_source[key] = by_source.get(key, 0) + 1
+        if category:
+            per_category[category] = per_category.get(category, 0) + 1
+            pairs.add((category, subcategory or ""))
+        if confidence in out["confidence"]:
+            out["confidence"][confidence] += 1
+        out["validated"] += int(bool(validated))
+
+    out["movements"] = len(rows)
+    out["by_source"] = by_source
+    out["fallback"] = by_source.get("fallback", 0)
+    out["distinct_categories"] = len(per_category)
+    out["distinct_subcategories"] = len(pairs)
+    if rows and per_category:
+        out["largest_category_share"] = round(max(per_category.values()) / len(rows), 4)
+    return out
+
+
 def _percentile(values: list[int], fraction: float) -> int:
     """Order statistic, nearest rank. No interpolation, no library."""
     if not values:
@@ -386,6 +439,7 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         },
         "ledger": _counts(session),
         "imports": _import_summary(session),
+        "categorization": _categorization(session),
         "logs": _log_summary(),
         "llm_observed": _llm_observed(session),
     }
@@ -404,7 +458,7 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
     })
 
     for section in ("application", "system", "graphics", "inference", "ledger",
-                    "imports", "logs"):
+                    "imports", "categorization", "logs"):
         node = ET.SubElement(root, section)
         for key, value in report.get(section, {}).items():
             if isinstance(value, dict):
