@@ -1586,5 +1586,16 @@
   "expense.check.no": "Nicht diese?",
   "expense.check.close": "Beenden?",
   "expense.check.correct": "Korrigieren?",
-  "expense.check.no_rule": "Nur diese?"
+  "expense.check.no_rule": "Nur diese?",
+  "nav.more": "Weitere Einträge...",
+  "settings.menu_level.title": "🧭 Menüeinträge",
+  "settings.menu_level.label": "Was das Menü zeigt",
+  "settings.menu_level.help": "Automatisch wächst das Menü mit dem, was du tust. Die übrigen Einträge stehen immer unten unter \"Weitere Einträge...\".",
+  "settings.menu_level.auto": "Automatisch: wächst mit dem, was du tust",
+  "settings.menu_level.essential": "Das Wesentliche",
+  "settings.menu_level.flow": "Meine Monatsroutine",
+  "settings.menu_level.advanced": "Auch Einstellungen, Regeln und Modelle",
+  "settings.menu_level.money": "Alles zur Geldanalyse",
+  "settings.menu_level.data": "Alles zum Verfeinern der Daten",
+  "settings.menu_level.all": "Alle Einträge"
 }

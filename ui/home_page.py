@@ -141,7 +141,12 @@ def _load_transactions(
 def _render_empty_state() -> None:
     st.info(_t("home.empty_state.message"))
     if st.button(_t("home.empty_state.cta"), key="_home_empty_cta"):
-        st.session_state["page"] = "import"
+        # To the guided flow, which is in the menu at every level (spec 19);
+        # the Import page is not on the first day.
+        from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
+        st.session_state[GUIDED_RETURN] = "home"
+        st.session_state.pop(GUIDED_STEP, None)
+        st.session_state["page"] = GUIDED_PAGE
         st.rerun()
 
 

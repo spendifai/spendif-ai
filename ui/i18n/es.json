@@ -1586,5 +1586,16 @@
   "expense.check.no": "¿No es este?",
   "expense.check.close": "¿Termino?",
   "expense.check.correct": "¿Lo corrijo?",
-  "expense.check.no_rule": "¿Solo este?"
+  "expense.check.no_rule": "¿Solo este?",
+  "nav.more": "Más entradas...",
+  "settings.menu_level.title": "🧭 Entradas del menú",
+  "settings.menu_level.label": "Qué muestra el menú",
+  "settings.menu_level.help": "En automático el menú crece con lo que haces. Las demás entradas siguen abajo, en \"Más entradas...\".",
+  "settings.menu_level.auto": "Automático: crece con lo que haces",
+  "settings.menu_level.essential": "Lo esencial",
+  "settings.menu_level.flow": "Mi rutina del mes",
+  "settings.menu_level.advanced": "También ajustes, reglas y modelos",
+  "settings.menu_level.money": "Todo para analizar el dinero",
+  "settings.menu_level.data": "Todo para afinar los datos",
+  "settings.menu_level.all": "Todas las entradas"
 }

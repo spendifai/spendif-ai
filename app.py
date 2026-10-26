@@ -172,11 +172,19 @@ if "update_check_done" not in st.session_state:
 # straight to the Home dashboard; on an empty DB we land on Import (whose
 # empty state nudges the user to upload). Computed once here so sidebar
 # can stay engine-free.
+# The menu at the user's level (spec 19), computed here for the same reason:
+# every run, since the level grows with the data and the Settings can change
+# it.
+from services.user_level_service import UserLevelService as _LevelSvc
+from ui.sidebar import MENU as _MENU, NAV_PAGES as _NAV_PAGES, render_sidebar
+
+st.session_state[_MENU] = _LevelSvc(engine).menu(_NAV_PAGES)
 if "page" not in st.session_state:
     from services.transaction_service import TransactionService as _TxSvc
-    st.session_state["page"] = "home" if _TxSvc(engine).has_transactions() else "import"
-
-from ui.sidebar import render_sidebar
+    # An empty DB lands where the first import starts: the Import page when
+    # the menu shows it, else the Home, whose empty state leads to the flow.
+    _first = "import" if "import" in st.session_state[_MENU][0] else "home"
+    st.session_state["page"] = "home" if _TxSvc(engine).has_transactions() else _first
 
 page = render_sidebar()
 
