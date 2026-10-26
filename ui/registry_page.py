@@ -154,10 +154,10 @@ def render_registry_page(engine):
         st.session_state["ledger_from"] = _first_year
         st.session_state["ledger_to"]   = today
     if pc5.button(t("ledger.preset.all"), key="preset_all",  use_container_width=True):
-        for _k in ("ledger_from", "ledger_to"):
-            if _k in st.session_state:
-                del st.session_state[_k]
-        st.rerun()
+        # The whole registry, shown in the two fields (spec 21, 7bis): taking
+        # the dates away only gave the current month back.
+        _span = tx_svc.get_date_span()
+        st.session_state["ledger_from"], st.session_state["ledger_to"] = _span or (_first_cur, today)
     if pc6.button(t("ledger.preset.reset"), key="preset_reset", use_container_width=True, type="secondary"):
         for _k in ("ledger_from", "ledger_to", "ledger_account", "ledger_type",
                    "ledger_cat", "ledger_ctx", "ledger_desc", "ledger_review", "ledger_hide_giro"):
