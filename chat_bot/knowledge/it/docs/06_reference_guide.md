@@ -17,8 +17,8 @@
 | **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
 | **Impostazioni** | Backend LLM, API key, formati data/importo, lingua |
 | **Lista di controllo** | Tabella pivot mese × conto: presenza e quantità delle transazioni; cosa caricare negli ultimi 4 mesi, file preparati per conto, conti chiusi |
-| **Prepariamo i tuoi movimenti** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Resoconti. Riprende dal passo lasciato |
-| **Se vuoi controllare** | Voce di menu a sé, separata dal percorso: un conto alla volta dall'ultimo movimento controllato, griglia del Registro sui soli movimenti da controllare, poi i giroconti senza l'altro lato |
+| **Carica l'estratto conto** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Resoconti. Riprende dal passo lasciato |
+| **Controlla i movimenti** | Voce di menu a sé, separata dal percorso: un conto alla volta dall'ultimo movimento controllato, griglia del Registro sui soli movimenti da controllare, poi i giroconti senza l'altro lato |
 | **Controparti** | Statistiche per controparte con creazione rapida di regole |
 | **Categorie miste** | Passo del flusso: controparti con movimenti in più categorie, da risolvere con una regola o uno per uno |
 | **Giroconti** | Passo del flusso: coppie di giroconto da confermare e giroconti con un lato solo |
@@ -137,7 +137,7 @@ Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Depos
 | **media** | Un lato letto come giroconto, l'altro come spesa o entrata: proposta all'utente |
 | **bassa** | Nessuno dei due lati, ma al massimo 1 giorno di distanza: proposta all'utente |
 
-**Passo Giroconti di Prepariamo i tuoi movimenti:** mostra le coppie degli ultimi 4 mesi, dove l'utente risponde sì (giroconto) o no (tenuti separati, mai più proposti), e i giroconti con un lato solo, dove indica una volta per beneficiario dove sono andati i soldi: *mio conto non ancora caricato*, *mio conto che non seguo* (resta giroconto) o *un'altra persona* (diventa spesa o entrata, anche negli import successivi). Il beneficiario è riconosciuto dall'IBAN nella descrizione, altrimenti dalla descrizione pulita.
+**Passo Giroconti di Carica l'estratto conto:** mostra le coppie degli ultimi 4 mesi, dove l'utente risponde sì (giroconto) o no (tenuti separati, mai più proposti), e i giroconti con un lato solo, dove indica una volta per beneficiario dove sono andati i soldi: *mio conto non ancora caricato*, *mio conto che non seguo* (resta giroconto) o *un'altra persona* (diventa spesa o entrata, anche negli import successivi). Il beneficiario è riconosciuto dall'IBAN nella descrizione, altrimenti dalla descrizione pulita.
 
 **Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analisi.
 
@@ -160,7 +160,7 @@ Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Depos
 
 ## Chatbot di supporto
 
-Chatbot integrato nella pagina **💬 Assistente**. Tre modalità auto-selezionate in base al backend LLM configurato:
+Chatbot integrato nella pagina **💬 Chiedi a Spendif.ai**. Tre modalità auto-selezionate in base al backend LLM configurato:
 
 | Modalità | Backend richiesto | Come funziona |
 |----------|-------------------|---------------|

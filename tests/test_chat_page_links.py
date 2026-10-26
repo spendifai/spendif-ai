@@ -15,7 +15,7 @@ def _keep_language():
 
 
 @pytest.mark.parametrize("text, page", [
-    ("Apri Prepariamo i tuoi movimenti, la prima voce del menu; poi le Controparti", "guided"),
+    ("Apri Carica l'estratto conto, la prima voce del menu; poi le Controparti", "guided"),
     ("Vai su **Analisi**. Trovi i grafici.", "analytics"),
     ("Apri Budget vs Consuntivo per i semafori", "budget_vs_actual"),
 ])
