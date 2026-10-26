@@ -13,7 +13,9 @@ from core.expense_confirm import (
     ALWAYS,
     ASK_CATEGORY,
     ASK_EXPENSE,
+    CHECK,
     CHOOSE,
+    CLOSED,
     CONFIRM_CATEGORY,
     CONFIRM_ONE,
     MAX_ROUNDS,
@@ -43,7 +45,7 @@ def _c(tx_id, amount, day, name="Esselunga", cat="Alimentari", sub="Spesa superm
 class FakeLedger:
     """The ports of the flow: what it reads and writes, recorded."""
 
-    def __init__(self, movements=(), checked=(), model=None, questions=(), last=None):
+    def __init__(self, movements=(), checked=(), model=None, questions=(), last=None, intent=None):
         self.movements = list(movements)
         self.last = last
         self.checked = list(checked)
@@ -52,6 +54,8 @@ class FakeLedger:
         self.searches = []
         self.confirmed = []
         self.always = []
+        self.intent = intent          # what the model reads in an answer, by kind
+        self.asked = []
 
     def outflows(self, low, high, date_from, date_to, checked):
         self.searches.append((low, high, date_from, date_to, checked))
@@ -66,6 +70,10 @@ class FakeLedger:
 
     def model_pick(self, text, labels):
         return self.model(text, labels) if self.model else None
+
+    def model_intent(self, kind, text):
+        self.asked.append((kind, text))
+        return (self.intent or {}).get(kind)
 
     def confirm(self, tx_id, pair):
         self.confirmed.append((tx_id, pair))
@@ -98,14 +106,24 @@ def test_the_first_question():
 def test_a_one_found_and_confirmed():
     ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 23))])
     _, state = start()
-    msgs, state = _say(state, "ieri, 23,40", ledger)
-    assert _keys(msgs) == ["expense.found_one"]
+    msgs, state = _say(state, "il 23, 23,40", ledger)
+    assert _keys(msgs) == ["expense.found_one"]        # the date said is not repeated
     assert msgs[0].params["name"] == "Esselunga"
     assert state.step == CONFIRM_ONE
     msgs, state = _say(state, "sì", ledger)
     assert ledger.confirmed == [("t1", None)]          # checked, category unchanged
-    assert _keys(msgs) == ["expense.done", "expense.next"]
+    assert _keys(msgs) == ["expense.done"]             # and the next expense is listened to, not asked
     assert state.step == ASK_EXPENSE
+    assert state.checked == 1
+
+
+def test_a_date_other_than_the_one_said_is_the_news():
+    """Spec 32, 2.5: the bot says only what the user does not know."""
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 23))])
+    _, state = start()
+    msgs, state = _say(state, "ieri, 23,40", ledger)
+    assert _keys(msgs) == ["expense.on_day", "expense.found_one"]
+    assert msgs[0].params["day"] == date(2026, 10, 23)
 
 
 def test_the_window_is_three_days_each_side():
@@ -125,8 +143,8 @@ def test_a_movement_outside_the_window_is_offered_as_another_day():
     ledger = FakeLedger([_c("t1", "15.10", date(2026, 10, 13))])
     _, state = start()
     msgs, state = _say(state, "15,10 23 ottobre", ledger)
-    assert _keys(msgs) == ["expense.not_that_day", "expense.found_one"]
-    assert msgs[0].params["day"] == date(2026, 10, 23)
+    assert _keys(msgs) == ["expense.on_day", "expense.found_one"]
+    assert msgs[0].params["day"] == date(2026, 10, 13)
     assert state.step == CONFIRM_ONE and state.chosen.tx_id == "t1"
 
 
@@ -135,7 +153,7 @@ def test_several_on_other_days_are_a_choice():
                          _c("t2", "15.10", date(2026, 10, 2), name="Bar Sole")])
     _, state = start()
     msgs, state = _say(state, "15,10 23 ottobre", ledger)
-    assert _keys(msgs) == ["expense.not_that_day", "expense.found_many", "expense.which"]
+    assert _keys(msgs) == ["expense.found_many"]     # each line carries its date
     assert state.step == CHOOSE
     assert [c.tx_id for c in state.candidates] == ["t1", "t2"]   # the closest first
 
@@ -144,7 +162,7 @@ def test_on_another_day_but_already_checked_is_said():
     ledger = FakeLedger(checked=[_c("t1", "15.10", date(2026, 10, 13))])
     _, state = start()
     msgs, state = _say(state, "15,10 23 ottobre", ledger)
-    assert _keys(msgs) == ["expense.already_checked", "expense.next"]
+    assert _keys(msgs) == ["expense.already_checked"]
     assert msgs[0].params["day"] == date(2026, 10, 13)
 
 
@@ -215,11 +233,11 @@ def test_b_several_chosen_by_counterpart():
     ledger = _two()
     _, state = start()
     msgs, state = _say(state, "il 12, 23 e 40", ledger)
-    assert _keys(msgs) == ["expense.found_many", "expense.which"]
+    assert _keys(msgs) == ["expense.found_many"]
     assert [c.tx_id for c in msgs[0].params["items"]] == ["t1", "t2"]   # nearest to the day first
     assert state.step == CHOOSE
     msgs, state = _say(state, "bar centrale", ledger)
-    assert _keys(msgs) == ["expense.found_one"]
+    assert _keys(msgs) == ["expense.found_one"]        # chosen from dated lines: no date added
     assert state.chosen.tx_id == "t2"
     _say(state, "sì", ledger)
     assert ledger.confirmed == [("t2", None)]
@@ -265,7 +283,7 @@ def test_without_cents_then_the_cents_of_that_euro_always_as_a_choice():
     _, state = start()
     msgs, state = _say(state, "ieri 23", ledger)
     # one movement only, still offered as a choice: never confirmed by itself
-    assert _keys(msgs) == ["expense.found_near", "expense.which"]
+    assert _keys(msgs) == ["expense.found_near"]
     assert state.step == CHOOSE
     assert [s[:2] for s in ledger.searches] == [(Decimal("23"), Decimal("23")),
                                                (Decimal("23"), Decimal("23.99"))]
@@ -292,7 +310,7 @@ def test_already_checked_is_said():
     ledger = FakeLedger(checked=[_c("t1", "23.40", date(2026, 10, 24))])
     _, state = start()
     msgs, state = _say(state, "ieri, 23,40", ledger)
-    assert _keys(msgs) == ["expense.already_checked", "expense.next"]
+    assert _keys(msgs) == ["expense.already_checked"]
     assert state.step == ASK_EXPENSE
 
 
@@ -352,7 +370,7 @@ def test_category_direct_match_confirmed():
     assert state.step == CONFIRM_CATEGORY
     msgs, state = _say(state, "sì", ledger)
     assert ledger.confirmed == [("t1", ("Casa", "Manutenzione e riparazioni"))]
-    assert _keys(msgs) == ["expense.done", "expense.next"]
+    assert _keys(msgs) == ["expense.done"]
     assert msgs[0].params["cat"] == ("Casa", "Manutenzione e riparazioni")
 
 
@@ -458,7 +476,7 @@ def _to_always(ledger):
     state = _at_category(ledger)
     _, state = _say(state, "arredamento", ledger)
     msgs, state = _say(state, "sì", ledger)
-    assert _keys(msgs) == ["expense.done", "ledger.always.ask"]
+    assert _keys(msgs) == ["expense.done", "expense.always"]
     assert state.step == ALWAYS
     return state
 
@@ -468,7 +486,7 @@ def test_always_yes_writes_the_rule():
     state = _to_always(ledger)
     msgs, state = _say(state, "sì", ledger)
     assert ledger.always == [("yes", _Q)]
-    assert _keys(msgs) == ["ledger.always.done", "expense.next"]
+    assert _keys(msgs) == ["expense.rule_done"]
     assert msgs[0].note == "note"
     assert state.step == ASK_EXPENSE
 
@@ -478,14 +496,14 @@ def test_always_no_is_remembered():
     state = _to_always(ledger)
     msgs, state = _say(state, "no", ledger)
     assert ledger.always == [("no", _Q)]
-    assert _keys(msgs) == ["expense.always_kept", "expense.next"]
+    assert _keys(msgs) == ["expense.always_kept"]
 
 
 def test_always_unclear_asks_again():
     ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], questions=[_Q])
     state = _to_always(ledger)
     msgs, state = _say(state, "mah", ledger)
-    assert _keys(msgs) == ["ledger.always.ask"]
+    assert _keys(msgs) == ["expense.always"]
     assert ledger.always == []
 
 
@@ -494,10 +512,229 @@ def test_a_check_alone_never_asks_always():
     _, state = start()
     _, state = _say(state, "ieri, 23,40", ledger)
     msgs, _ = _say(state, "sì", ledger)
-    assert "ledger.always.ask" not in _keys(msgs)
+    assert "expense.always" not in _keys(msgs)
 
 
 def test_never_creates_a_movement():
     """Mai un movimento inventato (spec 32, 2.4): the flow has no port to do it."""
     assert not any(name.startswith(("create", "add", "insert"))
                    for name in dir(FakeLedger) if not name.startswith("_"))
+
+
+# ── 4.6 Closing ──────────────────────────────────────────────────────────────
+
+def _checked_two(ledger):
+    _, state = start()
+    for text in ("il 24, 23,40", "sì", "il 24, 9,90", "sì"):
+        _, state = _say(state, text, ledger)
+    assert state.checked == 2 and len(ledger.confirmed) == 2
+    return state
+
+
+def _ledger_two():
+    return FakeLedger([_c("t1", "23.40", date(2026, 10, 24)),
+                       _c("t2", "9.90", date(2026, 10, 24), name="Bar Sole")])
+
+
+def test_closing_says_how_many_were_checked():
+    ledger = _ledger_two()
+    state = _checked_two(ledger)
+    msgs, state = _say(state, "ho finito", ledger)
+    assert _keys(msgs) == ["expense.closed"]
+    assert msgs[0].params["n"] == 2
+    assert state.step == CLOSED
+
+
+def test_a_bare_no_closes_only_while_waiting_for_an_expense():
+    ledger = _ledger_two()
+    state = _checked_two(ledger)
+    msgs, state = _say(state, "no grazie", ledger)
+    assert state.step == CLOSED
+    # halfway, the same "no" answers the question: "not this one"
+    _, state = start()
+    _, state = _say(state, "il 24, 23,40", ledger)
+    msgs, state = _say(state, "no", ledger)
+    assert _keys(msgs) == ["expense.not_found"]
+    assert state.step == ASK_EXPENSE
+
+
+def test_a_sentence_with_a_date_or_amount_is_an_expense():
+    ledger = _ledger_two()
+    _, state = start()
+    msgs, state = _say(state, "basta, il 24 23,40", ledger)
+    assert _keys(msgs) == ["expense.found_one"]
+    assert state.step == CONFIRM_ONE
+
+
+def test_an_expense_halfway_is_not_written_and_is_said():
+    ledger = _ledger_two()
+    _, state = start()
+    _, state = _say(state, "il 24, 23,40", ledger)
+    msgs, state = _say(state, "basta", ledger)
+    assert _keys(msgs) == ["expense.left", "expense.closed_none"]
+    assert msgs[0].params["amount"] == Decimal("23.40")
+    assert ledger.confirmed == []
+    assert state.step == CLOSED
+
+
+def test_closing_at_always_leaves_the_question_unanswered():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], questions=[_Q])
+    state = _to_always(ledger)
+    msgs, state = _say(state, "fine", ledger)
+    assert _keys(msgs) == ["expense.closed_one"]       # already checked: nothing left out
+    assert ledger.always == []                         # neither a rule nor a refusal
+    assert state.step == CLOSED
+
+
+def test_after_closing_nothing_is_heard():
+    ledger = _ledger_two()
+    _, state = start()
+    _, state = _say(state, "fine", ledger)
+    msgs, state = _say(state, "il 24, 23,40", ledger)
+    assert msgs == [] and state.step == CLOSED
+    assert ledger.searches == []
+
+
+def test_the_count_survives_an_expense_not_found():
+    ledger = _ledger_two()
+    state = _checked_two(ledger)
+    _, state = _say(state, "il 3 ottobre, 99 euro", ledger)
+    assert state.checked == 2
+
+
+# ── 4.7 Correcting the last expense ─────────────────────────────────────────
+
+def test_the_last_category_can_be_corrected_after_done():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))])
+    _, state = start()
+    _, state = _say(state, "il 24, 23,40", ledger)
+    _, state = _say(state, "confermato", ledger)
+    assert ledger.confirmed == [("t1", None)]
+    msgs, state = _say(state, "cambia categoria", ledger)
+    assert _keys(msgs) == ["expense.correct"]
+    assert msgs[0].params["name"] == "Esselunga"
+    assert state.step == ASK_CATEGORY and state.chosen.tx_id == "t1"
+    _, state = _say(state, "farmaci", ledger)
+    msgs, state = _say(state, "sì", ledger)
+    assert ledger.confirmed[-1] == ("t1", ("Salute", "Farmaci"))
+    assert _keys(msgs) == ["expense.done"]
+    assert state.checked == 1                   # the same movement: not one more
+
+
+def test_a_second_correction_compares_with_the_category_now():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))])
+    _, state = start()
+    for text in ("il 24, 23,40", "sì", "correggi", "farmaci", "sì", "ho sbagliato"):
+        _, state = _say(state, text, ledger)
+    assert state.chosen.pair == ("Salute", "Farmaci")
+
+
+def test_a_correction_with_an_amount_is_a_new_expense():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24)),
+                         _c("t2", "9.90", date(2026, 10, 24), name="Bar Sole")])
+    _, state = start()
+    _, state = _say(state, "il 24, 23,40", ledger)
+    _, state = _say(state, "sì", ledger)
+    msgs, state = _say(state, "ho sbagliato, il 24 9,90", ledger)
+    assert _keys(msgs) == ["expense.found_one"] and state.chosen.tx_id == "t2"
+
+
+def test_nothing_to_correct_before_a_confirmation():
+    ledger = FakeLedger()
+    _, state = start()
+    msgs, state = _say(state, "cambia categoria", ledger)
+    assert _keys(msgs) == ["expense.ask_again"]
+
+
+def test_a_correction_at_always_leaves_the_question_unanswered():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], questions=[_Q])
+    state = _to_always(ledger)
+    msgs, state = _say(state, "no aspetta, ho sbagliato", ledger)
+    assert _keys(msgs) == ["expense.correct"]
+    assert ledger.always == []
+    assert state.chosen.pair == ("Casa", "Arredamento")
+
+
+# ── 4.8 The model proposes, the user confirms ───────────────────────────────
+
+def _found_one(ledger):
+    _, state = start()
+    _, state = _say(state, "il 24, 23,40", ledger)
+    assert state.step == CONFIRM_ONE
+    return state
+
+
+def test_an_answer_the_words_understand_never_reaches_the_model():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"found": "no"})
+    _, _ = _say(_found_one(ledger), "confermato", ledger)
+    assert ledger.asked == [] and ledger.confirmed == [("t1", None)]
+
+
+def test_the_model_proposes_and_a_yes_does_it():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"found": "yes"})
+    msgs, state = _say(_found_one(ledger), "mi sa di si", ledger)
+    assert ledger.asked == [("found", "mi sa di si")]
+    assert _keys(msgs) == ["expense.check.yes"] and state.step == CHECK
+    assert ledger.confirmed == []                     # nothing written on the model's word
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.done"] and ledger.confirmed == [("t1", None)]
+
+
+def test_a_no_to_what_the_model_understood_asks_again():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"found": "yes"})
+    _, state = _say(_found_one(ledger), "boh", ledger)
+    msgs, state = _say(state, "no", ledger)
+    assert _keys(msgs) == ["expense.found_one"] and state.step == CONFIRM_ONE
+    assert ledger.confirmed == []
+
+
+def test_other_words_after_the_check_answer_the_question_of_before():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"found": "yes"})
+    _, state = _say(_found_one(ledger), "boh", ledger)
+    msgs, state = _say(state, "sì ma la categoria è un'altra", ledger)
+    assert _keys(msgs) == ["expense.ask_category"]
+
+
+def test_the_model_reads_a_closing():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"waiting": "close"})
+    state = _found_one(ledger)
+    _, state = _say(state, "sì", ledger)
+    msgs, state = _say(state, "lasciamo perdere per oggi", ledger)
+    assert _keys(msgs) == ["expense.check.close"]
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.closed_one"] and state.step == CLOSED
+
+
+def test_the_model_reads_a_correction_only_with_something_to_correct():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"waiting": "correct"})
+    _, state = start()
+    msgs, state = _say(state, "la categoria di prima non andava", ledger)
+    assert _keys(msgs) == ["expense.ask_again"]       # nothing confirmed yet
+    state = _found_one(ledger)
+    _, state = _say(state, "sì", ledger)
+    msgs, state = _say(state, "la categoria di prima non andava", ledger)
+    assert _keys(msgs) == ["expense.check.correct"]
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.correct"] and state.step == ASK_CATEGORY
+
+
+def test_unclear_or_silent_model_leaves_the_flow_as_without_it():
+    for intent in ({"found": "unclear"}, None):
+        ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent=intent)
+        msgs, state = _say(_found_one(ledger), "boh", ledger)
+        assert _keys(msgs) == ["expense.yes_no"] and state.step == CONFIRM_ONE
+
+
+def test_an_intent_out_of_place_is_ignored():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], intent={"found": "correct"})
+    msgs, _ = _say(_found_one(ledger), "boh", ledger)
+    assert _keys(msgs) == ["expense.yes_no"]
+
+
+def test_the_model_at_always():
+    ledger = FakeLedger([_c("t1", "23.40", date(2026, 10, 24))], questions=[_Q], intent={"always": "no"})
+    state = _to_always(ledger)
+    msgs, state = _say(state, "macche", ledger)
+    assert _keys(msgs) == ["expense.check.no_rule"]       # "Solo questa?", not "Non e' questa?"
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.always_kept"] and ledger.always == [("no", _Q)]

@@ -72,7 +72,7 @@ def _bot(app) -> str:
 
 def test_the_page_opens_with_the_question(db):
     app = _open(db)
-    assert "Dimmi data e importo" in _bot(app)
+    assert _bot(app) == "Data e importo."
 
 
 def test_found_and_confirmed(db):
@@ -80,9 +80,10 @@ def test_found_and_confirmed(db):
     app = _open(db)
     _say(app, "ieri, 23 e 40")
     reply = _bot(app)
-    assert "Esselunga" in reply and "23,40" in reply and "Alimentari / Spesa supermercato" in reply
+    # what the user just said is not repeated (spec 32, 2.5)
+    assert "Esselunga" in reply and "Alimentari / Spesa supermercato" in reply and "23,40" not in reply
     _say(app, "sì")
-    assert "Controllata" in _bot(app)
+    assert _bot(app) == "Fatto."
     with get_session(_engine(db)) as s:
         tx = s.get(Transaction, "a")
         assert tx.human_validated
@@ -107,7 +108,7 @@ def test_several_found_and_one_chosen(db):
 def test_not_found_offers_to_try_again(db):
     app = _open(db)
     _say(app, "ieri, 23,40")
-    assert "Non trovo" in _bot(app)
+    assert _bot(app) == "Non c'è."
 
 
 def test_a_category_by_hand_and_always_like_this(db):
@@ -119,11 +120,11 @@ def test_a_category_by_hand_and_always_like_this(db):
     app = _open(db)
     _say(app, "ieri, 23,40")
     _say(app, "sì, ma la categoria è un'altra")
-    assert "categoria" in _bot(app)
+    assert _bot(app) == "Categoria?"
     _say(app, "arredamento")
     assert "Casa / Arredamento" in _bot(app)
     _say(app, "sì")
-    assert "Sempre così?" in _bot(app)
+    assert "Sempre così per **Esselunga**?" in _bot(app)
     _say(app, "sì")
     with get_session(_engine(db)) as s:
         a = s.get(Transaction, "a")
@@ -142,7 +143,7 @@ def test_always_no(db):
     app = _open(db)
     for text in ("ieri, 23,40", "sì ma la categoria è un'altra", "arredamento", "sì", "no"):
         _say(app, text)
-    assert "solo per questo movimento" in _bot(app)
+    assert "Solo questa." in _bot(app)
     with get_session(_engine(db)) as s:
         assert s.query(CategoryRule).count() == 0
 
@@ -171,7 +172,7 @@ def test_start_again(db):
     app.button(key="expense_restart").click().run()
     assert not app.exception, app.exception
     assert len([m for m in app.chat_message if m.name == "assistant"]) == 1
-    assert "Dimmi data e importo" in _bot(app)
+    assert _bot(app) == "Data e importo."
 
 
 def test_a_day_of_another_year_says_the_year():
@@ -180,7 +181,7 @@ def test_a_day_of_another_year_says_the_year():
     from ui.i18n import set_language
     set_language("it")
     say = _formatter({})
-    text = say([Msg("expense.not_found", {"amount": Decimal("1234.5"), "day": date(2001, 5, 12)})])
+    text = say([Msg("expense.understood", {"amount": Decimal("1234.5"), "day": date(2001, 5, 12)})])
     assert "12 maggio 2001" in text and "1.234,50" in text
 
 
@@ -227,6 +228,7 @@ def test_amounts_are_read_as_people_say_them(db):
 
 def test_the_reply_reads_the_amount_without_comma(db):
     _add(db, "a")
+    _add(db, "b", desc="BAR CENTRALE")       # two found: the list says the amounts
     app = _open(db)
     _say(app, "ieri, 23 e 40")
     said = app.session_state["_expense_spoken"]
@@ -242,4 +244,54 @@ def test_a_dictation_that_repeats_the_last_answer_gives_only_the_new_part(db):
     _say(app, "ieri 23 e 40 € sì")
     users = [m for m in app.chat_message if m.name == "user"]
     assert users[-1].markdown[0].value == "sì"
-    assert "Controllata" in _bot(app)
+    assert _bot(app) == "Fatto."
+
+
+
+# ── Closing (spec 32, 4.6) ───────────────────────────────────────────────────
+
+
+def test_closing_counts_and_stops_listening(db):
+    _add(db, "a")
+    app = _open(db)
+    _say(app, "ieri, 23,40")
+    _say(app, "sì")
+    _say(app, "ho finito")
+    assert _bot(app) == "Fine. 1 spuntata."
+    assert app.chat_input[0].disabled
+    _ = app.button(key="expense_restart").click().run()
+    assert not app.exception, app.exception
+    assert _bot(app) == "Data e importo." and not app.chat_input[0].disabled
+
+
+def test_a_rule_note_is_shown_and_not_read_aloud():
+    from core.expense_confirm import Msg
+    from ui.expense_confirm_page import _formatter
+    from ui.i18n import set_language
+    set_language("it")
+    say = _formatter({})
+    msgs = [Msg("expense.rule_done", {}, "Applicata a 4 movimenti.")]
+    assert "Applicata a 4 movimenti." in say(msgs)
+    assert say(msgs, spoken=True) == "Regola creata."
+
+
+def _fixed_boxes(node):
+    """The blocks of fixed height in the page, at any depth."""
+    out = []
+    for child in getattr(node, "children", {}).values():
+        hc = getattr(child.proto, "height_config", None)
+        if hc is not None and hc.WhichOneof("height_spec") == "pixel_height":
+            out.append(child)
+        out += _fixed_boxes(child)
+    return out
+
+
+def test_the_conversation_scrolls_inside_a_box_of_fixed_height(db):
+    """The page does not grow with the chat: the messages live in a box of
+    fixed height that scrolls by itself to the last one."""
+    _add(db, "a")
+    app = _open(db)
+    _say(app, "ieri, 23,40")
+    boxes = [b for b in _fixed_boxes(app.main) if len(b.chat_message)]
+    assert len(boxes) == 1 and boxes[0].proto.height_config.pixel_height == 420
+    assert len(boxes[0].chat_message) == len(app.chat_message) == 3

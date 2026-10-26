@@ -306,18 +306,89 @@ def parse_expense(text: str, today: date) -> Parsed:
 
 # ── Answers ──────────────────────────────────────────────────────────────────
 
-_YES = {"si", "yes", "oui", "ja", "ok", "okay", "esatto", "giusto", "certo", "perfetto",
-        "confermo", "esattamente", "proprio"}
+# A yes is said in many ways (spec 32, 4.2 A).
+_YES = {"si", "yes", "oui", "ja", "ok", "okay", "esatto", "esatta", "giusto", "giusta", "certo",
+        "perfetto", "confermo", "confermato", "confermata", "conferma", "esattamente", "proprio",
+        "corretto", "corretta", "bene", "vai", "procedi", "affermativo", "certamente", "sicuro",
+        "assolutamente", "ovvio", "yep", "yeah", "sure", "right", "correct", "exactly",
+        "genau", "richtig", "claro", "vale", "exacto", "correcto", "dacord", "vabbe", "vabbene"}
+_LEAD = {"allora", "beh", "be", "ah", "eh", "oh", "ehm", "mh", "uhm"}     # fillers before the answer
+_IT_IS = {"questa", "quella", "lei", "lui", "questo", "quello", "giusta", "giusto"}
 _NO = {"no", "non", "nein", "nessuno", "nessuna", "niente", "sbagliato"}
 _BUT = {"ma", "pero", "categoria", "altra"}
+
+
+# Closing the session (spec 32, 4.6). Explicit closings close at any step;
+# the bare refusals only while the bot waits for a new expense, since halfway
+# they answer the question asked ("no, not this one").
+_CLOSE_WORDS = {"basta", "fine", "finito", "finita", "chiudi", "chiudiamo", "stop", "tutto",
+                "done", "finished", "enough", "fini", "termine", "fertig", "genug", "schluss",
+                "listo", "terminado", "acabado"}
+_CLOSE_PHRASES = ("ho finito", "abbiamo finito", "non ho altre", "nient altro", "nessun altra",
+                  "per oggi basta", "lascia stare", "lasciamo stare", "e tutto", "per ora basta",
+                  "that s all", "that s it", "no more", "c est tout", "j ai fini", "das war s",
+                  "das ist alles", "ich bin fertig", "eso es todo", "he terminado", "ya esta")
+_WAITING_CLOSE = {"no", "niente", "nessuna", "nessuno", "nope", "non", "nein", "nada", "rien"}
+_FILLER = {"ok", "okay", "si", "va", "bene", "allora", "grazie", "per", "ora", "oggi", "e", "cosi",
+           "thanks", "merci", "danke", "gracias", "yes", "oui", "ja"}
+
+
+# Correcting the last expense confirmed (spec 32, 4.7).
+_CORRECT_WORDS = {"correggi", "correggere", "correzione", "sbagliato", "sbagliata", "aspetta",
+                  "cambia", "cambiare", "modifica", "wrong", "wait", "change", "fix", "falsch",
+                  "warte", "andern", "corrige", "attends", "erreur", "cambiar", "espera", "corrige",
+                  "equivocado", "equivocada"}
+
+
+def says_an_expense(text: str) -> bool:
+    """True when *text* names an amount or a date. "Per oggi" is when to
+    stop, not the day of an expense, unless an amount comes with it."""
+    if parse_amount(text) is not None:
+        return True
+    undated = " ".join(w for w in _words(text) if w not in _TODAY_WORDS)
+    return parse_date(undated, date.today()) is not None
+
+
+def is_correction(text: str) -> bool:
+    """True when *text* asks to correct the last expense confirmed: never
+    when it says a date or an amount, which make it a new expense."""
+    words = _words(text)
+    if not words or not set(words) & _CORRECT_WORDS:
+        return False
+    undated = " ".join(w for w in words if w not in _TODAY_WORDS)
+    return parse_amount(text) is None and parse_date(undated, date.today()) is None
+
+
+def is_closing(text: str, waiting: bool) -> bool:
+    """True when *text* closes the session: never when it says a date or an
+    amount ("basta, ieri 20 euro" is an expense); a bare "no" only when
+    *waiting* for a new expense."""
+    flat = " ".join(_words(text))
+    # "per oggi basta": today here is when to stop, not the day of an expense.
+    undated = " ".join(w for w in flat.split() if w not in _TODAY_WORDS)
+    if parse_amount(text) is not None or parse_date(undated, date.today()) is not None:
+        return False
+    if not flat:
+        return False
+    if any(p in f" {flat} " for p in (f" {x} " for x in _CLOSE_PHRASES)):
+        return True
+    words = [w for w in flat.split() if w not in _FILLER]
+    if not words:
+        return False
+    if all(w in _CLOSE_WORDS for w in words):
+        return True
+    return waiting and all(w in _WAITING_CLOSE | _CLOSE_WORDS for w in words)
 
 
 def yes_no(text: str) -> str | None:
     """"yes", "yes_other" (yes, but the category is another), "no" or None."""
     words = _words(text)
+    while words and words[0] in _LEAD:
+        words = words[1:]
     if not words:
         return None
-    if words[0] in _YES or words[:2] == ["va", "bene"]:
+    if (words[0] in _YES or words[:2] in (["va", "bene"], ["d", "accordo"], ["va", "be"])
+            or (words[0] == "e" and len(words) > 1 and words[1] in _IT_IS)):
         return "yes_other" if _BUT & set(words) else "yes"
     if words[0] in _NO:
         return "no"
@@ -328,14 +399,19 @@ _ORDINALS = {"primo": 0, "prima": 0, "secondo": 1, "seconda": 1, "terzo": 2, "te
              "quarto": 3, "quarta": 3, "quinto": 4, "quinta": 4, "sesto": 5, "sesta": 5}
 
 
+def _number_word(w: str) -> int | None:
+    """"2" or "due": the ears of the app write numbers as words."""
+    return int(w) if w.isdigit() else _UNITS.get(w)
+
+
 def _index_said(words: list[str], n: int) -> int | None:
-    """"2", "la seconda", "l'ultima": a position in a list of *n*."""
+    """"2", "due", "la seconda", "l'ultima": a position in a list of *n*."""
     for w in words:
         if w in _ORDINALS and _ORDINALS[w] < n:
             return _ORDINALS[w]
         if w in ("ultimo", "ultima"):
             return n - 1
-    nums = [int(w) for w in words if w.isdigit()]
+    nums = [v for v in map(_number_word, words) if v is not None]
     if len(nums) == 1 and 1 <= nums[0] <= n:
         return nums[0] - 1
     return None
@@ -367,6 +443,12 @@ def pick_movement(text: str, candidates: list[tuple[str, date]], today: date) ->
     for w in words:
         if w in _ORDINALS or w in ("ultimo", "ultima"):
             return _index_said(words, n)
+    # a number alone ("uno", "il 2") is a position, unless a movement shown
+    # falls on that day: then "il 13" is the 13th
+    said = [w for w in words if w not in ("il", "l", "la", "numero")]
+    if len(said) == 1 and _number_word(said[0]) is not None:
+        if all(d.day != _number_word(said[0]) for _, d in candidates):
+            return _index_said(said, n)
     content = {_stem(w) for w in _content(text) if len(w) >= 3}
     if content:
         named = [i for i, (name, _) in enumerate(candidates)

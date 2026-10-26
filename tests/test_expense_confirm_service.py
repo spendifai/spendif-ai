@@ -187,3 +187,55 @@ def test_last_date_is_the_latest_movement(engine):
     _add(engine, "a", "-5", "2026-10-09")
     _add(engine, "b", "100", "2026-10-18", tx_type="income")
     assert svc.last_date() == date(2026, 10, 18)
+
+
+# ── The model reads an answer the words did not understand (spec 32, 4.8) ────
+
+class _Sized:
+    """A local model of a given file size."""
+    def __init__(self, size):
+        self.model_size_bytes = size
+
+
+def test_model_intent_maps_the_label_and_offers_only_the_intents_of_the_question(engine, monkeypatch):
+    schemas = []
+
+    def _call(primary, system_prompt, user_prompt, json_schema, **kw):
+        schemas.append(json_schema["properties"]["intento"]["enum"])
+        return {"intento": "chiudi"}, "fake"
+
+    monkeypatch.setattr("core.llm_backends.call_with_fallback", _call)
+    svc = ExpenseConfirmService(engine, backend=_Sized(5_000_000_000))
+    assert svc.model_intent("waiting", "lasciamo perdere per oggi") == "close"
+    assert schemas == [["chiudi", "correggi", "altro"]]
+
+
+@pytest.mark.parametrize("answer", [{"intento": "conferma"}, {"intento": "boh"}, {}, None])
+def test_model_intent_out_of_the_question_is_none(engine, monkeypatch, answer):
+    _fake_model(monkeypatch, answer)
+    assert ExpenseConfirmService(engine, backend=_Sized(5_000_000_000)).model_intent("waiting", "x") is None
+
+
+def test_a_small_model_is_not_asked(engine, monkeypatch):
+    calls = _fake_model(monkeypatch, {"intento": "conferma"})
+    assert ExpenseConfirmService(engine, backend=_Sized(986_048_768)).model_intent("found", "boh") is None
+    assert calls == []
+
+
+def test_a_hosted_model_counts_as_large(engine, monkeypatch):
+    _fake_model(monkeypatch, {"intento": "conferma"})
+    assert ExpenseConfirmService(engine, backend=object()).model_intent("found", "mi sa di si") == "yes"
+
+
+def test_model_intent_when_the_model_fails(engine, monkeypatch):
+    _fake_model(monkeypatch, fail=True)
+    assert ExpenseConfirmService(engine, backend=object()).model_intent("found", "x") is None
+
+
+def test_the_answer_never_reaches_the_log(engine, monkeypatch, caplog):
+    import logging
+    _fake_model(monkeypatch, {"intento": "rifiuta"})
+    with caplog.at_level(logging.INFO):
+        ExpenseConfirmService(engine, backend=object()).model_intent("found", "macche proprio no")
+    assert "asking the model" in caplog.text           # the log is there, the words are not
+    assert "macche" not in caplog.text

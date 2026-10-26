@@ -11,6 +11,8 @@ from decimal import Decimal
 import pytest
 
 from core.spoken_expense import (
+    is_closing,
+    is_correction,
     category_match,
     nearest_categories,
     parse_amount,
@@ -251,3 +253,65 @@ def test_choose_among_the_proposed_categories(said, index):
 def test_only_the_new_part_of_a_dictation(text, sent, new):
     from core.spoken_expense import new_part
     assert new_part(text, sent) == new
+
+
+def test_a_choice_said_as_a_word_is_its_number():
+    """The app's own ears write "Uno." where a keyboard writes "1"."""
+    from core.spoken_expense import pick_category, pick_movement
+    options = [("Alimentari", "Supermercato"), ("Casa", "Manutenzione"), ("Salute", "Farmacia")]
+    assert pick_category("Uno.", options) == 0
+    assert pick_category("il due", options) == 1
+    assert pick_category("Tre!", options) == 2
+    assert pick_category("quattro", options) is None
+    today = date(2026, 10, 25)
+    cands = [("Esselunga", date(2026, 10, 24)), ("Bar Centrale", date(2026, 10, 23))]
+    assert pick_movement("Uno.", cands, today) == 0
+    assert pick_movement("due", cands, today) == 1
+
+
+# ── Closing the session (spec 32, 4.6) ──────────────────────────────────────
+
+@pytest.mark.parametrize("said", ["basta", "Basta così.", "ho finito", "fine", "è tutto",
+                                  "non ho altre spese", "per oggi basta", "chiudi", "ok basta grazie",
+                                  "lascia stare", "that's all", "c'est tout", "ich bin fertig"])
+def test_closing_phrases_close_at_any_step(said):
+    assert is_closing(said, waiting=False)
+    assert is_closing(said, waiting=True)
+
+
+@pytest.mark.parametrize("said", ["no", "niente", "no grazie", "nessuna"])
+def test_a_bare_no_closes_only_while_waiting(said):
+    assert is_closing(said, waiting=True)
+    assert not is_closing(said, waiting=False)
+
+
+@pytest.mark.parametrize("said", ["basta, ieri 20 euro", "ho finito il 12 ottobre", "fine 23 e 40",
+                                  "sì", "Esselunga", "farmaci", "", "ok"])
+def test_not_a_closing(said):
+    assert not is_closing(said, waiting=True)
+
+
+@pytest.mark.parametrize("said", ["confermato", "confermo", "ok", "va bene", "esatto", "corretto",
+                                  "certo", "d'accordo", "è questa", "è lei", "allora sì", "beh, ok",
+                                  "sì sì", "vabbè", "proprio quella", "perfetto"])
+def test_a_yes_is_said_in_many_ways(said):
+    assert yes_no(said) == "yes"
+
+
+@pytest.mark.parametrize("said", ["non è questa", "no", "sbagliato", "nessuna"])
+def test_a_no_stays_a_no(said):
+    assert yes_no(said) == "no"
+
+
+# ── Correcting the last expense (spec 32, 4.7) ──────────────────────────────
+
+@pytest.mark.parametrize("said", ["cambia categoria", "la categoria è sbagliata", "correggi",
+                                  "ho sbagliato", "no aspetta", "wrong category"])
+def test_correction_phrases(said):
+    assert is_correction(said)
+
+
+@pytest.mark.parametrize("said", ["ieri 23 e 40", "ho sbagliato, era il 12 ottobre 20 euro",
+                                  "sì", "basta", "Esselunga", ""])
+def test_not_a_correction(said):
+    assert not is_correction(said)

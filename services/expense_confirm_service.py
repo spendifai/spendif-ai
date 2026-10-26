@@ -25,6 +25,20 @@ logger = setup_logging()
 
 # Amounts are kept with four decimals: half a cent either side is the same cent.
 _HALF_CENT = 0.005
+# Below about 3B parameters the model misreads the answers that matter (spec
+# 32, 4.8, measured): a 3B Q4 file is 1.9 GB, a 1.5B one 1.0 GB.
+_MIN_INTENT_MODEL_BYTES = 1_500_000_000
+# The labels of the measured prompt, in the user's words, and the flow's.
+_INTENT_LABELS = {"conferma": "yes", "categoria_diversa": "yes_other", "rifiuta": "no",
+                  "chiudi": "close", "correggi": "correct", "altro": "unclear"}
+_INTENT_DESC = {"conferma": "dice di si', che e' giusto",
+                "categoria_diversa": "dice che e' quel movimento ma la categoria e' sbagliata",
+                "rifiuta": "dice di no, che non e' quello",
+                "chiudi": "vuole smettere, chiudere per oggi",
+                "correggi": "vuole cambiare la categoria della spesa appena confermata",
+                "altro": "qualsiasi altra cosa, o non e' chiaro"}
+_INTENT_QUESTION = {"found": "Esselunga, Alimentari / Spesa supermercato?",
+                    "always": "Sempre cosi' per Esselunga?", "waiting": "Fatto."}
 
 
 class ExpenseConfirmService:
@@ -97,6 +111,66 @@ class ExpenseConfirmService:
             taxonomy = repository.get_taxonomy_config(s)
         return [(cat, sub) for cat, subs in taxonomy.expenses.items() for sub in (subs or [""])]
 
+    def _settings_unless_importing(self) -> dict | None:
+        """The settings, or None while an import runs: the local model runs in
+        this process, and the import comes first."""
+        with self._session() as s:
+            settings = repository.get_all_user_settings(s)
+            job = repository.get_latest_import_job(s)
+        return None if job is not None and job.status == "running" else settings
+
+    def _categories_backend(self, settings: dict):
+        """The model of the categories, the larger of the two (spec 32, 4.8)."""
+        if self._backend is not None:
+            return self._backend
+        from core.orchestrator import _build_backend, _build_categorizer_backend
+        from services.category_service import CategoryService
+        config = CategoryService._config_from_settings(settings)
+        return _build_categorizer_backend(config) or _build_backend(config)
+
+    def model_intent(self, kind: str, text: str) -> str | None:
+        """What an answer the words did not understand means, among the
+        intents possible after the question asked (spec 32, 4.8), or None:
+        model too small, import running, model failing. The flow says it
+        back and waits for a yes; the text never reaches the log."""
+        import json
+        from pathlib import Path
+
+        from core.expense_confirm import INTENTS
+        from core.llm_backends import call_with_fallback
+
+        logger.info(f"expense_confirm: answer not understood by the words ({kind}), asking the model")
+        settings = self._settings_unless_importing()
+        if settings is None:
+            return None
+        try:
+            backend = self._categories_backend(settings)
+            size = getattr(backend, "model_size_bytes", None)    # a hosted model has none: large
+            if size is not None and size < _MIN_INTENT_MODEL_BYTES:
+                logger.info("expense_confirm: model too small for the answers, not asked")
+                return None
+            allowed = [lab for lab, intent in _INTENT_LABELS.items() if intent in INTENTS[kind]]
+            prompts = json.loads((Path(__file__).parent.parent / "prompts" / "answer_intent.json")
+                                 .read_text(encoding="utf-8"))
+            raw, _ = call_with_fallback(
+                primary=backend,
+                system_prompt=prompts["system"].format(
+                    labels="\n".join(f"- {lab}: {_INTENT_DESC[lab]}" for lab in allowed)),
+                user_prompt=prompts["user_template"].format(question=_INTENT_QUESTION[kind], answer=text),
+                json_schema={"type": "object",
+                             "properties": {"intento": {"type": "string", "enum": allowed}},
+                             "required": ["intento"]},
+                caller="expense_confirm",
+                step="expense_answer",
+            )
+        except Exception as exc:
+            logger.warning(f"expense_confirm: model failed on the answer, the words decide: {exc}")
+            return None
+        label = (raw or {}).get("intento") if isinstance(raw, dict) else None
+        intent = _INTENT_LABELS.get(label) if label in allowed else None
+        logger.info(f"expense_confirm: the model read the answer as {intent}")
+        return intent
+
     def model_pick(self, text: str, labels: list[str]) -> int | None:
         """The index of the category the model finds for the user's words, or
         None. One short call; never during an import (the local model runs
@@ -106,19 +180,12 @@ class ExpenseConfirmService:
 
         from core.llm_backends import call_with_fallback
 
-        with self._session() as s:
-            settings = repository.get_all_user_settings(s)
-            job = repository.get_latest_import_job(s)
-        if job is not None and job.status == "running":
+        settings = self._settings_unless_importing()
+        if settings is None:
             logger.info("expense_confirm: import running, the category is found by the words")
             return None
         try:
-            backend = self._backend
-            if backend is None:
-                from core.orchestrator import _build_backend, _build_categorizer_backend
-                from services.category_service import CategoryService
-                config = CategoryService._config_from_settings(settings)
-                backend = _build_categorizer_backend(config) or _build_backend(config)
+            backend = self._categories_backend(settings)
             prompts = json.loads((Path(__file__).parent.parent / "prompts" / "category_from_words.json")
                                  .read_text(encoding="utf-8"))
             items = "\n".join(f"{i}: {lab}" for i, lab in enumerate(labels))
