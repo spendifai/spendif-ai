@@ -251,9 +251,9 @@ Vai su **Analisi**. Trovi:
 
 Usa i filtri in alto per restringere a un periodo o a un conto specifico.
 
-### La Home: entrate e uscite per mese
+### Facciamo il punto: entrate e uscite per mese
 
-La **Home** apre con un grafico a barre per mese: le entrate sopra lo zero, le uscite sotto, ciascuna divisa per categoria. Le categorie piu' grandi del periodo hanno il loro colore (verdi le entrate, toni caldi le uscite), le altre stanno in **Altro**. Si vede subito se un mese chiude in positivo.
+**Facciamo il punto** apre con un grafico a barre per mese: le entrate sopra lo zero, le uscite sotto, ciascuna divisa per categoria. Le categorie piu' grandi del periodo hanno il loro colore (verdi le entrate, toni caldi le uscite), le altre stanno in **Altro**. Si vede subito se un mese chiude in positivo.
 
 - I **giroconti** fra i tuoi conti non sono ne' entrate ne' uscite e non compaiono.
 - Un **rimborso** (un reso, soldi restituiti su un acquisto: un'entrata con una categoria di spesa) abbassa quella spesa nel suo mese invece di contare come entrata. Lo stesso vale per il diagramma di flusso sotto.
@@ -417,7 +417,7 @@ Per ogni categoria con obiettivo definito:
 >
 > Quelli più vecchi di 4 mesi non te li chiediamo: una riga li conta. Il pulsante *Riesegui rilevamento giroconti* in Revisione rifà l'accoppiamento su tutto lo storico.
 >
-> **Il passo delle entrate.** Viene dopo i giroconti, così i soldi spostati fra i tuoi conti sono già fuori e restano le entrate vere: stipendio, fatture, rimborsi. Mostra le controparti di entrata del periodo ancora da guardare, dalla più grande. Funziona come il passo delle uscite (*Sempre così* crea la regola), ma senza obiettivo: le entrate sono poche e ognuna pesa, quindi si guardano tutte. Un rimborso o un reso su un acquisto non è un'entrata: scegli la categoria della spesa (per esempio Alimentari) e quella spesa si abbassa, anche nei grafici della Home. Se una controparte ha anche delle spese (il negozio che ti ha rimborsato un acquisto), la scelta vale solo per le sue entrate già caricate e non diventa una regola: una regola cambierebbe anche le spese con lo stesso nome.
+> **Il passo delle entrate.** Viene dopo i giroconti, così i soldi spostati fra i tuoi conti sono già fuori e restano le entrate vere: stipendio, fatture, rimborsi. Mostra le controparti di entrata del periodo ancora da guardare, dalla più grande. Funziona come il passo delle uscite (*Sempre così* crea la regola), ma senza obiettivo: le entrate sono poche e ognuna pesa, quindi si guardano tutte. Un rimborso o un reso su un acquisto non è un'entrata: scegli la categoria della spesa (per esempio Alimentari) e quella spesa si abbassa, anche nei grafici di Facciamo il punto. Se una controparte ha anche delle spese (il negozio che ti ha rimborsato un acquisto), la scelta vale solo per le sue entrate già caricate e non diventa una regola: una regola cambierebbe anche le spese con lo stesso nome.
 
 In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Ogni conto ha la sua riga, con quello che manca e due pulsanti. *Carica il file* ti fa scegliere i file di quel conto e li mette da parte, già assegnati al conto: puoi prepararne per più conti, poi premi *Importa N file* e l'import parte con i conti già fissati. Nella pagina di import restano solo la sistemazione di intestazione e piè di pagina, l'avanzamento e il resoconto. *Non lo uso più* chiude il conto (vedi sotto). Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
 

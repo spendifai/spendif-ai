@@ -47,8 +47,8 @@
      "it": {"q": "Come porto i miei dati su un altro computer?", "facts": [["ledger.db"], ["copia", "copiare"]]},
      "en": {"q": "How do I move my data to another computer?", "facts": [["ledger.db"], ["copy"]]}},
     {"id": "q16", "page": "home",
-     "it": {"q": "Perché la Home mi mostra il periodo fino ad agosto e non fino a oggi?", "facts": [["ultimo movimento"], ["importa", "carica"]]},
-     "en": {"q": "Why does Home show the period up to August and not up to today?", "facts": [["last movement"], ["import", "load"]]}},
+     "it": {"q": "Perché Facciamo il punto mi mostra il periodo fino ad agosto e non fino a oggi?", "facts": [["ultimo movimento"], ["importa", "carica"]]},
+     "en": {"q": "Why does Let's take stock show the period up to August and not up to today?", "facts": [["last movement"], ["import", "load"]]}},
     {"id": "q17", "page": "llm_models",
      "it": {"q": "Quale modello devo usare sul mio computer?", "facts": [["modello"], ["scarica", "scaricare"]]},
      "en": {"q": "Which model should I use on my computer?", "facts": [["model"], ["download"]]}}
