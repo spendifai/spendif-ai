@@ -235,6 +235,42 @@ def _answer(svc: ExpenseConfirmService, say, text: str, dictated: bool = True) -
     _bot_says(say, msgs)
 
 
+def _offer_listening(voice_svc: VoiceService, cfg: SettingsService) -> None:
+    """The question that downloads the listening model (spec 32, 3): asked
+    in full until the user answers no, then a small button asks again. The
+    download runs in the background; the page follows it."""
+    state = voice_svc.listening_download_state()
+    if state["running"]:
+        _follow_download()
+        return
+    if state["error"]:
+        st.warning(t("expense.ears.failed"))
+    if cfg.get("voice_listen_declined") == "true":
+        if st.button(t("expense.ears.again"), key="expense_ears_again"):
+            cfg.set("voice_listen_declined", "false")
+            st.rerun()
+        return
+    with st.container(border=True):
+        st.write(t("expense.ears.ask"))
+        c_yes, c_no = st.columns(2)
+        if c_yes.button(t("expense.ears.yes"), key="expense_ears_yes", type="primary", width="stretch"):
+            voice_svc.start_listening_download()
+            st.rerun()
+        if c_no.button(t("expense.ears.no"), key="expense_ears_no", width="stretch"):
+            cfg.set("voice_listen_declined", "true")
+            st.rerun()
+
+
+@st.fragment(run_every=1)
+def _follow_download() -> None:
+    """The download's progress, redrawn every second; when it ends the page
+    runs again and finds the ears."""
+    state = VoiceService.listening_download_state()
+    if not state["running"]:
+        st.rerun(scope="app")
+    st.progress(float(state["progress"]), text=t("expense.ears.progress"))
+
+
 def render_expense_confirm_page(engine) -> None:
     st.header(t("expense.title"))
     # Under the title, not beside it: beside it the top bar of the app hid them.
@@ -246,6 +282,8 @@ def render_expense_confirm_page(engine) -> None:
     if c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state:
         _reset(svc, say)
     voice_svc = VoiceService()
+    if voice_svc.can_offer_listening(get_language()):
+        _offer_listening(voice_svc, SettingsService(engine))
     own_voice = st.session_state.get("expense_own_voice", True) and voice_svc.can_listen()
     if own_voice:
         if not st.session_state.get("_expense_warm"):
