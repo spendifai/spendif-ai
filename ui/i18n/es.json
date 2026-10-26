@@ -991,7 +991,7 @@
   "home.charts.month": "Mes",
   "home.charts.amount": "Importe (€)",
   "home.charts.income_total": "Ingresos totales",
-  "home.charts.unknown": "Desconocido",
+  "home.charts.unknown": "Saldo disponible",
   "home.charts.uncategorised": "Sin categoría",
   "home.charts.uncategorised_sub": "Sin subcategoría",
   "home.charts.no_income": "Sin ingresos clasificados para mostrar",
