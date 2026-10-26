@@ -251,9 +251,9 @@ Go to **Analytics**. You'll find:
 
 Use the filters at the top to narrow down to a specific period or account.
 
-### The Home: income and expenses by month
+### Let's take stock: income and expenses by month
 
-The **Home** opens with a bar chart by month: income above zero, expenses below, each split by category. The largest categories of the period get their own colour (greens for income, warm tones for expenses), the rest go into **Other**. You see at once whether a month ends positive.
+**Let's take stock** opens with a bar chart by month: income above zero, expenses below, each split by category. The largest categories of the period get their own colour (greens for income, warm tones for expenses), the rest go into **Other**. You see at once whether a month ends positive.
 
 - **Transfers** between your own accounts are neither income nor expenses and do not appear.
 - A **refund** (a return, money back on a purchase: an income movement with an expense category) lowers that expense in its month instead of counting as income. The same holds for the flow diagram below.
@@ -417,7 +417,7 @@ For each category with a defined target:
 >
 > Those older than 4 months are not asked about: one line counts them. The *Re-run internal transfer detection* button in Review redoes the pairing on the whole history.
 >
-> **The income step.** It comes after the transfers, so the money moved between your own accounts is already out and the real income is left: salary, invoices, refunds. It shows the income counterparts of the period still to look at, largest first. It works like the spending step (*Always like this* creates the rule), but with no goal: income comes from few counterparts and each one weighs, so you look at all of them. A refund or a return on a purchase is not income: pick the spending category (for example Groceries) and that spending goes down, in the Home charts too. If a counterpart also has spending (the shop that refunded a purchase), the choice applies only to its income already loaded and does not become a rule: a rule would also change the spending with the same name.
+> **The income step.** It comes after the transfers, so the money moved between your own accounts is already out and the real income is left: salary, invoices, refunds. It shows the income counterparts of the period still to look at, largest first. It works like the spending step (*Always like this* creates the rule), but with no goal: income comes from few counterparts and each one weighs, so you look at all of them. A refund or a return on a purchase is not income: pick the spending category (for example Groceries) and that spending goes down, in the Let's take stock charts too. If a counterpart also has spending (the shop that refunded a purchase), the choice applies only to its income already loaded and does not become a rule: a rule would also change the spending with the same name.
 
 At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". Each account has its own row, with what is missing and two buttons. *Upload the file* lets you pick that account's files and sets them aside, already assigned to the account: you can prepare several accounts, then press *Import N files* and the import starts with the accounts already fixed. The import page only keeps the header and footer adjustment, the progress and the report. *I no longer use it* closes the account (see below). If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
 

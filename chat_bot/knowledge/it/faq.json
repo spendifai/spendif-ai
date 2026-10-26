@@ -730,7 +730,7 @@
     "a": "Sono le controparti di spesa con movimenti in più categorie. Se è un errore (la pasticceria metà alimentari e metà bar), scegli la categoria giusta e premi È sempre questa: diventa una regola per tutti i movimenti. Se dipende da cosa hai comprato (il supermercato dove prendi anche l'elettronica), premi Dipende: li guardo uno a uno e sistema ogni movimento. I movimenti già guardati non te li richiediamo: la volta dopo vedi solo quelli nuovi."
   },
   {
-    "q": "Perché la Home e i Resoconti mostrano il periodo fino all'ultimo movimento e non fino a oggi?",
+    "q": "Perché Facciamo il punto e i Resoconti mostrano il periodo fino all'ultimo movimento e non fino a oggi?",
     "page": "home",
     "a": "Il periodo si apre sui tre mesi che finiscono con l'ultimo movimento che hai caricato, non con oggi: se non importi da un po', vedi dove eri rimasto invece di una pagina vuota. Per aggiornarlo, carica gli estratti conto mancanti: la Lista di controllo ti dice quali e da che data."
   },

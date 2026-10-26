@@ -715,7 +715,7 @@
     "a": "They are spending counterparts with movements in more than one category. If it is a mistake (the pastry shop half groceries, half bar), choose the right category and press It is always this: it becomes a rule for all the movements. If it depends on what you bought (the supermarket where you also buy electronics), press It depends: one by one and sort out each movement. Movements you have already looked at are not asked again: next time you see only the new ones."
   },
   {
-    "q": "Why do Home and the Report show the period up to the last movement and not up to today?",
+    "q": "Why do Let's take stock and the Report show the period up to the last movement and not up to today?",
     "page": "home",
     "a": "The period opens on the three months ending with the last movement you loaded, not with today: if you have not imported for a while, you see where you left off instead of an empty page. To bring it up to date, load the missing statements: the Checklist tells you which ones and from which date."
   },

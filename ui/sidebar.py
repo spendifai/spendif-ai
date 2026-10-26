@@ -99,9 +99,11 @@ def render_sidebar() -> str:
         _render_build_info()
         return st.session_state["page"]
 
-    # Guided workflow first, apart from the rest: it reopens where it was left.
+    # Guided workflow first: it reopens where it was left. Red only while it
+    # is on screen, like every other entry (spec 19, 11bis).
     if st.sidebar.button(
-        t("nav.guided"), key="nav_guided", width="stretch", type="primary",
+        t("nav.guided"), key="nav_guided", width="stretch",
+        type="primary" if st.session_state["page"] == GUIDED_PAGE else "secondary",
         help=t("nav.guided.desc"),
     ):
         if llm_running:
