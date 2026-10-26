@@ -29,7 +29,7 @@ def _add(db, tx_id, day, amount, desc):
         s.commit()
 
 
-def _page(db_path: str) -> None:
+def _page(db_path: str) -> None:  # pragma: no cover - AppTest runs a copy of it
     from sqlalchemy import create_engine
     from ui.i18n import set_language
     from ui.registry_page import render_registry_page
@@ -59,7 +59,7 @@ def test_all_dates_then_an_amount_finds_an_old_expense(db):
     assert app.metric[0].value == "1"
 
 
-def _analysis(db_path: str) -> None:
+def _analysis(db_path: str) -> None:  # pragma: no cover - AppTest runs a copy of it
     from sqlalchemy import create_engine
     from ui.analysis_page import render_analysis_page
     from ui.i18n import set_language
@@ -67,7 +67,7 @@ def _analysis(db_path: str) -> None:
     render_analysis_page(create_engine(f"sqlite:///{db_path}"))
 
 
-def _report(db_path: str) -> None:
+def _report(db_path: str) -> None:  # pragma: no cover - AppTest runs a copy of it
     from sqlalchemy import create_engine
     from ui.i18n import set_language
     from ui.report_page import render_report_page
