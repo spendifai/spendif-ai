@@ -181,10 +181,8 @@ from ui.sidebar import MENU as _MENU, NAV_PAGES as _NAV_PAGES, render_sidebar
 st.session_state[_MENU] = _LevelSvc(engine).menu(_NAV_PAGES)
 if "page" not in st.session_state:
     from services.transaction_service import TransactionService as _TxSvc
-    # An empty DB lands where the first import starts: the Import page when
-    # the menu shows it, else the Home, whose empty state leads to the flow.
-    _first = "import" if "import" in st.session_state[_MENU][0] else "home"
-    st.session_state["page"] = "home" if _TxSvc(engine).has_transactions() else _first
+    # An empty DB lands on the page that asks how to start (spec 16, 2).
+    st.session_state["page"] = "home" if _TxSvc(engine).has_transactions() else "start"
 
 page = render_sidebar()
 
@@ -294,6 +292,10 @@ def _route(page: str, engine) -> None:
     elif page == "chat":
         from ui.chat_page import render_chat_page
         render_chat_page(engine)
+
+    elif page == "start":
+        from ui.start_page import render_start_page
+        render_start_page(engine)
 
     elif page == "guided":
         # The workflow renders the regular pages through this same router.

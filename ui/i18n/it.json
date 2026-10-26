@@ -1597,5 +1597,13 @@
   "settings.menu_level.advanced": "Anche impostazioni, regole e modelli",
   "settings.menu_level.money": "Tutto per analizzare i soldi",
   "settings.menu_level.data": "Tutto per rifinire i dati",
-  "settings.menu_level.all": "Tutte le voci"
+  "settings.menu_level.all": "Tutte le voci",
+  "start.title": "Benvenuto in Spendif.ai",
+  "start.intro": "Per cominciare servono i movimenti della tua banca. Come preferisci partire?",
+  "start.guided.title": "Vuoi essere guidato?",
+  "start.guided.text": "Ti accompagno passo per passo: quali file scaricare dalla banca, l'import, le prime categorie.",
+  "start.guided.btn": "🧭 Guidami",
+  "start.self.title": "Preferisci fare da te?",
+  "start.self.text": "Vai diretto all'import e carica l'estratto conto della tua banca.",
+  "start.self.btn": "📥 Vai all'import"
 }

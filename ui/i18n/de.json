@@ -1597,5 +1597,13 @@
   "settings.menu_level.advanced": "Auch Einstellungen, Regeln und Modelle",
   "settings.menu_level.money": "Alles zur Geldanalyse",
   "settings.menu_level.data": "Alles zum Verfeinern der Daten",
-  "settings.menu_level.all": "Alle Einträge"
+  "settings.menu_level.all": "Alle Einträge",
+  "start.title": "Willkommen bei Spendif.ai",
+  "start.intro": "Zum Start braucht es die Umsätze deiner Bank. Wie möchtest du anfangen?",
+  "start.guided.title": "Möchtest du geführt werden?",
+  "start.guided.text": "Schritt für Schritt: welche Dateien von der Bank, der Import, die ersten Kategorien.",
+  "start.guided.btn": "🧭 Führ mich",
+  "start.self.title": "Lieber selbst machen?",
+  "start.self.text": "Geh direkt zum Import und lade deinen Kontoauszug.",
+  "start.self.btn": "📥 Zum Import"
 }
