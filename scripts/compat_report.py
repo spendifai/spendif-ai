@@ -55,7 +55,7 @@ MAX_XML_BYTES = 64 * 1024
 # A saved email carries headers and, sometimes, a second encoding of the body.
 MAX_MAIL_BYTES = 1024 * 1024
 MAX_FIELD = 80
-KNOWN_SCHEMAS = {"1", "2"}
+KNOWN_SCHEMAS = {"1", "2", "3"}
 
 # Checkbox labels in .github/ISSUE_TEMPLATE/test_report.yml, in order.
 OUTCOMES = (
@@ -154,6 +154,10 @@ def parse_report(xml: str) -> dict[str, object]:
         "llama_cpp_version": text("inference/llama_cpp_version"),
         "model": text("inference/model"),
         "categorizing_s_per_row": per_row,
+        # Schema 3 (spec 33): categories proposed, and movements left on the
+        # generic one because nothing found a category.
+        "distinct_categories": _number(text("categorization/distinct_categories")),
+        "fallback": _number(text("categorization/fallback")),
         "stars": _number(rating.get("stars")) if rating is not None else None,
     }
 
@@ -347,7 +351,7 @@ TEXT = {
                 "account, **Save the document** and send it to support@spendif.ai with the email link on "
                 "the same page."),
         "cols": ["Version", "Operating system", "Arch", "Graphics card", "Runs on", "Installed with",
-                 "Install", "Start", "Import", "Uninstall", "s/row (categorizing)", "Report"],
+                 "Install", "Start", "Import", "Uninstall", "s/row (categorizing)", "Categories", "Report"],
         "empty": "No reports yet.",
         "yes": "yes", "no": "-",
         "matrix_title": "Test matrix",
@@ -366,7 +370,7 @@ TEXT = {
                 "GitHub**; senza un account GitHub, **Salva il documento** e mandalo a support@spendif.ai con "
                 "il link email della stessa pagina."),
         "cols": ["Versione", "Sistema operativo", "Arch", "Scheda grafica", "Gira su", "Installato con",
-                 "Installa", "Avvio", "Import", "Disinstalla", "s/riga (categorie)", "Resoconto"],
+                 "Installa", "Avvio", "Import", "Disinstalla", "s/riga (categorie)", "Categorie", "Resoconto"],
         "empty": "Ancora nessun resoconto.",
         "yes": "si'", "no": "-",
         "matrix_title": "Matrice di prova",
@@ -401,9 +405,18 @@ def render(rows: list[dict], lang: str, matrix: list[dict] | None = None) -> str
             _clean(r.get("install_method")),
             *(t["yes"] if outcome.get(k) else t["no"] for k, _ in OUTCOMES),
             f"{per_row:.3f}" if isinstance(per_row, (int, float)) else "-",
+            _categories(r),
             _reference(r),
         ]) + " |")
     return "\n".join(out + [""])
+
+
+def _categories(row: dict) -> str:
+    """Distinct categories / movements on the generic one, e.g. "17 / 0"."""
+    distinct, fallback = row.get("distinct_categories"), row.get("fallback")
+    if not isinstance(distinct, (int, float)):
+        return "-"
+    return f"{int(distinct)} / {int(fallback or 0)}"
 
 
 def write_docs(rows: list[dict], docs: Path, matrix: list[dict] | None = None) -> None:

@@ -23,6 +23,6 @@ The configurations we test before a release. ✅ a report says all four steps we
 
 ## All reports
 
-| Version | Operating system | Arch | Graphics card | Runs on | Installed with | Install | Start | Import | Uninstall | s/row (categorizing) | Report |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026.10.2 | Windows 11 | amd64 | NVIDIA GeForce RTX 5070 Ti Laptop GPU | Vulkan | unknown | yes | yes | yes | yes | 0.297 | email |
+| Version | Operating system | Arch | Graphics card | Runs on | Installed with | Install | Start | Import | Uninstall | s/row (categorizing) | Categories | Report |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026.10.2 | Windows 11 | amd64 | NVIDIA GeForce RTX 5070 Ti Laptop GPU | Vulkan | unknown | yes | yes | yes | yes | 0.297 | 17 / 0 | email |
