@@ -10,6 +10,19 @@ Scarichi i file movimenti dalla banca, li trascini in Spendif.ai, lui li unifica
 
 ---
 
+## Come conviene usarlo
+
+Il modo che fa meno fatica è in quattro passi, in quest'ordine.
+
+1. **Carica gli estratti conto** di tutti i tuoi conti, con **📥 Carica l'estratto conto**: il percorso ti dice quali file servono e li importa.
+2. **Dai una categoria alle controparti con più movimenti**: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle tue spese. Con *Sempre così* la scelta vale anche per i movimenti dei prossimi import.
+3. **Spunta le spese di cui hai la ricevuta** con **🧾 Ho uno scontrino**: dici data, importo e cosa hai comprato, l'app trova il movimento e lo segna controllato. Vale per lo scontrino di carta e anche per gli **acquisti online**: appena arriva l'email della ricevuta (Amazon, PayPal e simili), di' la spesa. Su quei siti la stessa controparte vende di tutto, e la categoria la sai solo tu. Se l'estratto conto non è ancora arrivato, lo scontrino si salva e lo ritrovi al prossimo import.
+4. **Quello che resta lo controlli conto per conto** con **✅ Controlla i movimenti**. A quel punto rimangono soprattutto i giroconti fra i tuoi conti e gli acquisti online di cui non hai detto la ricevuta.
+
+Quando hai finito, **📍 Facciamo il punto** ti mostra dove sono andati i soldi.
+
+---
+
 ## 1. Primo avvio — wizard di onboarding
 
 **Situazione:** Hai appena installato Spendif.ai e lo avvii per la prima volta.
@@ -629,6 +642,15 @@ Entrambi supportano gli stessi argomenti CLI: `--runs`, `--files`, `--backend`, 
 ---
 
 ## Domande frequenti
+
+**Me lo fa già la banca: a cosa serve Spendif.ai?**
+La banca ti mostra le spese a modo suo, Spendif.ai a modo tuo.
+1. **Tutti i tuoi conti insieme.** La banca vede solo i suoi conti. Basta avere un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico: Spendif.ai li mette insieme, anche di banche diverse.
+2. **Il periodo che vuoi, in una pagina.** Non tutte le banche ti fanno scegliere il periodo e raccogliere entrate, uscite e categorie in una vista sola. In **📍 Facciamo il punto** scegli il periodo e vedi da dove arrivano i soldi e dove vanno.
+3. **Le tue categorie, non quelle della banca.** La banca usa le sue, e su un acquisto Amazon o PayPal "shopping" non vuol dire niente. In Spendif.ai le categorie le decidi tu, e con la ricevuta la spesa online prende la categoria vera.
+4. **I contesti.** La stessa spesa al supermercato può essere di casa, della vacanza o del lavoro. La banca non lo sa; in Spendif.ai il contesto lo dai tu, e i conti li fai anche per contesto.
+
+E i tuoi dati restano sul tuo computer.
 
 **Posso importare file di banche diverse insieme?**
 Sì. Spendif.ai riconosce il formato automaticamente. Non devi dirgli che tipo di file è.
