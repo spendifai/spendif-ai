@@ -21,7 +21,7 @@
 # Schema reference: https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: SpendifAi.SpendifAi
-PackageVersion: 2026.10.2
+PackageVersion: 2026.10.3
 MinimumOSVersion: "10.0.17763.0"
 InstallerType: zip
 NestedInstallerType: script
@@ -33,7 +33,7 @@ InstallModes:
   - silent
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/spendifai/spendif-ai/releases/download/v2026.10.2/SpendifAi-2026.10.2-windows.zip
+    InstallerUrl: https://github.com/spendifai/spendif-ai/releases/download/v2026.10.3/SpendifAi-2026.10.3-windows.zip
     InstallerSha256: PLACEHOLDER_SHA256_ZIP
     InstallerSwitches:
       Silent: "-NonInteractive"
