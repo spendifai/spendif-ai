@@ -124,7 +124,10 @@ class GuidedFlowService:
         The report closes only when the user moves on.
         """
         closed: set[str] = set()
-        if self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
+        # An empty registry has everything still to load, whatever the Check
+        # List says without accounts to look at (spec 16, 2).
+        empty = not TransactionService(self._engine).has_transactions()
+        if not empty and self.checklist_guidance(today)[0].kind is GuidanceKind.up_to_date:
             closed |= {"checklist", "import"}
         if self.check_progress().reached:
             closed.add("counterparts")

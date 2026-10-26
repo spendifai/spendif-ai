@@ -1597,5 +1597,13 @@
   "settings.menu_level.advanced": "Also settings, rules and models",
   "settings.menu_level.money": "Everything to analyse money",
   "settings.menu_level.data": "Everything to refine the data",
-  "settings.menu_level.all": "All entries"
+  "settings.menu_level.all": "All entries",
+  "start.title": "Welcome to Spendif.ai",
+  "start.intro": "To begin, Spendif.ai needs your bank's movements. How would you like to start?",
+  "start.guided.title": "Would you like a guide?",
+  "start.guided.text": "Step by step: which files to download from the bank, the import, the first categories.",
+  "start.guided.btn": "🧭 Guide me",
+  "start.self.title": "Rather do it yourself?",
+  "start.self.text": "Go straight to the import and load your bank statement.",
+  "start.self.btn": "📥 Go to the import"
 }
