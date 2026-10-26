@@ -136,8 +136,9 @@ def render_report_page(engine):
         st.session_state["report_to"] = today
         st.rerun()
     if pc5.button(t("report.preset_all"), key="rpt_preset_all", use_container_width=True):
-        st.session_state["report_from"] = date(2000, 1, 1)
-        st.session_state["report_to"] = today
+        # The whole registry, as in the Registry (spec 21, 7bis).
+        _span = tx_svc.get_date_span()
+        st.session_state["report_from"], st.session_state["report_to"] = _span or (_first_cur, today)
         st.rerun()
 
     # ── Filters ───────────────────────────────────────────────────────────────

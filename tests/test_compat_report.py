@@ -71,7 +71,7 @@ def test_a_real_report_becomes_a_row():
 
 
 def test_schema_1_reports_still_read():
-    xml = diagnostics.to_xml(_report()).replace('schema="2"', 'schema="1"')
+    xml = diagnostics.to_xml(_report()).replace(f'schema="{diagnostics.SCHEMA_VERSION}"', 'schema="1"')
     xml = xml.replace("<os_name>Debian GNU/Linux 13 (trixie)</os_name>", "")
     row = compat.parse_report(compat.extract_xml(_issue_body(xml)))
     assert row["os_name"].startswith("Linux-6.12")
@@ -267,3 +267,21 @@ def test_the_matrix_is_rendered_from_the_file_next_to_the_store(tmp_path):
     text = (tmp_path / "compatibility.md").read_text(encoding="utf-8")
     assert f"| {compat.DONE} | Windows 11, NVIDIA | amd64 | bundle | Vulkan | 0.3.1+gabc1234 | #9 |" in text
     assert f"| {compat.OPEN} | Fedora 42 | arm64 | bundle | - | - | - |" in text
+
+
+def test_categories_column_reads_distinct_and_fallback(tmp_path):
+    """Spec 33: categories proposed and movements left on the generic one."""
+    report = _report()
+    report["categorization"] = {"movements": 785, "distinct_categories": 17, "fallback": 0}
+    row = compat.row_from_event(_event(_issue_body(diagnostics.to_xml(report))))
+    assert row["distinct_categories"] == 17
+    assert row["fallback"] == 0
+    assert "| 17 / 0 |" in compat.render([row], "en")
+
+
+def test_a_schema_2_report_shows_no_categories():
+    xml = diagnostics.to_xml(_report()).replace(f'schema="{diagnostics.SCHEMA_VERSION}"', 'schema="2"')
+    row = compat.row_from_event(_event(_issue_body(xml)))
+    assert row["distinct_categories"] is None
+    line = [l for l in compat.render([row], "en").splitlines() if l.startswith("| 0.3.1")][0]
+    assert line.split(" | ")[-2] == "-"

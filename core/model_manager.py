@@ -27,6 +27,30 @@ def _build_fallback_chain(effective_gb: int) -> list[ModelInfo]:
     """Local wrapper around ``config.get_fallback_chain`` so unit tests can
     monkey-patch it without touching the global registry loader."""
     return get_fallback_chain(effective_gb)
+
+
+def effective_memory_gb(hw: dict[str, Any]) -> int:
+    """The memory the model has to fit in (spec 15, section 5).
+
+    With a discrete card VRAM is the bottleneck; on macOS (unified memory)
+    vram_gb == ram_gb, so min() is a no-op; vram_gb == 0 means no card, and
+    RAM is the constraint. Onboarding and download both read it from here,
+    so the model announced is the model downloaded.
+    """
+    ram_gb, vram_gb = hw["ram_gb"], hw["vram_gb"]
+    return min(ram_gb, vram_gb) if vram_gb > 0 else ram_gb
+
+
+def recommended_chain(hw: dict[str, Any]) -> list[ModelInfo]:
+    """The recommended model for this hardware, then its smaller fallbacks."""
+    return _build_fallback_chain(effective_memory_gb(hw))
+
+
+def _to_gb(value: float, unit: int) -> int:
+    """Round to the nearest GB. Cards never report their full size: a 12 GB
+    RTX 5070 Ti Laptop says 12227 MiB, which integer division made 11, below
+    the 12 GB tier."""
+    return int(round(value / unit))
 from support.logging import setup_logging
 
 logger = setup_logging()
@@ -163,7 +187,7 @@ def _detect_vram_gb() -> int:
         if out:
             # nvidia-smi reports MiB; take first GPU
             mib = int(out.splitlines()[0].strip())
-            return mib // 1024
+            return _to_gb(mib, 1024)
     except Exception:
         pass
     # AMD ROCm — try multiple parsing strategies (output format varies by version)
@@ -176,7 +200,7 @@ def _detect_vram_gb() -> int:
             if len(parts) >= 2 and parts[0].strip().isdigit():
                 # rocm-smi --csv: GPU#, VRAM Total (B), VRAM Used (B)
                 total_bytes = int(parts[1].strip())
-                return total_bytes // (1024 ** 3)
+                return _to_gb(total_bytes, 1024 ** 3)
     except Exception:
         pass
     # Fallback: non-CSV output (some ROCm versions)
@@ -194,9 +218,9 @@ def _detect_vram_gb() -> int:
                     val = int(nums[0])
                     # Heuristic: if > 1_000_000 it's bytes, otherwise MiB
                     if val > 1_000_000:
-                        return val // (1024 ** 3)
+                        return _to_gb(val, 1024 ** 3)
                     else:
-                        return val // 1024
+                        return _to_gb(val, 1024)
     except Exception:
         pass
     # Vulkan fallback (AMD without ROCm, or other Vulkan GPUs)
@@ -212,7 +236,7 @@ def _detect_vram_gb() -> int:
                 if m:
                     heap_bytes = int(m.group(1))
                     if heap_bytes > 1_000_000_000:  # sanity check: > 1 GB
-                        return heap_bytes // (1024 ** 3)
+                        return _to_gb(heap_bytes, 1024 ** 3)
     except Exception:
         pass
     return 0
@@ -253,10 +277,7 @@ def ensure_model_available(
     ram_gb = hw["ram_gb"]
     vram_gb = hw["vram_gb"]
 
-    # On systems with a discrete GPU, VRAM is the bottleneck for model size.
-    # On macOS (unified memory) vram_gb == ram_gb, so min() is a no-op.
-    # vram_gb == 0 means CPU-only: use RAM as the constraint.
-    effective_gb = min(ram_gb, vram_gb) if vram_gb > 0 else ram_gb
+    effective_gb = effective_memory_gb(hw)
 
     # Try the recommended model first; on failure (404, 401, network, …)
     # fall back to the next-smaller tier and retry, down to the smallest

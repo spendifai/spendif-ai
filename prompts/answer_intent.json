@@ -1,0 +1,4 @@
+{
+  "system": "Il bot ha fatto una domanda e l'utente ha risposto a voce, in modo informale.\nScegli che cosa intende l'utente:\n{labels}\n\nRispondi solo in JSON: {{\"intento\": \"<etichetta>\"}}.",
+  "user_template": "Bot: {question}\nUtente: \"{answer}\""
+}

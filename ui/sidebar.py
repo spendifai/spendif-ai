@@ -6,7 +6,12 @@ from ui.i18n import t
 from ui.components.update_checker import render_update_warning
 from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
 
-# Navigation entries: (i18n_key_suffix, page_key)
+# Navigation entries: (i18n_key_suffix, page_key), in the order of the full
+# menu. Which of them the menu shows depends on the user's level (spec 19);
+# app.py puts the answer in st.session_state[MENU] so the sidebar stays
+# engine-free.
+MENU = "_menu"
+CHECK_PAGE = "check"
 _NAV_KEYS = [
     ("home",            "home"),
     ("import",          "import"),
@@ -29,6 +34,31 @@ _NAV_KEYS = [
     ("checklist",       "checklist"),
     ("chat",            "chat"),
 ]
+
+
+NAV_PAGES = [CHECK_PAGE] + [key for _, key in _NAV_KEYS]
+_NAV_SUFFIX = {key: suffix for suffix, key in _NAV_KEYS}
+
+
+def _go(key: str, llm_running: bool) -> None:
+    """Navigate to *key*, or ask first while the model is running."""
+    if llm_running and key != st.session_state["page"]:
+        st.session_state["_pending_nav_target"] = key
+    elif key == CHECK_PAGE:
+        st.session_state["_check_return"] = st.session_state["page"]
+        st.session_state.pop("_check_phase", None)
+        st.session_state["page"] = CHECK_PAGE
+    else:
+        st.session_state["page"] = key
+    st.rerun()
+
+
+def _nav_button(key: str, where) -> None:
+    suffix = _NAV_SUFFIX.get(key, key)
+    is_active = st.session_state["page"] == key
+    if where.button(t(f"nav.{suffix}"), key=f"nav_{key}", width="stretch",
+                    type="primary" if is_active else "secondary", help=t(f"nav.{suffix}.desc")):
+        _go(key, st.session_state.get("llm_in_progress", False))
 
 
 def render_sidebar() -> str:
@@ -75,36 +105,25 @@ def render_sidebar() -> str:
             st.session_state.pop(GUIDED_STEP, None)
             st.session_state["page"] = GUIDED_PAGE
         st.rerun()
-    # The check of the movements, right under it: a flow of its own, started
-    # by the user, never reached from the workflow's steps (spec 31).
-    if st.sidebar.button(
-        t("nav.check"), key="nav_check", width="stretch",
-        help=t("nav.check.desc"),
-    ):
-        if llm_running:
-            st.session_state["_pending_nav_target"] = "check"
-        else:
-            st.session_state["_check_return"] = st.session_state["page"]
-            st.session_state.pop("_check_phase", None)
-            st.session_state["page"] = "check"
-        st.rerun()
+    shown, others = st.session_state.get(MENU, (NAV_PAGES, []))
+    # The check of the movements, right under it when the level shows it: a
+    # flow of its own, started by the user, never reached from the
+    # workflow's steps (spec 31).
+    if CHECK_PAGE in shown:
+        _nav_button(CHECK_PAGE, st.sidebar)
     st.sidebar.divider()
 
-    for nav_suffix, key in _NAV_KEYS:
-        label = t(f"nav.{nav_suffix}")
-        tooltip = t(f"nav.{nav_suffix}.desc")
-        is_active = st.session_state["page"] == key
-        btn_type = "primary" if is_active else "secondary"
-        if st.sidebar.button(
-            label, key=f"nav_{key}", width="stretch", type=btn_type, help=tooltip
-        ):
-            if llm_running and key != st.session_state["page"]:
-                # Defer navigation — ask for confirmation on next rerun
-                st.session_state["_pending_nav_target"] = key
-                st.rerun()
-            else:
-                st.session_state["page"] = key
-                st.rerun()
+    for key in shown:
+        if key != CHECK_PAGE:
+            _nav_button(key, st.sidebar)
+
+    # Nothing is out of reach (spec 19, 2.4): the pages above the level, one
+    # click away, without changing the level. Open by itself when one of them
+    # is the page on screen.
+    if others:
+        with st.sidebar.expander(t("nav.more"), expanded=st.session_state["page"] in others):
+            for key in others:
+                _nav_button(key, st)
 
     # Dev-only entry (AI-193): hardcoded label, shown only when SPENDIFAI_DEV_MODE=1.
     if os.getenv("SPENDIFAI_DEV_MODE") == "1":

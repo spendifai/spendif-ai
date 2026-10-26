@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: "Source Sans Pro", sans-serif; font-size: 15px; color: #31333F; background: transparent; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; min-height: 36px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid #d0d0d8; background: #fff; cursor: pointer; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #bbb; flex: none; }
+  .on .dot { background: #e5383b; animation: pulse 1s infinite; }
+  .speak .dot { background: #3b82f6; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .level { width: 140px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; flex: none; }
+  .level i { display: block; height: 100%; width: 0; background: #e5383b; }
+</style>
+</head>
+<body>
+<div class="row" id="row">
+  <button id="start" hidden></button>
+  <span class="dot"></span><span id="msg"></span><span class="level"><i id="lv"></i></span>
+</div>
+<script>
+// The app's own recorder (EXPERIMENTAL, spec 32, 3.2). One microphone for
+// the whole conversation: the level that ends an answer and the recording
+// come from the same samples.
+const RATE = 16000, FRAME = 320;            // 20 ms frames at 16 kHz
+const PRE = 25, END = 35, MAX = 750;        // frames: 0.5 s kept before the first word, 0.7 s of pause, 15 s at most
+const GUARD_MS = 200;                       // the tail of the bot's voice is not an answer
+
+let ctx = null, stream = null, node = null, args = null, labels = {};
+let state = "idle", doneTurn = null, guardUntil = 0;
+let ring = [], rec = [], speaking = false, loud = 0, quiet = 0, floor = -60;
+let cur = [], carry = 0, ratio = 3;
+
+const $ = (id) => document.getElementById(id);
+const send = (type, extra) => window.parent.postMessage(Object.assign({isStreamlitMessage: true, type}, extra || {}), "*");
+const height = () => send("streamlit:setFrameHeight", {height: document.body.scrollHeight});
+function show(cls, text) { $("row").className = "row " + cls; $("msg").textContent = text || ""; height(); }
+
+async function start() {
+  try {
+    const md = navigator.mediaDevices || window.parent.navigator.mediaDevices;
+    stream = await md.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}});
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+    ratio = ctx.sampleRate / RATE;
+    node = ctx.createScriptProcessor(4096, 1, 1);
+    ctx.createMediaStreamSource(stream).connect(node);
+    node.connect(ctx.destination);           // silent: the processor only needs to run
+    node.onaudioprocess = (e) => { e.outputBuffer.getChannelData(0).fill(0); onSamples(e.inputBuffer.getChannelData(0)); };
+    $("start").hidden = true;
+    turnFrom(args);
+  } catch (err) {
+    show("", (labels.denied || "Microphone not available") + " (" + err.name + ")");
+  }
+}
+
+function onSamples(x) {
+  // to 16 kHz, each output sample the mean of the input it covers
+  let t = carry;
+  while (t + ratio <= x.length) {
+    const a = Math.floor(t), b = Math.floor(t + ratio);
+    let s = 0;
+    for (let i = a; i < b; i++) s += x[i];
+    cur.push(s / Math.max(1, b - a));
+    if (cur.length === FRAME) { onFrame(Float32Array.from(cur)); cur = []; }
+    t += ratio;
+  }
+  carry = t - x.length;
+  if (carry < 0) carry = 0;
+}
+
+function onFrame(fr) {
+  let s = 0;
+  for (const v of fr) s += v * v;
+  const db = 10 * Math.log10(s / fr.length + 1e-12);
+  $("lv").style.width = Math.max(0, Math.min(100, (db + 60) * 1.8)) + "%";
+  if (state !== "listen" || performance.now() < guardUntil) return;
+  if (!speaking) {
+    ring.push(fr);
+    if (ring.length > PRE) ring.shift();
+    if (db > Math.max(floor + 15, -50)) {
+      if (++loud >= 3) { speaking = true; rec = ring.slice(); ring = []; quiet = 0; show("on", labels.hearing); }
+    } else {
+      loud = 0;
+      floor = Math.min(-35, floor * 0.95 + db * 0.05);   // follows the room, never up to a voice
+    }
+  } else {
+    rec.push(fr);
+    if (db < Math.max(floor + 8, -55)) { if (++quiet >= END) return finish(); } else quiet = 0;
+    if (rec.length >= MAX) return finish();
+  }
+}
+
+function finish() {
+  state = "wait"; speaking = false; loud = 0; quiet = 0;
+  const n = rec.reduce((a, f) => a + f.length, 0);
+  const pcm = new Int16Array(n);
+  let o = 0;
+  for (const f of rec) for (const v of f) pcm[o++] = Math.max(-1, Math.min(1, v)) * 32767;
+  rec = [];
+  send("streamlit:setComponentValue", {value: {turn: args.turn, wav: toBase64(wav(pcm))}, dataType: "json"});
+  show("", labels.thinking);
+}
+
+function wav(pcm) {
+  const buf = new ArrayBuffer(44 + pcm.length * 2), v = new DataView(buf);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); v.setUint32(4, 36 + pcm.length * 2, true); str(8, "WAVE"); str(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, "data"); v.setUint32(40, pcm.length * 2, true);
+  new Int16Array(buf, 44).set(pcm);
+  return new Uint8Array(buf);
+}
+
+function toBase64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+function fromBase64(b64) {
+  const s = atob(b64), out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out.buffer;
+}
+
+function play(buffer) {
+  return new Promise((done) => {
+    const src = ctx.createBufferSource();
+    src.buffer = buffer; src.connect(ctx.destination); src.onended = done; src.start();
+  });
+}
+
+function say(text, lang) {
+  return new Promise((done) => {
+    if (!window.speechSynthesis) return done();
+    const u = new SpeechSynthesisUtterance(text);
+    let gone = false;
+    const next = () => { if (!gone) { gone = true; done(); } };
+    u.lang = lang; u.onend = next; u.onerror = next; window.__utterance = u;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    setTimeout(next, text.length * 90 + 3000);   // a voice that never says it has ended
+  });
+}
+
+async function turnFrom(a) {
+  if (!a) return;
+  if (!ctx && a.last) { $("start").hidden = true; show("", labels.closed || ""); return; }
+  if (!ctx) { $("start").hidden = false; $("start").textContent = labels.start; show("", labels.idle); return; }
+  if (a.turn === doneTurn) return;
+  doneTurn = a.turn;
+  state = "speak"; show("speak", labels.speaking);
+  try {
+    if (a.audio) await play(await ctx.decodeAudioData(fromBase64(a.audio)));
+    else if (a.text) await say(a.text, a.lang);
+  } catch (e) { /* the reply is on screen anyway */ }
+  if (a.turn !== doneTurn) return;
+  if (a.last) return stop();
+  ring = []; loud = 0; guardUntil = performance.now() + GUARD_MS;
+  state = "listen"; show("on", labels.listening);
+}
+
+// The session closed: the microphone off, nothing listens any more. A new
+// session starts from the button again.
+function stop() {
+  state = "idle"; speaking = false; rec = []; ring = [];
+  if (node) node.onaudioprocess = null;
+  if (stream) stream.getTracks().forEach((tr) => tr.stop());
+  if (ctx) ctx.close();
+  ctx = null; stream = null; node = null;
+  $("lv").style.width = "0%";
+  show("", labels.closed || "");
+}
+
+window.addEventListener("message", (e) => {
+  const d = e.data;
+  if (!d || d.type !== "streamlit:render") return;
+  args = d.args; labels = args.labels || {};
+  turnFrom(args);
+});
+$("start").onclick = start;
+send("streamlit:componentReady", {apiVersion: 1});
+height();
+</script>
+</body>
+</html>

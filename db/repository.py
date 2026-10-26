@@ -5,6 +5,7 @@ All write operations are upsert-style to guarantee idempotency.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
 from decimal import Decimal
 from typing import Optional
@@ -986,6 +987,40 @@ def bulk_set_giroconto_by_description(
     return updated
 
 
+# A written amount: 23,40 / 23.40 / -23,40 / 1.234,50 / 1234,50 / 23.
+_SEARCH_AMOUNT = re.compile(r"-?(\d{1,3}(?:\.\d{3})+|\d+)(?:[.,](\d{1,2}))?")
+
+
+def search_amount_range(text: str) -> tuple[Decimal, Decimal] | None:
+    """The amounts a search text names, as the lowest and highest absolute
+    value (spec 21, 7bis), or None when the text is not an amount. Without
+    cents it is the whole euro: "23" is 23,00 to 23,99."""
+    m = _SEARCH_AMOUNT.fullmatch(text.strip().replace(" ", ""))
+    if not m:
+        return None
+    euros = Decimal(m.group(1).replace(".", ""))
+    if m.group(2) is None:
+        return euros, euros + Decimal("0.99")
+    value = euros + Decimal(m.group(2).ljust(2, "0")) / 100
+    return value, value
+
+
+def search_clause(text: str):
+    """The registry search (spec 21, 7bis): the text in the description or in
+    the raw one, or, when the text is an amount, that amount with either sign.
+    The same clause for what is shown and what a delete by filter removes."""
+    from sqlalchemy import and_, func, or_
+    term = f"%{text}%"
+    clauses = [Transaction.description.ilike(term), Transaction.raw_description.ilike(term)]
+    span = search_amount_range(text)
+    if span is not None:
+        low, high = span
+        half_cent = Decimal("0.005")
+        clauses.append(and_(func.abs(Transaction.amount) >= low - half_cent,
+                            func.abs(Transaction.amount) < high + half_cent))
+    return or_(*clauses)
+
+
 def get_transactions(
     session: Session,
     filters: Optional[dict] = None,
@@ -1009,14 +1044,7 @@ def get_transactions(
         if "account_label" in filters:
             q = q.filter(Transaction.account_label == filters["account_label"])
         if "description" in filters:
-            _term = f"%{filters['description']}%"
-            from sqlalchemy import or_
-            q = q.filter(
-                or_(
-                    Transaction.description.ilike(_term),
-                    Transaction.raw_description.ilike(_term),
-                )
-            )
+            q = q.filter(search_clause(filters["description"]))
         if "subcategory" in filters:
             q = q.filter(Transaction.subcategory == filters["subcategory"])
         if "categories" in filters:
@@ -2483,8 +2511,6 @@ def delete_transactions_by_filter(
     Cascades: also removes linked ReconciliationLink and InternalTransferLink rows
     to avoid dangling foreign-key references.
     """
-    from sqlalchemy import or_
-
     q = session.query(Transaction)
     if "tx_type" in filters:
         q = q.filter(Transaction.tx_type == filters["tx_type"])
@@ -2497,13 +2523,7 @@ def delete_transactions_by_filter(
     if "account_label" in filters:
         q = q.filter(Transaction.account_label == filters["account_label"])
     if "description" in filters:
-        _term = f"%{filters['description']}%"
-        q = q.filter(
-            or_(
-                Transaction.description.ilike(_term),
-                Transaction.raw_description.ilike(_term),
-            )
-        )
+        q = q.filter(search_clause(filters["description"]))
     if "subcategory" in filters:
         q = q.filter(Transaction.subcategory == filters["subcategory"])
     if "context" in filters:

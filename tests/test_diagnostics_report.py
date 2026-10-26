@@ -305,3 +305,64 @@ def test_issue_link_drops_the_document_rather_than_break():
     assert not fits
     assert "report=" not in url
     assert len(url) < 1000
+
+
+# ── Whether the import categorized (spec 33) ─────────────────────────────────
+
+CATEGORY_SENTINEL = "Spese mediche di Mario Rossi"
+
+
+@pytest.fixture()
+def categorized_session():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    s = sessionmaker(bind=engine)()
+    proposals = [
+        ("llm", CATEGORY_SENTINEL, "Farmacia", "high", True),
+        ("llm", CATEGORY_SENTINEL, "Visite", "medium", False),
+        ("llm", "Casa", "Affitto", "low", False),
+        ("history", CATEGORY_SENTINEL, "Farmacia", "medium", False),
+        ("nsi", "Trasporti", "Carburante", "high", False),
+        ("fallback", "Altro", "Altro", "low", False),
+        (None, None, None, None, False),
+        ("someday", "Casa", "Affitto", "high", False),
+    ]
+    for i, (source, cat, sub, conf, validated) in enumerate(proposals):
+        s.add(Transaction(
+            id=f"{i:024d}", date="2026-01-31", amount=-1.0, description="x",
+            category=cat, subcategory=sub, model_source=source, model_category=cat,
+            model_subcategory=sub, model_confidence=conf, human_validated=validated,
+        ))
+    s.commit()
+    yield s
+    s.close()
+
+
+def test_categorization_counts_who_proposed_what(categorized_session, settings):
+    c = diagnostics.collect(categorized_session, settings)["categorization"]
+    assert c["movements"] == 8
+    assert c["by_source"] == {"llm": 3, "history": 1, "nsi": 1, "fallback": 1,
+                              "none": 1, "other": 1}
+    assert c["fallback"] == 1
+    assert c["distinct_categories"] == 4          # medical, home, transport, other
+    assert c["distinct_subcategories"] == 5
+    assert c["largest_category_share"] == pytest.approx(3 / 8)
+    assert c["confidence"] == {"high": 3, "medium": 2, "low": 2}
+    assert c["validated"] == 1
+
+
+def test_categorization_names_no_category(categorized_session, settings):
+    xml = diagnostics.to_xml(diagnostics.collect(categorized_session, settings))
+    assert "<categorization>" in xml
+    for name in (CATEGORY_SENTINEL, "Farmacia", "Trasporti", "Carburante", "Affitto"):
+        assert name not in xml, f"the report names a category: {name!r}"
+
+
+def test_an_empty_ledger_reports_zeros(settings):
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    s = sessionmaker(bind=engine)()
+    c = diagnostics.collect(s, settings)["categorization"]
+    assert c["movements"] == 0
+    assert c["largest_category_share"] == 0
+    s.close()

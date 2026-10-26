@@ -141,7 +141,8 @@ def _load_transactions(
 def _render_empty_state() -> None:
     st.info(_t("home.empty_state.message"))
     if st.button(_t("home.empty_state.cta"), key="_home_empty_cta"):
-        st.session_state["page"] = "import"
+        # To the page that asks how to start (spec 16, 2).
+        st.session_state["page"] = "start"
         st.rerun()
 
 

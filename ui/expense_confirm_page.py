@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from datetime import date
 from decimal import Decimal
 
@@ -19,9 +20,11 @@ from services.expense_confirm_service import ExpenseConfirmService
 from services.rule_service import RuleService
 from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
+from services.voice_service import VoiceService
 from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import get_language, t
+from ui.widgets.voice_turn import answer_for, turn_args, voice_turn
 from ui.widgets.written_rules import write_and_apply
 
 logger = setup_logging()
@@ -29,9 +32,14 @@ logger = setup_logging()
 _STATE = "_expense_state"
 _CHAT = "_expense_chat"
 _LIST = "pick_list"          # core.expense_confirm.PICK_LIST, without importing core
+_CLOSED = "closed"           # core.expense_confirm.CLOSED
 _SPOKEN = "_expense_spoken"  # the last reply read aloud, None with the voice off
 _VOICE = "_expense_voice"
 _SENT = "_expense_sent"           # the answers given, for the dictation's repeats
+_TURN = "_expense_turn"           # one number per bot reply, never reset: the recorder runs each turn once
+_TAKEN = "_expense_taken"         # the last turn whose answer was taken
+_VT_KEY = "expense_voice_turn"    # the app's own recorder; its answer is read from here
+_CHAT_HEIGHT = 420                # px: the conversation scrolls inside, the page does not grow
 # The voice of the operating system for the user's language (spec 32, 3.2).
 _VOICES = {"it": "it-IT", "en": "en-US", "fr": "fr-FR", "de": "de-DE", "es": "es-ES"}
 
@@ -121,7 +129,7 @@ def _formatter(settings: dict):
         parts = []
         for m in msgs:
             parts.append(t(m.key, **{k: value(k, v, spoken) for k, v in m.params.items()}))
-            if m.note:
+            if m.note and not spoken:     # the detail stays on screen, the voice keeps the pace
                 parts.append(m.note)
         return "\n\n".join(parts)
 
@@ -139,6 +147,7 @@ def speak_script(text: str, lang: str) -> str:
 
 def _bot_says(say, msgs) -> None:
     st.session_state[_CHAT].append(("assistant", say(msgs)))
+    st.session_state[_TURN] = st.session_state.get(_TURN, 0) + 1
     voice_on = st.session_state.get("expense_speak", True)
     st.session_state[_SPOKEN] = spoken_text(say(msgs, spoken=True)) if voice_on else None
 
@@ -163,12 +172,61 @@ def _reset(svc: ExpenseConfirmService, say) -> None:
     _bot_says(say, msgs)
 
 
-def _answer(svc: ExpenseConfirmService, say, text: str) -> None:
+def _names_on_screen(state) -> list[str]:
+    """Counterparts and categories the user may say next: given to the ears
+    so they are heard as written."""
+    names = [c.counterpart.title() for c in getattr(state, "candidates", ())]
+    names += [f"{c} {s}".strip() for c, s in list(getattr(state, "nearest", ()))]
+    return names
+
+
+def _own_turn(voice_svc: VoiceService) -> None:
+    """The bot's turn with the app's own recorder (EXPERIMENTAL): the reply
+    read aloud, then the recorder listens for the answer."""
+    text = st.session_state.get(_SPOKEN) if st.session_state.get("expense_speak", True) else None
+    wav = None
+    if text and get_language() == "it" and voice_svc.can_speak():
+        try:
+            t0 = time.perf_counter()
+            wav = voice_svc.say(text)
+            logger.info(f"expense_confirm_page: reply voiced in {(time.perf_counter() - t0) * 1000:.0f} ms")
+        except Exception as exc:     # never lose the reply: the system voice reads it
+            logger.warning(f"expense_confirm_page: own voice failed, system voice instead: {exc}")
+    labels = {k: t(f"expense.vt.{k}") for k in
+              ("start", "idle", "speaking", "listening", "hearing", "thinking", "denied")}
+    labels["closed"] = t("expense.closed_hint")
+    closed = st.session_state[_STATE].step == _CLOSED
+    voice_turn(_VT_KEY, **turn_args(st.session_state.get(_TURN, 0), wav, None if wav else text,
+                                    _VOICES.get(get_language(), "it-IT"), labels, last=closed))
+
+
+def _take_answer(svc: ExpenseConfirmService, say, voice_svc: VoiceService) -> None:
+    """The answer just recorded, if any (EXPERIMENTAL), taken before the chat
+    is drawn so it shows in this same run: the app's own ears turn it into
+    text, and the text goes the same way as a typed answer."""
+    turn = st.session_state.get(_TURN, 0)
+    wav = answer_for(st.session_state.get(_VT_KEY), turn, st.session_state.get(_TAKEN, -1))
+    if wav is None:
+        return
+    st.session_state[_TAKEN] = turn
+    t0 = time.perf_counter()
+    heard = voice_svc.hear(wav, _names_on_screen(st.session_state[_STATE]))
+    if not heard.text:
+        st.toast(t("expense.not_heard"))
+        st.session_state[_TURN] = turn + 1       # a turn that only listens
+        st.session_state[_SPOKEN] = None
+        return
+    _answer(svc, say, heard.text, dictated=False)
+    logger.info(f"expense_confirm_page: answer heard and replied in {(time.perf_counter() - t0) * 1000:.0f} ms")
+
+
+def _answer(svc: ExpenseConfirmService, say, text: str, dictated: bool = True) -> None:
     sent = st.session_state.setdefault(_SENT, [])
     # The answer is sent with Enter, dictated or typed. The dictation writes
     # again the answers already given (spec 32, 3.2); an answer given again
     # on its own ("si'", then "si'") stays as it is.
-    text = svc.new_part(text, sent) or text
+    if dictated:       # our own ears hear one answer at a time: nothing to strip
+        text = svc.new_part(text, sent) or text
     sent.append(text)
     st.session_state[_CHAT].append(("user", text))
     with st.spinner(t("expense.thinking")):
@@ -187,11 +245,25 @@ def render_expense_confirm_page(engine) -> None:
     svc = ExpenseConfirmService(engine, rule_writer=_rule_writer(engine))
     if c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state:
         _reset(svc, say)
+    voice_svc = VoiceService()
+    own_voice = st.session_state.get("expense_own_voice", True) and voice_svc.can_listen()
+    if own_voice:
+        if not st.session_state.get("_expense_warm"):
+            st.session_state["_expense_warm"] = True
+            voice_svc.warm_up()
+        _take_answer(svc, say, voice_svc)
+        # Above the chat, always in the same place: below it every new
+        # message would move it, the page would make it again and the
+        # microphone would be lost.
+        _own_turn(voice_svc)
 
-    for role, text in st.session_state[_CHAT]:
-        with st.chat_message(role):
-            st.markdown(text)
-    if st.session_state.get("expense_speak", True):
+    # A box of fixed height that scrolls by itself to the last message: the
+    # recorder above and the input below stay where they are.
+    with st.container(height=_CHAT_HEIGHT, key="expense_chat_box"):
+        for role, text in st.session_state[_CHAT]:
+            with st.chat_message(role):
+                st.markdown(text)
+    if not own_voice and st.session_state.get("expense_speak", True):
         _speak()
 
     state = st.session_state[_STATE]
@@ -204,6 +276,12 @@ def render_expense_confirm_page(engine) -> None:
             _answer(svc, say, choice)
             st.rerun()
 
-    if text := st.chat_input(t("expense.placeholder"), key="expense_input"):
+    if voice_svc.can_listen():
+        st.toggle(t("expense.own_voice"), value=True, key="expense_own_voice", help=t("expense.own_voice_help"))
+
+    closed = state.step == _CLOSED
+    if closed:
+        st.caption(t("expense.closed_hint"))
+    if text := st.chat_input(t("expense.placeholder"), key="expense_input", disabled=closed):
         _answer(svc, say, text)
         st.rerun()

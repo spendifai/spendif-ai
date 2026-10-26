@@ -8,6 +8,23 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.10.3] - 2026-10-26
+
+### Aggiunto
+- Una prima pagina a registro vuoto: farsi guidare dal primo passo, oppure andare diretti all'import
+- Il menu al tuo livello: il primo giorno il percorso guidato, Conferma una spesa, l'assistente e la Home; le altre pagine a un clic, sotto "Altre voci...". Il menu cresce con i tuoi dati e non si riduce da solo, e dalle Impostazioni scegli cosa mostra
+- Conferma una spesa: risposte più brevi, che non ripetono ciò che hai appena detto; "Fatto." e si ascolta la spesa successiva; una frase breve ("ho finito") chiude con il numero dei movimenti spuntati; "cambia categoria" subito dopo una conferma riapre la sua categoria; il sì si dice in molti più modi. Le risposte che le parole non capiscono le legge il modello delle categorie, che propone soltanto: l'app chiede conferma e agisce sul tuo sì
+- La ricerca nel Registro trova gli importi: 23,40 trova i movimenti di 23,40 in entrata e in uscita; 23 trova da 23,00 a 23,99
+- La Diagnostica dice se l'import ha categorizzato e quanto variano le categorie, solo con conteggi
+
+### Modificato
+- La conversazione di Conferma una spesa scorre in un riquadro di altezza fissa
+- Con una scheda grafica da 12 GB il primo avvio scarica il modello 7B invece del 3B; onboarding e download usano lo stesso calcolo della memoria
+
+### Corretto
+- "Tutte le date" in Registro, Analisi e Resoconti copre tutto il registro invece di tornare al mese corrente
+- Il percorso aperto a registro vuoto finiva su un resoconto vuoto
+
 ## [2026.10.2] - 2026-10-25
 
 ### Aggiunto

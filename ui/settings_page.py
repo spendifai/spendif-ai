@@ -7,6 +7,7 @@ from datetime import date
 import streamlit as st
 
 from services.settings_service import SettingsService
+from services.user_level_service import UserLevelService
 from support.logging import setup_logging
 from ui.i18n import t
 
@@ -246,6 +247,23 @@ def render_settings_page(engine):
 
     # Sync session_state immediately so other pages (upload, ledger) see current values
     st.session_state.setdefault("giroconto_mode", settings.get("giroconto_mode", "neutral"))
+
+    # ── Menu entries (spec 19, 2.3): the user's own choice, never a number ───
+    st.subheader(t("settings.menu_level.title"))
+    _level_svc = UserLevelService(engine)
+    _choices = [None, (1, ()), (2, ()), (3, ()), (4, ("money",)), (4, ("data",)), (4, ("money", "data"))]
+    _names = ["auto", "essential", "flow", "advanced", "money", "data", "all"]
+    _current = _level_svc.override()
+    _index = 0 if _current is None else next(
+        (i for i, c in enumerate(_choices) if c and c[0] == _current[0] and set(c[1]) == set(_current[1])), 0)
+    _picked = st.selectbox(t("settings.menu_level.label"), range(len(_choices)), index=_index,
+                           format_func=lambda i: t(f"settings.menu_level.{_names[i]}"),
+                           help=t("settings.menu_level.help"), key="settings_menu_level")
+    if _picked != _index:
+        _choice = _choices[_picked]
+        _level_svc.set_override(None if _choice is None else _choice[0],
+                                frozenset() if _choice is None else frozenset(_choice[1]))
+        st.rerun()
 
     # ── Formato visualizzazione ────────────────────────────────────────────────
     st.subheader(t("settings.display_format"))

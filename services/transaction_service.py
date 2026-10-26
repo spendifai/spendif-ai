@@ -221,6 +221,16 @@ class TransactionService:
 
     # ── Distinct value helpers ─────────────────────────────────────────────────
 
+    def get_date_span(self) -> tuple[date, date] | None:
+        """The first and the last date in the registry, None when it is empty
+        (spec 21, 7bis: "all dates" means the whole registry)."""
+        from sqlalchemy import func
+        with self._session() as s:
+            first, last = s.query(func.min(Transaction.date), func.max(Transaction.date)).one()
+        if not first or not last:
+            return None
+        return date.fromisoformat(str(first)[:10]), date.fromisoformat(str(last)[:10])
+
     def get_distinct_account_labels(self) -> list[str]:
         with self._session() as s:
             rows = s.query(Transaction.account_label).distinct().all()

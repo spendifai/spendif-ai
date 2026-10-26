@@ -8,14 +8,22 @@ the real ones, the tests a fake. The messages are i18n keys with their values;
 the page writes them in the user's language.
 
 Steps:
-  ASK_EXPENSE       "Dimmi data e importo della spesa."     (4.1)
-  CONFIRM_ONE       one movement shown: "E' questa?"         (4.2 A)
-  CHOOSE            several shown: which one?                (4.2 B)
-  ASK_CATEGORY      "Qual e' la categoria?"                  (4.3)
-  CONFIRM_CATEGORY  one category proposed: "va bene?"        (4.3, 1)
+  ASK_EXPENSE       "Data e importo."                        (4.1)
+  CONFIRM_ONE       one movement shown: "Esselunga, ...?"    (4.2 A)
+  CHOOSE            several shown: "Quale?"                  (4.2 B)
+  ASK_CATEGORY      "Categoria?"                             (4.3)
+  CONFIRM_CATEGORY  one category proposed                    (4.3, 1)
   PICK_NEAREST      the three nearest proposed               (4.3, 2-3)
   PICK_LIST         after three rounds, the whole list       (4.3, 4)
-  ALWAYS            "Sempre cosi'?"                          (4.5)
+  ALWAYS            "Sempre cosi' per Esselunga?"            (4.5)
+  CLOSED            the session closed: "Fine. 7 spuntate."  (4.6)
+  CHECK             what the model understood, said back: "Chiudo?"  (4.8)
+
+After "Fatto." the last expense confirmed can have its category corrected
+("cambia categoria"): back to ASK_CATEGORY on that movement (4.7).
+
+The bot never repeats what the user just said (spec 32, 2.5): the date of a
+movement is said only when it differs from the one said.
 """
 from __future__ import annotations
 
@@ -26,6 +34,9 @@ from typing import Any, NamedTuple, Protocol
 
 from core.spoken_expense import (
     category_match,
+    is_closing,
+    is_correction,
+    says_an_expense,
     label,
     nearest_categories,
     parse_amount,
@@ -44,6 +55,18 @@ CONFIRM_CATEGORY = "confirm_category"
 PICK_NEAREST = "pick_nearest"
 PICK_LIST = "pick_list"
 ALWAYS = "always"
+CLOSED = "closed"
+CHECK = "check"
+
+# What an answer the words do not understand may mean, by the question asked
+# (spec 32, 4.8). The model chooses among these only.
+INTENTS = {
+    "found": ("yes", "yes_other", "no", "close", "unclear"),
+    "always": ("yes", "no", "close", "correct", "unclear"),
+    "waiting": ("close", "correct", "unclear"),
+}
+# An intent confirmed, said again in words the flow already understands.
+_SAID = {"yes": "si", "yes_other": "si ma categoria", "no": "no"}
 
 # Days before and after the date said: the card date can slip from the
 # receipt's (spec 32, 4.2; to verify on data, 7).
@@ -88,6 +111,7 @@ class Ports(Protocol):
     def category_pairs(self) -> list[Pair]: ...
     def last_date(self) -> date | None: ...
     def model_pick(self, text: str, labels: list[str]) -> int | None: ...
+    def model_intent(self, kind: str, text: str) -> str | None: ...
     def confirm(self, tx_id: str, pair: Pair | None) -> list[dict]: ...
     def always_yes(self, question: dict) -> str | None: ...
     def always_no(self, question: dict) -> None: ...
@@ -108,6 +132,11 @@ class State:
     words: str = ""                     # the user's last words for the category
     rounds: int = 0
     questions: tuple[dict, ...] = ()
+    said_day: date | None = None        # the date said, to name a movement's only when different
+    checked: int = 0                    # movements checked in this session (spec 32, 4.6)
+    last: Candidate | None = None       # the last one checked, with its category now (spec 32, 4.7)
+    pending: str | None = None          # CHECK: the intent the model understood
+    before: State | None = None         # CHECK: where the flow was
 
 
 def start() -> tuple[list[Msg], State]:
@@ -116,6 +145,23 @@ def start() -> tuple[list[Msg], State]:
 
 def turn(state: State, text: str, ports: Ports, today: date) -> tuple[list[Msg], State]:
     """One turn of the flow: what the bot says and where the flow goes."""
+    if state.step == CLOSED:
+        return [], state
+    if state.step == CHECK:
+        answer = yes_no(text)
+        if answer == "yes":             # "si', ma..." is not a plain yes: it answers before
+            return _apply(state, ports, today)
+        if answer == "no":
+            return _ask_again(state.before), state.before
+        state = state.before            # other words: they answer the question of before
+    waiting = state.step == ASK_EXPENSE and state.amount is None and state.day is None
+    if is_closing(text, waiting):
+        return _close(state)
+    if (waiting or state.step == ALWAYS) and state.last is not None and is_correction(text):
+        return _correct(state)
+    checking = _model_check(state, text, waiting, ports, today)
+    if checking is not None:
+        return checking
     handler = {
         ASK_EXPENSE: _expense,
         CONFIRM_ONE: _confirm_one,
@@ -126,7 +172,81 @@ def turn(state: State, text: str, ports: Ports, today: date) -> tuple[list[Msg],
         PICK_LIST: _pick_list,
         ALWAYS: _always,
     }[state.step]
-    return handler(state, text, ports, today)
+    msgs, new = handler(state, text, ports, today)
+    # The count and the last one checked go on across expenses; only
+    # _finish changes them.
+    if new.checked < state.checked:
+        new = replace(new, checked=state.checked)
+    if new.last is None and state.last is not None:
+        new = replace(new, last=state.last)
+    return msgs, new
+
+
+def _model_check(state, text, waiting, ports, today):
+    """An answer the words do not understand goes to the model, which only
+    proposes: the bot says back what it understood and waits for a yes or a
+    no (spec 32, 4.8). None when the words understand it, or the model has
+    nothing to say."""
+    if state.step == CONFIRM_ONE and yes_no(text) is None:
+        kind = "found"
+    elif state.step == ALWAYS and yes_no(text) is None:
+        kind = "always"
+    elif waiting and not says_an_expense(text):
+        kind = "waiting"
+    else:
+        return None
+    intent = ports.model_intent(kind, text)
+    if intent not in INTENTS[kind] or intent == "unclear":
+        return None
+    if intent == "correct" and state.last is None:
+        return None
+    # At "Sempre cosi'?" a no keeps the category for this movement only.
+    key = "expense.check.no_rule" if kind == "always" and intent == "no" else f"expense.check.{intent}"
+    return ([Msg(key)],
+            State(step=CHECK, pending=intent, before=state, checked=state.checked, last=state.last))
+
+
+def _apply(state, ports, today):
+    """The intent the model understood, confirmed by the user."""
+    before, intent = state.before, state.pending
+    if intent == "close":
+        return _close(before)
+    if intent == "correct":
+        return _correct(before)
+    return turn(before, _SAID[intent], ports, today)
+
+
+def _ask_again(state):
+    """The question of before, after a no to what the model understood."""
+    if state.step == CONFIRM_ONE:
+        return _show_one(state.chosen, replace(state, said_day=None))[0]
+    if state.step == ALWAYS:
+        return [_always_msg(state.questions[0])]
+    return [Msg("expense.ask")]
+
+
+def _correct(state):
+    """The category of the last expense confirmed, asked again (spec 32,
+    4.7): the same steps as 4.3 on that movement, which stays checked. At
+    "Sempre cosi'?" the question stays unanswered."""
+    c = state.last
+    return ([Msg("expense.correct", {"name": c.counterpart})],
+            State(step=ASK_CATEGORY, chosen=c, checked=state.checked, last=c))
+
+
+def _close(state):
+    """The session closed (spec 32, 4.6): an expense halfway is not written,
+    and is said; at "Sempre cosi'?" the movement is already checked and the
+    question stays unanswered."""
+    msgs = []
+    amount = state.chosen.amount if state.chosen else (
+        state.candidates[0].amount if state.candidates else state.amount)
+    if state.step != ALWAYS and amount is not None:
+        msgs.append(Msg("expense.left", {"amount": amount}))
+    n = state.checked
+    key = "expense.closed_none" if n == 0 else "expense.closed_one" if n == 1 else "expense.closed"
+    msgs.append(Msg(key, {"n": n}))
+    return msgs, State(step=CLOSED, checked=n)
 
 
 # ── 4.1 / 4.2 Date, amount, search ───────────────────────────────────────────
@@ -154,7 +274,7 @@ def _expense(state, text, ports, today):
 
 def _with_lead(lead, amount, cents, day, ports):
     msgs, new = _search(amount, cents, day, ports)
-    return lead + msgs, new
+    return lead + msgs, replace(new, said_day=day) if new.step in (CONFIRM_ONE, CHOOSE) else new
 
 
 def _search(amount: Decimal, cents_said: bool, day: date, ports):
@@ -165,17 +285,16 @@ def _search(amount: Decimal, cents_said: bool, day: date, ports):
 
     found = by_closeness(ports.outflows(amount, amount, d_from, d_to, False))
     if len(found) == 1:
-        return _show_one(found[0])
+        return _show_one(found[0], State(said_day=day))
     if found:
-        return ([Msg("expense.found_many", {"n": len(found), "items": list(found)}), Msg("expense.which")],
+        return ([Msg("expense.found_many", {"n": len(found), "items": list(found)})],
                 State(step=CHOOSE, candidates=found))
     if not cents_said:
         # "23" may be a 23,40 said in a hurry: the cents of that euro, always
         # as a choice, never confirmed by themselves (spec 32, 4.1).
         near = by_closeness(ports.outflows(amount, amount + 1 - _CENT, d_from, d_to, False))
         if near:
-            return ([Msg("expense.found_near", {"amount": amount, "day": day, "items": list(near)}),
-                     Msg("expense.which")],
+            return ([Msg("expense.found_near", {"amount": amount, "day": day, "items": list(near)})],
                     State(step=CHOOSE, candidates=near))
     done = by_closeness(ports.outflows(amount, amount, d_from, d_to, True))
     if done:
@@ -184,13 +303,11 @@ def _search(amount: Decimal, cents_said: bool, day: date, ports):
     # then a date the statements do not reach yet, then not there.
     f_from, f_to = day - timedelta(days=FAR_DAYS), day + timedelta(days=FAR_DAYS)
     far = by_closeness(ports.outflows(amount, amount, f_from, f_to, False))
-    lead = [Msg("expense.not_that_day", {"day": day})]
     if len(far) == 1:
-        msgs, new = _show_one(far[0])
-        return lead + msgs, new
+        return _show_one(far[0], State(said_day=day))
     if far:
-        return (lead + [Msg("expense.found_many", {"n": len(far), "items": list(far)}),
-                        Msg("expense.which")],
+        # Each line carries its own date: no lead needed.
+        return ([Msg("expense.found_many", {"n": len(far), "items": list(far)})],
                 State(step=CHOOSE, candidates=far))
     far_done = by_closeness(ports.outflows(amount, amount, f_from, f_to, True))
     if far_done:
@@ -202,8 +319,7 @@ def _search(amount: Decimal, cents_said: bool, day: date, ports):
 
 
 def _already_checked(c: Candidate):
-    return ([Msg("expense.already_checked", {"amount": c.amount, "day": c.day, "name": c.counterpart}),
-             Msg("expense.next")], State())
+    return [Msg("expense.already_checked", {"amount": c.amount, "day": c.day, "name": c.counterpart})], State()
 
 
 def _not_found(amount, day):
@@ -219,7 +335,9 @@ def _show_one(c: Candidate, state: State | None = None):
         msg = Msg("expense.found_one", {**params, "cat": c.pair})
     else:
         msg = Msg("expense.found_one_nocat", params)
-    return [msg], replace(base, step=CONFIRM_ONE, chosen=c)
+    # The date said is not repeated; a different one is the news.
+    lead = [Msg("expense.on_day", {"day": c.day})] if base.said_day and c.day != base.said_day else []
+    return lead + [msg], replace(base, step=CONFIRM_ONE, chosen=c)
 
 
 def _confirm_one(state, text, ports, today):
@@ -246,7 +364,8 @@ def _choose(state, text, ports, today):
         index = pick_movement(text, [(c.counterpart, c.day) for c in cands], today)
     if index is None:
         return [Msg("expense.pick_again", {"items": list(cands)})], state
-    return _show_one(cands[index], state)
+    # Chosen from lines that show their date: no date to add.
+    return _show_one(cands[index], replace(state, said_day=None))
 
 
 # ── 4.3 The category ─────────────────────────────────────────────────────────
@@ -333,16 +452,19 @@ def _finish(state, ports, pair: Pair | None):
     questions = ports.confirm(c.tx_id, changed)
     final = changed or c.pair
     done = Msg("expense.done", {"day": c.day, "amount": c.amount, "name": c.counterpart, "cat": final})
+    # A correction checks the same movement again: it is not one more.
+    checked = state.checked if state.last is not None and state.last.tx_id == c.tx_id else state.checked + 1
+    last = replace(c, category=final[0], subcategory=final[1]) if final else c
     if changed and questions:
         q = questions[0]
         return ([done, _always_msg(q)],
-                State(step=ALWAYS, chosen=c, questions=tuple(questions)))
-    return [done, Msg("expense.next")], State()
+                State(step=ALWAYS, chosen=c, questions=tuple(questions), checked=checked, last=last))
+    return [done], State(checked=checked, last=last)
 
 
 def _always_msg(q: dict) -> Msg:
-    return Msg("ledger.always.ask", {"n": q["n"], "name": q["description"],
-                                     "cat": (q["category"], q["subcategory"])})
+    return Msg("expense.always", {"n": q["n"], "name": q["description"],
+                                  "cat": (q["category"], q["subcategory"])})
 
 
 def _always(state, text, ports, today):
@@ -350,10 +472,9 @@ def _always(state, text, ports, today):
     answer = yes_no(text)
     if answer in ("yes", "yes_other"):
         note = ports.always_yes(q)
-        return ([Msg("ledger.always.done", {"name": q["description"],
-                                            "cat": (q["category"], q["subcategory"])}, note),
-                 Msg("expense.next")], State())
+        return ([Msg("expense.rule_done", {"name": q["description"],
+                                           "cat": (q["category"], q["subcategory"])}, note)], State())
     if answer == "no":
         ports.always_no(q)
-        return [Msg("expense.always_kept"), Msg("expense.next")], State()
+        return [Msg("expense.always_kept")], State()
     return [_always_msg(q)], state

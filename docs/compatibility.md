@@ -18,9 +18,11 @@ The configurations we test before a release. ✅ a report says all four steps we
 | ⬜ | Fedora 42 | arm64 | bundle | - | - | - |
 | ⬜ | Arch Linux, NVIDIA | amd64 | bundle | - | - | - |
 | ⬜ | Arch Linux, AMD | amd64 | bundle | - | - | - |
-| ⬜ | Windows 11, NVIDIA | amd64 | bundle | - | - | - |
+| ✅ | Windows 11, NVIDIA | amd64 | bundle | Vulkan | 2026.10.2 | email |
 | ⬜ | Windows 11, AMD | amd64 | bundle | - | - | - |
 
 ## All reports
 
-No reports yet.
+| Version | Operating system | Arch | Graphics card | Runs on | Installed with | Install | Start | Import | Uninstall | s/row (categorizing) | Categories | Report |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026.10.2 | Windows 11 | amd64 | NVIDIA GeForce RTX 5070 Ti Laptop GPU | Vulkan | unknown | yes | yes | yes | yes | 0.297 | 17 / 0 | email |

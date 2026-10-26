@@ -433,10 +433,11 @@ def list_available_models() -> list[Path]:
     return list_local_models()
 
 
-def get_recommended_model(ram_gb: int):
-    """Return the best ModelInfo for the given RAM, or None."""
-    from config import get_recommended_model as _get_rec
-    return _get_rec(ram_gb)
+def get_recommended_model(hw: dict[str, Any]):
+    """Return the ModelInfo the first launch downloads on this hardware, or None."""
+    from core.model_manager import recommended_chain
+    chain = recommended_chain(hw)
+    return chain[0] if chain else None
 
 
 # ── History engine ───────────────────────────────────────────────────────────

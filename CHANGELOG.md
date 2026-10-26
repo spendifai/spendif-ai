@@ -6,6 +6,23 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.10.3] - 2026-10-26
+
+### Added
+- A first page on an empty registry: be guided from the first step, or go straight to the import
+- The menu at your level: on the first day the guided flow, Confirm an expense, the assistant and the Home; the other pages one click away under "More entries". The menu grows with your data and never shrinks by itself, and Settings lets you choose what it shows
+- Confirm an expense: shorter replies that never repeat what you just said; "Done." and the next expense is listened to; a short phrase ("that's all") closes with the count of movements checked; "change category" right after a confirmation reopens its category; many more ways to say yes. Answers the words miss are read by the categories model, which only proposes: the app asks back and acts on your yes
+- The Registry search finds amounts: 23,40 finds the movements of 23,40 in and out; 23 finds 23,00 to 23,99
+- Diagnostics report whether the import categorized and how varied the categories are, as counts only
+
+### Changed
+- The conversation of Confirm an expense scrolls in a box of fixed height
+- On a 12 GB graphics card the first start downloads the 7B model instead of the 3B; onboarding and download use the same memory figure
+
+### Fixed
+- "All dates" in Registry, Analysis and Report covers the whole registry instead of falling back to the current month
+- The workflow opened on an empty registry landed on an empty report
+
 ## [2026.10.2] - 2026-10-25
 
 ### Added
