@@ -168,21 +168,14 @@ if "update_check_done" not in st.session_state:
     st.session_state["update_banner"] = _upd_svc.pending_update()
 
 # ── Sidebar navigation ────────────────────────────────────────────────────────
-# Default landing page is data-driven: with at least one transaction we go
-# straight to the Home dashboard; on an empty DB we land on Import (whose
-# empty state nudges the user to upload). Computed once here so sidebar
-# can stay engine-free.
-# The menu at the user's level (spec 19), computed here for the same reason:
-# every run, since the level grows with the data and the Settings can change
-# it.
-from services.user_level_service import UserLevelService as _LevelSvc
-from ui.sidebar import MENU as _MENU, NAV_PAGES as _NAV_PAGES, render_sidebar
+# Default landing page is data-driven: with at least one movement the app
+# lands on the Home; on an empty DB on the page that asks how to start.
+# Computed once here so the sidebar can stay engine-free.
+from ui.sidebar import render_sidebar
 
-st.session_state[_MENU] = _LevelSvc(engine).menu(_NAV_PAGES)
 if "page" not in st.session_state:
-    from services.transaction_service import TransactionService as _TxSvc
-    # An empty DB lands on the page that asks how to start (spec 16, 2).
-    st.session_state["page"] = "home" if _TxSvc(engine).has_transactions() else "start"
+    from ui.start_page import landing_page
+    st.session_state["page"] = landing_page(engine)
 
 page = render_sidebar()
 

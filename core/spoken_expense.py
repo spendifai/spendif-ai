@@ -191,7 +191,7 @@ _MONTHS = {"gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "g
 _WEEKDAYS = {"lunedi": 0, "martedi": 1, "mercoledi": 2, "giovedi": 3, "venerdi": 4,
              "sabato": 5, "domenica": 6}
 _MONTH_RE = "|".join(sorted(_MONTHS, key=len, reverse=True))
-_DAY_RE = r"(\d{1,2}|primo|[a-z]+)"
+_DAY_RE = r"(\d{1,2}|[a-z]+)"
 
 _D_NUMERIC = re.compile(r"\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b|\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b")
 _D_MONTH = re.compile(rf"\b(?:(?:il|del|al|lo|l)\s+)?{_DAY_RE}\s+(?:di\s+)?({_MONTH_RE})\b(?:\s+(\d{{4}}))?")
@@ -202,11 +202,20 @@ _YESTERDAY_WORDS = ("ieri", "yesterday", "hier", "gestern", "ayer")
 _D_RELATIVE = re.compile(r"\b(l\s+altro\s+ieri|altro\s*ieri|avantieri|ieri\s+l\s+altro|"
                          + "|".join(_YESTERDAY_WORDS + _TODAY_WORDS) + r")\b")
 _D_WEEKDAY = re.compile(rf"\b({'|'.join(_WEEKDAYS)})(\s+scors[oa])?\b")
-_D_DAY_ONLY = re.compile(rf"\b(?:il|del|al|lo|l)\s+{_DAY_RE}\b")
+# "il 12", or the day with "del mese" after it, article or not: "primo del
+# mese", "2 del mese" (spec 32, 4.1).
+_D_DAY_ONLY = re.compile(rf"\b(?:(?:il|del|al|lo|l)\s+{_DAY_RE}(?:\s+del\s+mese)?|{_DAY_RE}\s+del\s+mese)\b")
+
+
+# The day said as an ordinal, "il primo", "il secondo del mese" (founder,
+# 2026-10-26). Only where a day is expected: after the article, before a
+# month or before "del mese", so "secondo me" stays an opinion.
+_DAY_ORDINALS = {"primo": 1, "secondo": 2, "terzo": 3, "quarto": 4, "quinto": 5,
+                 "sesto": 6, "settimo": 7, "ottavo": 8, "nono": 9, "decimo": 10}
 
 
 def _day_number(tok: str) -> int | None:
-    n = 1 if tok == "primo" else _number(tok)
+    n = _DAY_ORDINALS.get(tok) or _number(tok)
     return n if n is not None and 1 <= n <= 31 else None
 
 
@@ -258,7 +267,7 @@ def _find_date(text: str, today: date) -> tuple[date | None, tuple[int, int] | N
             back = 7            # "domenica scorsa" said on a Sunday
         return today - timedelta(days=back), m.span()
     for m in _D_DAY_ONLY.finditer(text):
-        n = _day_number(m.group(1))
+        n = _day_number(m.group(1) or m.group(2))
         if n is None:
             continue
         # "il 12": this month if it has come, else the last month that has it

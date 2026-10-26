@@ -12,6 +12,16 @@ from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
 START_PAGE = "start"
 
 
+def landing_page(engine) -> str:
+    """Where the app opens (spec 19, 11bis): the Home, the end of every day's
+    work, or this page while the registry is empty.
+
+    Args:
+        engine: the SQLAlchemy engine of the user's database.
+    """
+    return "home" if TransactionService(engine).has_transactions() else START_PAGE
+
+
 def render_start_page(engine) -> None:
     if TransactionService(engine).has_transactions():
         rerun = st.session_state.get("page") == START_PAGE
