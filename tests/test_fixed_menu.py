@@ -53,6 +53,14 @@ def test_the_menu_is_fixed_and_opens_the_group_on_screen(page, open_group):
     assert [e.proto.expanded for e in app.sidebar.expander] == [i == open_group for i in range(2)]
 
 
+@pytest.mark.parametrize("page, red", [("home", "nav_home"), ("guided", "nav_guided"), ("ledger", "nav_ledger")])
+def test_only_the_entry_on_screen_is_red(page, red):
+    app = AppTest.from_function(_sidebar, args=(page,), default_timeout=60)
+    app.run()
+    assert not app.exception, app.exception
+    assert [b.key for b in app.sidebar.button if b.proto.type == "primary"] == [red]
+
+
 def test_a_page_in_a_group_is_one_click_away():
     app = AppTest.from_function(_sidebar, args=("home",), default_timeout=60)
     app.run()
