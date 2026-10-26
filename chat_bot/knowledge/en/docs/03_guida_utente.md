@@ -10,6 +10,19 @@ You download your transaction files from the bank, drag them into Spendif.ai, it
 
 ---
 
+## The best way to use it
+
+The way that takes the least effort is four steps, in this order.
+
+1. **Load the statements** of all your accounts, with **📥 Load your bank statement**: the path tells you which files you need and imports them.
+2. **Give a category to the counterparts with the most movements**: ideally at least the first 10, which usually cover most of your spending. With *Always like this* the choice also holds for the movements of the next imports.
+3. **Tick the expenses you have a receipt for** with **🧾 I have a receipt**: you say date, amount and what you bought, the app finds the movement and marks it checked. It works for a paper receipt and for **online purchases** too: as soon as the receipt email arrives (Amazon, PayPal and the like), say the expense. On those sites the same counterpart sells everything, and only you know the category. If the statement has not arrived yet, the receipt is saved and found again at the next import.
+4. **Check what is left account by account** with **✅ Check your movements**. By then what remains is mostly transfers between your own accounts and online purchases whose receipt you did not say.
+
+When you are done, **📍 Let's take stock** shows you where the money went.
+
+---
+
 ## 1. First launch — onboarding wizard
 
 **Situation:** You've just installed Spendif.ai and are launching it for the first time.
@@ -627,6 +640,15 @@ Both support the same CLI arguments: `--runs`, `--files`, `--backend`, `--model`
 ---
 
 ## Frequently asked questions
+
+**My bank already does this: what is Spendif.ai for?**
+Your bank shows your spending its way; Spendif.ai shows it your way.
+1. **All your accounts together.** Your bank only sees its own accounts. A current account, a card, PayPal and Satispay are enough never to have one picture: Spendif.ai puts them together, from different banks too.
+2. **The period you want, on one page.** Not every bank lets you pick the period and gather income, spending and categories in one view. In **📍 Let's take stock** you pick the period and see where the money comes from and where it goes.
+3. **Your categories, not the bank's.** The bank uses its own, and on an Amazon or PayPal purchase "shopping" means nothing. In Spendif.ai you decide the categories, and with the receipt an online expense gets its real category.
+4. **Contexts.** The same supermarket expense can be for the home, the holiday or work. The bank does not know; in Spendif.ai you give the context, and you can do the sums by context too.
+
+And your data stays on your computer.
 
 **Can I import files from different banks together?**
 Yes. Spendif.ai recognises the format automatically. You don't need to tell it what type of file it is.

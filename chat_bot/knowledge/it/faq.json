@@ -1,5 +1,35 @@
 [
   {
+    "q": "Me lo fa già la banca: a cosa serve Spendif.ai?",
+    "a": "La banca ti mostra le spese a modo suo, Spendif.ai a modo tuo. 1) Tutti i tuoi conti insieme: la banca vede solo i suoi, e basta avere un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico; Spendif.ai li mette insieme, anche di banche diverse. 2) Il periodo che vuoi, in una pagina: non tutte le banche ti fanno scegliere il periodo e raccogliere entrate, uscite e categorie in una vista sola; in 📍 Facciamo il punto lo fai. 3) Le tue categorie, non quelle della banca: su un acquisto Amazon o PayPal \"shopping\" non vuol dire niente, in Spendif.ai le categorie le decidi tu e con la ricevuta la spesa online prende la categoria vera. 4) I contesti: la stessa spesa può essere di casa, della vacanza o del lavoro, e in Spendif.ai il contesto lo dai tu. E i tuoi dati restano sul tuo computer.",
+    "page": "home"
+  },
+  {
+    "q": "Perché dovrei usare Spendif.ai se ho l'app della banca?",
+    "a": "La banca ti mostra le spese a modo suo, Spendif.ai a modo tuo. 1) Tutti i tuoi conti insieme: la banca vede solo i suoi, e basta avere un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico; Spendif.ai li mette insieme, anche di banche diverse. 2) Il periodo che vuoi, in una pagina: non tutte le banche ti fanno scegliere il periodo e raccogliere entrate, uscite e categorie in una vista sola; in 📍 Facciamo il punto lo fai. 3) Le tue categorie, non quelle della banca: su un acquisto Amazon o PayPal \"shopping\" non vuol dire niente, in Spendif.ai le categorie le decidi tu e con la ricevuta la spesa online prende la categoria vera. 4) I contesti: la stessa spesa può essere di casa, della vacanza o del lavoro, e in Spendif.ai il contesto lo dai tu. E i tuoi dati restano sul tuo computer.",
+    "page": "home"
+  },
+  {
+    "q": "Che differenza c'è con le categorie della mia banca?",
+    "a": "La banca ti mostra le spese a modo suo, Spendif.ai a modo tuo. 1) Tutti i tuoi conti insieme: la banca vede solo i suoi, e basta avere un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico; Spendif.ai li mette insieme, anche di banche diverse. 2) Il periodo che vuoi, in una pagina: non tutte le banche ti fanno scegliere il periodo e raccogliere entrate, uscite e categorie in una vista sola; in 📍 Facciamo il punto lo fai. 3) Le tue categorie, non quelle della banca: su un acquisto Amazon o PayPal \"shopping\" non vuol dire niente, in Spendif.ai le categorie le decidi tu e con la ricevuta la spesa online prende la categoria vera. 4) I contesti: la stessa spesa può essere di casa, della vacanza o del lavoro, e in Spendif.ai il contesto lo dai tu. E i tuoi dati restano sul tuo computer.",
+    "page": "home"
+  },
+  {
+    "q": "Come conviene usare Spendif.ai?",
+    "a": "Il modo che fa meno fatica è in quattro passi. 1) Carica gli estratti conto di tutti i tuoi conti con 📥 Carica l'estratto conto. 2) Dai una categoria alle controparti con più movimenti: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle spese; con Sempre così la scelta vale anche per i prossimi import. 3) Spunta le spese di cui hai la ricevuta con 🧾 Ho uno scontrino, anche quelle online: appena arriva l'email della ricevuta (Amazon, PayPal e simili) di' la spesa, perché su quei siti la categoria la sai solo tu; se l'estratto non è ancora arrivato lo scontrino si salva e lo ritrovi al prossimo import. 4) Quello che resta controllalo conto per conto con ✅ Controlla i movimenti: rimangono soprattutto i giroconti e gli acquisti online di cui non hai detto la ricevuta. Alla fine 📍 Facciamo il punto ti mostra dove sono andati i soldi.",
+    "page": "guided"
+  },
+  {
+    "q": "Da dove comincio?",
+    "a": "Il modo che fa meno fatica è in quattro passi. 1) Carica gli estratti conto di tutti i tuoi conti con 📥 Carica l'estratto conto. 2) Dai una categoria alle controparti con più movimenti: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle spese; con Sempre così la scelta vale anche per i prossimi import. 3) Spunta le spese di cui hai la ricevuta con 🧾 Ho uno scontrino, anche quelle online: appena arriva l'email della ricevuta (Amazon, PayPal e simili) di' la spesa, perché su quei siti la categoria la sai solo tu; se l'estratto non è ancora arrivato lo scontrino si salva e lo ritrovi al prossimo import. 4) Quello che resta controllalo conto per conto con ✅ Controlla i movimenti: rimangono soprattutto i giroconti e gli acquisti online di cui non hai detto la ricevuta. Alla fine 📍 Facciamo il punto ti mostra dove sono andati i soldi.",
+    "page": "guided"
+  },
+  {
+    "q": "Qual è il modo più veloce per mettere in ordine le spese?",
+    "a": "Il modo che fa meno fatica è in quattro passi. 1) Carica gli estratti conto di tutti i tuoi conti con 📥 Carica l'estratto conto. 2) Dai una categoria alle controparti con più movimenti: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle spese; con Sempre così la scelta vale anche per i prossimi import. 3) Spunta le spese di cui hai la ricevuta con 🧾 Ho uno scontrino, anche quelle online: appena arriva l'email della ricevuta (Amazon, PayPal e simili) di' la spesa, perché su quei siti la categoria la sai solo tu; se l'estratto non è ancora arrivato lo scontrino si salva e lo ritrovi al prossimo import. 4) Quello che resta controllalo conto per conto con ✅ Controlla i movimenti: rimangono soprattutto i giroconti e gli acquisti online di cui non hai detto la ricevuta. Alla fine 📍 Facciamo il punto ti mostra dove sono andati i soldi.",
+    "page": "guided"
+  },
+  {
     "q": "Come importo i movimenti della mia banca?",
     "a": "Vai sulla pagina Import, trascina uno o più file CSV o XLSX nell'area tratteggiata, seleziona per ciascuno il conto bancario associato e clicca Avvia elaborazione. Spendif.AI riconosce il formato automaticamente.",
     "page": "import"
