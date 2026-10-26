@@ -28,6 +28,18 @@ plotly_datas = collect_data_files("plotly")
 # first model load with `Shared library with base name 'llama' not found`.
 llama_datas, llama_binaries, llama_hiddenimports = collect_all("llama_cpp")
 
+# Voice prototype: whisper.cpp and sherpa-onnx are imported lazily inside
+# services.voice_service, so static analysis cannot find them either.
+voice_datas, voice_binaries, voice_hiddenimports = [], [], []
+for _pkg in ("pywhispercpp", "sherpa_onnx"):
+    try:
+        _d, _b, _h = collect_all(_pkg)
+    except Exception:
+        continue
+    voice_datas += _d
+    voice_binaries += _b
+    voice_hiddenimports += _h + [_pkg] + (["_pywhispercpp"] if _pkg == "pywhispercpp" else [])
+
 # The accelerator plugins, which nothing links to.
 #
 # Built with GGML_BACKEND_DL=ON, each backend is a plugin the library loads at
@@ -150,7 +162,7 @@ hidden_imports = [
     "webview",
     "llama_cpp",
     "desktop.signal_watch",  # imported by the launcher before app_dir is on sys.path
-] + st_hiddenimports + llama_hiddenimports
+] + st_hiddenimports + llama_hiddenimports + voice_hiddenimports
 
 # ---------------------------------------------------------------------------
 # Icon (platform-dependent)
@@ -171,8 +183,8 @@ elif sys.platform == "win32":
 a = Analysis(
     ["desktop/launcher.py"],
     pathex=["."],
-    binaries=st_binaries + llama_binaries,
-    datas=app_datas + st_datas + plotly_datas + llama_datas,
+    binaries=st_binaries + llama_binaries + voice_binaries,
+    datas=app_datas + st_datas + plotly_datas + llama_datas + voice_datas,
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
@@ -255,5 +267,10 @@ if sys.platform == "darwin":
             "CFBundleVersion": _app_version,
             "LSMinimumSystemVersion": "12.0",
             "NSHighResolutionCapable": True,
+            # EXPERIMENTAL voice round trip (spec 32, 3.2): without this key
+            # macOS denies the microphone, or ends the app, at the first ask.
+            "NSMicrophoneUsageDescription":
+                "Spendif.ai listens to your answer to confirm an expense. "
+                "The audio is transcribed on this computer and never leaves it.",
         },
     )
