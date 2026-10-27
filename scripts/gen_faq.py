@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Render the landing-page FAQ from faq.json into every index.*.html.
+"""Render the landing-page FAQ from faq.json into every language page
+(index.html for English, <lang>/index.html for the others).
 
 Writes three generated blocks per page, each delimited by markers so the
 script is idempotent and the hand-written parts of the page are never
@@ -44,12 +45,17 @@ CSS = """    .faq-list { display: flex; flex-direction: column; gap: .75rem; }
     .faq-item p { color: var(--muted); font-size: .9rem; line-height: 1.65; padding: 0 1.4rem 1.25rem; margin: 0; }"""
 
 
+# English is the canonical page at the root; every other language lives in a
+# folder of its own (spendif.ai/it/, spendif.ai/de/, ...).
+CANONICAL = "en"
+
+
 def page_for(lang: str) -> Path:
-    return ROOT / ("index.html" if lang == "it" else f"index.{lang}.html")
+    return ROOT / ("index.html" if lang == CANONICAL else f"{lang}/index.html")
 
 
 def url_for(lang: str) -> str:
-    return BASE if lang == "it" else f"{BASE}index.{lang}.html"
+    return BASE if lang == CANONICAL else f"{BASE}{lang}/"
 
 
 def esc(text: str) -> str:
