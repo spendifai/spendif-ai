@@ -258,7 +258,8 @@ def test_a_receipt_waits_and_counts_nowhere(engine):
     svc = ExpenseConfirmService(engine, today=TODAY)
     _save(svc)
     assert svc.pending_receipts() == [{"id": 1, "day": date(2026, 10, 24), "amount": Decimal("23.40"),
-                                       "what": "mobile", "category": "Casa", "subcategory": "Arredamento"}]
+                                       "what": "mobile", "cash": False, "category": "Casa",
+                                       "subcategory": "Arredamento"}]
     with get_session(engine) as s:
         assert s.query(Transaction).count() == 0
 
@@ -316,3 +317,70 @@ def test_a_receipt_can_be_forgotten(engine):
     _save(svc)
     svc.delete_receipt(svc.pending_receipts()[0]["id"])
     assert svc.pending_receipts() == []
+
+
+# ── 4.9 The expenses dictated to Siri ───────────────────────────────────────
+
+
+def test_the_dictated_lines_become_receipts_and_the_file_empties(engine, tmp_path):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    inbox = tmp_path / "Spendif.ai" / "spese-da-siri.txt"
+    inbox.parent.mkdir()
+    inbox.write_text("2026-10-25 18:30 | ieri 23 e 40, caffè al bar\n"
+                     "2026-10-25 19:00 | spesa supermercato 12 euro oggi\n"
+                     "2026-10-25 19:10 | caffè al bar\n", encoding="utf-8")
+    assert svc.collect_siri([inbox]) == (2, 1)
+    assert not inbox.exists()
+    got = {(r["day"], r["amount"], r["what"], r["category"]) for r in svc.pending_receipts()}
+    assert got == {(date(2026, 10, 24), Decimal("23.40"), "caffe al bar", ""),
+                   (date(2026, 10, 25), Decimal("12.00"), "spesa supermercato", "Alimentari")}
+    assert svc.unclear_sentences([inbox]) == ["caffè al bar"]
+    svc.forget_unclear([inbox], "caffè al bar")
+    assert svc.unclear_sentences([inbox]) == []
+
+
+def test_no_file_nothing_to_do_but_the_folder_is_ready(engine, tmp_path):
+    inbox = tmp_path / "Spendif.ai" / "spese-da-siri.txt"
+    assert ExpenseConfirmService(engine, today=TODAY).collect_siri([inbox]) == (0, 0)
+    assert inbox.parent.is_dir()
+
+
+def test_a_receipt_without_category_keeps_the_movements_at_the_check(engine, tmp_path):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    inbox = tmp_path / "spese-da-siri.txt"
+    inbox.write_text("2026-10-25 18:30 | ieri 23 e 40, caffè al bar\n", encoding="utf-8")
+    svc.collect_siri([inbox])
+    _add(engine, "a", "-23.40", "2026-10-24")
+    match = svc.receipt_matches()[0]
+    assert match.pair is None and match.what == "caffe al bar"
+    svc.confirm_receipt(match.receipt_id, "a", None)
+    assert _tx(engine, "a") == ("Alimentari", "Spesa supermercato", True)
+
+
+def test_the_icloud_file_only_when_turned_on(monkeypatch):
+    monkeypatch.setattr("services.expense_confirm_service.sys.platform", "darwin")
+    assert len(ExpenseConfirmService.siri_files(False)) == 1
+    files = ExpenseConfirmService.siri_files(True)
+    assert len(files) == 2 and "CloudDocs" in str(files[1])
+
+
+def test_a_receipt_paid_in_cash_is_never_matched(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    svc.save_receipt(date(2026, 10, 24), Decimal("23.40"), "mobile", ("Casa", "Arredamento"), cash=True)
+    _add(engine, "a", "-23.40", "2026-10-24")
+    assert svc.receipt_matches() == []
+    assert svc.pending_receipts()[0]["cash"] is True
+
+
+def test_the_siri_line_says_cash(engine, tmp_path):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    inbox = tmp_path / "spese-da-siri.txt"
+    inbox.write_text("2026-10-25 18:30 | contanti | ieri 4 euro, giornale\n"
+                     "2026-10-25 18:31 | carta | ieri 9 euro, viti\n", encoding="utf-8")
+    assert svc.collect_siri([inbox]) == (2, 0)
+    assert {(r["what"], r["cash"]) for r in svc.pending_receipts()} == {("giornale", True), ("viti", False)}
+
+
+def test_no_siri_outside_apple_systems(monkeypatch):
+    monkeypatch.setattr("services.expense_confirm_service.sys.platform", "linux")
+    assert ExpenseConfirmService.siri_files(True) == []

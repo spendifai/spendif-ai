@@ -313,6 +313,26 @@ def parse_expense(text: str, today: date) -> Parsed:
                   sure=not leftover)
 
 
+# Words of an amount that say nothing about what was bought.
+_AMOUNT_WORDS = {"euro", "eur", "centesimi", "centesimo", "cent", "e"}
+
+
+def expense_words(text: str, today: date) -> str:
+    """What was bought, in the user's words: the sentence without its date,
+    its amount and the words of the amount ("ieri 23 e 40, caffe' al bar"
+    gives "caffe al bar"). Normalized as the rest of the reading; "" when
+    nothing is left (spec 32, 4.9)."""
+    norm = normalize(text)
+    _, span = _find_date(norm, today)
+    if span:
+        norm = norm[:span[0]] + " " + norm[span[1]:]
+    tokens = _TOKEN.findall(norm)
+    _, used = _read_amount(tokens)
+    words = [t for i, t in enumerate(tokens)
+             if i not in used and not t[0].isdigit() and _number(t) is None and t not in _AMOUNT_WORDS]
+    return " ".join(words)
+
+
 # ── Answers ──────────────────────────────────────────────────────────────────
 
 # A yes is said in many ways (spec 32, 4.2 A).

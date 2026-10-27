@@ -272,24 +272,51 @@ def _follow_download() -> None:
     st.progress(float(state["progress"]), text=t("expense.ears.progress"))
 
 
-def _render_waiting(svc: ExpenseConfirmService, say) -> None:
-    """The receipts saved for the next import (spec 32, 4.4bis): how many,
-    and in the expander each one with a button to forget it."""
+def _render_waiting(svc: ExpenseConfirmService, say, siri_files) -> None:
+    """The receipts saved for the next import (spec 32, 4.4bis) and the
+    sentences dictated to Siri that were not understood (4.9): how many, and
+    in the expander each one with a button to forget it."""
     waiting = svc.pending_receipts()
-    if not waiting:
+    unclear = svc.unclear_sentences(siri_files)
+    n = len(waiting) + len(unclear)
+    if not n:
         return
-    n = len(waiting)
     title = t("expense.receipts_waiting_one") if n == 1 else t("expense.receipts_waiting", n=n)
     with st.expander(f"🧾 {title}"):
         for r in waiting:
             c_line, c_forget = st.columns([5, 1], vertical_alignment="center")
             line = SimpleNamespace(key="expense.receipt_line", note=None, params={
                 "what": r["what"], "day": r["day"], "amount": r["amount"],
-                "cat": (r["category"], r["subcategory"])})
-            c_line.write(say([line]))
+                "cat": (r["category"], r["subcategory"]) if r["category"] else t("expense.receipt_no_cat")})
+            text = say([line]) + (f" · {t('expense.receipt_cash_tag')}" if r["cash"] else "")
+            c_line.write(text)
             if c_forget.button(t("expense.receipt_forget"), key=f"expense_receipt_forget_{r['id']}"):
                 svc.delete_receipt(r["id"])
                 st.rerun()
+        for i, sentence in enumerate(unclear):
+            c_line, c_forget = st.columns([5, 1], vertical_alignment="center")
+            c_line.write(t("expense.siri_unclear_line", text=sentence))
+            if c_forget.button(t("expense.receipt_forget"), key=f"expense_siri_forget_{i}"):
+                svc.forget_unclear(siri_files, sentence)
+                st.rerun()
+
+
+def _collect_siri(svc: ExpenseConfirmService, files) -> None:
+    """The expenses dictated to Siri since the last time (spec 32, 4.9),
+    read once per session, before the conversation starts, so the ones
+    with a movement are offered at once."""
+    if st.session_state.get("_expense_siri_read"):
+        return
+    st.session_state["_expense_siri_read"] = True
+    try:
+        saved, unclear = svc.collect_siri(files)
+    except OSError as exc:
+        logger.warning(f"expense_confirm_page: the Siri file could not be read: {exc}")
+        return
+    if saved:
+        st.toast(t("expense.siri_saved_one") if saved == 1 else t("expense.siri_saved", n=saved))
+    if unclear:
+        st.toast(t("expense.siri_unclear", n=unclear))
 
 
 def render_expense_confirm_page(engine) -> None:
@@ -298,8 +325,11 @@ def render_expense_confirm_page(engine) -> None:
     c_intro, c_speak, c_restart = st.columns([4, 1, 1], vertical_alignment="center")
     c_intro.caption(t("expense.intro"))
     c_speak.toggle(t("expense.speak"), value=True, key="expense_speak", help=t("expense.speak_help"))
-    say = _formatter(SettingsService(engine).get_all())
+    settings = SettingsService(engine).get_all()
+    say = _formatter(settings)
     svc = ExpenseConfirmService(engine, rule_writer=_rule_writer(engine))
+    siri_files = svc.siri_files(settings.get("siri_icloud_inbox") == "true")
+    _collect_siri(svc, siri_files)
     if c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state:
         _reset(svc, say)
     voice_svc = VoiceService()
@@ -337,7 +367,7 @@ def render_expense_confirm_page(engine) -> None:
 
     if voice_svc.can_listen():
         st.toggle(t("expense.own_voice"), value=True, key="expense_own_voice", help=t("expense.own_voice_help"))
-    _render_waiting(svc, say)
+    _render_waiting(svc, say, siri_files)
 
     closed = state.step == _CLOSED
     if closed:

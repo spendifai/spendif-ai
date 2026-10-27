@@ -21,6 +21,13 @@ def _no_model(monkeypatch):
     monkeypatch.setattr(ExpenseConfirmService, "model_pick", lambda self, text, labels: None)
 
 
+@pytest.fixture(autouse=True)
+def _no_siri_files(monkeypatch):
+    """The page never reads the real Documents folder of the machine running
+    the tests."""
+    monkeypatch.setattr(ExpenseConfirmService, "siri_files", staticmethod(lambda icloud: []))
+
+
 @pytest.fixture
 def db(tmp_path):
     path = tmp_path / "p.db"
@@ -115,6 +122,8 @@ def test_a_saved_receipt_shows_as_waiting_and_can_be_forgotten(db):
     app = _open(db)
     _say(app, "ieri, 23,40")
     _say(app, "sì")
+    assert _bot(app) == "In contanti?"
+    _say(app, "no")
     assert _bot(app) == "Cos'hai comprato?"
     _say(app, "spesa supermercato")
     _say(app, "sì")

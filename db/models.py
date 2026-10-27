@@ -286,6 +286,7 @@ def create_tables(engine=None):
     _migrate_add_toll_subcategory(engine)
     _migrate_meals_and_lodging(engine)
     _migrate_split_fuel(engine)
+    _migrate_receipt_paid_cash(engine)
     _migrate_empty_category_to_fallback(engine)  # after every migration that empties categories
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
@@ -575,6 +576,7 @@ class PendingReceipt(Base):
     date = Column(String(10), nullable=False)               # the day said, ISO
     amount = Column(Numeric(precision=18, scale=4), nullable=False)   # positive, an outflow
     description = Column(String(256), nullable=False, default="")   # "caffe'", as the user said it
+    paid_cash = Column(Boolean, nullable=False, default=False)      # cash never reaches a statement: not matched
     category = Column(String(128), nullable=False)
     subcategory = Column(String(128), nullable=False, default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -2187,6 +2189,17 @@ def _migrate_add_llm_usage_log(engine) -> None:
             'duration_ms INTEGER)'
         ))
         conn.commit()
+
+
+def _migrate_receipt_paid_cash(engine) -> None:
+    """Saved receipts remember whether they were paid in cash (spec 32,
+    4.4bis): the table of 2026.10.4 has no such column. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        cols = {r[1] for r in conn.execute(_text("PRAGMA table_info(pending_receipt)"))}
+        if cols and "paid_cash" not in cols:
+            conn.execute(_text("ALTER TABLE pending_receipt ADD COLUMN paid_cash BOOLEAN NOT NULL DEFAULT 0"))
+            conn.commit()
 
 
 def _migrate_purge_orphan_schemas(engine) -> None:

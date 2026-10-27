@@ -23,6 +23,24 @@ Quando hai finito, **📍 Facciamo il punto** ti mostra dove sono andati i soldi
 
 ---
 
+## Dire una spesa a Siri, senza aprire Spendif.ai
+
+Sul Mac, o sull'iPhone, puoi dire una spesa a Siri appena l'hai fatta: "Ehi Siri, spesa Spendif", poi "ieri 23 e 40, caffè al bar", e Siri chiede se era in contanti. La spesa diventa uno scontrino salvato: alla prossima apertura di **🧾 Ho uno scontrino** la trovi in attesa e, quando l'estratto conto la porta, l'app ti propone il movimento. Quelle in contanti non si cercano nell'estratto conto.
+
+**Come creare il comando** (app Comandi Rapidi, una volta sola):
+
+1. Crea un nuovo comando e chiamalo **Spesa Spendif**: è la frase da dire a Siri.
+2. Aggiungi l'azione per **dettare il testo** (Dictate Text), in italiano.
+3. Aggiungi l'azione **Scegli dal menu** con la domanda "È in contanti?" e due voci, **Sì** e **No**. Nella voce Sì metti un'azione **Testo** con scritto `contanti`, nella voce No un'azione **Testo** con scritto `carta`.
+4. Aggiungi l'azione per **aggiungere a un file di testo** (Append to Text File). Come testo metti la **data attuale** nel formato `yyyy-MM-dd HH:mm`, poi ` | `, il **risultato del menu**, poi ` | ` e il **testo dettato**. Ne esce una riga come `2026-10-27 18:30 | contanti | ieri 23 e 40, caffè al bar`.
+   - Sul **Mac** il file è `Documenti/Spendif.ai/spese-da-siri.txt`.
+   - Sull'**iPhone** è `iCloud Drive/Spendif.ai/spese-da-siri.txt`, e nelle **Impostazioni** di Spendif.ai va acceso "Ricevi anche le spese dettate a Siri dall'iPhone". Quelle frasi passano da iCloud.
+   - Attiva l'opzione che crea il file se non c'è.
+
+Una frase che l'app non capisce (manca l'importo, per esempio) non si perde: la trovi fra gli scontrini in attesa, da completare o dimenticare.
+
+---
+
 ## 1. Primo avvio — wizard di onboarding
 
 **Situazione:** Hai appena installato Spendif.ai e lo avvii per la prima volta.
