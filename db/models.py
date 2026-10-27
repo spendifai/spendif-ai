@@ -287,6 +287,7 @@ def create_tables(engine=None):
     _migrate_meals_and_lodging(engine)
     _migrate_split_fuel(engine)
     _migrate_receipt_paid_cash(engine)
+    _migrate_receipt_kind(engine)
     _migrate_empty_category_to_fallback(engine)  # after every migration that empties categories
     _migrate_set_onboarding_done_for_existing_users(engine)  # must run last
     _migrate_purge_orphan_schemas(engine)  # cleanup: remove schemas without header_sha256
@@ -577,6 +578,13 @@ class PendingReceipt(Base):
     amount = Column(Numeric(precision=18, scale=4), nullable=False)   # positive, an outflow
     description = Column(String(256), nullable=False, default="")   # "caffe'", as the user said it
     paid_cash = Column(Boolean, nullable=False, default=False)      # cash never reaches a statement: not matched
+    # "expense", "refund" (an inflow) or "withdrawal" (the bank side of a cash
+    # withdrawal, a transfer): the amount stays positive, the kind gives the
+    # direction (spec 32, 4.10).
+    kind = Column(String(16), nullable=False, default="expense")
+    # A withdrawal: the cash account's movement already written, linked to the
+    # bank's one at the user's yes; None until the cash account exists.
+    cash_tx_id = Column(String(24), nullable=True)
     category = Column(String(128), nullable=False)
     subcategory = Column(String(128), nullable=False, default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -2200,6 +2208,19 @@ def _migrate_receipt_paid_cash(engine) -> None:
         if cols and "paid_cash" not in cols:
             conn.execute(_text("ALTER TABLE pending_receipt ADD COLUMN paid_cash BOOLEAN NOT NULL DEFAULT 0"))
             conn.commit()
+
+
+def _migrate_receipt_kind(engine) -> None:
+    """Saved receipts have a kind and, for a withdrawal, the cash movement
+    (spec 32, 4.10): the table of 2026.10.4 has neither. Idempotent."""
+    from sqlalchemy import text as _text
+    with engine.connect() as conn:
+        cols = {r[1] for r in conn.execute(_text("PRAGMA table_info(pending_receipt)"))}
+        if cols and "kind" not in cols:
+            conn.execute(_text("ALTER TABLE pending_receipt ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'expense'"))
+        if cols and "cash_tx_id" not in cols:
+            conn.execute(_text("ALTER TABLE pending_receipt ADD COLUMN cash_tx_id VARCHAR(24)"))
+        conn.commit()
 
 
 def _migrate_purge_orphan_schemas(engine) -> None:

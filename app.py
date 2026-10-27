@@ -30,6 +30,8 @@ from dotenv import load_dotenv
 load_dotenv(Path.home() / ".spendifai" / ".env")
 load_dotenv()
 
+import sys
+
 import streamlit as st
 
 from db.models import create_tables, get_engine
@@ -178,6 +180,12 @@ if "page" not in st.session_state:
     st.session_state["page"] = landing_page(engine)
 
 page = render_sidebar()
+
+# On a Mac, once: would the user like to tell expenses to Siri, even with the
+# app closed? (spec 32, 4.9). Not over the onboarding nor on an empty registry.
+if sys.platform == "darwin" and page not in ("start", "onboarding"):
+    from ui.siri_install import render_siri_offer
+    render_siri_offer(engine)
 
 # ── Route ─────────────────────────────────────────────────────────────────────
 def _route(page: str, engine) -> None:
