@@ -1,11 +1,19 @@
 {
-  "_comment": "Source of truth for the landing-page FAQ. Edit here, then run scripts/gen_faq.py to rewrite the visible section and the FAQPage JSON-LD in every index.*.html. Never edit the generated blocks by hand.",
+  "_comment": "Source of truth for the landing-page FAQ. Edit here, then run scripts/gen_faq.py to rewrite the visible section and the FAQPage JSON-LD in every language page. Never edit the generated blocks by hand.",
   "languages": {
     "it": {
       "label": "Domande frequenti",
       "heading": "Le domande che ricevo più spesso",
       "sub": "Quello che chiede chi non l'ha ancora installato.",
       "items": [
+        {
+          "q": "Me lo fa già la banca: a cosa serve Spendif.ai?",
+          "a": "La banca vede solo i suoi conti: basta un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico. Spendif.ai li mette insieme, anche di banche diverse, e in una pagina ti mostra il periodo che scegli. Le categorie sono le tue, non quelle della banca: su un acquisto Amazon o PayPal \"shopping\" non dice niente. E alle spese puoi dare un contesto, casa, vacanza o lavoro, che la banca non conosce."
+        },
+        {
+          "q": "Come conviene usarlo?",
+          "a": "In quattro passi. Carichi gli estratti conto di tutti i tuoi conti. Dai una categoria alle controparti con più movimenti, almeno le prime 10, che di solito coprono gran parte delle spese. Spunti le spese di cui hai la ricevuta, anche quelle online appena arriva l'email, con data e importo. Quello che resta, soprattutto i giroconti, lo controlli conto per conto."
+        },
         {
           "q": "Spendif.ai si collega alla mia banca?",
           "a": "No, mai. Niente Open Banking, niente PSD2, nessuna password bancaria. Scarichi tu il file dei movimenti dalla tua banca, in CSV o XLSX, e lo trascini nell'app."
@@ -46,6 +54,14 @@
       "sub": "What people ask before installing it.",
       "items": [
         {
+          "q": "My bank already does this: what is Spendif.ai for?",
+          "a": "Your bank only sees its own accounts: a current account, a card, PayPal and Satispay are enough never to have one picture. Spendif.ai puts them together, from different banks too, and shows the period you choose on one page. The categories are yours, not the bank's: on an Amazon or PayPal purchase \"shopping\" says nothing. And you can give your expenses a context, home, holiday or work, which the bank does not know."
+        },
+        {
+          "q": "What is the best way to use it?",
+          "a": "Four steps. Load the statements of all your accounts. Give a category to the counterparts with the most movements, at least the first 10, which usually cover most of your spending. Tick the expenses you have a receipt for, online ones too as soon as the email arrives, with date and amount. Check what is left, mostly transfers, account by account."
+        },
+        {
           "q": "Does Spendif.ai connect to my bank?",
           "a": "No, never. No Open Banking, no PSD2, no banking password. You download the transaction file from your bank yourself, as CSV or XLSX, and drop it into the app."
         },
@@ -84,6 +100,14 @@
       "heading": "Die Fragen, die am häufigsten kommen",
       "sub": "Was Leute fragen, bevor sie es installieren.",
       "items": [
+        {
+          "q": "Das macht doch schon meine Bank: wozu Spendif.ai?",
+          "a": "Deine Bank sieht nur ihre eigenen Konten: ein Girokonto, eine Karte, PayPal und Satispay reichen, um nie einen Gesamtüberblick zu haben. Spendif.ai führt sie zusammen, auch von verschiedenen Banken, und zeigt dir den gewählten Zeitraum auf einer Seite. Die Kategorien sind deine, nicht die der Bank: bei einem Kauf über Amazon oder PayPal sagt \"Shopping\" nichts. Und du kannst Ausgaben einen Kontext geben, Zuhause, Urlaub oder Arbeit, den die Bank nicht kennt."
+        },
+        {
+          "q": "Wie nutze ich es am besten?",
+          "a": "In vier Schritten. Lade die Kontoauszüge all deiner Konten. Gib den Gegenparteien mit den meisten Bewegungen eine Kategorie, mindestens den ersten 10, die meist den Großteil der Ausgaben abdecken. Hake die Ausgaben ab, für die du einen Beleg hast, auch Online-Käufe, sobald die E-Mail kommt, mit Datum und Betrag. Was übrig bleibt, vor allem Umbuchungen, prüfst du Konto für Konto."
+        },
         {
           "q": "Verbindet sich Spendif.ai mit meiner Bank?",
           "a": "Nein, nie. Kein Open Banking, kein PSD2, kein Bankpasswort. Sie laden die Umsatzdatei selbst bei Ihrer Bank herunter, als CSV oder XLSX, und ziehen sie in die App."
@@ -124,6 +148,14 @@
       "sub": "Lo que pregunta quien aún no lo ha instalado.",
       "items": [
         {
+          "q": "Eso ya me lo hace el banco: ¿para qué sirve Spendif.ai?",
+          "a": "El banco solo ve sus propias cuentas: basta una cuenta corriente, una tarjeta, PayPal y Satispay para no tener nunca una visión única. Spendif.ai las reúne, también de bancos distintos, y te muestra en una página el periodo que eliges. Las categorías son las tuyas, no las del banco: en una compra de Amazon o PayPal \"shopping\" no dice nada. Y puedes dar a los gastos un contexto, casa, vacaciones o trabajo, que el banco no conoce."
+        },
+        {
+          "q": "¿Cuál es la mejor manera de usarlo?",
+          "a": "En cuatro pasos. Cargas los extractos de todas tus cuentas. Das una categoría a las contrapartes con más movimientos, al menos las 10 primeras, que suelen cubrir gran parte de los gastos. Marcas los gastos de los que tienes el recibo, también los de compras online en cuanto llega el email, con fecha e importe. Lo que queda, sobre todo traspasos, lo revisas cuenta por cuenta."
+        },
+        {
           "q": "¿Spendif.ai se conecta a mi banco?",
           "a": "No, nunca. Ni Open Banking, ni PSD2, ni contraseña bancaria. Usted descarga el archivo de movimientos de su banco, en CSV o XLSX, y lo arrastra a la aplicación."
         },
@@ -162,6 +194,14 @@
       "heading": "Les questions qui reviennent le plus",
       "sub": "Ce que demandent ceux qui ne l'ont pas encore installé.",
       "items": [
+        {
+          "q": "Ma banque le fait déjà : à quoi sert Spendif.ai ?",
+          "a": "Votre banque ne voit que ses propres comptes : un compte courant, une carte, PayPal et Satispay suffisent pour ne jamais avoir une vue d'ensemble. Spendif.ai les réunit, même de banques différentes, et vous montre sur une page la période que vous choisissez. Les catégories sont les vôtres, pas celles de la banque : sur un achat Amazon ou PayPal, \"shopping\" ne dit rien. Et vous pouvez donner un contexte à vos dépenses, maison, vacances ou travail, que la banque ne connaît pas."
+        },
+        {
+          "q": "Quelle est la meilleure façon de l'utiliser ?",
+          "a": "En quatre étapes. Vous chargez les relevés de tous vos comptes. Vous donnez une catégorie aux contreparties qui ont le plus de mouvements, au moins les 10 premières, qui couvrent en général l'essentiel des dépenses. Vous cochez les dépenses dont vous avez le ticket, y compris les achats en ligne dès que l'email arrive, avec la date et le montant. Ce qui reste, surtout des virements internes, vous le vérifiez compte par compte."
+        },
         {
           "q": "Spendif.ai se connecte-t-il à ma banque ?",
           "a": "Non, jamais. Pas d'Open Banking, pas de DSP2, aucun mot de passe bancaire. Vous téléchargez vous-même le fichier des opérations depuis votre banque, en CSV ou XLSX, et vous le déposez dans l'application."
@@ -202,6 +242,14 @@
       "sub": "インストール前によく聞かれることをまとめました。",
       "items": [
         {
+          "q": "銀行のアプリで十分では？Spendif.ai は何のため？",
+          "a": "銀行が見られるのは自分の口座だけです。普通預金、カード、PayPal、Satispay があるだけで、全体像は一度も見えません。Spendif.ai は異なる銀行のものも含めてまとめ、選んだ期間を 1 ページで表示します。カテゴリは銀行のものではなく、あなたのものです。Amazon や PayPal での購入に「ショッピング」と付いても何もわかりません。さらに、支出には自宅・旅行・仕事などの文脈を付けられます。これは銀行にはわかりません。"
+        },
+        {
+          "q": "いちばん良い使い方は？",
+          "a": "4 つのステップです。すべての口座の明細を読み込みます。取引の多い相手先、少なくとも上位 10 件にカテゴリを付けます。これで支出の大部分がカバーされるのが普通です。レシートのある支出は、日付と金額でチェックします。オンラインの購入も、メールが届いたらすぐに。残りは、主に口座間の振替で、口座ごとに確認します。"
+        },
+        {
           "q": "Spendif.ai は銀行に接続しますか？",
           "a": "いいえ、接続しません。オープンバンキングも PSD2 も使わず、銀行のパスワードも不要です。取引明細ファイルはご自身で銀行から CSV または XLSX でダウンロードし、アプリにドラッグします。"
         },
@@ -240,6 +288,14 @@
       "heading": "De vragen die ik het vaakst krijg",
       "sub": "Wat mensen vragen voordat ze het installeren.",
       "items": [
+        {
+          "q": "Dat doet mijn bank toch al: waar dient Spendif.ai voor?",
+          "a": "Je bank ziet alleen haar eigen rekeningen: een betaalrekening, een kaart, PayPal en Satispay zijn genoeg om nooit één overzicht te hebben. Spendif.ai brengt ze samen, ook van verschillende banken, en toont de periode die je kiest op één pagina. De categorieën zijn de jouwe, niet die van de bank: bij een aankoop via Amazon of PayPal zegt \"shopping\" niets. En je kunt uitgaven een context geven, thuis, vakantie of werk, die de bank niet kent."
+        },
+        {
+          "q": "Hoe gebruik ik het het best?",
+          "a": "In vier stappen. Je laadt de afschriften van al je rekeningen. Je geeft een categorie aan de tegenpartijen met de meeste bewegingen, minstens de eerste 10, die meestal het grootste deel van de uitgaven dekken. Je vinkt de uitgaven af waarvan je het bonnetje hebt, ook online aankopen zodra de e-mail binnenkomt, met datum en bedrag. Wat overblijft, vooral overboekingen tussen eigen rekeningen, controleer je rekening per rekening."
+        },
         {
           "q": "Maakt Spendif.ai verbinding met mijn bank?",
           "a": "Nee, nooit. Geen Open Banking, geen PSD2, geen bankwachtwoord. Je downloadt het transactiebestand zelf bij je bank, als CSV of XLSX, en sleept het in de app."
@@ -280,6 +336,14 @@
       "sub": "To, o co pytają osoby przed instalacją.",
       "items": [
         {
+          "q": "Przecież robi to już mój bank: do czego służy Spendif.ai?",
+          "a": "Bank widzi tylko swoje konta: wystarczy konto osobiste, karta, PayPal i Satispay, żeby nigdy nie mieć jednego obrazu całości. Spendif.ai łączy je, także z różnych banków, i pokazuje na jednej stronie wybrany okres. Kategorie są twoje, a nie banku: przy zakupie na Amazonie czy przez PayPal \"zakupy\" nic nie mówią. Możesz też nadać wydatkom kontekst, dom, wakacje czy praca, którego bank nie zna."
+        },
+        {
+          "q": "Jak najlepiej z niego korzystać?",
+          "a": "W czterech krokach. Wczytujesz wyciągi ze wszystkich kont. Nadajesz kategorię kontrahentom z największą liczbą operacji, co najmniej pierwszym 10, które zwykle obejmują większość wydatków. Odhaczasz wydatki, na które masz paragon, także zakupy online, gdy tylko przyjdzie e-mail, podając datę i kwotę. To, co zostaje, głównie przelewy między własnymi kontami, sprawdzasz konto po koncie."
+        },
+        {
           "q": "Czy Spendif.ai łączy się z moim bankiem?",
           "a": "Nie, nigdy. Żadnego Open Bankingu, żadnego PSD2, żadnego hasła do banku. Plik z transakcjami pobierasz sam ze swojego banku, w formacie CSV lub XLSX, i przeciągasz go do aplikacji."
         },
@@ -318,6 +382,14 @@
       "heading": "As perguntas que mais recebo",
       "sub": "O que pergunta quem ainda não instalou.",
       "items": [
+        {
+          "q": "O meu banco já faz isso: para que serve o Spendif.ai?",
+          "a": "O banco só vê as próprias contas: basta uma conta à ordem, um cartão, PayPal e Satispay para nunca ter uma visão única. O Spendif.ai junta-as, também de bancos diferentes, e mostra numa página o período que escolhes. As categorias são as tuas, não as do banco: numa compra na Amazon ou por PayPal, \"shopping\" não diz nada. E podes dar às despesas um contexto, casa, férias ou trabalho, que o banco não conhece."
+        },
+        {
+          "q": "Qual é a melhor forma de o usar?",
+          "a": "Em quatro passos. Carregas os extratos de todas as tuas contas. Dás uma categoria às contrapartes com mais movimentos, pelo menos as 10 primeiras, que costumam cobrir a maior parte das despesas. Marcas as despesas de que tens o recibo, também as compras online assim que chega o email, com data e valor. O que sobra, sobretudo transferências entre as tuas contas, verificas conta a conta."
+        },
         {
           "q": "O Spendif.ai se conecta ao meu banco?",
           "a": "Não, nunca. Nada de Open Banking, nada de PSD2, nenhuma senha bancária. Você mesmo baixa o arquivo de movimentações do seu banco, em CSV ou XLSX, e arrasta para o aplicativo."
