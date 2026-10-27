@@ -371,3 +371,13 @@ def test_the_page_opens_on_the_receipts_with_a_movement(db):
     assert _bot(app).startswith("caffè, 2,00")
     _say(app, "sì")
     assert ExpenseConfirmService(_engine(db)).pending_receipts() == []
+
+
+def test_a_cash_receipt_creates_the_cash_account_from_the_chat(db):
+    app = _open(db)
+    for text in ("ieri, 23,40", "sì", "sì", "spesa supermercato", "sì"):
+        _say(app, text)
+    assert _bot(app) == "Creo il conto Contanti per le spese in contanti?"
+    _say(app, "sì")
+    assert _bot(app).startswith("Segnato nel conto Contanti: spesa supermercato, 23,40")
+    assert ExpenseConfirmService(_engine(db)).cash_account() == "Contanti"

@@ -249,6 +249,26 @@ def render_settings_page(engine):
     # Sync session_state immediately so other pages (upload, ledger) see current values
     st.session_state.setdefault("giroconto_mode", settings.get("giroconto_mode", "neutral"))
 
+    # ── The cash account (spec 32, 4.4) ───────────────────────────────────────
+    # Cash receipts become movements of this account; the import treats it as
+    # any other account.
+    from services.expense_confirm_service import ExpenseConfirmService
+    _names = [a.name for a in cfg_svc.get_accounts()]
+    _current = settings.get("cash_account") if settings.get("cash_account") in _names else ""
+    _options = [""] + _names
+    _picked = st.selectbox(t("settings.cash_account.label"), _options, index=_options.index(_current),
+                           format_func=lambda n: n or t("settings.cash_account.none"),
+                           help=t("settings.cash_account.help"), key="settings_cash_account")
+    if _picked != _current:
+        cfg_svc.set("cash_account", _picked)
+        ExpenseConfirmService(engine).flush_cash_receipts()
+        st.rerun()
+    if not _current and st.button(t("settings.cash_account.create"), key="settings_cash_account_create"):
+        _expense_svc = ExpenseConfirmService(engine)
+        _expense_svc.create_cash_account()
+        _expense_svc.flush_cash_receipts()
+        st.rerun()
+
     # ── Expenses dictated to Siri from the iPhone (spec 32, 4.9) ──────────────
     # Only on a Mac, and off unless the user turns it on: the sentence goes
     # through iCloud, so "your data stays on your computer" does not hold for it.

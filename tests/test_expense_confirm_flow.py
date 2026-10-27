@@ -61,6 +61,8 @@ class FakeLedger:
         self.asked = []
         self.saved = []           # receipts saved for the next import
         self.receipts = []        # receipts checked against their movement
+        self.cash = None          # the cash account, None while there is none
+        self.cash_moves = []      # movements written in the cash account
 
     def outflows(self, low, high, date_from, date_to, checked):
         self.searches.append((low, high, date_from, date_to, checked))
@@ -93,6 +95,16 @@ class FakeLedger:
 
     def save_receipt(self, day, amount, what, pair, cash):
         self.saved.append((day, amount, what, pair, cash))
+
+    def cash_account(self):
+        return self.cash
+
+    def create_cash_account(self):
+        self.cash = "Contanti"
+        return self.cash
+
+    def cash_movement(self, day, amount, what, pair, account):
+        self.cash_moves.append((day, amount, what, pair, account))
 
     def confirm_receipt(self, receipt_id, tx_id, pair):
         self.receipts.append((receipt_id, tx_id, pair))
@@ -527,10 +539,13 @@ def test_a_check_alone_never_asks_always():
     assert "expense.always" not in _keys(msgs)
 
 
-def test_never_creates_a_movement():
-    """Mai un movimento inventato (spec 32, 2.4): the flow has no port to do it."""
-    assert not any(name.startswith(("create", "add", "insert"))
-                   for name in dir(FakeLedger) if not name.startswith("_"))
+def test_never_creates_a_movement_but_for_cash():
+    """Mai un movimento inventato (spec 32, 2.4): the only ports that write a
+    movement or an account are the cash ones, used after the user said the
+    expense was cash (4.4)."""
+    writing = {name for name in dir(FakeLedger) if not name.startswith("_")
+               and name.startswith(("create", "add", "insert", "cash_movement"))}
+    assert writing == {"create_cash_account", "cash_movement"}
 
 
 # ── 4.6 Closing ──────────────────────────────────────────────────────────────
@@ -783,6 +798,8 @@ def test_a_description_that_names_no_category_asks_for_it():
     msgs, state = _say(state, "farmaci", ledger)
     assert _keys(msgs) == ["expense.propose_category"]
     msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.ask_cash_account"]       # no cash account yet
+    msgs, state = _say(state, "no", ledger)
     assert ledger.saved[0][2:] == ("zzz", ("Salute", "Farmaci"), True)
     assert _keys(msgs) == ["expense.receipt_saved_cash"]
 
@@ -902,3 +919,40 @@ def test_a_category_changed_by_a_receipt_asks_always_like_this_then_goes_on():
     msgs, state = _say(state, "sì", ledger)
     assert ledger.receipts[-1] == (2, "t3", None)          # same category: no question
     assert _keys(msgs) == ["expense.done", "expense.ask"] and state.checked == 2
+
+
+# ── 4.4 Cash: a movement of the cash account ────────────────────────────────
+
+def _to_cash(ledger):
+    _, state = start()
+    _, state = _say(state, "ieri, 4 euro", ledger)
+    _, state = _say(state, "sì", ledger)
+    _, state = _say(state, "sì", ledger)                      # in cash
+    _, state = _say(state, "farmaci", ledger)
+    return _say(state, "sì", ledger)
+
+
+def test_cash_becomes_a_movement_of_the_cash_account():
+    ledger = FakeLedger()
+    ledger.cash = "Portafoglio"
+    msgs, state = _to_cash(ledger)
+    assert _keys(msgs) == ["expense.cash_recorded"] and msgs[0].params["account"] == "Portafoglio"
+    assert ledger.cash_moves == [(date(2026, 10, 24), Decimal("4"), "farmaci", ("Salute", "Farmaci"), "Portafoglio")]
+    assert ledger.saved == [] and state.step == ASK_EXPENSE and state.checked == 1
+
+
+def test_without_a_cash_account_the_bot_offers_to_create_it():
+    ledger = FakeLedger()
+    msgs, state = _to_cash(ledger)
+    assert _keys(msgs) == ["expense.ask_cash_account"]
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.cash_recorded"] and ledger.cash == "Contanti"
+    assert ledger.cash_moves[0][4] == "Contanti"
+
+
+def test_no_cash_account_keeps_the_receipt_waiting():
+    ledger = FakeLedger()
+    _, state = _to_cash(ledger)
+    msgs, state = _say(state, "no", ledger)
+    assert _keys(msgs) == ["expense.receipt_saved_cash"]
+    assert ledger.saved[0][4] is True and ledger.cash_moves == []

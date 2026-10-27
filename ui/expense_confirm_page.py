@@ -317,6 +317,10 @@ def _collect_siri(svc: ExpenseConfirmService, files) -> None:
         st.toast(t("expense.siri_saved_one") if saved == 1 else t("expense.siri_saved", n=saved))
     if unclear:
         st.toast(t("expense.siri_unclear", n=unclear))
+    # Cash receipts saved before there was a cash account join it now (spec 32, 4.4).
+    moved = svc.flush_cash_receipts()
+    if moved:
+        st.toast(t("expense.cash_flushed", n=moved, account=svc.cash_account()))
 
 
 def render_expense_confirm_page(engine) -> None:

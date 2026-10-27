@@ -39,6 +39,8 @@ Sul Mac, o sull'iPhone, puoi dire una spesa a Siri appena l'hai fatta: "Ehi Siri
 
 Una frase che l'app non capisce (manca l'importo, per esempio) non si perde: la trovi fra gli scontrini in attesa, da completare o dimenticare.
 
+**Il conto dei contanti.** Le spese in contanti, dette nella chat o a Siri, diventano subito movimenti del conto dei contanti, già controllati. Il conto lo scegli nelle **Impostazioni** ("💶 Conto dei contanti") oppure lo crea il bot la prima volta, se gli dici di sì. Se per i contanti usi già un'altra app, puoi importarne l'export su questo conto come su qualunque altro.
+
 ---
 
 ## 1. Primo avvio — wizard di onboarding
