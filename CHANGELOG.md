@@ -6,6 +6,19 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.10.4] - 2026-10-27
+
+### Added
+- Answer by voice in "I have a receipt": the first time, the page asks whether to download the model that listens to you (Whisper small, 190 MB, it stays on your computer); after a yes the conversation goes on hands-free and the reply is read by your system's voice. Italian interface only for now
+- Save a receipt whose movement is not imported yet: date, amount, what you bought and the category; when the conversation starts, the receipts that now have their movement are offered one at a time, with your own words next to the movement, and checked only after your yes
+- The day said as an ordinal: "il primo", "il secondo del mese", "secondo ottobre"
+- The guide and the assistant say the best way to use Spendif.ai and answer "my bank already does this"
+
+### Changed
+- One menu for everyone: on top Load your bank statement, Check your movements, I have a receipt, Ask Spendif.ai and Let's take stock (the former Home), where the app opens; every other page in two groups, Insights and Rules and settings. The menu by level and its choice in Settings are gone
+- The difference between income and spending in the flow chart is called Holdings, "+" when you put money aside, "-" when you take it
+- Only the menu entry of the page on screen is highlighted
+
 ## [2026.10.3] - 2026-10-26
 
 ### Added
