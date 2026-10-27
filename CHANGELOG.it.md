@@ -8,6 +8,17 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.10.5] - 2026-10-27
+
+### Aggiunto
+- Un conto dei contanti: le spese in contanti che dici all'app diventano subito suoi movimenti, con il giorno e l'importo detti, le tue parole come descrizione e la categoria scelta, già spuntati. Il conto si sceglie nelle Impostazioni, oppure si crea dalla chat la prima volta. Si importa come ogni altro conto, quindi ci si può caricare l'export di un'altra app dei contanti
+- Dettare una spesa a Siri senza aprire l'app, su macOS: Spendif.ai prepara il comando di Comandi Rapidi con i nomi scelti nelle Impostazioni e lo propone una volta all'avvio. Quando apri la pagina vocale ogni frase diventa uno scontrino da controllare, "ieri" letto rispetto al giorno in cui l'hai detta e la categoria presa dalle tue parole; una frase senza importo resta da completare o da scartare, e una senza giorno vale per il giorno in cui l'hai detta
+- Ogni scontrino salvato dice se è stato pagato in contanti: quello in contanti non aspetta nessun estratto conto, quello con carta si abbina al suo movimento
+
+### Modificato
+- "Ho uno scontrino" ora si chiama "Gestione vocale operazioni"
+- Il riquadro di Siri sopra la chat è una riga di riepilogo, e ogni voce compare in un posto solo, dove c'è qualcosa da fare
+
 ## [2026.10.4] - 2026-10-27
 
 ### Aggiunto
