@@ -120,6 +120,7 @@ def main() -> None:
         while not page.locator("input[type='file']").count():
             _click(page, labels["guided.next"])
             _settle(page)
+        mark("upload")                    # the steps before the file, shown near real speed
         page.locator("input[type='file']").set_input_files(str(statement))
         _settle(page)
         _click(page, labels["upload.process_btn"])

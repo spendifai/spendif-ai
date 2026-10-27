@@ -17,8 +17,12 @@ from pathlib import Path
 
 # (scene start, scene end, seconds on screen, subtitle key). A longer scene is
 # sped up to fit; a shorter one holds its last frame.
-SLOTS = [("intro", "import", 5, "intro"), ("import", "import_done", 14, "import"),
-         ("receipt", "receipt_done", 12, "receipt"), ("home", "end", 12, "home")]
+# The import is two slots: the steps before the file (Guide me, the account
+# name, Next) near real speed, so they can be followed; the processing sped
+# up (founder, 2026-10-27).
+SLOTS = [("intro", "import", 5, "intro"), ("import", "upload", 8, "import"),
+         ("upload", "import_done", 9, "import"), ("receipt", "receipt_done", 12, "receipt"),
+         ("home", "end", 9, "home")]
 CLOSING_SECONDS = 2
 
 SUBTITLES = {
