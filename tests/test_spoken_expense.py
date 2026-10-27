@@ -115,6 +115,29 @@ def test_no_date(said):
     assert parse_date(said, TODAY) is None
 
 
+# The day said as an ordinal (spec 32, 4.1): "il primo" and "il secondo del
+# mese" are 1 and 2; "secondo me" stays an opinion.
+@pytest.mark.parametrize("said, day", [
+    ("il primo", date(2026, 10, 1)), ("primo del mese", date(2026, 10, 1)),
+    ("il secondo del mese", date(2026, 10, 2)), ("il secondo", date(2026, 10, 2)),
+    ("secondo del mese", date(2026, 10, 2)), ("il terzo del mese", date(2026, 10, 3)),
+    ("il decimo", date(2026, 10, 10)), ("2 del mese", date(2026, 10, 2)),
+    ("secondo ottobre", date(2026, 10, 2)), ("il primo settembre", date(2026, 9, 1)),
+])
+def test_the_day_as_an_ordinal(said, day):
+    assert parse_date(said, TODAY) == day
+
+
+@pytest.mark.parametrize("said", ["secondo me", "secondo me 12 euro", "primo 12"])
+def test_an_ordinal_alone_is_not_a_day(said):
+    assert parse_date(said, TODAY) is None
+
+
+def test_the_ordinal_day_leaves_the_amount_alone():
+    p = parse_expense("il secondo del mese 12 euro", TODAY)
+    assert (p.day, p.amount, p.sure) == (date(2026, 10, 2), Decimal("12"), True)
+
+
 # ── 4.1 Both in one sentence ─────────────────────────────────────────────────
 
 @pytest.mark.parametrize("said, day, value, cents", [

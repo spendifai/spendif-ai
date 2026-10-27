@@ -10,6 +10,19 @@ You download your transaction files from the bank, drag them into Spendif.ai, it
 
 ---
 
+## The best way to use it
+
+The way that takes the least effort is four steps, in this order.
+
+1. **Load the statements** of all your accounts, with **📥 Load your bank statement**: the path tells you which files you need and imports them.
+2. **Give a category to the counterparts with the most movements**: ideally at least the first 10, which usually cover most of your spending. With *Always like this* the choice also holds for the movements of the next imports.
+3. **Tick the expenses you have a receipt for** with **🧾 I have a receipt**: you say date, amount and what you bought, the app finds the movement and marks it checked. It works for a paper receipt and for **online purchases** too: as soon as the receipt email arrives (Amazon, PayPal and the like), say the expense. On those sites the same counterpart sells everything, and only you know the category. If the statement has not arrived yet, the receipt is saved and found again at the next import.
+4. **Check what is left account by account** with **✅ Check your movements**. By then what remains is mostly transfers between your own accounts and online purchases whose receipt you did not say.
+
+When you are done, **📍 Let's take stock** shows you where the money went.
+
+---
+
 ## 1. First launch — onboarding wizard
 
 **Situation:** You've just installed Spendif.ai and are launching it for the first time.
@@ -251,9 +264,9 @@ Go to **Analytics**. You'll find:
 
 Use the filters at the top to narrow down to a specific period or account.
 
-### The Home: income and expenses by month
+### Let's take stock: income and expenses by month
 
-The **Home** opens with a bar chart by month: income above zero, expenses below, each split by category. The largest categories of the period get their own colour (greens for income, warm tones for expenses), the rest go into **Other**. You see at once whether a month ends positive.
+**Let's take stock** opens with a bar chart by month: income above zero, expenses below, each split by category. The largest categories of the period get their own colour (greens for income, warm tones for expenses), the rest go into **Other**. You see at once whether a month ends positive.
 
 - **Transfers** between your own accounts are neither income nor expenses and do not appear.
 - A **refund** (a return, money back on a purchase: an income movement with an expense category) lowers that expense in its month instead of counting as income. The same holds for the flow diagram below.
@@ -402,9 +415,9 @@ For each category with a defined target:
 
 **Situation:** You want to check at a glance whether you are regularly importing all your transaction files, without gaps of months.
 
-> **Let's prepare your movements.** The **🧭 Let's prepare your movements** entry, at the top of the menu, is where you start from every time: it takes you one step at a time on a clean screen: what to load (this page), the import, your spending, the mixed categories, the transfers, your income and finally the period at a glance. At the top you see which step you are on, with *Back*, *Next* and *Leave the workflow*. If you leave, next time it picks up where you left off, skipping the steps you have done in the meantime. At the end of the onboarding you are asked whether to go on and load your data: *Yes, let's go* brings you here, to the first step; *Not yet, I have a few questions* takes you to the **💬 Assistant**.
+> **Load your bank statement.** The **📥 Load your bank statement** entry, at the top of the menu, is where you start from every time: it takes you one step at a time on a clean screen: what to load (this page), the import, your spending, the mixed categories, the transfers, your income and finally the period at a glance. At the top you see which step you are on, with *Back*, *Next* and *Leave the workflow*. If you leave, next time it picks up where you left off, skipping the steps you have done in the meantime. At the end of the onboarding you are asked whether to go on and load your data: *Yes, let's go* brings you here, to the first step; *Not yet, I have a few questions* takes you to the **💬 Assistant**.
 >
-> **If you want to check.** A menu entry of its own, right below, separate from the path: you open it whenever you like and leave it with *Leave the check*. One account at a time, from the last movement you marked *Checked*. I suggest the account furthest behind and the day to start from; you can change both. Then you see the Registry grid with only that account's movements to check, oldest first: at every save the checked ones leave and the next ones come in. *All shown are right* marks them all, after a confirmation. When the account is done, I ask about the transfers that did not find their other side, then you are back at the list. If you create a rule while checking, saving waits for the rule to be finished: the rule also saves the grid's other edits.
+> **Check your movements.** A menu entry of its own, right below, separate from the path: you open it whenever you like and leave it with *Leave the check*. One account at a time, from the last movement you marked *Checked*. I suggest the account furthest behind and the day to start from; you can change both. Then you see the Registry grid with only that account's movements to check, oldest first: at every save the checked ones leave and the next ones come in. *All shown are right* marks them all, after a confirmation. When the account is done, I ask about the transfers that did not find their other side, then you are back at the list. If you create a rule while checking, saving waits for the rule to be finished: the rule also saves the grid's other edits.
 >
 > **The spending step.** It shows only the spending counterparts still to check, largest first. Tick *Always like this* when a counterpart always has the category shown: once is enough, from then on its movements, including those of future imports, get that category on their own. The suggested goal is to check the counterparts that make 8 euros out of 10 of the period's spending: at the top you see how much you have checked, how much is missing and how many counterparts are enough. It is a suggestion: you can move on whenever you want.
 >
@@ -417,7 +430,7 @@ For each category with a defined target:
 >
 > Those older than 4 months are not asked about: one line counts them. The *Re-run internal transfer detection* button in Review redoes the pairing on the whole history.
 >
-> **The income step.** It comes after the transfers, so the money moved between your own accounts is already out and the real income is left: salary, invoices, refunds. It shows the income counterparts of the period still to look at, largest first. It works like the spending step (*Always like this* creates the rule), but with no goal: income comes from few counterparts and each one weighs, so you look at all of them. A refund or a return on a purchase is not income: pick the spending category (for example Groceries) and that spending goes down, in the Home charts too. If a counterpart also has spending (the shop that refunded a purchase), the choice applies only to its income already loaded and does not become a rule: a rule would also change the spending with the same name.
+> **The income step.** It comes after the transfers, so the money moved between your own accounts is already out and the real income is left: salary, invoices, refunds. It shows the income counterparts of the period still to look at, largest first. It works like the spending step (*Always like this* creates the rule), but with no goal: income comes from few counterparts and each one weighs, so you look at all of them. A refund or a return on a purchase is not income: pick the spending category (for example Groceries) and that spending goes down, in the Let's take stock charts too. If a counterpart also has spending (the shop that refunded a purchase), the choice applies only to its income already loaded and does not become a rule: a rule would also change the spending with the same name.
 
 At the top of the page, a sentence tells you what to download now, with the exact dates: for example "**BBVA**: the last month loaded is August 2026. Download the transactions from 1 September 2026 to today". Each account has its own row, with what is missing and two buttons. *Upload the file* lets you pick that account's files and sets them aside, already assigned to the account: you can prepare several accounts, then press *Import N files* and the import starts with the accounts already fixed. The import page only keeps the header and footer adjustment, the progress and the report. *I no longer use it* closes the account (see below). If you have no account yet, the page asks only for its name: files come later. The first time it suggests a single month, so the first round stays short.
 
@@ -627,6 +640,15 @@ Both support the same CLI arguments: `--runs`, `--files`, `--backend`, `--model`
 ---
 
 ## Frequently asked questions
+
+**My bank already does this: what is Spendif.ai for?**
+Your bank shows your spending its way; Spendif.ai shows it your way.
+1. **All your accounts together.** Your bank only sees its own accounts. A current account, a card, PayPal and Satispay are enough never to have one picture: Spendif.ai puts them together, from different banks too.
+2. **The period you want, on one page.** Not every bank lets you pick the period and gather income, spending and categories in one view. In **📍 Let's take stock** you pick the period and see where the money comes from and where it goes.
+3. **Your categories, not the bank's.** The bank uses its own, and on an Amazon or PayPal purchase "shopping" means nothing. In Spendif.ai you decide the categories, and with the receipt an online expense gets its real category.
+4. **Contexts.** The same supermarket expense can be for the home, the holiday or work. The bank does not know; in Spendif.ai you give the context, and you can do the sums by context too.
+
+And your data stays on your computer.
 
 **Can I import files from different banks together?**
 Yes. Spendif.ai recognises the format automatically. You don't need to tell it what type of file it is.

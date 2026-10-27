@@ -105,10 +105,25 @@ def test_several_found_and_one_chosen(db):
         assert not s.get(Transaction, "a").human_validated
 
 
-def test_not_found_offers_to_try_again(db):
+def test_not_found_offers_to_save_the_receipt(db):
     app = _open(db)
     _say(app, "ieri, 23,40")
-    assert _bot(app) == "Non c'è."
+    assert _bot(app) == "Non c'è.\n\nLo salvo e lo ritrovo quando importi l'estratto conto?"
+
+
+def test_a_saved_receipt_shows_as_waiting_and_can_be_forgotten(db):
+    app = _open(db)
+    _say(app, "ieri, 23,40")
+    _say(app, "sì")
+    assert _bot(app) == "Cos'hai comprato?"
+    _say(app, "spesa supermercato")
+    _say(app, "sì")
+    assert _bot(app).startswith("Salvato: spesa supermercato, 23,40")
+    assert any(e.label == "🧾 1 scontrino in attesa dell'estratto conto" for e in app.expander)
+    app.button(key="expense_receipt_forget_1").click().run()
+    assert not app.exception, app.exception
+    assert not any("in attesa" in e.label for e in app.expander)
+    assert ExpenseConfirmService(_engine(db)).pending_receipts() == []
 
 
 def test_a_category_by_hand_and_always_like_this(db):
@@ -295,3 +310,55 @@ def test_the_conversation_scrolls_inside_a_box_of_fixed_height(db):
     boxes = [b for b in _fixed_boxes(app.main) if len(b.chat_message)]
     assert len(boxes) == 1 and boxes[0].proto.height_config.pixel_height == 420
     assert len(boxes[0].chat_message) == len(app.chat_message) == 3
+
+
+# ── The listening model, offered on first use (spec 32, 3) ───────────────────
+
+
+@pytest.fixture
+def _offered(monkeypatch):
+    """The library is in the package and the model is not there yet; the
+    download only records that it was asked for."""
+    from services.voice_service import VoiceService
+    started: list[bool] = []
+    monkeypatch.setattr(VoiceService, "can_offer_listening", lambda self, language: True)
+    monkeypatch.setattr(VoiceService, "start_listening_download", lambda self: started.append(True))
+    return started
+
+
+def test_the_listening_model_is_offered_and_downloaded_only_after_yes(db, _offered):
+    app = _open(db)
+    assert any(b.key == "expense_ears_yes" for b in app.button) and not _offered
+    app.button(key="expense_ears_yes").click().run()
+    assert not app.exception, app.exception
+    assert _offered == [True]
+
+
+def test_after_a_no_a_small_button_asks_again(db, _offered):
+    from services.settings_service import SettingsService
+    app = _open(db)
+    app.button(key="expense_ears_no").click().run()
+    assert not app.exception, app.exception
+    assert SettingsService(_engine(db)).get("voice_listen_declined") == "true"
+    keys = [b.key for b in app.button]
+    assert "expense_ears_yes" not in keys and "expense_ears_again" in keys
+    app.button(key="expense_ears_again").click().run()
+    assert any(b.key == "expense_ears_yes" for b in app.button) and not _offered
+
+
+def test_no_question_where_the_ears_cannot_be_offered(db, monkeypatch):
+    from services.voice_service import VoiceService
+    monkeypatch.setattr(VoiceService, "can_offer_listening", lambda self, language: False)
+    app = _open(db)
+    assert not any(b.key in ("expense_ears_yes", "expense_ears_again") for b in app.button)
+
+
+def test_the_page_opens_on_the_receipts_with_a_movement(db):
+    ExpenseConfirmService(_engine(db)).save_receipt(YESTERDAY, Decimal("2"), "caffè", ("Casa", "Arredamento"))
+    _add(db, "bar", amount="-2", desc="BAR CENTRALE", category=None, subcategory=None)
+    app = _open(db)
+    assert _bot(app) == "Ho trovato il movimento di uno scontrino già salvato. Lo controlliamo?"
+    _say(app, "sì")
+    assert _bot(app).startswith("caffè, 2,00")
+    _say(app, "sì")
+    assert ExpenseConfirmService(_engine(db)).pending_receipts() == []

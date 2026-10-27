@@ -236,6 +236,9 @@ def _render_last_import_summary():
         return
     st.divider()
     st.subheader(t_fn("upload.summary_title"))
+    matched = st.session_state.get("_receipts_matched") or 0
+    if matched:
+        st.success(t_fn("upload.receipts_matched_one" if matched == 1 else "upload.receipts_matched", n=matched))
     for result in results:
         with st.expander(f"📄 {result.source_name}", expanded=True):
             if result.errors:
@@ -902,6 +905,14 @@ def _run_import(
         rewrite_pending(RuleService(import_svc.engine), TransactionService(import_svc.engine))
     except Exception as exc:
         logger.warning(f"upload_page: rewriting pending rules failed: {exc}")
+    # Receipts saved in the expense confirmation may have their movement now
+    # (spec 32, 4.4bis): said here, checked by the user in that page. Never
+    # let this stop the end of an import either.
+    try:
+        from services.expense_confirm_service import ExpenseConfirmService
+        st.session_state["_receipts_matched"] = len(ExpenseConfirmService(import_svc.engine).receipt_matches())
+    except Exception as exc:
+        logger.warning(f"upload_page: matching the saved receipts failed: {exc}")
     # The direction of the amounts, asked about only where the measure could
     # not be applied in silence. One entry per format, not per file.
     st.session_state["_pending_sign_confirmations"] = [

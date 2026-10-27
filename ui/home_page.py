@@ -381,7 +381,10 @@ def _build_sankey_data(
         link_target.append(sub_idx)
         link_value.append(amount)
 
-    # ── Unknown node: surplus → target, deficit → source ────────────────────
+    # ── Giacenza: surplus → target, deficit → source ────────────────────────
+    # The difference between income and spending, money put into the
+    # holdings or taken from them (founder, 2026-10-26). Kind "unknown" is
+    # its old name, kept as an identity only.
     delta = total_income - total_expense
     if delta > 0:
         # Surplus: income flows partly to Unknown.
@@ -508,19 +511,22 @@ _SANKEY_LABEL_MIN_PX = 16
 def _sankey_labels(data: dict, size: list[float], height: list[float], chart_px: int,
                    amount=None, percent: bool = False) -> list[str]:
     """With categories only, a branch tall enough for the text carries its
-    value: euro (*amount* formats it) or share of the total income."""
-    labels = list(data["nodes"])
-    if amount is None or data.get("subcategories"):
-        return labels
+    value: euro (*amount* formats it) or share of the total income. The
+    difference between income and spending is "Giacenza" (founder,
+    2026-10-26) with its direction: "+" put into it, "-" taken from it, the
+    value right after the sign."""
+    sign = {"surplus": "+", "deficit": "-"}.get(data.get("unknown_kind"), "")
+    with_values = amount is not None and not data.get("subcategories")
     total = size[0] or 1.0                                  # node 0 is the total
     out = []
-    for label, v, hh in zip(labels, size, height):
-        if hh * chart_px < _SANKEY_LABEL_MIN_PX:
-            out.append(label)
-        elif percent:
-            out.append(f"{label}  {v / total * 100:.0f}%")
+    for label, kind, v, hh in zip(data["nodes"], data["node_kinds"], size, height):
+        value = None
+        if with_values and hh * chart_px >= _SANKEY_LABEL_MIN_PX:
+            value = f"{v / total * 100:.0f}%" if percent else amount(v)
+        if kind[0] == "unknown":
+            out.append(f"{label} {sign}{value or ''}")
         else:
-            out.append(f"{label}  {amount(v)}")
+            out.append(f"{label}  {value}" if value else label)
     return out
 
 

@@ -12,6 +12,7 @@ import re
 import time
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -235,6 +236,62 @@ def _answer(svc: ExpenseConfirmService, say, text: str, dictated: bool = True) -
     _bot_says(say, msgs)
 
 
+def _offer_listening(voice_svc: VoiceService, cfg: SettingsService) -> None:
+    """The question that downloads the listening model (spec 32, 3): asked
+    in full until the user answers no, then a small button asks again. The
+    download runs in the background; the page follows it."""
+    state = voice_svc.listening_download_state()
+    if state["running"]:
+        _follow_download()
+        return
+    if state["error"]:
+        st.warning(t("expense.ears.failed"))
+    if cfg.get("voice_listen_declined") == "true":
+        if st.button(t("expense.ears.again"), key="expense_ears_again"):
+            cfg.set("voice_listen_declined", "false")
+            st.rerun()
+        return
+    with st.container(border=True):
+        st.write(t("expense.ears.ask"))
+        c_yes, c_no = st.columns(2)
+        if c_yes.button(t("expense.ears.yes"), key="expense_ears_yes", type="primary", width="stretch"):
+            voice_svc.start_listening_download()
+            st.rerun()
+        if c_no.button(t("expense.ears.no"), key="expense_ears_no", width="stretch"):
+            cfg.set("voice_listen_declined", "true")
+            st.rerun()
+
+
+@st.fragment(run_every=1)
+def _follow_download() -> None:
+    """The download's progress, redrawn every second; when it ends the page
+    runs again and finds the ears."""
+    state = VoiceService.listening_download_state()
+    if not state["running"]:
+        st.rerun(scope="app")
+    st.progress(float(state["progress"]), text=t("expense.ears.progress"))
+
+
+def _render_waiting(svc: ExpenseConfirmService, say) -> None:
+    """The receipts saved for the next import (spec 32, 4.4bis): how many,
+    and in the expander each one with a button to forget it."""
+    waiting = svc.pending_receipts()
+    if not waiting:
+        return
+    n = len(waiting)
+    title = t("expense.receipts_waiting_one") if n == 1 else t("expense.receipts_waiting", n=n)
+    with st.expander(f"🧾 {title}"):
+        for r in waiting:
+            c_line, c_forget = st.columns([5, 1], vertical_alignment="center")
+            line = SimpleNamespace(key="expense.receipt_line", note=None, params={
+                "what": r["what"], "day": r["day"], "amount": r["amount"],
+                "cat": (r["category"], r["subcategory"])})
+            c_line.write(say([line]))
+            if c_forget.button(t("expense.receipt_forget"), key=f"expense_receipt_forget_{r['id']}"):
+                svc.delete_receipt(r["id"])
+                st.rerun()
+
+
 def render_expense_confirm_page(engine) -> None:
     st.header(t("expense.title"))
     # Under the title, not beside it: beside it the top bar of the app hid them.
@@ -246,6 +303,8 @@ def render_expense_confirm_page(engine) -> None:
     if c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state:
         _reset(svc, say)
     voice_svc = VoiceService()
+    if voice_svc.can_offer_listening(get_language()):
+        _offer_listening(voice_svc, SettingsService(engine))
     own_voice = st.session_state.get("expense_own_voice", True) and voice_svc.can_listen()
     if own_voice:
         if not st.session_state.get("_expense_warm"):
@@ -278,6 +337,7 @@ def render_expense_confirm_page(engine) -> None:
 
     if voice_svc.can_listen():
         st.toggle(t("expense.own_voice"), value=True, key="expense_own_voice", help=t("expense.own_voice_help"))
+    _render_waiting(svc, say)
 
     closed = state.step == _CLOSED
     if closed:

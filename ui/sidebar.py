@@ -6,18 +6,14 @@ from ui.i18n import t
 from ui.components.update_checker import render_update_warning
 from ui.widgets.immersive import GUIDED_PAGE, GUIDED_RETURN, GUIDED_STEP
 
-# Navigation entries: (i18n_key_suffix, page_key), in the order of the full
-# menu. Which of them the menu shows depends on the user's level (spec 19);
-# app.py puts the answer in st.session_state[MENU] so the sidebar stays
-# engine-free.
-MENU = "_menu"
+# Navigation entries: (i18n_key_suffix, page_key).
 CHECK_PAGE = "check"
 _NAV_KEYS = [
     ("home",            "home"),
     ("import",          "import"),
     ("history",         "history"),
     ("ledger",          "ledger"),
-    ("expense_confirm", "expense_confirm"),   # a receipt in hand (spec 32), next to the Registry
+    ("expense_confirm", "expense_confirm"),   # a receipt in hand (spec 32)
     ("bulk_edit",       "bulk_edit"),
     ("analytics",       "analytics"),
     ("report",          "report"),
@@ -30,11 +26,21 @@ _NAV_KEYS = [
     ("llm_models",      "llm_models"),
     ("settings",        "settings"),
     ("diagnostics",     "diagnostics"),
-    ("intermediaries",  "intermediaries"),   # for experts (spec 20); level 4 in the tiered menu
+    ("intermediaries",  "intermediaries"),   # for experts (spec 20)
     ("checklist",       "checklist"),
     ("chat",            "chat"),
 ]
 
+# The menu is the same for everyone (spec 19, 11bis). On top, under the
+# guided flow, the day's gestures with the Home last, where the app lands;
+# every other page in one of two closed groups: the money in depth, and the
+# rules and settings of the app itself.
+TOP_PAGES = [CHECK_PAGE, "expense_confirm", "chat", "home"]
+MENU_GROUPS = [
+    ("insights", ["ledger", "analytics", "report", "budget", "budget_vs_actual", "counterparts"]),
+    ("setup",    ["import", "history", "bulk_edit", "review", "checklist", "rules", "taxonomy",
+                  "intermediaries", "llm_models", "settings", "diagnostics"]),
+]
 
 NAV_PAGES = [CHECK_PAGE] + [key for _, key in _NAV_KEYS]
 _NAV_SUFFIX = {key: suffix for suffix, key in _NAV_KEYS}
@@ -93,9 +99,11 @@ def render_sidebar() -> str:
         _render_build_info()
         return st.session_state["page"]
 
-    # Guided workflow first, apart from the rest: it reopens where it was left.
+    # Guided workflow first: it reopens where it was left. Red only while it
+    # is on screen, like every other entry (spec 19, 11bis).
     if st.sidebar.button(
-        t("nav.guided"), key="nav_guided", width="stretch", type="primary",
+        t("nav.guided"), key="nav_guided", width="stretch",
+        type="primary" if st.session_state["page"] == GUIDED_PAGE else "secondary",
         help=t("nav.guided.desc"),
     ):
         if llm_running:
@@ -105,24 +113,15 @@ def render_sidebar() -> str:
             st.session_state.pop(GUIDED_STEP, None)
             st.session_state["page"] = GUIDED_PAGE
         st.rerun()
-    shown, others = st.session_state.get(MENU, (NAV_PAGES, []))
-    # The check of the movements, right under it when the level shows it: a
-    # flow of its own, started by the user, never reached from the
-    # workflow's steps (spec 31).
-    if CHECK_PAGE in shown:
-        _nav_button(CHECK_PAGE, st.sidebar)
+    for key in TOP_PAGES:
+        _nav_button(key, st.sidebar)
     st.sidebar.divider()
 
-    for key in shown:
-        if key != CHECK_PAGE:
-            _nav_button(key, st.sidebar)
-
-    # Nothing is out of reach (spec 19, 2.4): the pages above the level, one
-    # click away, without changing the level. Open by itself when one of them
-    # is the page on screen.
-    if others:
-        with st.sidebar.expander(t("nav.more"), expanded=st.session_state["page"] in others):
-            for key in others:
+    # The two groups, closed; the one holding the page on screen opens by
+    # itself, so the user always sees where they are.
+    for group, keys in MENU_GROUPS:
+        with st.sidebar.expander(t(f"nav.group.{group}"), expanded=st.session_state["page"] in keys):
+            for key in keys:
                 _nav_button(key, st)
 
     # Dev-only entry (AI-193): hardcoded label, shown only when SPENDIFAI_DEV_MODE=1.

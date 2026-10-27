@@ -427,7 +427,29 @@ class TestSankeySidesAndLevels:
         assert euro[svago] == "Svago"                       # 5 euro: no room
         sub = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari", "Svago"}, subcategories=True)
         _, _, s2, h2 = _sankey_layout(sub)
-        assert _sankey_labels(sub, s2, h2, 600, str) == sub["nodes"]
+        # with subcategories no values; only Giacenza keeps its direction
+        assert _sankey_labels(sub, s2, h2, 600, str) == [
+            f"{n} +" if k[0] == "unknown" else n for n, k in zip(sub["nodes"], sub["node_kinds"])]
+
+    def test_the_difference_is_giacenza_with_its_direction(self):
+        """Income minus spending is "Giacenza" (founder, 2026-10-26): money
+        put into it on the right with "+", taken from it on the left with
+        "-", the value right after the sign."""
+        from ui.home_page import _sankey_labels, _sankey_layout
+        from ui.i18n import set_language
+        set_language("it")
+        surplus = _build_sankey_data(self._df(*self._ROWS), {"Casa", "Alimentari"})
+        assert _t("home.charts.unknown") == "Giacenza"
+        g = surplus["nodes"].index("Giacenza")
+        _, _, size, height = _sankey_layout(surplus)
+        assert _sankey_labels(surplus, size, height, 600, lambda v: f"{v:.0f} EUR")[g] == "Giacenza +2500 EUR"
+        assert _sankey_labels(surplus, size, height, 600, str, percent=True)[g] == "Giacenza +71%"
+        assert _sankey_labels(surplus, size, height, 600)[g] == "Giacenza +"
+        rows = self._ROWS + ((pd.Timestamp("2026-01-25"), -4000.0, "expense", "Casa", "Lavori", False),)
+        deficit = _build_sankey_data(self._df(*rows), {"Casa", "Alimentari"})
+        d = deficit["nodes"].index("Giacenza")
+        _, _, size, height = _sankey_layout(deficit)
+        assert _sankey_labels(deficit, size, height, 600, lambda v: f"{v:.0f} EUR")[d] == "Giacenza -1500 EUR"
 
     def test_nodes_stay_inside_the_chart(self):
         from ui.home_page import _SANKEY_PAD_PX, _sankey_columns, _sankey_layout, _sankey_plot_px

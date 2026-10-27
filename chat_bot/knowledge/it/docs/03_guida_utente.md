@@ -10,6 +10,19 @@ Scarichi i file movimenti dalla banca, li trascini in Spendif.ai, lui li unifica
 
 ---
 
+## Come conviene usarlo
+
+Il modo che fa meno fatica è in quattro passi, in quest'ordine.
+
+1. **Carica gli estratti conto** di tutti i tuoi conti, con **📥 Carica l'estratto conto**: il percorso ti dice quali file servono e li importa.
+2. **Dai una categoria alle controparti con più movimenti**: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle tue spese. Con *Sempre così* la scelta vale anche per i movimenti dei prossimi import.
+3. **Spunta le spese di cui hai la ricevuta** con **🧾 Ho uno scontrino**: dici data, importo e cosa hai comprato, l'app trova il movimento e lo segna controllato. Vale per lo scontrino di carta e anche per gli **acquisti online**: appena arriva l'email della ricevuta (Amazon, PayPal e simili), di' la spesa. Su quei siti la stessa controparte vende di tutto, e la categoria la sai solo tu. Se l'estratto conto non è ancora arrivato, lo scontrino si salva e lo ritrovi al prossimo import.
+4. **Quello che resta lo controlli conto per conto** con **✅ Controlla i movimenti**. A quel punto rimangono soprattutto i giroconti fra i tuoi conti e gli acquisti online di cui non hai detto la ricevuta.
+
+Quando hai finito, **📍 Facciamo il punto** ti mostra dove sono andati i soldi.
+
+---
+
 ## 1. Primo avvio — wizard di onboarding
 
 **Situazione:** Hai appena installato Spendif.ai e lo avvii per la prima volta.
@@ -251,9 +264,9 @@ Vai su **Analisi**. Trovi:
 
 Usa i filtri in alto per restringere a un periodo o a un conto specifico.
 
-### La Home: entrate e uscite per mese
+### Facciamo il punto: entrate e uscite per mese
 
-La **Home** apre con un grafico a barre per mese: le entrate sopra lo zero, le uscite sotto, ciascuna divisa per categoria. Le categorie piu' grandi del periodo hanno il loro colore (verdi le entrate, toni caldi le uscite), le altre stanno in **Altro**. Si vede subito se un mese chiude in positivo.
+**Facciamo il punto** apre con un grafico a barre per mese: le entrate sopra lo zero, le uscite sotto, ciascuna divisa per categoria. Le categorie piu' grandi del periodo hanno il loro colore (verdi le entrate, toni caldi le uscite), le altre stanno in **Altro**. Si vede subito se un mese chiude in positivo.
 
 - I **giroconti** fra i tuoi conti non sono ne' entrate ne' uscite e non compaiono.
 - Un **rimborso** (un reso, soldi restituiti su un acquisto: un'entrata con una categoria di spesa) abbassa quella spesa nel suo mese invece di contare come entrata. Lo stesso vale per il diagramma di flusso sotto.
@@ -402,9 +415,9 @@ Per ogni categoria con obiettivo definito:
 
 **Situazione:** Vuoi controllare a colpo d'occhio se stai importando regolarmente tutti i tuoi file movimenti, senza buchi di mesi.
 
-> **Prepariamo i tuoi movimenti.** La voce **🧭 Prepariamo i tuoi movimenti**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ti chiedo se andiamo avanti a caricare i tuoi dati: *Sì, andiamo* ti porta qui, al primo passo; *No, prima ho qualche domanda* ti porta all'**💬 Assistente**.
+> **Carica l'estratto conto.** La voce **📥 Carica l'estratto conto**, in cima al menu, è da dove riparti ogni volta: ti accompagna un passo alla volta a schermo pulito: cosa caricare (questa pagina), l'import, le uscite, le categorie miste, i giroconti, le entrate e infine il quadro del periodo. In alto vedi a che passo sei, con *Indietro*, *Avanti* ed *Esci dal percorso*. Se esci, la volta dopo riprende da dove avevi lasciato, saltando i passi che nel frattempo hai già fatto. Alla fine dell'onboarding ti chiedo se andiamo avanti a caricare i tuoi dati: *Sì, andiamo* ti porta qui, al primo passo; *No, prima ho qualche domanda* ti porta all'**💬 Chiedi a Spendif.ai**.
 >
-> **Se vuoi controllare.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
+> **Controlla i movimenti.** È una voce a sé, subito sotto, separata dal percorso: la apri tu quando vuoi, e ne esci con *Esci dal controllo*. Un conto alla volta, dall'ultimo movimento che hai segnato *Controllato*. Ti propongo il conto più indietro e il giorno da cui partire; puoi cambiarli. Poi vedi la griglia del Registro con i soli movimenti da controllare di quel conto, dal più vecchio: a ogni salvataggio quelli controllati escono e arrivano i successivi. *Tutti quelli mostrati sono giusti* li segna tutti, dopo una conferma. Finito il conto, ti chiedo dei giroconti che non hanno trovato l'altro lato, poi torni alla lista. Se mentre controlli crei una regola, il salvataggio aspetta che la regola sia finita: la regola salva anche le altre modifiche della griglia.
 >
 > **Il passo delle uscite.** Mostra solo le controparti di spesa ancora da controllare, dalla più grande. Spunta *Sempre così* quando una controparte ha sempre la categoria indicata: basta una volta, da lì i suoi movimenti, anche quelli dei prossimi import, prendono quella categoria da soli. L'obiettivo suggerito è controllare le controparti che fanno 8 euro su 10 delle spese del periodo: in alto vedi quanto hai controllato, quanto manca e quante controparti bastano. È un suggerimento: puoi andare avanti quando vuoi.
 >
@@ -417,7 +430,7 @@ Per ogni categoria con obiettivo definito:
 >
 > Quelli più vecchi di 4 mesi non te li chiediamo: una riga li conta. Il pulsante *Riesegui rilevamento giroconti* in Revisione rifà l'accoppiamento su tutto lo storico.
 >
-> **Il passo delle entrate.** Viene dopo i giroconti, così i soldi spostati fra i tuoi conti sono già fuori e restano le entrate vere: stipendio, fatture, rimborsi. Mostra le controparti di entrata del periodo ancora da guardare, dalla più grande. Funziona come il passo delle uscite (*Sempre così* crea la regola), ma senza obiettivo: le entrate sono poche e ognuna pesa, quindi si guardano tutte. Un rimborso o un reso su un acquisto non è un'entrata: scegli la categoria della spesa (per esempio Alimentari) e quella spesa si abbassa, anche nei grafici della Home. Se una controparte ha anche delle spese (il negozio che ti ha rimborsato un acquisto), la scelta vale solo per le sue entrate già caricate e non diventa una regola: una regola cambierebbe anche le spese con lo stesso nome.
+> **Il passo delle entrate.** Viene dopo i giroconti, così i soldi spostati fra i tuoi conti sono già fuori e restano le entrate vere: stipendio, fatture, rimborsi. Mostra le controparti di entrata del periodo ancora da guardare, dalla più grande. Funziona come il passo delle uscite (*Sempre così* crea la regola), ma senza obiettivo: le entrate sono poche e ognuna pesa, quindi si guardano tutte. Un rimborso o un reso su un acquisto non è un'entrata: scegli la categoria della spesa (per esempio Alimentari) e quella spesa si abbassa, anche nei grafici di Facciamo il punto. Se una controparte ha anche delle spese (il negozio che ti ha rimborsato un acquisto), la scelta vale solo per le sue entrate già caricate e non diventa una regola: una regola cambierebbe anche le spese con lo stesso nome.
 
 In cima alla pagina una frase ti dice cosa scaricare adesso, con le date esatte: per esempio "**BBVA**: l'ultimo mese caricato è agosto 2026. Scarica i movimenti dal 1 settembre 2026 a oggi". Ogni conto ha la sua riga, con quello che manca e due pulsanti. *Carica il file* ti fa scegliere i file di quel conto e li mette da parte, già assegnati al conto: puoi prepararne per più conti, poi premi *Importa N file* e l'import parte con i conti già fissati. Nella pagina di import restano solo la sistemazione di intestazione e piè di pagina, l'avanzamento e il resoconto. *Non lo uso più* chiude il conto (vedi sotto). Se non hai ancora nessun conto, la pagina ti chiede solo il nome: i file arrivano dopo. La prima volta ti suggerisce un mese solo, così il primo giro resta breve.
 
@@ -454,7 +467,7 @@ Puoi scaricare la tabella come CSV con il pulsante **⬇️ Scarica CSV**.
 
 **Situazione:** Hai un dubbio su come funziona una funzione, come importare un file o come configurare un'opzione.
 
-Clicca su **💬 Assistente** nella sidebar. Si apre una chat dove puoi scrivere la tua domanda in linguaggio naturale.
+Clicca su **💬 Chiedi a Spendif.ai** nella sidebar. Si apre una chat dove puoi scrivere la tua domanda in linguaggio naturale.
 
 ### Come funziona
 
@@ -629,6 +642,15 @@ Entrambi supportano gli stessi argomenti CLI: `--runs`, `--files`, `--backend`, 
 ---
 
 ## Domande frequenti
+
+**Me lo fa già la banca: a cosa serve Spendif.ai?**
+La banca ti mostra le spese a modo suo, Spendif.ai a modo tuo.
+1. **Tutti i tuoi conti insieme.** La banca vede solo i suoi conti. Basta avere un conto corrente, una carta, PayPal e Satispay per non avere mai un quadro unico: Spendif.ai li mette insieme, anche di banche diverse.
+2. **Il periodo che vuoi, in una pagina.** Non tutte le banche ti fanno scegliere il periodo e raccogliere entrate, uscite e categorie in una vista sola. In **📍 Facciamo il punto** scegli il periodo e vedi da dove arrivano i soldi e dove vanno.
+3. **Le tue categorie, non quelle della banca.** La banca usa le sue, e su un acquisto Amazon o PayPal "shopping" non vuol dire niente. In Spendif.ai le categorie le decidi tu, e con la ricevuta la spesa online prende la categoria vera.
+4. **I contesti.** La stessa spesa al supermercato può essere di casa, della vacanza o del lavoro. La banca non lo sa; in Spendif.ai il contesto lo dai tu, e i conti li fai anche per contesto.
+
+E i tuoi dati restano sul tuo computer.
 
 **Posso importare file di banche diverse insieme?**
 Sì. Spendif.ai riconosce il formato automaticamente. Non devi dirgli che tipo di file è.

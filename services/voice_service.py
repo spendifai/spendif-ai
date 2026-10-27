@@ -1,6 +1,11 @@
-"""VoiceService: the app's own ears and voice, all on this machine (spec 32, 3.2).
+"""VoiceService: the app's own ears and voice, all on this machine (spec 32, 3).
 
-EXPERIMENTAL (branch exp/voice-round-trip). With the operating system's
+The ears ship (founder, 2026-10-26): the listening model is downloaded on
+first use, after the user's yes, and checked. The Piper voice stays
+experimental and out of the packages (its pronunciation goes through
+espeak-ng, GPL-3.0): without it the reply is read by the system voice.
+
+With the operating system's
 dictation on, macOS holds speech synthesis, so a spoken back-and-forth is
 impossible while the OS owns the audio. Here the app owns it: the page
 records one answer (push-to-talk), this service turns it into text with a
@@ -32,6 +37,7 @@ from typing import Protocol
 
 import numpy as np
 
+from core.voice_download import download_verified
 from support.logging import setup_logging
 
 logger = setup_logging()
@@ -181,10 +187,20 @@ class Heard:
 
 
 _STT_FILE = "ggml-small-q5_1.bin"
+# The listening model as published by whisper.cpp (spec 32, 3): a file with
+# another hash is deleted, never loaded.
+STT_URL = f"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{_STT_FILE}"
+STT_SHA256 = "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"
+STT_SIZE = 190_085_487
+# The ears are tuned to Italian: language, prompt, reading of the amounts.
+_LISTENING_LANGUAGES = ("it",)
 _TTS_DIR = "vits-piper-it_IT-paola-medium"
 
 _cache: dict[str, object] = {}
 _cache_lock = threading.Lock()
+# One download per process, shared by every session: the page polls it.
+_download: dict[str, object] = {"running": False, "progress": 0.0, "error": None}
+_download_lock = threading.Lock()
 
 
 class VoiceService:
@@ -197,6 +213,56 @@ class VoiceService:
 
     def can_listen(self) -> bool:
         return self._stt is not None or ((self._root / _STT_FILE).exists() and _importable("pywhispercpp"))
+
+    def can_offer_listening(self, language: str) -> bool:
+        """True when the page should offer to download the listening model:
+        the library is in the package, the interface is in a language the
+        ears know, and the model is not there yet.
+
+        Args:
+            language: the interface language code ("it", "en", ...).
+        """
+        return (language in _LISTENING_LANGUAGES and self._stt is None
+                and not (self._root / _STT_FILE).exists() and _importable("pywhispercpp"))
+
+    def download_listening_model(self, progress=None) -> None:
+        """Download and check the listening model, where can_listen looks
+        for it. Called only after the user's yes.
+
+        Args:
+            progress: called with the fraction done, 0.0 to 1.0; None for no
+                progress.
+
+        Raises:
+            ValueError: the file downloaded is not the published one.
+        """
+        download_verified(STT_URL, self._root / _STT_FILE, STT_SHA256, STT_SIZE, progress)
+
+    def start_listening_download(self) -> None:
+        """Download the listening model in the background (the page polls
+        listening_download_state). A second call while one runs does
+        nothing."""
+        with _download_lock:
+            if _download["running"]:
+                return
+            _download.update(running=True, progress=0.0, error=None)
+
+        def run():
+            try:
+                self.download_listening_model(lambda done: _download.update(progress=done))
+                logger.info("voice: listening model downloaded and checked")
+            except Exception as exc:
+                logger.warning(f"voice: listening model download failed: {exc}")
+                _download["error"] = str(exc)
+            finally:
+                _download["running"] = False
+        threading.Thread(target=run, daemon=True).start()
+
+    @staticmethod
+    def listening_download_state() -> dict:
+        """A copy of the download state: running (bool), progress (0.0 to
+        1.0), error (None or the reason it failed)."""
+        return dict(_download)
 
     def can_speak(self) -> bool:
         return self._tts is not None or ((self._root / _TTS_DIR).is_dir() and _importable("sherpa_onnx"))

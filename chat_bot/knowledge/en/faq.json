@@ -1,5 +1,35 @@
 [
   {
+    "q": "My bank already does this: what is Spendif.ai for?",
+    "a": "Your bank shows your spending its way; Spendif.ai shows it your way. 1) All your accounts together: the bank only sees its own, and a current account, a card, PayPal and Satispay are enough never to have one picture; Spendif.ai puts them together, from different banks too. 2) The period you want, on one page: not every bank lets you pick the period and gather income, spending and categories in one view; in 📍 Let's take stock you can. 3) Your categories, not the bank's: on an Amazon or PayPal purchase \"shopping\" means nothing; in Spendif.ai you decide the categories, and with the receipt an online expense gets its real category. 4) Contexts: the same expense can be for the home, the holiday or work, and in Spendif.ai you give the context. And your data stays on your computer.",
+    "page": "home"
+  },
+  {
+    "q": "Why should I use Spendif.ai if I have my bank's app?",
+    "a": "Your bank shows your spending its way; Spendif.ai shows it your way. 1) All your accounts together: the bank only sees its own, and a current account, a card, PayPal and Satispay are enough never to have one picture; Spendif.ai puts them together, from different banks too. 2) The period you want, on one page: not every bank lets you pick the period and gather income, spending and categories in one view; in 📍 Let's take stock you can. 3) Your categories, not the bank's: on an Amazon or PayPal purchase \"shopping\" means nothing; in Spendif.ai you decide the categories, and with the receipt an online expense gets its real category. 4) Contexts: the same expense can be for the home, the holiday or work, and in Spendif.ai you give the context. And your data stays on your computer.",
+    "page": "home"
+  },
+  {
+    "q": "How is it different from my bank's categories?",
+    "a": "Your bank shows your spending its way; Spendif.ai shows it your way. 1) All your accounts together: the bank only sees its own, and a current account, a card, PayPal and Satispay are enough never to have one picture; Spendif.ai puts them together, from different banks too. 2) The period you want, on one page: not every bank lets you pick the period and gather income, spending and categories in one view; in 📍 Let's take stock you can. 3) Your categories, not the bank's: on an Amazon or PayPal purchase \"shopping\" means nothing; in Spendif.ai you decide the categories, and with the receipt an online expense gets its real category. 4) Contexts: the same expense can be for the home, the holiday or work, and in Spendif.ai you give the context. And your data stays on your computer.",
+    "page": "home"
+  },
+  {
+    "q": "What is the best way to use Spendif.ai?",
+    "a": "The way that takes the least effort is four steps. 1) Load the statements of all your accounts with 📥 Load your bank statement. 2) Give a category to the counterparts with the most movements: ideally at least the first 10, which usually cover most of your spending; with Always like this the choice also holds for the next imports. 3) Tick the expenses you have a receipt for with 🧾 I have a receipt, online ones too: as soon as the receipt email arrives (Amazon, PayPal and the like) say the expense, because on those sites only you know the category; if the statement has not arrived yet the receipt is saved and found again at the next import. 4) Check what is left account by account with ✅ Check your movements: what remains is mostly transfers and online purchases whose receipt you did not say. At the end 📍 Let's take stock shows you where the money went.",
+    "page": "guided"
+  },
+  {
+    "q": "Where do I start?",
+    "a": "The way that takes the least effort is four steps. 1) Load the statements of all your accounts with 📥 Load your bank statement. 2) Give a category to the counterparts with the most movements: ideally at least the first 10, which usually cover most of your spending; with Always like this the choice also holds for the next imports. 3) Tick the expenses you have a receipt for with 🧾 I have a receipt, online ones too: as soon as the receipt email arrives (Amazon, PayPal and the like) say the expense, because on those sites only you know the category; if the statement has not arrived yet the receipt is saved and found again at the next import. 4) Check what is left account by account with ✅ Check your movements: what remains is mostly transfers and online purchases whose receipt you did not say. At the end 📍 Let's take stock shows you where the money went.",
+    "page": "guided"
+  },
+  {
+    "q": "What is the fastest way to put my spending in order?",
+    "a": "The way that takes the least effort is four steps. 1) Load the statements of all your accounts with 📥 Load your bank statement. 2) Give a category to the counterparts with the most movements: ideally at least the first 10, which usually cover most of your spending; with Always like this the choice also holds for the next imports. 3) Tick the expenses you have a receipt for with 🧾 I have a receipt, online ones too: as soon as the receipt email arrives (Amazon, PayPal and the like) say the expense, because on those sites only you know the category; if the statement has not arrived yet the receipt is saved and found again at the next import. 4) Check what is left account by account with ✅ Check your movements: what remains is mostly transfers and online purchases whose receipt you did not say. At the end 📍 Let's take stock shows you where the money went.",
+    "page": "guided"
+  },
+  {
     "q": "How do I import transactions from my bank?",
     "a": "Go to the Import page, drag one or more CSV or XLSX files into the dotted area, select the associated bank account for each, and click Start processing. Spendif.AI recognises the format automatically.",
     "page": "import"
@@ -715,7 +745,7 @@
     "a": "They are spending counterparts with movements in more than one category. If it is a mistake (the pastry shop half groceries, half bar), choose the right category and press It is always this: it becomes a rule for all the movements. If it depends on what you bought (the supermarket where you also buy electronics), press It depends: one by one and sort out each movement. Movements you have already looked at are not asked again: next time you see only the new ones."
   },
   {
-    "q": "Why do Home and the Report show the period up to the last movement and not up to today?",
+    "q": "Why do Let's take stock and the Report show the period up to the last movement and not up to today?",
     "page": "home",
     "a": "The period opens on the three months ending with the last movement you loaded, not with today: if you have not imported for a while, you see where you left off instead of an empty page. To bring it up to date, load the missing statements: the Checklist tells you which ones and from which date."
   },
@@ -732,16 +762,16 @@
   {
     "q": "I have installed and set up Spendif.ai: what do I do now?",
     "page": "guided",
-    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
+    "a": "Open 📥 Load your bank statement, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ Check your movements, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Load your bank statement."
   },
   {
     "q": "Can you guide me?",
     "page": "guided",
-    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
+    "a": "Open 📥 Load your bank statement, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ Check your movements, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Load your bank statement."
   },
   {
     "q": "Where do I start?",
     "page": "guided",
-    "a": "Open 🧭 Let's prepare your movements, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ If you want to check, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Let's prepare your movements."
+    "a": "Open 📥 Load your bank statement, the first entry in the menu: it takes you one step at a time and, if you leave, picks up where you left off next time. It starts with What to load, which tells you which bank statement to download, for which account and which months; then Import the file. The path goes on with the categories of your spending, the mixed categories, the money between your accounts, your income, and ends with the period at a glance. Once the picture is ready, if you want to make sure every movement is really yours, open ✅ Check your movements, right below in the menu: one account at a time, from the last movement you checked. It is optional. With the next bank statement, start again from Load your bank statement."
   }
 ]

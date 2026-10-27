@@ -1,6 +1,6 @@
 [project]
 name = "spendif-ai"
-version = "2026.10.3"
+version = "2026.10.4"
 description = "Unified personal finance ledger with hybrid LLM pipeline"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,6 +24,9 @@ dependencies = [
     # Version floor is the first one the prebuilt wheel indexes below carry
     # for every platform we ship. See [tool.uv.sources].
     "llama-cpp-python>=0.3.35",
+    # The app's own ears (spec 32, 3): whisper.cpp, MIT. Prebuilt wheels for
+    # every platform we ship; none for Intel macOS, which we do not ship.
+    "pywhispercpp>=1.5.1; sys_platform != 'darwin' or platform_machine == 'arm64'",
     # Database
     "sqlalchemy>=2.0",
     "alembic>=1.13",

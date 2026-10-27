@@ -8,6 +8,19 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.10.4] - 2026-10-27
+
+### Aggiunto
+- Rispondere a voce in "Ho uno scontrino": la prima volta la pagina chiede se scaricare il modello che ti ascolta (Whisper small, 190 MB, resta sul tuo computer); dopo il sì la conversazione va avanti senza toccare niente e la risposta la legge la voce del sistema. Per ora solo con l'interfaccia in italiano
+- Salvare uno scontrino il cui movimento non è ancora importato: data, importo, cosa hai comprato e categoria; all'inizio della conversazione gli scontrini che ora hanno il loro movimento sono proposti uno alla volta, con le tue parole accanto al movimento, e spuntati solo dopo il tuo sì
+- Il giorno detto come ordinale: "il primo", "il secondo del mese", "secondo ottobre"
+- La guida e l'assistente dicono il modo migliore di usare Spendif.ai e rispondono a "me lo fa già la banca"
+
+### Modificato
+- Un menu uguale per tutti: in alto Carica l'estratto conto, Controlla i movimenti, Ho uno scontrino, Chiedi a Spendif.ai e Facciamo il punto (la vecchia Home), dove l'app si apre; tutte le altre pagine in due gruppi, Approfondimenti e Regole e impostazioni. Il menu per livello e la sua scelta nelle Impostazioni non ci sono più
+- La differenza fra entrate e uscite nel grafico dei flussi si chiama Giacenza, "+" quando metti da parte, "-" quando prendi
+- Nel menu è evidenziata solo la voce della pagina aperta
+
 ## [2026.10.3] - 2026-10-26
 
 ### Aggiunto
