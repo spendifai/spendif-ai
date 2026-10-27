@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from datetime import date
 
+import sys
+
 import streamlit as st
 
 from services.settings_service import SettingsService
@@ -246,6 +248,15 @@ def render_settings_page(engine):
 
     # Sync session_state immediately so other pages (upload, ledger) see current values
     st.session_state.setdefault("giroconto_mode", settings.get("giroconto_mode", "neutral"))
+
+    # ── Expenses dictated to Siri from the iPhone (spec 32, 4.9) ──────────────
+    # Only on a Mac, and off unless the user turns it on: the sentence goes
+    # through iCloud, so "your data stays on your computer" does not hold for it.
+    if sys.platform == "darwin":
+        _icloud = st.toggle(t("settings.siri_icloud.label"), value=settings.get("siri_icloud_inbox") == "true",
+                            help=t("settings.siri_icloud.help"), key="settings_siri_icloud")
+        if _icloud != (settings.get("siri_icloud_inbox") == "true"):
+            cfg_svc.set("siri_icloud_inbox", "true" if _icloud else "false")
 
     # ── Formato visualizzazione ────────────────────────────────────────────────
     st.subheader(t("settings.display_format"))

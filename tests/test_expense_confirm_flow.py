@@ -91,8 +91,8 @@ class FakeLedger:
     def always_no(self, question):
         self.always.append(("no", question))
 
-    def save_receipt(self, day, amount, what, pair):
-        self.saved.append((day, amount, what, pair))
+    def save_receipt(self, day, amount, what, pair, cash):
+        self.saved.append((day, amount, what, pair, cash))
 
     def confirm_receipt(self, receipt_id, tx_id, pair):
         self.receipts.append((receipt_id, tx_id, pair))
@@ -760,13 +760,15 @@ def test_a_receipt_not_there_yet_is_saved_with_what_and_category():
     msgs, state = _say(state, "ieri, 23,40", ledger)
     assert _keys(msgs) == ["expense.not_yet", "expense.save_ask"]
     msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.ask_cash"]
+    msgs, state = _say(state, "no", ledger)
     assert _keys(msgs) == ["expense.ask_what"] and state.step == ASK_WHAT
     msgs, state = _say(state, "spesa supermercato", ledger)       # the description proposes the category
     assert _keys(msgs) == ["expense.propose_category"]
     msgs, state = _say(state, "sì", ledger)
     assert _keys(msgs) == ["expense.receipt_saved"]
     assert ledger.saved == [(date(2026, 10, 24), Decimal("23.40"), "spesa supermercato",
-                             ("Alimentari", "Spesa supermercato"))]
+                             ("Alimentari", "Spesa supermercato"), False)]
     assert ledger.confirmed == [] and state.step == ASK_EXPENSE and state.checked == 0
 
 
@@ -775,12 +777,14 @@ def test_a_description_that_names_no_category_asks_for_it():
     _, state = start()
     _, state = _say(state, "il 12 ottobre, 9 euro", ledger)
     _, state = _say(state, "ok", ledger)
+    _, state = _say(state, "sì", ledger)                            # in cash
     msgs, state = _say(state, "zzz", ledger)
     assert _keys(msgs) == ["expense.ask_category"] and state.step == ASK_CATEGORY
     msgs, state = _say(state, "farmaci", ledger)
     assert _keys(msgs) == ["expense.propose_category"]
-    _, state = _say(state, "sì", ledger)
-    assert ledger.saved[0][2:] == ("zzz", ("Salute", "Farmaci"))
+    msgs, state = _say(state, "sì", ledger)
+    assert ledger.saved[0][2:] == ("zzz", ("Salute", "Farmaci"), True)
+    assert _keys(msgs) == ["expense.receipt_saved_cash"]
 
 
 def test_a_no_does_not_save_and_asks_again():

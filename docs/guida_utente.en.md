@@ -23,6 +23,24 @@ When you are done, **📍 Let's take stock** shows you where the money went.
 
 ---
 
+## Telling Siri an expense, without opening Spendif.ai
+
+On the Mac, or on the iPhone, you can tell Siri an expense as soon as you made it: "Hey Siri, Spendif expense", then "yesterday 23.40, coffee at the bar", and Siri asks whether it was cash. The expense becomes a saved receipt: the next time you open **🧾 I have a receipt** you find it waiting and, when the statement brings it, the app offers the movement. Cash ones are not looked for in the statement.
+
+**How to create the command** (Shortcuts app, once):
+
+1. Create a new shortcut and name it **Spendif expense**: that is the phrase to say to Siri.
+2. Add the **Dictate Text** action.
+3. Add **Choose from Menu** with the question "Was it cash?" and two items, **Yes** and **No**. Under Yes put a **Text** action with `contanti`, under No a **Text** action with `carta` (the app reads these two words in any language).
+4. Add **Append to Text File**. As text put the **Current Date** formatted `yyyy-MM-dd HH:mm`, then ` | `, the **menu result**, then ` | ` and the **dictated text**. A line like `2026-10-27 18:30 | contanti | yesterday 23.40, coffee` comes out.
+   - On the **Mac** the file is `Documents/Spendif.ai/spese-da-siri.txt`.
+   - On the **iPhone** it is `iCloud Drive/Spendif.ai/spese-da-siri.txt`, and in Spendif.ai's **Settings** turn on "Also receive the expenses dictated to Siri on the iPhone". Those sentences go through iCloud.
+   - Turn on the option that creates the file when missing.
+
+A sentence the app does not understand (no amount, for example) is not lost: you find it among the waiting receipts, to complete or forget.
+
+---
+
 ## 1. First launch — onboarding wizard
 
 **Situation:** You've just installed Spendif.ai and are launching it for the first time.

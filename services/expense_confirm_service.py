@@ -6,14 +6,18 @@ and the writes of spec 32, 5. It never creates a movement.
 """
 from __future__ import annotations
 
+import os
+import sys
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from decimal import Decimal
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
 from core.expense_confirm import WINDOW_DAYS, Candidate, Msg, ReceiptMatch, State, start, turn
+from core.siri_inbox import INBOX_NAME, UNCLEAR_NAME, SiriReceipt, read_line
 from core.spoken_expense import new_part
 from db import repository
 from db.models import PendingReceipt, Transaction
@@ -229,23 +233,26 @@ class ExpenseConfirmService:
 
     # ── 4.4bis Receipts waiting for their movement ───────────────────────────
 
-    def save_receipt(self, day: date, amount: Decimal, what: str, pair: tuple[str, str]) -> None:
+    def save_receipt(self, day: date, amount: Decimal, what: str, pair: tuple[str, str] | None,
+                     cash: bool = False) -> None:
         """Keep a receipt whose movement is not imported yet: date, amount,
         the user's description and category (spec 32, 4.4bis)."""
         with self._session() as s:
             s.add(PendingReceipt(date=day.isoformat(), amount=amount, description=what,
-                                 category=pair[0], subcategory=pair[1] or ""))
+                                 category=pair[0] if pair else "", subcategory=(pair[1] or "") if pair else "",
+                                 paid_cash=cash))
             s.commit()
         logger.info("expense_confirm: receipt saved for the next import")
 
     def pending_receipts(self) -> list[dict]:
         """The receipts still waiting, oldest day first: id, day, amount,
-        what, category, subcategory."""
+        what, cash, category, subcategory."""
         with self._session() as s:
             rows = (s.query(PendingReceipt).filter(PendingReceipt.matched_tx_id.is_(None))
                     .order_by(PendingReceipt.date, PendingReceipt.id).all())
             return [{"id": r.id, "day": date.fromisoformat(r.date),
                      "amount": Decimal(str(r.amount)).quantize(Decimal("0.01")), "what": r.description or "",
+                     "cash": bool(r.paid_cash),
                      "category": r.category, "subcategory": r.subcategory or ""} for r in rows]
 
     def delete_receipt(self, receipt_id: int) -> None:
@@ -266,12 +273,14 @@ class ExpenseConfirmService:
         window = timedelta(days=WINDOW_DAYS)
         matches = []
         for r in self.pending_receipts():
+            if r["cash"]:
+                continue                  # cash never reaches a statement (spec 32, 4.4bis)
             found = self.outflows(r["amount"], r["amount"], r["day"] - window, r["day"] + window, False)
             if found:
                 found.sort(key=lambda c: (abs((c.day - r["day"]).days), c.day, c.tx_id))
+                pair = (r["category"], r["subcategory"]) if r["category"] else None
                 matches.append(ReceiptMatch(receipt_id=r["id"], day=r["day"], amount=r["amount"],
-                                            what=r["what"], pair=(r["category"], r["subcategory"]),
-                                            candidates=tuple(found)))
+                                            what=r["what"], pair=pair, candidates=tuple(found)))
         return matches
 
     def confirm_receipt(self, receipt_id: int, tx_id: str, pair: tuple[str, str] | None) -> list[dict]:
@@ -285,3 +294,85 @@ class ExpenseConfirmService:
             row.matched_tx_id, row.matched_at = tx_id, datetime.now(timezone.utc)
             s.commit()
         return questions
+
+    # ── 4.9 The expenses dictated to Siri ────────────────────────────────────
+
+    @staticmethod
+    def siri_files(icloud: bool) -> list[Path]:
+        """Where the Shortcuts command writes (spec 32, 4.9): the Mac's
+        Documents always, iCloud Drive only when the user turned it on.
+
+        Args:
+            icloud: the setting siri_icloud_inbox, True when the iPhone may
+                write through iCloud.
+        """
+        if sys.platform != "darwin":
+            return []                        # Siri and its commands live on Apple systems only
+        files = [Path.home() / "Documents" / "Spendif.ai" / INBOX_NAME]
+        if icloud:
+            files.append(Path.home() / "Library" / "Mobile Documents" / "com~apple~CloudDocs"
+                         / "Spendif.ai" / INBOX_NAME)
+        return files
+
+    def collect_siri(self, files: list[Path], today: date | None = None) -> tuple[int, int]:
+        """Read the lines the command wrote and empty the files: each line a
+        saved receipt, or a sentence to complete kept next to the file.
+        Returns (receipts saved, sentences not understood).
+
+        Args:
+            files: the inbox files, as siri_files gives them.
+            today: the day for a line without its date; None for today.
+        """
+        pairs = self.category_pairs()
+        saved = unclear = 0
+        for path in files:
+            path.parent.mkdir(parents=True, exist_ok=True)     # the command needs the folder to exist
+            if not path.exists():
+                continue
+            reading = path.with_name(path.name + ".reading")
+            os.replace(path, reading)            # a line dictated meanwhile starts a new file
+            kept = []
+            for line in reading.read_text(encoding="utf-8").splitlines():
+                got = read_line(line, pairs, today or self._today or date.today())
+                if isinstance(got, SiriReceipt):
+                    self.save_receipt(got.day, got.amount, got.what, got.pair, got.cash)
+                    saved += 1
+                elif got:
+                    kept.append(got)
+            if kept:
+                with open(path.with_name(UNCLEAR_NAME), "a", encoding="utf-8") as f:
+                    f.write("".join(k + "\n" for k in kept))
+                unclear += len(kept)
+            reading.unlink()
+        if saved or unclear:
+            logger.info(f"expense_confirm: {saved} receipts from Siri saved, {unclear} sentences not understood")
+        return saved, unclear
+
+    @staticmethod
+    def unclear_sentences(files: list[Path]) -> list[str]:
+        """The dictated sentences the reading could not use, to complete or
+        forget."""
+        out = []
+        for path in files:
+            f = path.with_name(UNCLEAR_NAME)
+            if f.exists():
+                out += [line for line in f.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return out
+
+    @staticmethod
+    def forget_unclear(files: list[Path], sentence: str) -> None:
+        """Drop one sentence not understood, wherever it is.
+
+        Args:
+            files: the inbox files, as siri_files gives them.
+            sentence: the sentence as unclear_sentences returned it.
+        """
+        for path in files:
+            f = path.with_name(UNCLEAR_NAME)
+            if not f.exists():
+                continue
+            lines = f.read_text(encoding="utf-8").splitlines()
+            if sentence in lines:
+                lines.remove(sentence)
+                f.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+                return

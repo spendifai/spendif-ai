@@ -19,6 +19,7 @@ Steps:
   CLOSED            the session closed: "Fine. 7 spuntate."  (4.6)
   CHECK             what the model understood, said back: "Chiudo?"  (4.8)
   SAVE_ASK          not there yet: "Lo salvo e lo ritrovo...?"  (4.4bis)
+  ASK_CASH          the receipt saved: "In contanti?"            (4.4bis)
   ASK_WHAT          the receipt saved: "Cos'hai comprato?"      (4.4bis)
   REVIEW_ASK        receipts with their movement: "Li controlliamo?"  (4.4bis)
   REVIEW_ONE        one movement for a receipt: "Caffe', 2 euro: Bar Centrale?"
@@ -63,6 +64,7 @@ ALWAYS = "always"
 CLOSED = "closed"
 CHECK = "check"
 SAVE_ASK = "save_ask"
+ASK_CASH = "ask_cash"
 ASK_WHAT = "ask_what"
 REVIEW_ASK = "review_ask"
 REVIEW_ONE = "review_one"
@@ -114,7 +116,7 @@ class ReceiptMatch:
     day: date
     amount: Decimal
     what: str
-    pair: Pair
+    pair: Pair | None                   # None: saved without a category, the movement keeps its own
     candidates: tuple[Candidate, ...]
 
 
@@ -137,7 +139,7 @@ class Ports(Protocol):
     def confirm(self, tx_id: str, pair: Pair | None) -> list[dict]: ...
     def always_yes(self, question: dict) -> str | None: ...
     def always_no(self, question: dict) -> None: ...
-    def save_receipt(self, day: date, amount: Decimal, what: str, pair: Pair) -> None: ...
+    def save_receipt(self, day: date, amount: Decimal, what: str, pair: Pair | None, cash: bool) -> None: ...
     def confirm_receipt(self, receipt_id: int, tx_id: str, pair: Pair | None) -> list[dict]: ...
 
 
@@ -163,6 +165,7 @@ class State:
     before: State | None = None         # CHECK: where the flow was
     receipt: bool = False               # the category is for a receipt to save (4.4bis), day and amount above
     what: str = ""                      # the receipt's description, said by the user
+    cash: bool = False                  # the receipt was paid in cash: never matched to a statement
     reviews: tuple[ReceiptMatch, ...] = ()   # receipts with movements, to check one at a time
     claimed: tuple[str, ...] = ()       # movements already given to a receipt in this review
 
@@ -206,6 +209,7 @@ def turn(state: State, text: str, ports: Ports, today: date) -> tuple[list[Msg],
         PICK_LIST: _pick_list,
         ALWAYS: _always,
         SAVE_ASK: _save_ask,
+        ASK_CASH: _ask_cash,
         ASK_WHAT: _ask_what,
         REVIEW_ASK: _review_ask,
         REVIEW_ONE: _review_one,
@@ -373,7 +377,7 @@ def _save_ask(state, text, ports, today):
     expense said instead is searched."""
     answer = yes_no(text)
     if answer in ("yes", "yes_other"):
-        return [Msg("expense.ask_what")], replace(state, step=ASK_WHAT)
+        return [Msg("expense.ask_cash")], replace(state, step=ASK_CASH)
     if answer == "no":
         return [Msg("expense.ask")], State()
     if says_an_expense(text):
@@ -517,6 +521,15 @@ def _finish(state, ports, pair: Pair | None):
     return [done], State(checked=checked, last=last)
 
 
+def _ask_cash(state, text, ports, today):
+    """"In contanti?": cash never reaches a statement, a card does; a week
+    later nobody remembers which (founder, 2026-10-27)."""
+    answer = yes_no(text)
+    if answer is None:
+        return [Msg("expense.yes_no")], state
+    return [Msg("expense.ask_what")], replace(state, step=ASK_WHAT, cash=answer != "no")
+
+
 def _ask_what(state, text, ports, today):
     """"Cos'hai comprato?": the user's own words, which tell two equal
     expenses apart later, and which already propose the category."""
@@ -533,9 +546,9 @@ def _ask_what(state, text, ports, today):
 def _save_receipt(state, ports, pair: Pair):
     """The receipt kept with its date, amount, description and category
     until the user checks it against its movement (spec 32, 4.4bis)."""
-    ports.save_receipt(state.day, state.amount, state.what, pair)
-    return ([Msg("expense.receipt_saved", {"what": state.what, "day": state.day,
-                                           "amount": state.amount, "cat": pair})],
+    ports.save_receipt(state.day, state.amount, state.what, pair, state.cash)
+    key = "expense.receipt_saved_cash" if state.cash else "expense.receipt_saved"
+    return ([Msg(key, {"what": state.what, "day": state.day, "amount": state.amount, "cat": pair})],
             State(checked=state.checked, last=state.last))
 
 
@@ -594,9 +607,10 @@ def _take_review(state, ports, c: Candidate):
     movement's, a change by hand like any other: "Sempre cosi'?" (4.5),
     then the next receipt."""
     r = state.reviews[0]
-    questions = ports.confirm_receipt(r.receipt_id, c.tx_id, r.pair if r.pair != c.pair else None)
-    last = replace(c, category=r.pair[0], subcategory=r.pair[1])
-    done = Msg("expense.done", {"day": c.day, "amount": c.amount, "name": c.counterpart, "cat": r.pair})
+    questions = ports.confirm_receipt(r.receipt_id, c.tx_id, r.pair if r.pair and r.pair != c.pair else None)
+    final = r.pair or c.pair
+    last = replace(c, category=final[0], subcategory=final[1]) if final else c
+    done = Msg("expense.done", {"day": c.day, "amount": c.amount, "name": c.counterpart, "cat": final})
     rest = replace(state, reviews=state.reviews[1:], claimed=state.claimed + (c.tx_id,),
                    checked=state.checked + 1, last=last)
     if questions:
