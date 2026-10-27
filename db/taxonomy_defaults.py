@@ -639,3 +639,15 @@ FUEL_SPLIT: dict[str, dict[str, str]] = {
     "es": {"transport": "Transporte", "fuel": "Combustible",
            "fossil": "Combustible (gasóleo / gasolina / GLP)", "electric": "Recarga eléctrica"},
 }
+
+
+# The income category a refund said aloud takes until the user chooses another
+# in Settings (spec 32, 4.10): the one of the refunds the bank sends, in the
+# shipped taxonomy of each language. A default the user changes, not a rule.
+REFUND_DEFAULTS: dict[str, tuple[str, str]] = {
+    "it": ("Trasferimenti e rimborsi", "Rimborso generico"),
+    "en": ("Transfers & refunds", "Generic refund"),
+    "fr": ("Virements & remboursements", "Remboursement générique"),
+    "de": ("Überweisungen & Erstattungen", "Allgemeine Erstattung"),
+    "es": ("Transferencias y reembolsos", "Reembolso genérico"),
+}

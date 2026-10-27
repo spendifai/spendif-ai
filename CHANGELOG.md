@@ -6,6 +6,17 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.10.5] - 2026-10-27
+
+### Added
+- A cash account: the cash expenses you tell the app become its movements at once, with the day and amount you said, your words as description and the category you chose, already checked. Choose the account in Settings, or create it from the chat the first time. It imports like any other account, so the export of another cash app can be loaded into it
+- Dictate an expense to Siri without opening the app, on macOS: Spendif.ai builds the Shortcuts command with the names you choose in Settings and offers it once at start. When the voice page opens, each sentence becomes a receipt to check, "yesterday" read against the day you spoke and the category taken from your words; a sentence without an amount is kept for you to complete or forget, and one without a day is the day you said it
+- Every saved receipt says whether it was paid in cash: a cash one never waits for a statement, a card one is matched with its movement
+
+### Changed
+- "I have a receipt" is now "Voice transactions"
+- The Siri box above the chat is one summary line, and each entry shows in one place only, where there is something to do
+
 ## [2026.10.4] - 2026-10-27
 
 ### Added

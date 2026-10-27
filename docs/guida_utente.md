@@ -16,10 +16,50 @@ Il modo che fa meno fatica è in quattro passi, in quest'ordine.
 
 1. **Carica gli estratti conto** di tutti i tuoi conti, con **📥 Carica l'estratto conto**: il percorso ti dice quali file servono e li importa.
 2. **Dai una categoria alle controparti con più movimenti**: l'ideale è farlo almeno per le prime 10, che di solito coprono la gran parte delle tue spese. Con *Sempre così* la scelta vale anche per i movimenti dei prossimi import.
-3. **Spunta le spese di cui hai la ricevuta** con **🧾 Ho uno scontrino**: dici data, importo e cosa hai comprato, l'app trova il movimento e lo segna controllato. Vale per lo scontrino di carta e anche per gli **acquisti online**: appena arriva l'email della ricevuta (Amazon, PayPal e simili), di' la spesa. Su quei siti la stessa controparte vende di tutto, e la categoria la sai solo tu. Se l'estratto conto non è ancora arrivato, lo scontrino si salva e lo ritrovi al prossimo import.
+3. **Spunta le spese di cui hai la ricevuta** con **🎙️ Gestione vocale operazioni**: dici data, importo e cosa hai comprato, l'app trova il movimento e lo segna controllato. Vale per lo scontrino di carta e anche per gli **acquisti online**: appena arriva l'email della ricevuta (Amazon, PayPal e simili), di' la spesa. Su quei siti la stessa controparte vende di tutto, e la categoria la sai solo tu. Se l'estratto conto non è ancora arrivato, lo scontrino si salva e lo ritrovi al prossimo import.
 4. **Quello che resta lo controlli conto per conto** con **✅ Controlla i movimenti**. A quel punto rimangono soprattutto i giroconti fra i tuoi conti e gli acquisti online di cui non hai detto la ricevuta.
 
 Quando hai finito, **📍 Facciamo il punto** ti mostra dove sono andati i soldi.
+
+---
+
+## Dire spese, rimborsi e prelievi a Siri, senza aprire Spendif.ai
+
+Con l'app **Spendif.ai per iPhone** (per i tester, tramite TestFlight) dici a Siri un'operazione appena l'hai fatta, e la ritrovi in Spendif.ai sul computer. Tre frasi, una per tipo:
+
+| Frase (di serie) | Cosa chiede | Cosa diventa |
+|---|---|---|
+| "Segna spesa" | la spesa, poi "Contanti o carta?" | un'uscita: subito nel conto Contanti se in contanti, altrimenti uno scontrino in attesa dell'estratto conto |
+| "Segna rimborso" | il rimborso, poi "Contanti o carta?" | un'entrata: subito nel conto Contanti, oppure in attesa dell'accredito sull'estratto conto |
+| "Segna prelievo" | quanto hai prelevato | un giroconto: entrata nel conto Contanti subito, lato banca in attesa dell'estratto conto |
+
+- **La domanda sul pagamento si salta** se lo dici nella frase: "12 euro pizza in contanti", "40 euro benzina col bancomat".
+- **Senza giorno** vale il giorno in cui parli: "prelievo 50 euro" è di oggi. "Ieri" e le date funzionano come sempre.
+- **Le frasi e le parole sono tue.** Nell'app iPhone, ⚙️ Impostazioni: frase per spesa, rimborso e prelievo, e le parole per contanti, carta, rimborso e prelievo (più parole separate da virgola, per esempio "carta, bancomat"). Accanto a ogni frase, **⊕** aggiunge il comando a Comandi Rapidi con quel nome. Niente punti e niente nome dell'app nella frase: Siri non li capisce.
+- **Nessun permesso da dare**: l'app scrive nella sua cartella di iCloud. Sul Mac con chip Apple l'app iPhone funziona anche lì, con le stesse frasi.
+
+**Dove legge Spendif.ai sul computer.** Su macOS la cartella dell'app, senza configurare niente. Su Windows la stessa cartella tramite iCloud per Windows. Su Linux, che non ha iCloud, la cartella indicata nelle **Impostazioni**, "Cartella delle spese dall'iPhone". La stessa impostazione serve se le operazioni arrivano da telefoni di account Apple diversi, attraverso una cartella iCloud condivisa.
+
+**Il rimborso** va in una categoria di entrata: quella che le parole nominano, altrimenti la **Categoria dei rimborsi** delle Impostazioni (di serie "Trasferimenti e rimborsi / Rimborso generico", la puoi cambiare o mettere "Chiedi ogni volta").
+
+**Il prelievo** è un giroconto: il lato dei contanti è confermato subito, il lato della banca aspetta l'estratto conto. Quando arriva, l'app ti propone l'uscita con lo stesso importo ("Prelievo 50,00 del 27 ottobre: è questo?") e, al tuo sì, collega i due movimenti come ogni giroconto.
+
+**Senza ricordare la frase.** Il comando si avvia anche con un gesto, e poi detti:
+
+| Dove | Come |
+|---|---|
+| iPhone (dal 15 Pro) | **Tasto Azione** → Comando rapido → il tuo comando |
+| iPhone | Impostazioni → Accessibilità → Tocco → **Tocco posteriore** → doppio tocco → il tuo comando |
+| iPhone | **widget** di Comandi Rapidi nella schermata Home o di blocco |
+| Apple Watch | **complicazione** di Comandi Rapidi sul quadrante |
+| Mac | nei dettagli del comando, **Aggiungi scorciatoia da tastiera** |
+| Mac | Comandi Rapidi → **Fissa nella barra dei menu** |
+
+**Cosa vedi in 🎙️ Gestione vocale operazioni.** In alto una riga di riepilogo, finché non premi Ok: "Da Siri: 5 arrivate, 1 da confermare.". Ogni operazione compare in un posto solo, dove c'è qualcosa da fare: nella chat se la categoria è da confermare, fra gli scontrini in attesa (segnata "🎙️ nuova") se aspetta l'estratto conto, da nessuna parte se è già registrata nel conto Contanti. Una frase senza importo non si perde: la trovi fra quelle da completare o dimenticare.
+
+**Senza l'app iPhone, sul Mac.** Nelle Impostazioni resta il pulsante **"Aggiungi il comando di Siri"**, che prepara un comando di Comandi Rapidi che scrive in un file. Funziona, ma Comandi Rapidi chiede il permesso di scrivere il file finché non scegli la cartella a mano nel comando: per questo l'app iPhone è la strada consigliata.
+
+**Il conto dei contanti.** Le spese in contanti, dette nella chat o a Siri, diventano subito movimenti del conto dei contanti, già controllati. Il conto lo scegli nelle **Impostazioni** ("💶 Conto dei contanti") oppure lo crea il bot la prima volta, se gli dici di sì. Se per i contanti usi già un'altra app, puoi importarne l'export su questo conto come su qualunque altro.
 
 ---
 

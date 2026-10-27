@@ -115,6 +115,8 @@ def test_a_saved_receipt_shows_as_waiting_and_can_be_forgotten(db):
     app = _open(db)
     _say(app, "ieri, 23,40")
     _say(app, "sì")
+    assert _bot(app) == "In contanti?"
+    _say(app, "no")
     assert _bot(app) == "Cos'hai comprato?"
     _say(app, "spesa supermercato")
     _say(app, "sì")
@@ -362,3 +364,65 @@ def test_the_page_opens_on_the_receipts_with_a_movement(db):
     assert _bot(app).startswith("caffè, 2,00")
     _say(app, "sì")
     assert ExpenseConfirmService(_engine(db)).pending_receipts() == []
+
+
+def test_a_cash_receipt_creates_the_cash_account_from_the_chat(db):
+    app = _open(db)
+    for text in ("ieri, 23,40", "sì", "sì", "spesa supermercato", "sì"):
+        _say(app, text)
+    assert _bot(app) == "Creo il conto Contanti per le spese in contanti?"
+    _say(app, "sì")
+    assert _bot(app).startswith("Segnato nel conto Contanti: spesa supermercato, 23,40")
+    assert ExpenseConfirmService(_engine(db)).cash_account() == "Contanti"
+
+
+def test_what_arrived_from_siri_stays_above_the_conversation_until_closed(db, monkeypatch):
+    """One summary line above the chat, not one line per expense: each expense
+    already shows where there is something to do (spec 32, 4.9)."""
+    from services.expense_confirm_service import SiriReport
+    note = ("expense.siri_note_saved", {"what": "giornale", "amount": Decimal("4"), "day": YESTERDAY})
+    monkeypatch.setattr(ExpenseConfirmService, "collect_siri",
+                        lambda self, files, today=None: SiriReport(3, 1, [note], []))
+    app = _open(db)
+    # above the conversation, not inside it: the conversation scrolls away
+    assert any(md.value == "🎙️ Da Siri: 4 arrivate, 1 da completare." for md in app.markdown)
+    assert not any("giornale" in md.value for md in app.markdown)
+    assert not any("Da Siri" in md.value for m in app.chat_message for md in m.markdown)
+    monkeypatch.setattr(ExpenseConfirmService, "collect_siri",
+                        lambda self, files, today=None: SiriReport(0, 0, [], []))
+    app.button(key="expense_siri_ok").click().run()
+    assert not any("Da Siri" in md.value for md in app.markdown)
+
+
+def test_a_siri_receipt_shows_once_new_below_or_in_the_chat(db, monkeypatch):
+    """A card receipt with its category is listed below, marked new; one whose
+    category is still to confirm is only in the chat until confirmed."""
+    from core.expense_confirm import SiriItem
+    from services.expense_confirm_service import SiriReport
+    svc = ExpenseConfirmService(_engine(db))
+    clear = svc.save_receipt(YESTERDAY, Decimal("9"), "libro", ("Svago", "Libri e giornali"), False)
+    unsure = svc.save_receipt(YESTERDAY, Decimal("4"), "pane", None, False)
+    item = SiriItem(kind="receipt", ref=unsure, what="pane", amount=Decimal("4"), day=YESTERDAY,
+                    pair=("Alimentari", "Spesa supermercato"), cash=False)
+    calls = iter([SiriReport(2, 0, [], [item], (clear, unsure))])
+    monkeypatch.setattr(ExpenseConfirmService, "collect_siri",
+                        lambda self, files, today=None: next(calls, SiriReport(0, 0, [], [])))
+    app = _open(db)
+    assert any(md.value == "🎙️ Da Siri: 2 arrivate, 1 da confermare." for md in app.markdown)
+    below = [md.value for e in app.expander for md in e.markdown]
+    assert any(v.startswith("libro") and v.endswith("🎙️ nuova") for v in below)
+    assert not any(v.startswith("pane") for v in below)
+    assert _bot(app).startswith("Da Siri: pane, 4,00")
+
+
+def test_a_siri_expense_with_a_proposed_category_opens_the_conversation(db, monkeypatch):
+    from core.expense_confirm import SiriItem
+    from services.expense_confirm_service import SiriReport
+    item = SiriItem(kind="receipt", ref=1, what="pane", amount=Decimal("4"), day=YESTERDAY,
+                    pair=("Alimentari", "Spesa supermercato"), cash=False)
+    note = ("expense.siri_note_saved", {"what": "pane", "amount": Decimal("4"), "day": YESTERDAY})
+    calls = iter([SiriReport(1, 0, [note], [item])])
+    monkeypatch.setattr(ExpenseConfirmService, "collect_siri",
+                        lambda self, files, today=None: next(calls, SiriReport(0, 0, [], [])))
+    app = _open(db)
+    assert _bot(app).startswith("Da Siri: pane, 4,00") and "Alimentari / Spesa supermercato" in _bot(app)

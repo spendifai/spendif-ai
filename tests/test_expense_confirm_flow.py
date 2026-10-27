@@ -21,11 +21,13 @@ from core.expense_confirm import (
     MAX_ROUNDS,
     PICK_LIST,
     PICK_NEAREST,
+    REVIEW_ASK,
     SAVE_ASK,
     ASK_WHAT,
     WINDOW_DAYS,
     Candidate,
     ReceiptMatch,
+    SiriItem,
     start,
     turn,
 )
@@ -38,6 +40,10 @@ PAIRS = [
     ("Abbigliamento", "Calzature"), ("Comunicazioni", "Telefonia mobile"),
     ("Animali domestici", "Veterinario"), ("Regali e donazioni", "Regali"),
 ]
+
+
+INCOME_PAIRS = [("Lavoro", "Stipendio"), ("Trasferimenti e rimborsi", "Rimborso generico"),
+                ("Trasferimenti e rimborsi", "Storno / rettifica bancaria")]
 
 
 def _c(tx_id, amount, day, name="Esselunga", cat="Alimentari", sub="Spesa supermercato"):
@@ -61,6 +67,9 @@ class FakeLedger:
         self.asked = []
         self.saved = []           # receipts saved for the next import
         self.receipts = []        # receipts checked against their movement
+        self.cash = None          # the cash account, None while there is none
+        self.cash_moves = []      # movements written in the cash account
+        self.siri_set = []        # categories chosen for the expenses from Siri
 
     def outflows(self, low, high, date_from, date_to, checked):
         self.searches.append((low, high, date_from, date_to, checked))
@@ -69,6 +78,9 @@ class FakeLedger:
 
     def category_pairs(self):
         return PAIRS
+
+    def income_pairs(self):
+        return INCOME_PAIRS
 
     def last_date(self):
         return self.last
@@ -91,8 +103,21 @@ class FakeLedger:
     def always_no(self, question):
         self.always.append(("no", question))
 
-    def save_receipt(self, day, amount, what, pair):
-        self.saved.append((day, amount, what, pair))
+    def save_receipt(self, day, amount, what, pair, cash):
+        self.saved.append((day, amount, what, pair, cash))
+
+    def cash_account(self):
+        return self.cash
+
+    def create_cash_account(self):
+        self.cash = "Contanti"
+        return self.cash
+
+    def cash_movement(self, day, amount, what, pair, account):
+        self.cash_moves.append((day, amount, what, pair, account))
+
+    def siri_category(self, item, pair):
+        self.siri_set.append((item.ref, pair))
 
     def confirm_receipt(self, receipt_id, tx_id, pair):
         self.receipts.append((receipt_id, tx_id, pair))
@@ -527,10 +552,13 @@ def test_a_check_alone_never_asks_always():
     assert "expense.always" not in _keys(msgs)
 
 
-def test_never_creates_a_movement():
-    """Mai un movimento inventato (spec 32, 2.4): the flow has no port to do it."""
-    assert not any(name.startswith(("create", "add", "insert"))
-                   for name in dir(FakeLedger) if not name.startswith("_"))
+def test_never_creates_a_movement_but_for_cash():
+    """Mai un movimento inventato (spec 32, 2.4): the only ports that write a
+    movement or an account are the cash ones, used after the user said the
+    expense was cash (4.4)."""
+    writing = {name for name in dir(FakeLedger) if not name.startswith("_")
+               and name.startswith(("create", "add", "insert", "cash_movement"))}
+    assert writing == {"create_cash_account", "cash_movement"}
 
 
 # ── 4.6 Closing ──────────────────────────────────────────────────────────────
@@ -760,13 +788,15 @@ def test_a_receipt_not_there_yet_is_saved_with_what_and_category():
     msgs, state = _say(state, "ieri, 23,40", ledger)
     assert _keys(msgs) == ["expense.not_yet", "expense.save_ask"]
     msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.ask_cash"]
+    msgs, state = _say(state, "no", ledger)
     assert _keys(msgs) == ["expense.ask_what"] and state.step == ASK_WHAT
     msgs, state = _say(state, "spesa supermercato", ledger)       # the description proposes the category
     assert _keys(msgs) == ["expense.propose_category"]
     msgs, state = _say(state, "sì", ledger)
     assert _keys(msgs) == ["expense.receipt_saved"]
     assert ledger.saved == [(date(2026, 10, 24), Decimal("23.40"), "spesa supermercato",
-                             ("Alimentari", "Spesa supermercato"))]
+                             ("Alimentari", "Spesa supermercato"), False)]
     assert ledger.confirmed == [] and state.step == ASK_EXPENSE and state.checked == 0
 
 
@@ -775,12 +805,16 @@ def test_a_description_that_names_no_category_asks_for_it():
     _, state = start()
     _, state = _say(state, "il 12 ottobre, 9 euro", ledger)
     _, state = _say(state, "ok", ledger)
+    _, state = _say(state, "sì", ledger)                            # in cash
     msgs, state = _say(state, "zzz", ledger)
     assert _keys(msgs) == ["expense.ask_category"] and state.step == ASK_CATEGORY
     msgs, state = _say(state, "farmaci", ledger)
     assert _keys(msgs) == ["expense.propose_category"]
-    _, state = _say(state, "sì", ledger)
-    assert ledger.saved[0][2:] == ("zzz", ("Salute", "Farmaci"))
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.ask_cash_account"]       # no cash account yet
+    msgs, state = _say(state, "no", ledger)
+    assert ledger.saved[0][2:] == ("zzz", ("Salute", "Farmaci"), True)
+    assert _keys(msgs) == ["expense.receipt_saved_cash"]
 
 
 def test_a_no_does_not_save_and_asks_again():
@@ -898,3 +932,100 @@ def test_a_category_changed_by_a_receipt_asks_always_like_this_then_goes_on():
     msgs, state = _say(state, "sì", ledger)
     assert ledger.receipts[-1] == (2, "t3", None)          # same category: no question
     assert _keys(msgs) == ["expense.done", "expense.ask"] and state.checked == 2
+
+
+# ── 4.4 Cash: a movement of the cash account ────────────────────────────────
+
+def _to_cash(ledger):
+    _, state = start()
+    _, state = _say(state, "ieri, 4 euro", ledger)
+    _, state = _say(state, "sì", ledger)
+    _, state = _say(state, "sì", ledger)                      # in cash
+    _, state = _say(state, "farmaci", ledger)
+    return _say(state, "sì", ledger)
+
+
+def test_cash_becomes_a_movement_of_the_cash_account():
+    ledger = FakeLedger()
+    ledger.cash = "Portafoglio"
+    msgs, state = _to_cash(ledger)
+    assert _keys(msgs) == ["expense.cash_recorded"] and msgs[0].params["account"] == "Portafoglio"
+    assert ledger.cash_moves == [(date(2026, 10, 24), Decimal("4"), "farmaci", ("Salute", "Farmaci"), "Portafoglio")]
+    assert ledger.saved == [] and state.step == ASK_EXPENSE and state.checked == 1
+
+
+def test_without_a_cash_account_the_bot_offers_to_create_it():
+    ledger = FakeLedger()
+    msgs, state = _to_cash(ledger)
+    assert _keys(msgs) == ["expense.ask_cash_account"]
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.cash_recorded"] and ledger.cash == "Contanti"
+    assert ledger.cash_moves[0][4] == "Contanti"
+
+
+def test_no_cash_account_keeps_the_receipt_waiting():
+    ledger = FakeLedger()
+    _, state = _to_cash(ledger)
+    msgs, state = _say(state, "no", ledger)
+    assert _keys(msgs) == ["expense.receipt_saved_cash"]
+    assert ledger.saved[0][4] is True and ledger.cash_moves == []
+
+
+# ── 4.9 The category of an expense from Siri, proposed then confirmed ──────
+
+def _siri(ref, what, pair, cash=True):
+    return SiriItem(kind="cash" if cash else "receipt", ref=ref, what=what, amount=Decimal("4"),
+                    day=date(2026, 10, 24), pair=pair, cash=cash)
+
+
+def test_the_conversation_starts_from_the_proposed_category():
+    ledger = FakeLedger()
+    msgs, state = start(siri=[_siri("t1", "giornale", ("Svago e tempo libero", "Hobby"))])
+    assert _keys(msgs) == ["expense.siri_category_cash"]
+    assert msgs[0].params["cat"] == ("Svago e tempo libero", "Hobby")
+    msgs, state = _say(state, "sì", ledger)
+    assert ledger.siri_set == [("t1", ("Svago e tempo libero", "Hobby"))]
+    assert _keys(msgs)[-1] == "expense.ask" and state.step == ASK_EXPENSE
+
+
+def test_a_no_goes_to_the_nearest_categories():
+    ledger = FakeLedger()
+    _, state = start(siri=[_siri("t1", "farmacia", ("Svago e tempo libero", "Hobby"))])
+    msgs, state = _say(state, "no", ledger)
+    assert _keys(msgs) == ["expense.nearest"] and state.step == PICK_NEAREST
+    msgs, state = _say(state, "Farmaci", ledger)
+    assert ledger.siri_set == [("t1", ("Salute", "Farmaci"))]
+
+
+def test_without_a_proposal_the_bot_asks_the_category():
+    ledger = FakeLedger()
+    msgs, state = start(siri=[_siri("r9", "boh", None, cash=False)])
+    assert _keys(msgs) == ["expense.siri_ask_category"] and state.step == ASK_CATEGORY
+    _, state = _say(state, "farmaci", ledger)
+    _, state = _say(state, "sì", ledger)
+    assert ledger.siri_set == [("r9", ("Salute", "Farmaci"))]
+
+
+def test_a_refund_is_asked_among_the_income_categories():
+    """A refund from Siri takes an income category of the user's taxonomy,
+    never an expense one and never a fixed one (spec 32, 4.10)."""
+    ledger = FakeLedger()
+    refund = SiriItem(kind="cash", ref="t7", what="reso scarpe", amount=Decimal("30"), day=date(2026, 10, 24),
+                      pair=None, cash=True, income=True)
+    msgs, state = start(siri=[refund])
+    assert _keys(msgs) == ["expense.siri_ask_category_cash"] and state.step == ASK_CATEGORY
+    _, state = _say(state, "rimborso generico", ledger)
+    _, state = _say(state, "sì", ledger)
+    assert ledger.siri_set == [("t7", ("Trasferimenti e rimborsi", "Rimborso generico"))]
+
+
+def test_one_at_a_time_then_the_receipts_found():
+    ledger = FakeLedger()
+    bar = _c("t5", "2", date(2026, 10, 24), name="Bar Centrale", cat=None, sub=None)
+    msgs, state = start([_r(1, "2", date(2026, 10, 24), "caffè", _BAR, bar)],
+                        siri=[_siri("t1", "giornale", _NEWS), _siri("t2", "pane", ("Alimentari", "Spesa supermercato"))])
+    assert _keys(msgs) == ["expense.siri_category_cash"] and msgs[0].params["what"] == "giornale"
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.siri_category_cash"] and msgs[0].params["what"] == "pane"
+    msgs, state = _say(state, "sì", ledger)
+    assert _keys(msgs) == ["expense.receipts_found_one"] and state.step == REVIEW_ASK

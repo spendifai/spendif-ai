@@ -4,7 +4,11 @@ from __future__ import annotations
 import json
 from datetime import date
 
+import sys
+
 import streamlit as st
+
+from ui.siri_install import render_phone_folder, render_siri_install
 
 from services.settings_service import SettingsService
 from support.logging import setup_logging
@@ -246,6 +250,48 @@ def render_settings_page(engine):
 
     # Sync session_state immediately so other pages (upload, ledger) see current values
     st.session_state.setdefault("giroconto_mode", settings.get("giroconto_mode", "neutral"))
+
+    # ── The cash account (spec 32, 4.4) ───────────────────────────────────────
+    # Cash receipts become movements of this account; the import treats it as
+    # any other account.
+    from services.expense_confirm_service import ExpenseConfirmService
+    _names = [a.name for a in cfg_svc.get_accounts()]
+    _current = settings.get("cash_account") if settings.get("cash_account") in _names else ""
+    _options = [""] + _names
+    _picked = st.selectbox(t("settings.cash_account.label"), _options, index=_options.index(_current),
+                           format_func=lambda n: n or t("settings.cash_account.none"),
+                           help=t("settings.cash_account.help"), key="settings_cash_account")
+    if _picked != _current:
+        cfg_svc.set("cash_account", _picked)
+        ExpenseConfirmService(engine).flush_cash_receipts()
+        st.rerun()
+    if not _current and st.button(t("settings.cash_account.create"), key="settings_cash_account_create"):
+        _expense_svc = ExpenseConfirmService(engine)
+        _expense_svc.create_cash_account()
+        _expense_svc.flush_cash_receipts()
+        st.rerun()
+
+    # ── The refund category (spec 32, 4.10) ──────────────────────────────────
+    # A refund said aloud takes this income category when its words name
+    # none; "none" makes the chat ask. Never chosen: the shipped default.
+    _expense_svc = ExpenseConfirmService(engine)
+    _refund_now = _expense_svc.default_refund_pair()
+    _refund_options = [None] + _expense_svc.income_pairs()
+    _refund_picked = st.selectbox(
+        t("settings.refund_category.label"), _refund_options,
+        index=_refund_options.index(_refund_now) if _refund_now in _refund_options else 0,
+        format_func=lambda p: f"{p[0]} / {p[1]}" if p and p[1] else (p[0] if p else t("settings.refund_category.none")),
+        help=t("settings.refund_category.help"), key="settings_refund_category")
+    if _refund_picked != _refund_now:
+        cfg_svc.set("refund_category", f"{_refund_picked[0]}|{_refund_picked[1]}" if _refund_picked else "")
+        st.rerun()
+
+    # ── Siri and the iPhone app (spec 32, 4.9; spec 34, 4) ────────────────────
+    # The folder of the iPhone app on every system; the Shortcuts command only
+    # on a Mac, where the app builds and signs it.
+    render_phone_folder(cfg_svc, settings, key="settings")
+    if sys.platform == "darwin":
+        render_siri_install(cfg_svc, settings, key="settings")
 
     # ── Formato visualizzazione ────────────────────────────────────────────────
     st.subheader(t("settings.display_format"))

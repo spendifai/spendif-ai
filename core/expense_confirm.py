@@ -19,7 +19,10 @@ Steps:
   CLOSED            the session closed: "Fine. 7 spuntate."  (4.6)
   CHECK             what the model understood, said back: "Chiudo?"  (4.8)
   SAVE_ASK          not there yet: "Lo salvo e lo ritrovo...?"  (4.4bis)
+  ASK_CASH          the receipt saved: "In contanti?"            (4.4bis)
   ASK_WHAT          the receipt saved: "Cos'hai comprato?"      (4.4bis)
+  ASK_CASH_ACCOUNT  no cash account yet: "Creo il conto Contanti?"  (4.4)
+  SIRI_CONFIRM      an expense from Siri: "giornale, 4,00 in contanti. Svago / Libri?"  (4.9)
   REVIEW_ASK        receipts with their movement: "Li controlliamo?"  (4.4bis)
   REVIEW_ONE        one movement for a receipt: "Caffe', 2 euro: Bar Centrale?"
   REVIEW_CHOOSE     several movements for a receipt: "quale?"
@@ -63,7 +66,10 @@ ALWAYS = "always"
 CLOSED = "closed"
 CHECK = "check"
 SAVE_ASK = "save_ask"
+ASK_CASH = "ask_cash"
 ASK_WHAT = "ask_what"
+ASK_CASH_ACCOUNT = "ask_cash_account"
+SIRI_CONFIRM = "siri_confirm"
 REVIEW_ASK = "review_ask"
 REVIEW_ONE = "review_one"
 REVIEW_CHOOSE = "review_choose"
@@ -107,6 +113,20 @@ class Candidate:
 
 
 @dataclass(frozen=True)
+class SiriItem:
+    """An expense told to Siri whose category the user still has to
+    confirm (spec 32, 4.9): the model proposed it, or there is none."""
+    kind: str                           # "cash": a movement of the cash account; "receipt": a saved receipt
+    ref: str | int                      # the movement's id, or the receipt's
+    what: str
+    amount: Decimal
+    day: date
+    pair: Pair | None                   # the model's proposal, None without one
+    cash: bool
+    income: bool = False                # a refund: its category is an income one (4.10)
+
+
+@dataclass(frozen=True)
 class ReceiptMatch:
     """A receipt saved for the next import (spec 32, 4.4bis) and the
     unchecked outflows that may now be its movement."""
@@ -114,7 +134,7 @@ class ReceiptMatch:
     day: date
     amount: Decimal
     what: str
-    pair: Pair
+    pair: Pair | None                   # None: saved without a category, the movement keeps its own
     candidates: tuple[Candidate, ...]
 
 
@@ -131,14 +151,19 @@ class Ports(Protocol):
     def outflows(self, low: Decimal, high: Decimal, date_from: date, date_to: date,
                  checked: bool) -> list[Candidate]: ...
     def category_pairs(self) -> list[Pair]: ...
+    def income_pairs(self) -> list[Pair]: ...
     def last_date(self) -> date | None: ...
     def model_pick(self, text: str, labels: list[str]) -> int | None: ...
     def model_intent(self, kind: str, text: str) -> str | None: ...
     def confirm(self, tx_id: str, pair: Pair | None) -> list[dict]: ...
     def always_yes(self, question: dict) -> str | None: ...
     def always_no(self, question: dict) -> None: ...
-    def save_receipt(self, day: date, amount: Decimal, what: str, pair: Pair) -> None: ...
+    def save_receipt(self, day: date, amount: Decimal, what: str, pair: Pair | None, cash: bool) -> None: ...
     def confirm_receipt(self, receipt_id: int, tx_id: str, pair: Pair | None) -> list[dict]: ...
+    def cash_account(self) -> str | None: ...
+    def siri_category(self, item: SiriItem, pair: Pair) -> None: ...
+    def create_cash_account(self) -> str: ...
+    def cash_movement(self, day: date, amount: Decimal, what: str, pair: Pair | None, account: str) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -150,6 +175,9 @@ class State:
     candidates: tuple[Candidate, ...] = ()
     chosen: Candidate | None = None
     proposal: Pair | None = None
+    saved_pair: Pair | None = None      # ASK_CASH_ACCOUNT: the category chosen for the cash receipt
+    siri: tuple[SiriItem, ...] = ()     # expenses from Siri whose category is still to confirm (4.9)
+    siri_current: SiriItem | None = None   # the one being confirmed
     nearest: tuple[Pair, ...] = ()
     refused: tuple[Pair, ...] = ()
     options: list[Pair] = field(default_factory=list)   # the whole list (PICK_LIST)
@@ -163,13 +191,17 @@ class State:
     before: State | None = None         # CHECK: where the flow was
     receipt: bool = False               # the category is for a receipt to save (4.4bis), day and amount above
     what: str = ""                      # the receipt's description, said by the user
+    cash: bool = False                  # the receipt was paid in cash: never matched to a statement
     reviews: tuple[ReceiptMatch, ...] = ()   # receipts with movements, to check one at a time
     claimed: tuple[str, ...] = ()       # movements already given to a receipt in this review
 
 
-def start(reviews: list[ReceiptMatch] | tuple = ()) -> tuple[list[Msg], State]:
-    """The first turn: the receipts saved that now have a movement, if any
-    (spec 32, 4.4bis), else the usual question."""
+def start(reviews: list[ReceiptMatch] | tuple = (), siri: list[SiriItem] | tuple = ()) -> tuple[list[Msg], State]:
+    """The first turn: the categories of the expenses from Siri to confirm
+    (spec 32, 4.9), then the receipts saved that now have a movement
+    (4.4bis), else the usual question."""
+    if siri:
+        return _next_siri(State(reviews=tuple(reviews), siri=tuple(siri)))
     if reviews:
         key = "expense.receipts_found_one" if len(reviews) == 1 else "expense.receipts_found"
         return [Msg(key, {"n": len(reviews)})], \
@@ -206,7 +238,10 @@ def turn(state: State, text: str, ports: Ports, today: date) -> tuple[list[Msg],
         PICK_LIST: _pick_list,
         ALWAYS: _always,
         SAVE_ASK: _save_ask,
+        ASK_CASH: _ask_cash,
         ASK_WHAT: _ask_what,
+        ASK_CASH_ACCOUNT: _ask_cash_account,
+        SIRI_CONFIRM: _siri_confirm,
         REVIEW_ASK: _review_ask,
         REVIEW_ONE: _review_one,
         REVIEW_CHOOSE: _review_choose,
@@ -373,7 +408,7 @@ def _save_ask(state, text, ports, today):
     expense said instead is searched."""
     answer = yes_no(text)
     if answer in ("yes", "yes_other"):
-        return [Msg("expense.ask_what")], replace(state, step=ASK_WHAT)
+        return [Msg("expense.ask_cash")], replace(state, step=ASK_CASH)
     if answer == "no":
         return [Msg("expense.ask")], State()
     if says_an_expense(text):
@@ -425,7 +460,7 @@ def _choose(state, text, ports, today):
 
 
 def _category_words(state, text, ports, today):
-    pairs = ports.category_pairs()
+    pairs = _pairs(state, ports)
     pair = category_match(text, pairs)
     if pair is None:
         # The model only when the words alone do not name one category.
@@ -453,7 +488,7 @@ def _confirm_category(state, text, ports, today):
         return _finish(state, ports, state.proposal)
     if answer == "no":
         refused = state.refused + (state.proposal,)
-        return _nearest(replace(state, refused=refused), state.words, ports.category_pairs())
+        return _nearest(replace(state, refused=refused), state.words, _pairs(state, ports))
     return _new_round(state, text, ports, today)
 
 
@@ -465,7 +500,7 @@ def _pick_nearest(state, text, ports, today):
         rounds = state.rounds + 1
         refused = state.refused + state.nearest
         if rounds >= MAX_ROUNDS:
-            return _whole_list(replace(state, rounds=rounds, refused=refused), ports.category_pairs())
+            return _whole_list(replace(state, rounds=rounds, refused=refused), _pairs(state, ports))
         return [Msg("expense.other_words")], replace(state, step=ASK_CATEGORY, rounds=rounds,
                                                      refused=refused, nearest=())
     return _new_round(state, text, ports, today)
@@ -475,7 +510,7 @@ def _new_round(state, text, ports, today):
     """New words instead of an answer: another round on them."""
     rounds = state.rounds + 1
     if rounds >= MAX_ROUNDS:
-        return _whole_list(replace(state, rounds=rounds), ports.category_pairs())
+        return _whole_list(replace(state, rounds=rounds), _pairs(state, ports))
     return _category_words(replace(state, rounds=rounds), text, ports, today)
 
 
@@ -500,6 +535,9 @@ def _pick_list(state, text, ports, today):
 
 def _finish(state, ports, pair: Pair | None):
     """The movement checked; with its category by hand when it changed."""
+    if state.siri_current is not None:
+        ports.siri_category(state.siri_current, pair)
+        return _next_siri(state)
     if state.receipt:
         return _save_receipt(state, ports, pair)
     c = state.chosen
@@ -517,6 +555,15 @@ def _finish(state, ports, pair: Pair | None):
     return [done], State(checked=checked, last=last)
 
 
+def _ask_cash(state, text, ports, today):
+    """"In contanti?": cash never reaches a statement, a card does; a week
+    later nobody remembers which (founder, 2026-10-27)."""
+    answer = yes_no(text)
+    if answer is None:
+        return [Msg("expense.yes_no")], state
+    return [Msg("expense.ask_what")], replace(state, step=ASK_WHAT, cash=answer != "no")
+
+
 def _ask_what(state, text, ports, today):
     """"Cos'hai comprato?": the user's own words, which tell two equal
     expenses apart later, and which already propose the category."""
@@ -532,10 +579,39 @@ def _ask_what(state, text, ports, today):
 
 def _save_receipt(state, ports, pair: Pair):
     """The receipt kept with its date, amount, description and category
-    until the user checks it against its movement (spec 32, 4.4bis)."""
-    ports.save_receipt(state.day, state.amount, state.what, pair)
-    return ([Msg("expense.receipt_saved", {"what": state.what, "day": state.day,
-                                           "amount": state.amount, "cat": pair})],
+    until the user checks it against its movement (spec 32, 4.4bis). In
+    cash it is a movement of the cash account at once (4.4), and when there
+    is no such account the bot offers to create it."""
+    if state.cash:
+        account = ports.cash_account()
+        if account:
+            return _cash_movement(state, ports, pair, account)
+        return [Msg("expense.ask_cash_account")], replace(state, step=ASK_CASH_ACCOUNT, saved_pair=pair)
+    return _keep_receipt(state, ports, pair)
+
+
+def _cash_movement(state, ports, pair, account: str):
+    ports.cash_movement(state.day, state.amount, state.what, pair, account)
+    return ([Msg("expense.cash_recorded", {"what": state.what, "day": state.day, "amount": state.amount,
+                                           "cat": pair, "account": account})],
+            State(checked=state.checked + 1, last=state.last))
+
+
+def _ask_cash_account(state, text, ports, today):
+    """"Creo il conto Contanti?": yes creates it and the receipt enters it;
+    no keeps the receipt waiting, marked as cash."""
+    answer = yes_no(text)
+    if answer in ("yes", "yes_other"):
+        return _cash_movement(state, ports, state.saved_pair, ports.create_cash_account())
+    if answer == "no":
+        return _keep_receipt(state, ports, state.saved_pair)
+    return [Msg("expense.yes_no")], state
+
+
+def _keep_receipt(state, ports, pair: Pair):
+    ports.save_receipt(state.day, state.amount, state.what, pair, state.cash)
+    key = "expense.receipt_saved_cash" if state.cash else "expense.receipt_saved"
+    return ([Msg(key, {"what": state.what, "day": state.day, "amount": state.amount, "cat": pair})],
             State(checked=state.checked, last=state.last))
 
 
@@ -594,9 +670,10 @@ def _take_review(state, ports, c: Candidate):
     movement's, a change by hand like any other: "Sempre cosi'?" (4.5),
     then the next receipt."""
     r = state.reviews[0]
-    questions = ports.confirm_receipt(r.receipt_id, c.tx_id, r.pair if r.pair != c.pair else None)
-    last = replace(c, category=r.pair[0], subcategory=r.pair[1])
-    done = Msg("expense.done", {"day": c.day, "amount": c.amount, "name": c.counterpart, "cat": r.pair})
+    questions = ports.confirm_receipt(r.receipt_id, c.tx_id, r.pair if r.pair and r.pair != c.pair else None)
+    final = r.pair or c.pair
+    last = replace(c, category=final[0], subcategory=final[1]) if final else c
+    done = Msg("expense.done", {"day": c.day, "amount": c.amount, "name": c.counterpart, "cat": final})
     rest = replace(state, reviews=state.reviews[1:], claimed=state.claimed + (c.tx_id,),
                    checked=state.checked + 1, last=last)
     if questions:
@@ -631,3 +708,47 @@ def _after_always(state, msgs):
         return msgs, State()
     more, new = _next_review(replace(state, step=REVIEW_ONE, questions=(), chosen=None))
     return msgs + more, new
+
+
+# ── 4.9 The category of an expense from Siri ────────────────────────────────
+
+
+def _pairs(state, ports) -> list:
+    """The categories to choose among: the income ones for a refund from
+    Siri (4.10), the expense ones for everything else."""
+    item = getattr(state, "siri_current", None)
+    return ports.income_pairs() if item is not None and item.income else ports.category_pairs()
+
+
+def _next_siri(state):
+    """The next expense from Siri to confirm, one at a time; then the
+    receipts found, or the usual question."""
+    base = replace(state, step=ASK_EXPENSE, siri_current=None, proposal=None, nearest=(), refused=(),
+                   rounds=0, words="", options=[])
+    if state.siri:
+        item, rest = state.siri[0], state.siri[1:]
+        params = {"what": item.what, "amount": item.amount, "day": item.day}
+        cash = "_cash" if item.cash else ""
+        if item.pair:
+            return ([Msg(f"expense.siri_category{cash}", {**params, "cat": item.pair})],
+                    replace(base, step=SIRI_CONFIRM, siri=rest, siri_current=item, proposal=item.pair))
+        return ([Msg(f"expense.siri_ask_category{cash}", params)],
+                replace(base, step=ASK_CATEGORY, siri=rest, siri_current=item))
+    if state.reviews:
+        key = "expense.receipts_found_one" if len(state.reviews) == 1 else "expense.receipts_found"
+        return [Msg(key, {"n": len(state.reviews)})], replace(base, step=REVIEW_ASK)
+    return [Msg("expense.ask")], State(checked=state.checked, last=state.last)
+
+
+def _siri_confirm(state, text, ports, today):
+    """The model's category for an expense from Siri: a yes makes it the
+    user's; a no, or other words, go the way of 4.3."""
+    answer = yes_no(text)
+    if answer == "yes":
+        ports.siri_category(state.siri_current, state.proposal)
+        return _next_siri(state)
+    pairs = _pairs(state, ports)
+    if answer in ("no", "yes_other"):
+        refused = state.refused + ((state.proposal,) if state.proposal else ())
+        return _nearest(replace(state, refused=refused, step=PICK_NEAREST), state.siri_current.what, pairs)
+    return _category_words(replace(state, step=ASK_CATEGORY), text, ports, today)
