@@ -8,6 +8,8 @@ import sys
 
 import streamlit as st
 
+from ui.siri_install import render_phone_folder, render_siri_install
+
 from services.settings_service import SettingsService
 from support.logging import setup_logging
 from ui.i18n import t
@@ -269,14 +271,27 @@ def render_settings_page(engine):
         _expense_svc.flush_cash_receipts()
         st.rerun()
 
-    # ── Expenses dictated to Siri from the iPhone (spec 32, 4.9) ──────────────
-    # Only on a Mac, and off unless the user turns it on: the sentence goes
-    # through iCloud, so "your data stays on your computer" does not hold for it.
+    # ── The refund category (spec 32, 4.10) ──────────────────────────────────
+    # A refund said aloud takes this income category when its words name
+    # none; "none" makes the chat ask. Never chosen: the shipped default.
+    _expense_svc = ExpenseConfirmService(engine)
+    _refund_now = _expense_svc.default_refund_pair()
+    _refund_options = [None] + _expense_svc.income_pairs()
+    _refund_picked = st.selectbox(
+        t("settings.refund_category.label"), _refund_options,
+        index=_refund_options.index(_refund_now) if _refund_now in _refund_options else 0,
+        format_func=lambda p: f"{p[0]} / {p[1]}" if p and p[1] else (p[0] if p else t("settings.refund_category.none")),
+        help=t("settings.refund_category.help"), key="settings_refund_category")
+    if _refund_picked != _refund_now:
+        cfg_svc.set("refund_category", f"{_refund_picked[0]}|{_refund_picked[1]}" if _refund_picked else "")
+        st.rerun()
+
+    # ── Siri and the iPhone app (spec 32, 4.9; spec 34, 4) ────────────────────
+    # The folder of the iPhone app on every system; the Shortcuts command only
+    # on a Mac, where the app builds and signs it.
+    render_phone_folder(cfg_svc, settings, key="settings")
     if sys.platform == "darwin":
-        _icloud = st.toggle(t("settings.siri_icloud.label"), value=settings.get("siri_icloud_inbox") == "true",
-                            help=t("settings.siri_icloud.help"), key="settings_siri_icloud")
-        if _icloud != (settings.get("siri_icloud_inbox") == "true"):
-            cfg_svc.set("siri_icloud_inbox", "true" if _icloud else "false")
+        render_siri_install(cfg_svc, settings, key="settings")
 
     # ── Formato visualizzazione ────────────────────────────────────────────────
     st.subheader(t("settings.display_format"))

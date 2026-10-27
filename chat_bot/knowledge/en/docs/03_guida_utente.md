@@ -16,30 +16,50 @@ The way that takes the least effort is four steps, in this order.
 
 1. **Load the statements** of all your accounts, with **📥 Load your bank statement**: the path tells you which files you need and imports them.
 2. **Give a category to the counterparts with the most movements**: ideally at least the first 10, which usually cover most of your spending. With *Always like this* the choice also holds for the movements of the next imports.
-3. **Tick the expenses you have a receipt for** with **🧾 I have a receipt**: you say date, amount and what you bought, the app finds the movement and marks it checked. It works for a paper receipt and for **online purchases** too: as soon as the receipt email arrives (Amazon, PayPal and the like), say the expense. On those sites the same counterpart sells everything, and only you know the category. If the statement has not arrived yet, the receipt is saved and found again at the next import.
+3. **Tick the expenses you have a receipt for** with **🎙️ Voice transactions**: you say date, amount and what you bought, the app finds the movement and marks it checked. It works for a paper receipt and for **online purchases** too: as soon as the receipt email arrives (Amazon, PayPal and the like), say the expense. On those sites the same counterpart sells everything, and only you know the category. If the statement has not arrived yet, the receipt is saved and found again at the next import.
 4. **Check what is left account by account** with **✅ Check your movements**. By then what remains is mostly transfers between your own accounts and online purchases whose receipt you did not say.
 
 When you are done, **📍 Let's take stock** shows you where the money went.
 
 ---
 
-## Telling Siri an expense, without opening Spendif.ai
+## Telling Siri expenses, refunds and withdrawals, without opening Spendif.ai
 
-On the Mac, or on the iPhone, you can tell Siri an expense as soon as you made it: "Hey Siri, Spendif expense", then "yesterday 23.40, coffee at the bar", and Siri asks whether it was cash. The expense becomes a saved receipt: the next time you open **🧾 I have a receipt** you find it waiting and, when the statement brings it, the app offers the movement. Cash ones are not looked for in the statement.
+With the **Spendif.ai iPhone app** (for testers, through TestFlight) you tell Siri a transaction right after making it, and you find it in Spendif.ai on your computer. Three phrases, one per kind:
 
-**How to create the command** (Shortcuts app, once):
+| Phrase (default) | What it asks | What it becomes |
+|---|---|---|
+| "Log expense" | the expense, then "Cash or card?" | an outflow: at once on the cash account if in cash, otherwise a receipt waiting for the statement |
+| "Log refund" | the refund, then "Cash or card?" | an inflow: at once on the cash account, or waiting for the credit on the statement |
+| "Log withdrawal" | how much you took out | a transfer: inflow on the cash account at once, the bank side waiting for the statement |
 
-1. Create a new shortcut and name it **Spendif expense**: that is the phrase to say to Siri.
-2. Add the **Dictate Text** action.
-3. Add **Choose from Menu** with the question "Was it cash?" and two items, **Yes** and **No**. Under Yes put a **Text** action with `contanti`, under No a **Text** action with `carta` (the app reads these two words in any language).
-4. Add **Append to Text File**. As text put the **Current Date** formatted `yyyy-MM-dd HH:mm`, then ` | `, the **menu result**, then ` | ` and the **dictated text**. A line like `2026-10-27 18:30 | contanti | yesterday 23.40, coffee` comes out.
-   - On the **Mac** the file is `Documents/Spendif.ai/spese-da-siri.txt`.
-   - On the **iPhone** it is `iCloud Drive/Spendif.ai/spese-da-siri.txt`, and in Spendif.ai's **Settings** turn on "Also receive the expenses dictated to Siri on the iPhone". Those sentences go through iCloud.
-   - Turn on the option that creates the file when missing.
+- **The payment question is skipped** when you say it: "12 euros pizza in cash", "40 euros fuel by card".
+- **Without a day** it is the day you speak: "withdrawal 50 euros" is today. "Yesterday" and dates work as always.
+- **The phrases and words are yours.** In the iPhone app, ⚙️ Settings: the phrase for expense, refund and withdrawal, and the words for cash, card, refund and withdrawal (several words separated by commas). Next to each phrase, **⊕** adds the shortcut to Shortcuts with that name. No dots and no app name in the phrase: Siri does not get them.
+- **No permission to give**: the app writes to its own iCloud folder. On a Mac with Apple silicon the iPhone app runs too, with the same phrases.
 
-A sentence the app does not understand (no amount, for example) is not lost: you find it among the waiting receipts, to complete or forget.
+**Where Spendif.ai reads on your computer.** On macOS the app's folder, with nothing to set. On Windows the same folder through iCloud for Windows. On Linux, which has no iCloud, the folder set in **Settings**, "Folder of the expenses from the iPhone". The same setting serves when transactions come from phones of different Apple Accounts, through a shared iCloud folder.
 
-**The cash account.** Cash expenses, said in the chat or to Siri, become movements of the cash account at once, already checked. You choose the account in **Settings** ("💶 Cash account"), or the bot creates it the first time if you say yes. If you already use another app for cash, you can import its export into this account like any other.
+**A refund** goes in an income category: the one the words name, otherwise the **Refund category** of the Settings (by default "Transfers & refunds / Generic refund"; you can change it or set "Ask every time").
+
+**A withdrawal** is a transfer: the cash side is confirmed at once, the bank side waits for the statement. When it arrives, the app offers you the outflow with the same amount ("Withdrawal 50.00 of 27 October: is it this one?") and, at your yes, links the two movements like every transfer.
+
+**Without remembering the phrase.** The shortcut also starts with a gesture, then you speak:
+
+| Where | How |
+|---|---|
+| iPhone (15 Pro and later) | **Action button** → Shortcut → your shortcut |
+| iPhone | Settings → Accessibility → Touch → **Back Tap** → Double Tap → your shortcut |
+| iPhone | Shortcuts **widget** on the Home or Lock Screen |
+| Apple Watch | Shortcuts **complication** on the watch face |
+| Mac | in the shortcut's details, **Add Keyboard Shortcut** |
+| Mac | Shortcuts → **Pin in Menu Bar** |
+
+**What you see in 🎙️ Voice transactions.** At the top one summary line, until you press Ok: "From Siri: 5 arrived, 1 to confirm.". Each transaction shows in one place only, where there is something to do: in the chat when its category is to confirm, among the receipts waiting (marked "🎙️ new") when it waits for the statement, nowhere when it is already on the cash account. A sentence without an amount is not lost: you find it among those to complete or forget.
+
+**Without the iPhone app, on a Mac.** The Settings keep the **"Add the Siri command"** button, which prepares a Shortcuts shortcut that writes to a file. It works, but Shortcuts asks permission to write the file until you pick the folder by hand in the shortcut: that is why the iPhone app is the recommended way.
+
+**The cash account.** Cash expenses, told in the chat or to Siri, become movements of the cash account at once, already checked. You choose the account in **Settings** ("💶 Cash account") or the bot creates it the first time, if you say yes. If you already use another app for cash, you can import its export on this account like on any other.
 
 ---
 

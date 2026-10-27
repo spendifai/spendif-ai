@@ -47,3 +47,31 @@ def test_the_payment_field(field, cash):
 
 def test_without_the_payment_field_it_is_card():
     assert read_line("2026-10-27 18:30 | ieri 4 euro giornale", PAIRS, TODAY).cash is False
+
+
+def test_in_cash_said_in_the_sentence():
+    r = read_line("2026-10-27 18:30 | carta | ieri 4 euro giornale in contanti", PAIRS, TODAY)
+    assert (r.cash, r.what) == (True, "giornale")
+
+
+@pytest.mark.parametrize("field, kind, cash", [
+    ("rimborso-contanti", "refund", True),
+    ("rimborso-carta", "refund", False),
+    ("prelievo", "withdrawal", True),
+    ("contanti", "expense", True),
+])
+def test_the_kind_field_of_the_iphone_app(field, kind, cash):
+    """The iPhone app writes the kind with the payment (spec 34, 3); a refund
+    and a withdrawal name no expense category."""
+    got = read_line(f"2026-10-25 18:30 | {field} | 30 euro reso scarpe", [("Abbigliamento", "Scarpe")],
+                    date(2026, 10, 25))
+    assert (got.kind, got.cash) == (kind, cash)
+    assert got.amount == Decimal("30")
+    if kind != "expense":
+        assert got.pair is None
+
+
+def test_without_a_day_it_is_the_day_spoken():
+    """"12 euro pizza" said right after paying: the day of the line."""
+    got = read_line("2026-10-27 18:30 | carta | 12 euro pizza", PAIRS, TODAY)
+    assert (got.day, got.amount) == (date(2026, 10, 27), Decimal("12"))

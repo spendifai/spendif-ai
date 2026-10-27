@@ -161,6 +161,7 @@ environments = [
 [tool.pytest.ini_options]
 markers = [
     "llm: tests requiring a running LLM backend (Ollama/OpenAI)",
+    "siri_files: the test reads the real Siri folders, by design (only the path builder)",
 ]
 addopts = "-m 'not llm'"
 testpaths = ["tests"]

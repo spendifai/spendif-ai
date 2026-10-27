@@ -40,6 +40,8 @@ _SENT = "_expense_sent"           # the answers given, for the dictation's repea
 _TURN = "_expense_turn"           # one number per bot reply, never reset: the recorder runs each turn once
 _TAKEN = "_expense_taken"         # the last turn whose answer was taken
 _VT_KEY = "expense_voice_turn"    # the app's own recorder; its answer is read from here
+_SIRI_NOTES = "_expense_siri_notes"   # what arrived from Siri, shown until closed
+_SIRI_NEW = "_expense_siri_new"       # ids of the receipts that came from Siri, marked new below
 _CHAT_HEIGHT = 420                # px: the conversation scrolls inside, the page does not grow
 # The voice of the operating system for the user's language (spec 32, 3.2).
 _VOICES = {"it": "it-IT", "en": "en-US", "fr": "fr-FR", "de": "de-DE", "es": "es-ES"}
@@ -165,8 +167,10 @@ def _speak() -> None:
     components.html(speak_script(text, voice), height=0)
 
 
-def _reset(svc: ExpenseConfirmService, say) -> None:
-    msgs, state = svc.start()
+def _reset(svc: ExpenseConfirmService, say, siri: list | None = None) -> None:
+    """A new conversation; *siri* are the expenses from Siri whose category
+    it confirms first (spec 32, 4.9)."""
+    msgs, state = svc.start(siri or ())
     st.session_state[_STATE] = state
     st.session_state[_CHAT] = []
     st.session_state[_SENT] = []
@@ -276,7 +280,12 @@ def _render_waiting(svc: ExpenseConfirmService, say, siri_files) -> None:
     """The receipts saved for the next import (spec 32, 4.4bis) and the
     sentences dictated to Siri that were not understood (4.9): how many, and
     in the expander each one with a button to forget it."""
-    waiting = svc.pending_receipts()
+    # A receipt whose category the chat is still asking shows only there (4.9).
+    state = st.session_state.get(_STATE)
+    asking = [i for i in (*getattr(state, "siri", ()), getattr(state, "siri_current", None)) if i is not None]
+    in_chat = {i.ref for i in asking if i.kind == "receipt"}
+    waiting = [r for r in svc.pending_receipts() if r["id"] not in in_chat]
+    new = st.session_state.get(_SIRI_NEW, set())
     unclear = svc.unclear_sentences(siri_files)
     n = len(waiting) + len(unclear)
     if not n:
@@ -289,6 +298,7 @@ def _render_waiting(svc: ExpenseConfirmService, say, siri_files) -> None:
                 "what": r["what"], "day": r["day"], "amount": r["amount"],
                 "cat": (r["category"], r["subcategory"]) if r["category"] else t("expense.receipt_no_cat")})
             text = say([line]) + (f" · {t('expense.receipt_cash_tag')}" if r["cash"] else "")
+            text += f" · {t('expense.receipt_new_tag')}" if r["id"] in new else ""
             c_line.write(text)
             if c_forget.button(t("expense.receipt_forget"), key=f"expense_receipt_forget_{r['id']}"):
                 svc.delete_receipt(r["id"])
@@ -301,26 +311,62 @@ def _render_waiting(svc: ExpenseConfirmService, say, siri_files) -> None:
                 st.rerun()
 
 
-def _collect_siri(svc: ExpenseConfirmService, files) -> None:
-    """The expenses dictated to Siri since the last time (spec 32, 4.9),
-    read once per session, before the conversation starts, so the ones
-    with a movement are offered at once."""
-    if st.session_state.get("_expense_siri_read"):
-        return
-    st.session_state["_expense_siri_read"] = True
+def _collect_siri(svc: ExpenseConfirmService, files) -> tuple[str | None, list]:
+    """The expenses dictated to Siri since the last look (spec 32, 4.9),
+    read at every run of the page: they become cash movements or saved
+    receipts before the conversation starts, so the ones with a movement are
+    offered at once. Returns the summary line for the box above the chat, or
+    None, and the expenses whose category the user still has to confirm.
+    Each expense itself shows only where there is something to do: the chat,
+    the receipts below, or the sentences to complete."""
     try:
-        saved, unclear = svc.collect_siri(files)
+        report = svc.collect_siri(files)
     except OSError as exc:
         logger.warning(f"expense_confirm_page: the Siri file could not be read: {exc}")
-        return
-    if saved:
-        st.toast(t("expense.siri_saved_one") if saved == 1 else t("expense.siri_saved", n=saved))
-    if unclear:
-        st.toast(t("expense.siri_unclear", n=unclear))
+        report = None
     # Cash receipts saved before there was a cash account join it now (spec 32, 4.4).
-    moved = svc.flush_cash_receipts()
-    if moved:
-        st.toast(t("expense.cash_flushed", n=moved, account=svc.cash_account()))
+    if not st.session_state.get("_expense_cash_flushed"):
+        st.session_state["_expense_cash_flushed"] = True
+        moved = svc.flush_cash_receipts()
+        if moved:
+            st.toast(t("expense.cash_flushed", n=moved, account=svc.cash_account()))
+    if not report:
+        return None, []
+    st.session_state.setdefault(_SIRI_NEW, set()).update(report.receipts)
+    return _siri_summary(report), list(report.confirm)
+
+
+def _siri_summary(report) -> str | None:
+    """One line for what arrived from Siri: how many, and how many wait for
+    the user, by what they wait for; None when nothing arrived.
+
+    Args:
+        report: the SiriReport of the reading.
+    """
+    arrived = report.saved + report.unclear
+    if not arrived:
+        return None
+    parts = [t("expense.siri_arrived_one") if arrived == 1 else t("expense.siri_arrived", n=arrived)]
+    if report.confirm:
+        parts.append(t("expense.siri_to_confirm", n=len(report.confirm)))
+    if report.unclear:
+        parts.append(t("expense.siri_to_complete", n=report.unclear))
+    return t("expense.siri_summary", parts=", ".join(parts))
+
+
+def _render_siri_notes() -> None:
+    """What arrived from Siri, in a box above the conversation that stays
+    until the user closes it (spec 32, 4.9): inside the conversation, which
+    scrolls by itself to the last message, it went out of sight."""
+    notes = st.session_state.get(_SIRI_NOTES)
+    if not notes:
+        return
+    with st.container(border=True, key="expense_siri_box"):
+        c_text, c_ok = st.columns([6, 1], vertical_alignment="center")
+        c_text.markdown("\n\n".join(f"🎙️ {note}" for note in notes))
+        if c_ok.button(t("expense.siri_ok"), key="expense_siri_ok"):
+            st.session_state.pop(_SIRI_NOTES, None)
+            st.rerun()
 
 
 def render_expense_confirm_page(engine) -> None:
@@ -332,10 +378,16 @@ def render_expense_confirm_page(engine) -> None:
     settings = SettingsService(engine).get_all()
     say = _formatter(settings)
     svc = ExpenseConfirmService(engine, rule_writer=_rule_writer(engine))
-    siri_files = svc.siri_files(settings.get("siri_icloud_inbox") == "true")
-    _collect_siri(svc, siri_files)
-    if c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state:
-        _reset(svc, say)
+    siri_files = svc.siri_files(settings.get("siri_enabled") == "true", settings.get("siri_folder") or "Spendif.ai",
+                                settings.get("siri_app_folder") or "")
+    from_siri, to_confirm = _collect_siri(svc, siri_files)
+    if from_siri:
+        st.session_state.setdefault(_SIRI_NOTES, []).append(from_siri)
+    # New expenses from Siri to confirm start the conversation again from them (spec 32, 4.9).
+    if (c_restart.button(t("expense.restart"), key="expense_restart") or _STATE not in st.session_state
+            or to_confirm):
+        _reset(svc, say, to_confirm)
+    _render_siri_notes()
     voice_svc = VoiceService()
     if voice_svc.can_offer_listening(get_language()):
         _offer_listening(voice_svc, SettingsService(engine))
