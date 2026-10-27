@@ -39,6 +39,8 @@ On the Mac, or on the iPhone, you can tell Siri an expense as soon as you made i
 
 A sentence the app does not understand (no amount, for example) is not lost: you find it among the waiting receipts, to complete or forget.
 
+**The cash account.** Cash expenses, said in the chat or to Siri, become movements of the cash account at once, already checked. You choose the account in **Settings** ("💶 Cash account"), or the bot creates it the first time if you say yes. If you already use another app for cash, you can import its export into this account like any other.
+
 ---
 
 ## 1. First launch — onboarding wizard

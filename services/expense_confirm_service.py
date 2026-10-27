@@ -335,7 +335,11 @@ class ExpenseConfirmService:
             for line in reading.read_text(encoding="utf-8").splitlines():
                 got = read_line(line, pairs, today or self._today or date.today())
                 if isinstance(got, SiriReceipt):
-                    self.save_receipt(got.day, got.amount, got.what, got.pair, got.cash)
+                    account = self.cash_account() if got.cash else None
+                    if account:                  # cash, and an account for it: a movement at once
+                        self.cash_movement(got.day, got.amount, got.what, got.pair, account)
+                    else:
+                        self.save_receipt(got.day, got.amount, got.what, got.pair, got.cash)
                     saved += 1
                 elif got:
                     kept.append(got)
@@ -376,3 +380,74 @@ class ExpenseConfirmService:
                 lines.remove(sentence)
                 f.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
                 return
+
+    # ── 4.4 The cash account ─────────────────────────────────────────────────
+
+    _CASH_NAMES = {"it": "Contanti", "en": "Cash", "fr": "Espèces", "de": "Bargeld", "es": "Efectivo"}
+
+    def cash_account(self) -> str | None:
+        """The account cash receipts go into (spec 32, 4.4), or None while
+        the user has neither chosen nor created one."""
+        with self._session() as s:
+            name = repository.get_all_user_settings(s).get("cash_account") or ""
+            names = {a.name for a in repository.get_accounts(s)}
+        return name if name in names else None
+
+    def create_cash_account(self) -> str:
+        """Create the cash account, named in the user's language, or take
+        the one with that name already there, and make it the cash account.
+        Returns its name."""
+        from services.settings_service import SettingsService
+        cfg = SettingsService(self.engine)
+        name = self._CASH_NAMES.get(cfg.get("ui_language", "it") or "it", "Contanti")
+        if name not in {a.name for a in cfg.get_accounts()}:
+            cfg.create_account(name, "", account_type="cash", usage="payments")
+        cfg.set("cash_account", name)
+        logger.info("expense_confirm: cash account created")
+        return name
+
+    def cash_movement(self, day: date, amount: Decimal, what: str, pair: tuple[str, str] | None,
+                      account: str) -> None:
+        """A cash expense said by the user, written as a movement of the
+        cash account (spec 32, 4.4): out of the account, its category by
+        hand, already checked. The only movement the expense confirmation
+        writes, and only for cash (spec 32, 2.4).
+
+        Args:
+            day: the day of the expense.
+            amount: the amount, positive.
+            what: the user's own words, the movement's description.
+            pair: (category, subcategory), or None without one.
+            account: the cash account's name.
+        """
+        import hashlib
+        stamp = datetime.now(timezone.utc).isoformat()
+        tx_id = hashlib.sha256(f"cash|{account}|{day}|{amount}|{what}|{stamp}".encode()).hexdigest()[:24]
+        with self._session() as s:
+            repository.upsert_transaction(s, {
+                "id": tx_id, "date": day, "amount": -abs(amount), "description": what or account,
+                "source_file": "Spendif.ai", "doc_type": "cash", "account_label": account,
+                "tx_type": "expense", "category": pair[0] if pair else None,
+                "subcategory": (pair[1] or None) if pair else None,
+                "category_source": "manual" if pair else None, "human_validated": True,
+            })
+            tx = s.get(Transaction, tx_id)
+            tx.validated_at = datetime.now(timezone.utc)
+            s.commit()
+        logger.info("expense_confirm: cash movement written")
+
+    def flush_cash_receipts(self) -> int:
+        """The cash receipts waiting move into the cash account once there
+        is one (spec 32, 4.4). Returns how many moved."""
+        account = self.cash_account()
+        if not account:
+            return 0
+        moved = 0
+        for r in self.pending_receipts():
+            if not r["cash"]:
+                continue
+            pair = (r["category"], r["subcategory"]) if r["category"] else None
+            self.cash_movement(r["day"], r["amount"], r["what"], pair, account)
+            self.delete_receipt(r["id"])
+            moved += 1
+        return moved

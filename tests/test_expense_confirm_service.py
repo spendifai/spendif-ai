@@ -384,3 +384,48 @@ def test_the_siri_line_says_cash(engine, tmp_path):
 def test_no_siri_outside_apple_systems(monkeypatch):
     monkeypatch.setattr("services.expense_confirm_service.sys.platform", "linux")
     assert ExpenseConfirmService.siri_files(True) == []
+
+
+# ── 4.4 The cash account ────────────────────────────────────────────────────
+
+
+def _cash_rows(engine):
+    with get_session(engine) as s:
+        return [(t.date, float(t.amount), t.description, t.category, t.account_label, bool(t.human_validated),
+                 t.category_source) for t in s.query(Transaction).filter(Transaction.doc_type == "cash")]
+
+
+def test_no_cash_account_until_one_is_chosen_or_created(engine):
+    from services.settings_service import SettingsService
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    assert svc.cash_account() is None
+    SettingsService(engine).set("ui_language", "it")
+    assert svc.create_cash_account() == "Contanti" and svc.cash_account() == "Contanti"
+    acc = [a for a in SettingsService(engine).get_accounts() if a.name == "Contanti"]
+    assert acc and acc[0].account_type == "cash"
+
+
+def test_a_cash_movement_is_written_checked(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    svc.cash_movement(date(2026, 10, 24), Decimal("4"), "giornale", ("Svago", "Libri"), "Contanti")
+    assert _cash_rows(engine) == [("2026-10-24", -4.0, "Giornale", "Svago", "Contanti", True, "manual")]
+
+
+def test_cash_receipts_waiting_move_into_the_account(engine):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    svc.save_receipt(date(2026, 10, 24), Decimal("4"), "giornale", None, cash=True)
+    svc.save_receipt(date(2026, 10, 24), Decimal("9"), "viti", None, cash=False)
+    assert svc.flush_cash_receipts() == 0                    # no cash account yet: they wait
+    svc.create_cash_account()
+    assert svc.flush_cash_receipts() == 1
+    assert [r["what"] for r in svc.pending_receipts()] == ["viti"]
+    assert [row[2] for row in _cash_rows(engine)] == ["Giornale"]
+
+
+def test_siri_cash_lines_go_straight_into_the_cash_account(engine, tmp_path):
+    svc = ExpenseConfirmService(engine, today=TODAY)
+    svc.create_cash_account()
+    inbox = tmp_path / "spese-da-siri.txt"
+    inbox.write_text("2026-10-25 18:30 | contanti | ieri 4 euro, giornale\n", encoding="utf-8")
+    assert svc.collect_siri([inbox]) == (1, 0)
+    assert svc.pending_receipts() == [] and len(_cash_rows(engine)) == 1

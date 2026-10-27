@@ -21,6 +21,7 @@ Steps:
   SAVE_ASK          not there yet: "Lo salvo e lo ritrovo...?"  (4.4bis)
   ASK_CASH          the receipt saved: "In contanti?"            (4.4bis)
   ASK_WHAT          the receipt saved: "Cos'hai comprato?"      (4.4bis)
+  ASK_CASH_ACCOUNT  no cash account yet: "Creo il conto Contanti?"  (4.4)
   REVIEW_ASK        receipts with their movement: "Li controlliamo?"  (4.4bis)
   REVIEW_ONE        one movement for a receipt: "Caffe', 2 euro: Bar Centrale?"
   REVIEW_CHOOSE     several movements for a receipt: "quale?"
@@ -66,6 +67,7 @@ CHECK = "check"
 SAVE_ASK = "save_ask"
 ASK_CASH = "ask_cash"
 ASK_WHAT = "ask_what"
+ASK_CASH_ACCOUNT = "ask_cash_account"
 REVIEW_ASK = "review_ask"
 REVIEW_ONE = "review_one"
 REVIEW_CHOOSE = "review_choose"
@@ -141,6 +143,9 @@ class Ports(Protocol):
     def always_no(self, question: dict) -> None: ...
     def save_receipt(self, day: date, amount: Decimal, what: str, pair: Pair | None, cash: bool) -> None: ...
     def confirm_receipt(self, receipt_id: int, tx_id: str, pair: Pair | None) -> list[dict]: ...
+    def cash_account(self) -> str | None: ...
+    def create_cash_account(self) -> str: ...
+    def cash_movement(self, day: date, amount: Decimal, what: str, pair: Pair | None, account: str) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -152,6 +157,7 @@ class State:
     candidates: tuple[Candidate, ...] = ()
     chosen: Candidate | None = None
     proposal: Pair | None = None
+    saved_pair: Pair | None = None      # ASK_CASH_ACCOUNT: the category chosen for the cash receipt
     nearest: tuple[Pair, ...] = ()
     refused: tuple[Pair, ...] = ()
     options: list[Pair] = field(default_factory=list)   # the whole list (PICK_LIST)
@@ -211,6 +217,7 @@ def turn(state: State, text: str, ports: Ports, today: date) -> tuple[list[Msg],
         SAVE_ASK: _save_ask,
         ASK_CASH: _ask_cash,
         ASK_WHAT: _ask_what,
+        ASK_CASH_ACCOUNT: _ask_cash_account,
         REVIEW_ASK: _review_ask,
         REVIEW_ONE: _review_one,
         REVIEW_CHOOSE: _review_choose,
@@ -545,7 +552,36 @@ def _ask_what(state, text, ports, today):
 
 def _save_receipt(state, ports, pair: Pair):
     """The receipt kept with its date, amount, description and category
-    until the user checks it against its movement (spec 32, 4.4bis)."""
+    until the user checks it against its movement (spec 32, 4.4bis). In
+    cash it is a movement of the cash account at once (4.4), and when there
+    is no such account the bot offers to create it."""
+    if state.cash:
+        account = ports.cash_account()
+        if account:
+            return _cash_movement(state, ports, pair, account)
+        return [Msg("expense.ask_cash_account")], replace(state, step=ASK_CASH_ACCOUNT, saved_pair=pair)
+    return _keep_receipt(state, ports, pair)
+
+
+def _cash_movement(state, ports, pair, account: str):
+    ports.cash_movement(state.day, state.amount, state.what, pair, account)
+    return ([Msg("expense.cash_recorded", {"what": state.what, "day": state.day, "amount": state.amount,
+                                           "cat": pair, "account": account})],
+            State(checked=state.checked + 1, last=state.last))
+
+
+def _ask_cash_account(state, text, ports, today):
+    """"Creo il conto Contanti?": yes creates it and the receipt enters it;
+    no keeps the receipt waiting, marked as cash."""
+    answer = yes_no(text)
+    if answer in ("yes", "yes_other"):
+        return _cash_movement(state, ports, state.saved_pair, ports.create_cash_account())
+    if answer == "no":
+        return _keep_receipt(state, ports, state.saved_pair)
+    return [Msg("expense.yes_no")], state
+
+
+def _keep_receipt(state, ports, pair: Pair):
     ports.save_receipt(state.day, state.amount, state.what, pair, state.cash)
     key = "expense.receipt_saved_cash" if state.cash else "expense.receipt_saved"
     return ([Msg(key, {"what": state.what, "day": state.day, "amount": state.amount, "cat": pair})],
