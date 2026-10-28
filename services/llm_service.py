@@ -433,6 +433,27 @@ def list_available_models() -> list[Path]:
     return list_local_models()
 
 
+def catalog_model_on_disk() -> Path | None:
+    """The tested model the onboarding announces and saves (spec 36, 3.1).
+
+    The path the launcher wrote (LLAMA_CPP_MODEL_PATH) when it is a registry
+    model, otherwise the automatic choice when that is one. A file outside
+    the catalog is never returned: the onboarding avoids the case instead of
+    warning about it.
+
+    Returns:
+        The model file, or None when no registry model is on disk yet.
+    """
+    import os
+
+    from core.model_manager import in_catalog, resolve_local_model
+    from_launcher = os.environ.get("LLAMA_CPP_MODEL_PATH", "")
+    if from_launcher and in_catalog(from_launcher) and Path(from_launcher).exists():
+        return Path(from_launcher)
+    chosen = resolve_local_model()
+    return chosen if chosen is not None and in_catalog(chosen) else None
+
+
 def get_recommended_model(hw: dict[str, Any]):
     """Return the ModelInfo the first launch downloads on this hardware, or None."""
     from core.model_manager import recommended_chain
@@ -448,3 +469,205 @@ def get_description_profiles(engine) -> list:
     from db.models import get_session
     with get_session(engine) as session:
         return _get_profiles(session)
+
+
+# ── Local model in use, and the out-of-catalog notice (spec 36) ──────────────
+
+_LOCAL_BACKEND = "local_llama_cpp"
+_PHASES = ("classifier", "cleaner", "categorizer", "footer")
+_KEPT_SETTING = "model_out_of_catalog_kept"
+
+
+@dataclass(frozen=True)
+class LocalModelInUse:
+    """The local model one part of the pipeline runs on.
+
+    Attributes:
+        phase: "main" or a phase with its own backend (classifier, cleaner,
+            categorizer, footer).
+        path: the model file actually loaded; "" when the folder is empty.
+        setting_key: the setting that names the file; "" when nobody named
+            it and the automatic choice decides (spec 36, 3).
+        in_catalog: whether the file is a tested registry model.
+    """
+    phase: str
+    path: str
+    setting_key: str
+    in_catalog: bool
+
+    @property
+    def chosen_by(self) -> str:
+        """'user' when a setting names the file, 'automatic' otherwise."""
+        return "user" if self.setting_key else "automatic"
+
+
+def local_models_in_use(settings: dict[str, str]) -> list[LocalModelInUse]:
+    """Every local model the pipeline would load with these settings.
+
+    Mirrors how the import builds its backends (core.orchestrator): a phase
+    without its own backend runs on the main one; a phase with its own local
+    backend takes its own file, then the legacy cat_* one for the
+    categorizer, then the main file; an empty path is the automatic choice.
+
+    Args:
+        settings: the user settings, as returned by SettingsService.get_all().
+
+    Returns:
+        One entry for the main backend when it is local, plus one per phase
+        with its own local backend.
+    """
+    from core.model_manager import in_catalog, resolve_local_model
+
+    automatic = resolve_local_model()
+    automatic_path = str(automatic) if automatic else ""
+
+    def entry(phase: str, keys: list[str]) -> LocalModelInUse:
+        for key in keys:
+            if settings.get(key):
+                return LocalModelInUse(phase, settings[key], key, in_catalog(settings[key]))
+        return LocalModelInUse(phase, automatic_path, "", in_catalog(automatic_path))
+
+    in_use: list[LocalModelInUse] = []
+    if settings.get("llm_backend", "") == _LOCAL_BACKEND:
+        in_use.append(entry("main", ["llama_cpp_model_path"]))
+    for phase in _PHASES:
+        backend = settings.get(f"{phase}_llm_backend", "") or (settings.get("cat_llm_backend", "") if phase == "categorizer" else "")
+        if backend != _LOCAL_BACKEND:
+            continue
+        keys = [f"{phase}_llama_cpp_model_path"] + (["cat_llama_cpp_model_path"] if phase == "categorizer" else []) + ["llama_cpp_model_path"]
+        in_use.append(entry(phase, keys))
+    return in_use
+
+
+def model_display_name(model_file: str) -> str:
+    """A model file name as a person reads it: no extension, quantisation or "instruct", spaces.
+
+    Args:
+        model_file: path or file name of a .gguf file.
+    """
+    stem = re.sub(r"\.gguf$", "", Path(model_file).name, flags=re.IGNORECASE)
+    stem = re.sub(r"[-_.]?(Q\d(_K)?(_[SML])?|IQ\d\w*|F16|BF16)$", "", stem, flags=re.IGNORECASE)
+    stem = re.sub(r"^(google|bartowski|Qwen)_", "", stem)
+    stem = re.sub(r"[-_](it|instruct)$", "", stem, flags=re.IGNORECASE)
+    return re.sub(r"[-_]+", " ", stem).strip()
+
+
+@dataclass(frozen=True)
+class OutOfCatalogNotice:
+    """What the out-of-catalog notice says and offers (spec 36, 5).
+
+    Attributes:
+        model_files: file names of the untested models in use, sorted.
+        model_names: the same, as a person reads them.
+        recommended_name: name of the model recommended for this computer.
+        recommended_path: its file when already on disk; "" when it must be
+            downloaded first.
+        recommended_size_gb: its download size, in GB.
+        setting_keys: the settings to point at the recommended model when the
+            person accepts.
+    """
+    model_files: tuple[str, ...]
+    model_names: tuple[str, ...]
+    recommended_name: str
+    recommended_path: str
+    recommended_size_gb: float
+    setting_keys: tuple[str, ...]
+
+
+def out_of_catalog_notice(settings: dict[str, str]) -> OutOfCatalogNotice | None:
+    """The notice to show, or None when every local model in use is tested or kept.
+
+    Args:
+        settings: the user settings, as returned by SettingsService.get_all().
+    """
+    from core.model_manager import cached_hw, local_catalog_model, recommended_chain
+
+    outside = [m for m in local_models_in_use(settings) if m.path and not m.in_catalog]
+    if not outside:
+        return None
+    files = tuple(sorted({Path(m.path).name for m in outside}))
+    if settings.get(_KEPT_SETTING, "") == "|".join(files):
+        return None
+    chain = recommended_chain(cached_hw())
+    if not chain:
+        return None
+    recommended = chain[0]
+    on_disk = local_catalog_model(recommended)
+    # Nobody named the file: the automatic choice lives in the main setting.
+    keys = tuple(sorted({m.setting_key or "llama_cpp_model_path" for m in outside}))
+    return OutOfCatalogNotice(
+        model_files=files,
+        model_names=tuple(model_display_name(f) for f in files),
+        recommended_name=model_display_name(recommended.name),
+        recommended_path=str(on_disk) if on_disk else "",
+        recommended_size_gb=round(recommended.size_mb / 1000, 1),
+        setting_keys=keys,
+    )
+
+
+def use_recommended_model(settings_svc: Any, notice: OutOfCatalogNotice, model_path: str) -> None:
+    """Point every setting that named an untested model at the recommended one.
+
+    Args:
+        settings_svc: a SettingsService.
+        notice: the notice the person answered.
+        model_path: the recommended model's file, on disk.
+    """
+    settings_svc.set_bulk({key: model_path for key in notice.setting_keys} | {_KEPT_SETTING: ""})
+
+
+def keep_untested_model(settings_svc: Any, notice: OutOfCatalogNotice) -> None:
+    """Remember "keep mine": the notice does not come back for these same files.
+
+    Args:
+        settings_svc: a SettingsService.
+        notice: the notice the person answered.
+    """
+    settings_svc.set(_KEPT_SETTING, "|".join(notice.model_files))
+
+
+def download_recommended_model(progress_callback=None) -> str | None:
+    """Download the model recommended for this computer, with its fallbacks.
+
+    Args:
+        progress_callback: called with (fraction 0..1, message); None for none.
+
+    Returns:
+        The downloaded file, or None when every attempt failed.
+    """
+    from core.model_manager import ensure_model_available
+    return ensure_model_available(progress_callback=progress_callback, allow_download=True)
+
+
+def model_badge(model_file: str) -> str:
+    """How the model picker tags a model (spec 36, 6).
+
+    Args:
+        model_file: path or file name of a .gguf file.
+
+    Returns:
+        "recommended" for the model recommended for this computer,
+        "untested" for a model outside the registry, "" otherwise.
+    """
+    from core.model_manager import cached_hw, in_catalog, recommended_chain
+
+    chain = recommended_chain(cached_hw())
+    file_name = Path(model_file).name.lower()
+    if not file_name.endswith(".gguf"):
+        file_name += ".gguf"
+    if chain and file_name == chain[0].filename.lower():
+        return "recommended"
+    return "" if in_catalog(file_name) else "untested"
+
+
+def local_models_outside_picker_list() -> list[Path]:
+    """Model files on disk that the picker's download list does not know.
+
+    Without them the picker could not show what is actually in the folder,
+    including a recommended registry model missing from that list.
+    """
+    from core.llm_backends import DEFAULT_GGUF_MODELS
+    from core.model_manager import list_local_models
+
+    known = {name.lower() for name in DEFAULT_GGUF_MODELS}
+    return [f for f in list_local_models() if f.stem.lower() not in known]

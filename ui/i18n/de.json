@@ -1661,5 +1661,13 @@
   "start.guided.btn": "🧭 Führ mich",
   "start.self.title": "Lieber selbst machen?",
   "start.self.text": "Geh direkt zum Import und lade deinen Kontoauszug.",
-  "start.self.btn": "📥 Zum Import"
+  "start.self.btn": "📥 Zum Import",
+  "model_notice.body": "Du verwendest **{models}**, ein Modell, das wir nicht getestet haben. Es kann sehr langsam sein und Namen falsch erkennen. Für deinen Computer empfehlen wir **{recommended}**.",
+  "model_notice.use": "{recommended} verwenden",
+  "model_notice.download_and_use": "{recommended} herunterladen und verwenden ({size} GB)",
+  "model_notice.keep": "Meins behalten",
+  "model_notice.downloading": "Das empfohlene Modell wird heruntergeladen...",
+  "model_notice.download_failed": "Der Download hat nicht geklappt. Versuche es später erneut oder über die Seite Modelle.",
+  "llm_models.model_picker.recommended": "empfohlen für deinen Computer",
+  "llm_models.model_picker.untested": "von uns nicht getestet"
 }
