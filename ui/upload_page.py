@@ -32,6 +32,7 @@ def _ai_model_still_downloading() -> bool:
     pct = float(data.get("pct", 0.0))
     return pct < 1.0
 
+from core.description_cleaner import SEAL_STAT_KEYS
 from services.import_service import (
     Confidence,
     DocumentSchema,
@@ -880,6 +881,10 @@ def _run_import(
     for r in results:
         for phase, ms in (getattr(r, "phase_durations_ms", None) or {}).items():
             _phase_totals[phase] = _phase_totals.get(phase, 0) + int(ms)
+    _seal_totals: dict[str, int] = {}
+    for r in results:
+        for key, count in (getattr(r, "cleaner_seal", None) or {}).items():
+            _seal_totals[key] = _seal_totals.get(key, 0) + int(count)
 
     import_svc.update_job(
         job_id,
@@ -895,6 +900,7 @@ def _run_import(
         ms_extracting      =_phase_totals.get("extracting"),
         ms_cleaning        =_phase_totals.get("cleaning"),
         ms_categorizing    =_phase_totals.get("categorizing"),
+        **{f"cleaner_{key}": _seal_totals.get(key) for key in SEAL_STAT_KEYS},
     )
 
     st.session_state["llm_in_progress"] = False

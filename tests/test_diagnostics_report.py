@@ -366,3 +366,18 @@ def test_an_empty_ledger_reports_zeros(settings):
     assert c["movements"] == 0
     assert c["largest_category_share"] == 0
     s.close()
+
+
+def test_cleaner_seal_counts_are_summed_over_the_jobs(session, settings):
+    session.add(ImportJob(status="completed", n_transactions=10, n_files=1,
+                          cleaner_sent=8, cleaner_accepted_first=6, cleaner_accepted_retry=1,
+                          cleaner_rejected=1, cleaner_retry_calls=4))
+    session.commit()
+    report = diagnostics.collect(session, settings)
+    # The fixture's job is older than the seal: its null counts are zero.
+    assert report["description_cleaner"] == {
+        "sent": 8, "accepted_first": 6, "accepted_retry": 1, "rejected": 1, "retry_calls": 4,
+    }
+    xml = diagnostics.to_xml(report)
+    import xml.etree.ElementTree as ET
+    assert ET.fromstring(xml.encode()).findtext("description_cleaner/rejected") == "1"
