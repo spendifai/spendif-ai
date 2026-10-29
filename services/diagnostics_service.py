@@ -53,7 +53,8 @@ logger = logging.getLogger("SPENDIFY")
 # 2: the operating system by name (os_name, os_id) and the last import on its
 #    own, next to the average over the last twenty.
 # 3: categorization, whether the import produced categories and how varied.
-SCHEMA_VERSION = "3"
+# 4: description_cleaner, what the seal on the cleaner refused (spec 35).
+SCHEMA_VERSION = "4"
 
 # Where test reports are filed. The form behind it reads the document and adds
 # the machine to the compatibility table, so nobody copies a value by hand.
@@ -158,6 +159,39 @@ def _import_summary(session: Any) -> dict[str, Any]:
             "per_row_seconds": _per_row_seconds([last], last_rows),
         }
     return summary
+
+
+def _cleaner_seal(session: Any) -> dict[str, int]:
+    """What the seal on the description cleaner counted over the last jobs (spec 35, 6).
+
+    A model that invents counterparts looks, in every other section, like one
+    that works: the import completes and every movement has a name. The
+    refused answers and the retries are the only trace of it. Counts only,
+    summed over the last twenty completed jobs; jobs older than the seal
+    count as zero.
+
+    Args:
+        session: an open database session.
+    """
+    from core.description_cleaner import SEAL_STAT_KEYS
+    from db.models import ImportJob
+
+    totals = {key: 0 for key in SEAL_STAT_KEYS}
+    try:
+        jobs = (
+            session.query(ImportJob)
+            .filter(ImportJob.status == "completed")
+            .order_by(ImportJob.id.desc())
+            .limit(20)
+            .all()
+        )
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a query
+        logger.warning("diagnostics: cannot read import jobs (%s)", exc)
+        return totals
+    for job in jobs:
+        for key in SEAL_STAT_KEYS:
+            totals[key] += int(getattr(job, f"cleaner_{key}", None) or 0)
+    return totals
 
 
 def _per_row_seconds(jobs: list[Any], rows: int) -> dict[str, float]:
@@ -440,6 +474,7 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
         "ledger": _counts(session),
         "imports": _import_summary(session),
         "categorization": _categorization(session),
+        "description_cleaner": _cleaner_seal(session),
         "logs": _log_summary(),
         "llm_observed": _llm_observed(session),
     }
@@ -458,7 +493,7 @@ def to_xml(report: dict[str, Any], stars: int | None = None) -> str:
     })
 
     for section in ("application", "system", "graphics", "inference", "ledger",
-                    "imports", "categorization", "logs"):
+                    "imports", "categorization", "description_cleaner", "logs"):
         node = ET.SubElement(root, section)
         for key, value in report.get(section, {}).items():
             if isinstance(value, dict):

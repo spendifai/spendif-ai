@@ -272,6 +272,10 @@ class ImportResult:
     # classifying, footer_detection, extracting, cleaning, categorizing.
     # Empty when a phase didn't run (e.g. Flow-1 cache hit skips classify).
     phase_durations_ms: dict[str, int] = field(default_factory=dict)
+    # What the seal on the description cleaner counted (keys in
+    # description_cleaner.SEAL_STAT_KEYS, spec 35, 6). Empty when no
+    # description went to the model.
+    cleaner_seal: dict[str, int] = field(default_factory=dict)
 
 
 def _build_backend(config: ProcessingConfig) -> LLMBackend:
@@ -1577,6 +1581,7 @@ def process_file(
             f"{len(_same_as)} from a movement of this file with the same signature, "
             f"{len(_to_clean)} to the model for {filename}"
         )
+    _cleaner_seal: dict[str, int] = {}
     _cleaned_by_id = {
         t["id"]: t["description"]
         for t in (clean_descriptions_batch(
@@ -1586,6 +1591,7 @@ def process_file(
             source_name=filename,
             sanitize_config=config.sanitize_config,
             progress_callback=_cleaning_cb,
+            seal_stats=_cleaner_seal,
         ) if _to_clean else [])
     }
     if not _to_clean:
@@ -1791,6 +1797,7 @@ def process_file(
         merged_count=_merge_count,
         internal_transfer_count=_giro_count,
         phase_durations_ms=_phase_durations_ms,
+        cleaner_seal=_cleaner_seal,
         sign_needs_confirmation=_sign_needs_a_question(doc_schema, account_usage),
     )
 
