@@ -1661,5 +1661,13 @@
   "start.guided.btn": "🧭 Guidami",
   "start.self.title": "Preferisci fare da te?",
   "start.self.text": "Vai diretto all'import e carica l'estratto conto della tua banca.",
-  "start.self.btn": "📥 Vai all'import"
+  "start.self.btn": "📥 Vai all'import",
+  "model_notice.body": "Stai usando **{models}**, un modello che non abbiamo provato. Può essere molto lento e sbagliare i nomi. Per il tuo computer consigliamo **{recommended}**.",
+  "model_notice.use": "Usa {recommended}",
+  "model_notice.download_and_use": "Scarica e usa {recommended} ({size} GB)",
+  "model_notice.keep": "Tieni il mio",
+  "model_notice.downloading": "Scarico il modello consigliato...",
+  "model_notice.download_failed": "Il download non è riuscito. Riprova più tardi, oppure dalla pagina Modelli.",
+  "llm_models.model_picker.recommended": "consigliato per il tuo computer",
+  "llm_models.model_picker.untested": "non provato da noi"
 }

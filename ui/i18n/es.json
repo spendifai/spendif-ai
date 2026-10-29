@@ -1661,5 +1661,13 @@
   "start.guided.btn": "🧭 Guíame",
   "start.self.title": "¿Prefieres hacerlo tú?",
   "start.self.text": "Ve directo a la importación y carga el extracto de tu banco.",
-  "start.self.btn": "📥 Ir a la importación"
+  "start.self.btn": "📥 Ir a la importación",
+  "model_notice.body": "Estás usando **{models}**, un modelo que no hemos probado. Puede ser muy lento y equivocarse con los nombres. Para tu ordenador recomendamos **{recommended}**.",
+  "model_notice.use": "Usar {recommended}",
+  "model_notice.download_and_use": "Descargar y usar {recommended} ({size} GB)",
+  "model_notice.keep": "Mantener el mío",
+  "model_notice.downloading": "Descargando el modelo recomendado...",
+  "model_notice.download_failed": "La descarga no ha funcionado. Vuelve a intentarlo más tarde, o desde la página Modelos.",
+  "llm_models.model_picker.recommended": "recomendado para tu ordenador",
+  "llm_models.model_picker.untested": "no probado por nosotros"
 }

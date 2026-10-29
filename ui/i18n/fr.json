@@ -1661,5 +1661,13 @@
   "start.guided.btn": "🧭 Guidez-moi",
   "start.self.title": "Vous préférez faire vous-même ?",
   "start.self.text": "Allez directement à l'import et chargez le relevé de votre banque.",
-  "start.self.btn": "📥 Aller à l'import"
+  "start.self.btn": "📥 Aller à l'import",
+  "model_notice.body": "Vous utilisez **{models}**, un modèle que nous n'avons pas testé. Il peut être très lent et se tromper de noms. Pour votre ordinateur, nous conseillons **{recommended}**.",
+  "model_notice.use": "Utiliser {recommended}",
+  "model_notice.download_and_use": "Télécharger et utiliser {recommended} ({size} Go)",
+  "model_notice.keep": "Garder le mien",
+  "model_notice.downloading": "Téléchargement du modèle conseillé...",
+  "model_notice.download_failed": "Le téléchargement n'a pas abouti. Réessayez plus tard, ou depuis la page Modèles.",
+  "llm_models.model_picker.recommended": "conseillé pour votre ordinateur",
+  "llm_models.model_picker.untested": "pas testé par nous"
 }

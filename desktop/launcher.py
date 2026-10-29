@@ -425,12 +425,67 @@ def _write_status(payload: dict) -> None:
     tmp.replace(_MODEL_STATUS_FILE)
 
 
-def _download_model_bg(app_dir: Path) -> None:
+def _onboarding_done() -> bool:
+    """Whether the person already completed the onboarding, read straight from the ledger.
+
+    After onboarding the launcher never starts a download of several GB on
+    its own: the out-of-catalog notice in the app proposes it (spec 36, 3.1).
+    Any failure to read (no ledger yet, older schema) means "not done", the
+    first-launch behaviour.
+    """
+    import sqlite3
+    ledger = _SPENDIFAI_HOME / "ledger.db"
+    if not ledger.exists():
+        return False
+    try:
+        with sqlite3.connect(str(ledger)) as conn:
+            row = conn.execute("SELECT value FROM user_settings WHERE key = 'onboarding_done'").fetchone()
+    except sqlite3.Error:
+        return False
+    return bool(row) and str(row[0]).lower() == "true"
+
+
+def _persist_model_path(model_path: str) -> None:
+    """Write LLAMA_CPP_MODEL_PATH to os.environ and ~/.spendifai/.env.
+
+    The onboarding copies it into the settings. Never a model outside the
+    catalog (spec 36, 3.1): an empty value clears what an older version wrote.
+
+    Args:
+        model_path: path of a registry model, or "" when none is on disk.
+    """
+    # Update os.environ (so the running Streamlit subprocess sees it) and
+    # persist into ~/.spendifai/.env (user-writable on every OS). On the
+    # Linux .deb / .rpm bundle ``app_dir`` is ``/opt/spendifai`` which is
+    # read-only, so we never write there.
+    os.environ["LLAMA_CPP_MODEL_PATH"] = model_path
+    env_file = _SPENDIFAI_HOME / ".env"
+    try:
+        lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
+        replaced = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith("LLAMA_CPP_MODEL_PATH="):
+                lines[i] = f"LLAMA_CPP_MODEL_PATH={model_path}"
+                replaced = True
+                break
+        if not replaced:
+            lines.append(f"LLAMA_CPP_MODEL_PATH={model_path}")
+        env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"_download_model_bg: could not persist LLAMA_CPP_MODEL_PATH to .env ({exc})", flush=True)
+
+
+def _download_model_bg(app_dir: Path, allow_download: bool = True) -> None:
     """Background thread: download the LLM model, update status + .env.
 
     Writes ``~/.spendifai/model_download.status`` continuously so the
     Streamlit UI can show a live ETA banner. On success, updates
     ``LLAMA_CPP_MODEL_PATH`` in .env. On failure, writes an error status.
+
+    Args:
+        app_dir: the application directory (already on sys.path).
+        allow_download: False after onboarding: only the registry model on
+            disk is reported, nothing is downloaded (spec 36, 3.1).
     """
     import json
     start = time.monotonic()
@@ -462,7 +517,17 @@ def _download_model_bg(app_dir: Path) -> None:
         # Ensure imports work — the launcher's _bootstrap_env added app_dir to sys.path
         from core.model_manager import ensure_model_available  # noqa: E402
         _on_progress(0.0, "Avvio download modello AI...")
-        model_path = ensure_model_available(progress_callback=_on_progress)
+        model_path = ensure_model_available(progress_callback=_on_progress, allow_download=allow_download)
+        if not model_path and not allow_download:
+            # No registry model on disk after onboarding: not an error, the
+            # notice in the app offers the download.
+            _persist_model_path("")
+            _write_status({
+                "pct": 1.0, "msg": "", "elapsed_s": 0, "eta_remaining_s": 0,
+                "done": True, "error": None, "ts": time.time(),
+            })
+            print("_download_model_bg: no registry model on disk, download left to the app", flush=True)
+            return
         if not model_path:
             _write_status({
                 "pct": 0.0, "done": False, "error": "ensure_model_available returned None",
@@ -471,25 +536,7 @@ def _download_model_bg(app_dir: Path) -> None:
             print("_download_model_bg: ensure_model_available returned None", flush=True)
             return
 
-        # Update os.environ (so the running Streamlit subprocess sees it) and
-        # persist into ~/.spendifai/.env (user-writable on every OS). On the
-        # Linux .deb / .rpm bundle ``app_dir`` is ``/opt/spendifai`` which is
-        # read-only, so we never write there.
-        os.environ["LLAMA_CPP_MODEL_PATH"] = model_path
-        env_file = _SPENDIFAI_HOME / ".env"
-        try:
-            lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
-            replaced = False
-            for i, line in enumerate(lines):
-                if line.strip().startswith("LLAMA_CPP_MODEL_PATH="):
-                    lines[i] = f"LLAMA_CPP_MODEL_PATH={model_path}"
-                    replaced = True
-                    break
-            if not replaced:
-                lines.append(f"LLAMA_CPP_MODEL_PATH={model_path}")
-            env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        except OSError as exc:
-            print(f"_download_model_bg: could not persist LLAMA_CPP_MODEL_PATH to .env ({exc})", flush=True)
+        _persist_model_path(model_path)
 
         _write_status({
             "pct": 1.0,
@@ -693,10 +740,13 @@ def main() -> None:
             #    coming, even before the bg thread has computed any progress.
             #    We only set this if the model is NOT already on disk —
             #    otherwise the banner would flash uselessly.
-            from core.model_manager import MODELS_DIR  # imported via sys.path
-
-            already_have_a_model = any(MODELS_DIR.glob("*.gguf")) if MODELS_DIR.exists() else False
-            if not already_have_a_model:
+            # Only registry models count, and only before onboarding a
+            # download starts on its own (spec 36, 3.1).
+            from core.model_manager import detect_hw, local_catalog_model, recommended_chain
+            allow_download = not _onboarding_done()
+            recommended = recommended_chain(detect_hw())
+            recommended_on_disk = bool(recommended) and local_catalog_model(recommended[0]) is not None
+            if allow_download and not recommended_on_disk:
                 _write_status({
                     "pct": 0.0,
                     "msg": "Preparazione download modello AI...",
@@ -707,13 +757,13 @@ def main() -> None:
                     "ts": time.time(),
                 })
                 print("_on_shown: spawning model download thread", flush=True)
-                Thread(target=_download_model_bg, args=(app_dir,), daemon=True).start()
+                Thread(target=_download_model_bg, args=(app_dir, True), daemon=True).start()
             else:
                 print("_on_shown: model already present — skipping download", flush=True)
                 # If the model is present we still want LLAMA_CPP_MODEL_PATH in
                 # .env (in case it was removed). Reuse the bg routine but mark
                 # done immediately so the banner doesn't appear.
-                Thread(target=_download_model_bg, args=(app_dir,), daemon=True).start()
+                Thread(target=_download_model_bg, args=(app_dir, allow_download), daemon=True).start()
 
             # 3. Start Streamlit immediately — it can render the wizard while
             #    the model downloads in the background. The wizard does not
