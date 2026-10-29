@@ -24,6 +24,7 @@ from core.normalizer import (
 )
 from core.history_engine import HistoryCache
 from core.classifier import role_conflicts  # noqa: F401 - re-exported for UI
+from core.description_cleaner import SEAL_STAT_KEYS  # noqa: F401 - re-exported for UI
 from services.nsi_taxonomy_service import NsiTaxonomyService
 from core.orchestrator import (
     ImportResult,
