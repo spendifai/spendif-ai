@@ -32,8 +32,8 @@ def _ai_model_still_downloading() -> bool:
     pct = float(data.get("pct", 0.0))
     return pct < 1.0
 
-from core.description_cleaner import SEAL_STAT_KEYS
 from services.import_service import (
+    SEAL_STAT_KEYS,
     Confidence,
     DocumentSchema,
     DocumentType,
