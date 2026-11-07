@@ -53,7 +53,9 @@ logger = logging.getLogger("SPENDIFY")
 # 2: the operating system by name (os_name, os_id) and the last import on its
 #    own, next to the average over the last twenty.
 # 3: categorization, whether the import produced categories and how varied.
-# 4: description_cleaner, what the seal on the cleaner refused (spec 35).
+# 4: description_cleaner, what the seal on the cleaner refused (spec 35); in
+#    inference, who chose the local model, whether it is a tested one, the
+#    recommended one, and the model each phase really loads (spec 36, 7).
 SCHEMA_VERSION = "4"
 
 # Where test reports are filed. The form behind it reads the document and adds
@@ -105,17 +107,55 @@ def _model_name(value: str | None) -> str:
     return os.path.basename(str(value))
 
 
-def _phase_settings(settings: dict[str, str]) -> dict[str, dict[str, str]]:
-    out: dict[str, dict[str, str]] = {}
+def _phase_settings(settings: dict[str, str], in_use: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Per-phase backend knobs, with the model each phase really loads.
+
+    Args:
+        settings: the user settings.
+        in_use: LocalModelInUse by phase ("main" and the phases with their own
+            local backend), from llm_service.local_models_in_use().
+    """
+    out: dict[str, dict[str, Any]] = {}
     for phase in _PHASES:
+        # A phase without its own backend runs on the main one; "cat" is the
+        # legacy name of the categorizer.
+        loaded = in_use.get("categorizer" if phase == "cat" else phase) or in_use.get("main")
         entry = {
             "backend": settings.get(f"{phase}_llm_backend", "") or "(inherits)",
             "n_ctx": settings.get(f"{phase}_llama_cpp_n_ctx", "") or "(inherits)",
             "n_gpu_layers": settings.get(f"{phase}_llama_cpp_n_gpu_layers", "") or "(inherits)",
-            "model": _model_name(settings.get(f"{phase}_llama_cpp_model_path")),
+            "model": _model_name(loaded.path) if loaded else "",
+            "in_catalog": loaded.in_catalog if loaded else "",
         }
         out[phase] = entry
     return out
+
+
+def _model_in_use(settings: dict[str, str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The local models in use by phase, and the main model's report fields (spec 36, 7).
+
+    Args:
+        settings: the user settings.
+
+    Returns:
+        (LocalModelInUse by phase, fields for the inference section). A report
+        must not fail: any error leaves both empty.
+    """
+    try:
+        from core.model_manager import cached_hw, recommended_chain
+        from services.llm_service import local_models_in_use, model_display_name
+
+        in_use = {m.phase: m for m in local_models_in_use(settings)}
+        chain = recommended_chain(cached_hw())
+    except Exception as exc:  # noqa: BLE001 - a report must not fail on a probe
+        logger.warning("diagnostics: cannot resolve the model in use (%s)", exc)
+        return {}, {}
+    main = in_use.get("main")
+    return in_use, {
+        "model_choice": main.chosen_by if main else "",
+        "model_in_catalog": main.in_catalog if main else "",
+        "recommended_model": model_display_name(chain[0].name) if chain else "",
+    }
 
 
 def _import_summary(session: Any) -> dict[str, Any]:
@@ -417,6 +457,7 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         logger.warning("diagnostics: hardware detection failed (%s)", exc)
         hw = {}
+    in_use, model_fields = _model_in_use(settings)
 
     version, build_time = get_build_info()
     rt = runtime_info.collect()
@@ -468,8 +509,9 @@ def collect(session: Any, settings: dict[str, str]) -> dict[str, Any]:
             "backend": settings.get("llm_backend", ""),
             "n_ctx": settings.get("llama_cpp_n_ctx", "") or "(auto)",
             "n_gpu_layers": settings.get("llama_cpp_n_gpu_layers", "") or "(auto)",
-            "model": _model_name(settings.get("llama_cpp_model_path")),
-            "phases": _phase_settings(settings),
+            "model": _model_name(in_use["main"].path) if "main" in in_use else _model_name(settings.get("llama_cpp_model_path")),
+            **model_fields,
+            "phases": _phase_settings(settings, in_use),
         },
         "ledger": _counts(session),
         "imports": _import_summary(session),

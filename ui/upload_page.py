@@ -48,6 +48,7 @@ from services.settings_service import SettingsService
 from services.transaction_service import TransactionService
 from services.update_service import UpdateService
 from support.logging import setup_logging
+from ui.components.model_notice import render_model_notice
 from ui.i18n import t as t_fn
 from ui.widgets.immersive import GUIDED_PAGE, go_to
 from ui.widgets.staged_import import files_and_rows, staged_files, take_staged_files
@@ -1022,6 +1023,10 @@ def render_upload_page(engine):
 
     if cfg_svc.get("import_test_mode", "false").lower() == "true":
         st.error(t_fn("upload.test_mode_banner"))
+
+    # Before an import starts: this is where an untested model costs hours
+    # and leaves wrong names behind (spec 36, 5).
+    render_model_notice(engine, key_prefix="upload")
 
     # Guard: owner names must be configured before any import
     if not import_svc.get_owner_names():

@@ -1026,10 +1026,12 @@ class LlamaCppBackend(LLMBackend):
         """Default model storage location (~/.spendifai/models/)."""
         models_dir = Path.home() / ".spendifai" / "models"
         models_dir.mkdir(parents=True, exist_ok=True)
-        # Look for any .gguf file, pick the first alphabetically
-        gguf_files = sorted(models_dir.glob("*.gguf"))
-        if gguf_files:
-            return str(gguf_files[0])
+        # The recommended model for this machine, never the first file in
+        # alphabetical order (spec 36, 3).
+        from core.model_manager import resolve_local_model
+        chosen = resolve_local_model()
+        if chosen is not None:
+            return str(chosen)
         return str(models_dir / "model.gguf")
 
     @staticmethod

@@ -1661,5 +1661,13 @@
   "start.guided.btn": "🧭 Guide me",
   "start.self.title": "Rather do it yourself?",
   "start.self.text": "Go straight to the import and load your bank statement.",
-  "start.self.btn": "📥 Go to the import"
+  "start.self.btn": "📥 Go to the import",
+  "model_notice.body": "You are using **{models}**, a model we have not tested. It can be very slow and get names wrong. For your computer we recommend **{recommended}**.",
+  "model_notice.use": "Use {recommended}",
+  "model_notice.download_and_use": "Download and use {recommended} ({size} GB)",
+  "model_notice.keep": "Keep mine",
+  "model_notice.downloading": "Downloading the recommended model...",
+  "model_notice.download_failed": "The download did not work. Try again later, or from the Models page.",
+  "llm_models.model_picker.recommended": "recommended for your computer",
+  "llm_models.model_picker.untested": "not tested by us"
 }
