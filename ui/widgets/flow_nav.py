@@ -123,23 +123,60 @@ def _save_all(state: StepState) -> None:
     state.pending.clear()
 
 
-def _bar_css() -> None:
-    """The bar stays at the bottom of the window, over the content."""
-    dark = getattr(st.context.theme, "type", None) == "dark"
-    background = "#0e1117" if dark else "#ffffff"
-    st.markdown(f"""
+# Colors of the bar and its buttons, per theme (UX spec, section 0.1), from the
+# palette of the UI design system: the bar stands out from the page and the
+# buttons from the bar, never the color of the bar's background.
+_BAR_COLORS = {
+    False: {"bar": "#F8F9FA", "bar_border": "#E0E0E0",
+            "secondary_bg": "#FFFFFF", "secondary_border": "#2980B9", "secondary_text": "#1E3C64",
+            "primary_bg": "#1E3C64", "primary_text": "#FFFFFF", "primary_hover": "#2980B9"},
+    True: {"bar": "#2D2D2D", "bar_border": "#3C4043",
+           "secondary_bg": "#1E1E1E", "secondary_border": "#7AB5DD", "secondary_text": "#7AB5DD",
+           "primary_bg": "#5B89C9", "primary_text": "#1E1E1E", "primary_hover": "#7AB5DD"},
+}
+
+
+def _bar_style(dark: bool) -> str:
+    """The style block of the bar, kept apart from Streamlit so a test can read it.
+
+    Args:
+        dark: True for the dark theme, False for the light one.
+    """
+    colors = _BAR_COLORS[dark]
+    bar = f".st-key-{BAR_KEY}"
+    return f"""
         <style>
-        .st-key-{BAR_KEY} {{
+        {bar} {{
             position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
-            background: {background};
-            border-top: 1px solid rgba(128, 128, 128, 0.25);
+            background: {colors["bar"]};
+            border-top: 1px solid {colors["bar_border"]};
             padding: 0.6rem 2rem 0.8rem 2rem;
+        }}
+        {bar} [data-testid="stBaseButton-secondary"]:not(:disabled) {{
+            background: {colors["secondary_bg"]};
+            border: 1px solid {colors["secondary_border"]};
+            color: {colors["secondary_text"]};
+        }}
+        {bar} [data-testid="stBaseButton-primary"]:not(:disabled) {{
+            background: {colors["primary_bg"]};
+            border: 1px solid {colors["primary_bg"]};
+            color: {colors["primary_text"]};
+        }}
+        {bar} [data-testid="stBaseButton-primary"]:hover:not(:disabled) {{
+            background: {colors["primary_hover"]};
+            border-color: {colors["primary_hover"]};
         }}
         .main .block-container, [data-testid="stMainBlockContainer"] {{
             padding-bottom: 6rem !important;
         }}
         </style>
-    """, unsafe_allow_html=True)
+    """
+
+
+def _bar_css() -> None:
+    """The bar stays at the bottom of the window, over the content."""
+    dark = getattr(st.context.theme, "type", None) == "dark"
+    st.markdown(_bar_style(dark), unsafe_allow_html=True)
 
 
 # Session key: the bar is asking whether to save before going where it was

@@ -201,3 +201,46 @@ def test_next_disabled_says_why():
     at = AppTest.from_function(_bar_only, args=("Next", "Nothing to check from this date.")).run(timeout=30)
     assert _button(at, "flow_next").disabled
     assert any("Nothing to check" in c.value for c in at.caption)
+
+
+def _rule(css: str, selector_end: str) -> str:
+    """The body of the first CSS rule whose selector ends with selector_end.
+
+    Args:
+        css: the style block the bar writes.
+        selector_end: the tail of the selector, such as 'stBaseButton-primary"]:not(:disabled)'.
+    """
+    for block in css.split("}"):
+        if "{" in block and block.split("{")[0].strip().endswith(selector_end):
+            return block.split("{")[1]
+    raise AssertionError(f"no rule for {selector_end}")
+
+
+def test_the_bar_and_its_buttons_have_colors_of_their_own_in_both_themes():
+    from ui.widgets import flow_nav
+
+    light = flow_nav._bar_style(dark=False)
+    assert "#F8F9FA" in _rule(light, f".st-key-{flow_nav.BAR_KEY}")
+    secondary = _rule(light, 'stBaseButton-secondary"]:not(:disabled)')
+    assert "#FFFFFF" in secondary and "#2980B9" in secondary and "#1E3C64" in secondary
+    primary = _rule(light, 'stBaseButton-primary"]:not(:disabled)')
+    assert "#1E3C64" in primary and "#FFFFFF" in primary
+    assert "#2980B9" in _rule(light, 'stBaseButton-primary"]:hover:not(:disabled)')
+
+    dark = flow_nav._bar_style(dark=True)
+    assert "#2D2D2D" in _rule(dark, f".st-key-{flow_nav.BAR_KEY}")
+    secondary = _rule(dark, 'stBaseButton-secondary"]:not(:disabled)')
+    assert "#1E1E1E" in secondary and "#7AB5DD" in secondary
+    primary = _rule(dark, 'stBaseButton-primary"]:not(:disabled)')
+    assert "#5B89C9" in primary and "#1E1E1E" in primary
+    assert "#7AB5DD" in _rule(dark, 'stBaseButton-primary"]:hover:not(:disabled)')
+
+
+def test_the_button_colors_stay_inside_the_bar():
+    from ui.widgets import flow_nav
+
+    for dark in (False, True):
+        for block in flow_nav._bar_style(dark=dark).split("}"):
+            selector = block.split("{")[0].strip()
+            if "stBaseButton" in selector:
+                assert selector.startswith(f".st-key-{flow_nav.BAR_KEY} "), selector
