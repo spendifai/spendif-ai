@@ -21,11 +21,11 @@ Transactions where the AI was not confident are flagged for review.
 - Uncertain transactions are marked with a **warning** flag (needs review)
 - For each one you can correct **category**, **subcategory** and **context** from dropdown menus
 - To tell Spendif.ai "this category is right", keep it or pick another one: the choice stays yours. The **Validated** tick says something else: that the movement is real (see "Checked and categorized" below)
-- You can also create a rule directly from the Review page, just like in the Ledger
+- You can also create a rule directly from the Review page, just like in the Transaction register
 
 ---
 
-## 3. Ledger — The command centre
+## 3. Transaction register: the command centre
 
 Full view of all imported transactions, with filters for date, account, category and type.
 
@@ -35,7 +35,7 @@ Full view of all imported transactions, with filters for date, account, category
 
 **Create a rule from a transaction:**
 
-1. Select **1 row** using the selection column (📏) in the ledger grid. If you select more than one row, the app shows a red error: *"You can only create and apply one rule at a time"*.
+1. Select **1 row** using the selection column (📏) in the transaction register grid. If you select more than one row, the app shows a red error: *"You can only create and apply one rule at a time"*.
 2. A **"Create rule"** form appears, pre-filled with:
    - **Pattern**: extracted from the transaction's counterpart (e.g. `ESSELUNGA`)
    - **Type**: *Contains text* (default). Available options: *Contains text*, *Exact match*, *Advanced expression*
@@ -51,7 +51,7 @@ Full view of all imported transactions, with filters for date, account, category
 
 ## 4. Automatic rules
 
-Rules created (from the Ledger, Review or Rules page) are automatically applied to future imports.
+Rules created (from the Transaction register, Review or Rules page) are automatically applied to future imports.
 
 - **Priority**: more specific rules have higher priority. First match wins.
 - **Match types**: *Exact match*, *Contains text*, *Advanced expression* (shown in the "Type" column of the rules grid).
@@ -131,7 +131,7 @@ The picture by context is in **Reports**: what the holiday cost, broken down by 
 Spendif.ai keeps two **distinct** questions for every transaction, and one never answers the other:
 
 - **Categorized by you: how did I spend this money?** It holds for a counterpart: one of your rules decides the category of the movements already loaded and of those of future imports. It is what the whole workflow asks: a counterpart with one of your rules is never asked again.
-- **Checked by you: did I really spend this money?** It holds for one movement only and is never inherited: every new charge is a new fact. It is done in the Ledger only, one movement at a time.
+- **Checked by you: did I really spend this money?** It holds for one movement only and is never inherited: every new charge is a new fact. It is done in the Transaction register only, one movement at a time.
 
 Changing the category of a movement does not mark it as checked, and checking it does not decide its category.
 

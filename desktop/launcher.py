@@ -688,6 +688,47 @@ if sys.platform != "win32":
 # Main
 # ---------------------------------------------------------------------------
 
+# Where the page height is written for the app (ui/widgets/flow_nav.py).
+_VIEWPORT_FILE = Path.home() / ".spendifai" / "viewport_height"
+
+
+def _track_viewport_height(window) -> None:
+    """Write the height of the page, in CSS pixels, at every load and resize.
+
+    Streamlit runs in another process and does not know the size of the
+    window; a flow step needs it to fit in one screen (UX spec 0.1). The page
+    is asked rather than the window: its height is already net of the title
+    bar and in CSS pixels, also on a scaled Windows screen.
+
+    Args:
+        window: the pywebview window showing the app.
+    """
+    from threading import Timer
+
+    pending: dict[str, Timer | None] = {"timer": None}
+
+    def _write() -> None:
+        try:
+            height = int(window.evaluate_js("window.innerHeight") or 0)
+            if height > 0:
+                tmp = _VIEWPORT_FILE.with_suffix(".tmp")
+                tmp.write_text(str(height))
+                tmp.replace(_VIEWPORT_FILE)
+        except Exception as exc:  # noqa: BLE001 - a missed height falls back to the minimum window
+            print(f"_track_viewport_height: {exc!r}", flush=True)
+
+    def _soon(*_args) -> None:
+        # A resize sends many events: write once, when it stops.
+        if pending["timer"] is not None:
+            pending["timer"].cancel()
+        pending["timer"] = Timer(0.4, _write)
+        pending["timer"].daemon = True
+        pending["timer"].start()
+
+    window.events.loaded += _soon
+    window.events.resized += _soon
+
+
 def main() -> None:
     print("main(): checking for stale instance lock...", flush=True)
     _SPENDIFAI_HOME.mkdir(parents=True, exist_ok=True)
@@ -815,6 +856,7 @@ def main() -> None:
 
                 try:
                     window.events.loaded += _on_loaded
+                    _track_viewport_height(window)
                 except Exception as exc:
                     # Older pywebview versions may not expose `.events`; fall
                     # back gracefully — UX gets the legacy double-flash but

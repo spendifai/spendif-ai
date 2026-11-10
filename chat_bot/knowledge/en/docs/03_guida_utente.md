@@ -69,7 +69,7 @@ With the **Spendif.ai iPhone app** (for testers, through TestFlight) you tell Si
 
 The app automatically shows the **onboarding wizard** (4 steps). No need to look for any menu. *In parallel* the desktop launcher kicks off the download of the LLM model best suited for your hardware: a banner at the top of every step shows the progress ("📚 78% · ~3 min").
 
-1. **Step 1 (Language):** choose the taxonomy language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
+1. **Step 1 (Language):** choose the category scheme language. The wizard suggests your browser language. This also sets date format and number separators (e.g. `31/12/2025` with `,` separator for Italian).
 2. **Step 2 (Holders):** enter your name (and the variants used by the bank, e.g. `Mario Rossi, ROSSI MARIO`). These names are used to protect your privacy in LLM prompts and to detect internal transfers.
 3. **Step 3 (Accounts):** add your bank accounts (name + bank + account type). The account type is mandatory and indicates the financial instrument: *Bank account*, *Credit card*, *Debit card*, *Prepaid card*, *Savings account* or *Cash*. At least one account is required.
 4. **Step 4 (Summary and Start):** review the summary and click **Start**. The button is disabled until the AI model is 100% downloaded (live indicator "⏳ Waiting for AI model - 78% · ~3 min"): this guarantees the Import page works immediately after the wizard. Data is saved only at this point.
@@ -145,11 +145,11 @@ You can expand the detail to see the original data of each discarded row, useful
 
 ---
 
-## 3. The Ledger: viewing all transactions
+## 3. The Transaction register: viewing all transactions
 
 **Situation:** You want to check what has been imported.
 
-Go to **Ledger**. You'll find the complete list in chronological order, with filters for date, account, category, and type (income/expense).
+Go to **Transaction register**. You'll find the complete list in chronological order, with filters for date, account, category, and type (income/expense).
 
 > **Example:** You want to see only January 2025 expenses on your current account. You set the date filter and select the account. The table updates immediately.
 
@@ -180,14 +180,14 @@ Go to **Ledger**. You'll find the complete list in chronological order, with fil
 
 ### Behavioural fan-out (category propagation)
 
-When you validate a transaction in the Ledger (or in Review), Spendif.ai automatically looks for other transactions with the same description that have not yet been categorised. If it finds any, a suggestion appears: **"Apply to N similar transactions?"**
+When you validate a transaction in the Transaction register (or in Review), Spendif.ai automatically looks for other transactions with the same description that have not yet been categorised. If it finds any, a suggestion appears: **"Apply to N similar transactions?"**
 
 - Click **Apply to all** to copy the same category/subcategory to all matching transactions (with source "History").
 - Click **No thanks** to dismiss the suggestion.
 
 The suggestion is non-intrusive: it only appears when there are actually similar uncategorised transactions. The more you use the system and validate transactions, the less manual work you will need to do in the future.
 
-### Creating rules from the Ledger
+### Creating rules from the Transaction register
 
 Select a row using the selection column (📏) and click **Create rule and apply**: a pre-filled form appears with the pattern extracted from the counterpart, plus the category and context from the transaction. A preview shows how many transactions will be matched. If the rule already exists, a yellow warning appears and the button changes to **Edit rule and apply**. After confirmation, the rule is applied retroactively to all matching transactions. A toast confirms "Rule created" or "Rule updated".
 
@@ -217,7 +217,7 @@ Go to **Review**. You'll find the transactions marked with ⚠️. For each one 
 
 **Bulk validation:** select the transactions you are sure about and click **Valida selezionate** to confirm them all at once. When you validate a transaction you are telling Spendif.ai: "I have seen this expense and confirm it is correct". Validation does not change the category, and it is not removed if the category changes later (by rule or AI). Only an explicit click on the checkbox removes it.
 
-**Behavioural fan-out:** in Review as well, after validating a transaction, Spendif.ai offers to apply the same category to similar uncategorised transactions. See the "Behavioural fan-out" section in the Ledger chapter for details.
+**Behavioural fan-out:** in Review as well, after validating a transaction, Spendif.ai offers to apply the same category to similar uncategorised transactions. See the "Behavioural fan-out" section in the Transaction register chapter for details.
 
 > **Example:** "PAGAMENTO POS 00112 FARMACIA CENTRALE" was classified as *Casa* but you know it's *Salute*. You correct it once, and if you saved a rule that correction will be applied automatically to future imports.
 
@@ -240,7 +240,7 @@ From that point on, every transaction containing those words is classified autom
 
 **Re-run all rules at once**
 
-If you have created many rules across different sessions and want to apply them all at once to your entire history, use the **▶️ Esegui tutte le regole** button at the bottom of the section. Check the confirmation checkbox and click the button: all rules are applied to every transaction in the ledger, not just those pending review. When finished, it will tell you how many transactions were updated.
+If you have created many rules across different sessions and want to apply them all at once to your entire history, use the **▶️ Esegui tutte le regole** button at the bottom of the section. Check the confirmation checkbox and click the button: all rules are applied to every transaction in the transaction register, not just those pending review. When finished, it will tell you how many transactions were updated.
 
 > **Practical example with three rule types:**
 > - *Exact match:* `NETFLIX.COM` → Abbonamenti → Streaming (matches only if the description is exactly that)
@@ -310,17 +310,17 @@ Use the filters at the top to narrow down to a specific period or account.
 
 - **Transfers** between your own accounts are neither income nor expenses and do not appear.
 - A **refund** (a return, money back on a purchase: an income movement with an expense category) lowers that expense in its month instead of counting as income. The same holds for the flow diagram below.
-- If a month looks odd, for example a very large income, check its category in the **Ledger**: the chart shows movements as they are categorised.
+- If a month looks odd, for example a very large income, check its category in the **Transaction register**: the chart shows movements as they are categorised.
 
-### Taxonomy tree filter
+### Category scheme tree filter
 
-In the Analytics page (and the Taxonomy page) a **tree filter** is available that shows the full context / category / subcategory hierarchy with collapsible checkboxes. You can:
+In the Analytics page (and the Category scheme page) a **tree filter** is available that shows the full context / category / subcategory hierarchy with collapsible checkboxes. You can:
 - Expand and collapse tree nodes
 - Select a parent node to automatically select all children
 - Use the **Select all** / **Deselect all** buttons for quick operations
 - Tri-state indicators show whether a node is fully selected, partially selected, or deselected
 
-> **Note:** The tree filter is only available in analysis pages (Analytics, Taxonomy). It is not present in Ledger and Review, where flat filters are faster for daily transaction work.
+> **Note:** The tree filter is only available in analysis pages (Analytics, Category scheme). It is not present in Transaction register and Review, where flat filters are faster for daily transaction work.
 
 ### Counterpart associations (auto-learning)
 
@@ -334,7 +334,7 @@ For each counterpart it shows:
   - 🟡 **0.50-0.89**: mixed (e.g. AUTOGRILL: almost always Meals & lodging, sometimes Transport)
   - 🔴 **< 0.50** — heterogeneous (e.g. AMAZON: Technology, Food, Clothing...)
 
-> **How it works:** Spendif.ai only counts transactions you have **validated** (the checkbox in Ledger or Review). The more transactions you validate, the more the system learns. When you import new files, counterparts with high homogeneity are classified automatically from history — without calling the AI.
+> **How it works:** Spendif.ai only counts transactions you have **validated** (the checkbox in Transaction register or Review). The more transactions you validate, the more the system learns. When you import new files, counterparts with high homogeneity are classified automatically from history, without calling the AI.
 
 ---
 
@@ -476,7 +476,7 @@ At the top of the page, a sentence tells you what to download now, with the exac
 
 **How far back we ask.** The list only looks at the last 4 complete months: a quarter plus a month to catch up. Periods without transactions older than that are not asked for: a line at the bottom counts them, so you know they are there. If an account has had no transactions since before those 4 months, you have probably closed it and we suggest *I no longer use it*; if you still use it, you resume from the day after the last month loaded, so no new gap opens.
 
-**Transactions dated in the future.** A transaction dated after the day of the import cannot exist: usually the date was misread from the bank's file (day and month swapped, a value date, a footer line). The import neither drops it nor puts it in the ledger: it **sets it aside**, already with description and category, and the import summary tells you. Here in the Checklist you find the table of the transactions set aside: date read, account, description, amount and the **correct date**, already proposed when swapping day and month gives a past date (2 December becomes 12 February). Choose *Import with this date* or *Discard* and press *Apply*. A transaction already in the ledger is not inserted twice. While set aside they count nowhere, and the list never asks for periods still to come.
+**Transactions dated in the future.** A transaction dated after the day of the import cannot exist: usually the date was misread from the bank's file (day and month swapped, a value date, a footer line). The import neither drops it nor puts it in the transaction register: it **sets it aside**, already with description and category, and the import summary tells you. Here in the Checklist you find the table of the transactions set aside: date read, account, description, amount and the **correct date**, already proposed when swapping day and month gives a past date (2 December becomes 12 February). Choose *Import with this date* or *Discard* and press *Apply*. A transaction already in the transaction register is not inserted twice. While set aside they count nowhere, and the list never asks for periods still to come.
 
 **An account you no longer use.** If you closed a card or an account, press *I no longer use it* under its name and pick the closing date (we suggest the end of the last month with transactions). From then on the Checklist stops asking for it, including the missing months before closing: you find them summed up in *Closed accounts*, where you can also press *Reopen*. Transactions already loaded stay, in the reports too, and its column in the table is marked as closed. You can also close and reopen an account from **Settings**, in the account list.
 
@@ -702,7 +702,7 @@ Spendif.ai handles this automatically (it's called "card-account reconciliation"
 **I want to export the data.**
 In Analytics you'll find the **Esporta** button which generates HTML, CSV, or XLSX.
 
-**I changed the Taxonomy but the old transactions haven't updated.**
+**I changed the Category scheme but the old transactions haven't updated.**
 Old categories stay as they are. You can reprocess them manually from the Review page or by re-applying the rules.
 
 ---

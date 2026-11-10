@@ -3,7 +3,8 @@
 Check List -> Import -> Counterparts -> Mixed categories -> Transfers ->
 Report, in the immersive
 layout of the onboarding. Each step renders the regular page under a header
-with "Step n of N", Back, Next and Leave. Leaving saves the step; the menu
+with "Step n of N" and above the bar with Back, Leave and the one primary
+action (ui/widgets/flow_nav.py). Leaving saves the step; the menu
 entry reopens the workflow where it was left, skipping the steps the data
 has closed in the meantime (GuidedFlowService.resume).
 """
@@ -15,6 +16,7 @@ import streamlit as st
 
 from services.guided_flow_service import STEPS, GuidedFlowService
 from ui.i18n import t
+from ui.widgets import flow_nav
 from ui.widgets.immersive import GUIDED_RETURN, GUIDED_STEP, hide_chrome
 
 
@@ -71,20 +73,22 @@ def render_guided_page(engine, render_step: Callable[[str, object], None]) -> No
     is_last = idx == len(STEPS) - 1
 
     st.caption(t("guided.step_of", n=idx + 1, total=len(STEPS), name=t(f"guided.step.{step}")))
-    col_back, col_next, col_exit = st.columns([1, 1, 2])
-    if col_back.button(t("guided.back"), key="guided_back", disabled=idx == 0, width="stretch"):
-        _move(flow_svc, STEPS[idx - 1])
-    if col_next.button(
-        t("guided.finish") if is_last else t("guided.next"),
-        key="guided_next", type="primary", width="stretch",
-    ):
-        if is_last:
-            # Round complete: the next one starts from what to load, and the
-            # user stays on the report, now with the sidebar back.
-            _leave(flow_svc, STEPS[0], "report")
-        _move(flow_svc, STEPS[idx + 1])
-    if col_exit.button(t("guided.exit"), key="guided_exit"):
-        _leave(flow_svc, step, st.session_state.get(GUIDED_RETURN) or "home")
-    st.divider()
 
+    # The step first, the bar after it (UX spec 0.1): the step hands the bar
+    # its choices not saved and whether it has an action of its own to do.
+    flow_nav.begin_step()
     render_step(step, engine)
+
+    def _finish() -> None:
+        # Round complete: the next one starts from what to load, and the
+        # user stays on the report, now with the sidebar back.
+        _leave(flow_svc, STEPS[0], "report")
+
+    flow_nav.render_bar(
+        back_label=t("guided.back"),
+        on_back=(lambda: _move(flow_svc, STEPS[idx - 1])) if idx > 0 else None,
+        leave_label=t("guided.exit"),
+        on_leave=lambda: _leave(flow_svc, step, st.session_state.get(GUIDED_RETURN) or "home"),
+        next_label=t("guided.finish") if is_last else t("guided.next"),
+        on_next=_finish if is_last else (lambda: _move(flow_svc, STEPS[idx + 1])),
+    )

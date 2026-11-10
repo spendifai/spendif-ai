@@ -24,6 +24,7 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display, format_date_display
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets import flow_nav
 from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub
 from ui.widgets.written_rules import remember, rewrite_pending, show_written_rules, write_and_apply
 
@@ -60,8 +61,20 @@ def _render_movements(
     cat_options: list[str],
     date_fmt: str,
     fmt,
+    next_desc: str | None = None,
 ) -> None:
-    """The movements of one counterpart still without a category set by the user."""
+    """The movements of one counterpart still without a category set by the user.
+
+    Args:
+        desc: the counterpart.
+        flow_svc: reads the movements still to see.
+        tx_svc: writes the categories.
+        cat_options: the category menu, "" first.
+        date_fmt: strftime format of the dates shown.
+        fmt: formats an amount for display.
+        next_desc: in a flow, the counterpart the secondary action opens
+            after saving this one; None when this is the last one.
+    """
     txs = flow_svc.uncategorized_movements(desc)
     col_date = t("mixed.col_date")
     col_amount = t("mixed.col_amount")
@@ -87,7 +100,7 @@ def _render_movements(
         width="stretch",
         key=f"mx_editor_{desc}",
     )
-    if st.button(t("mixed.done_btn"), type="primary", key=f"mx_done_{desc}"):
+    def _save() -> None:
         # Every movement shown with a category counts as categorized by the
         # user, also the ones left as they were: the next round shows only
         # what a later import adds. Done here is not checked: whether the
@@ -96,7 +109,21 @@ def _render_movements(
             cat, sub = split_cat_sub(edited.at[idx, col_cat] or "")
             if cat:
                 tx_svc.update_category(df.at[idx, "_id"], cat, sub, origin="mixed")
-        st.session_state.pop(_OPEN, None)
+
+    if not flow_nav.in_flow():
+        if st.button(t("mixed.done_btn"), type="primary", key=f"mx_done_{desc}"):
+            _save()
+            st.session_state.pop(_OPEN, None)
+            st.rerun()
+        return
+    # In a flow the bar saves (UX spec 1): the categories changed here are the
+    # step's choices not saved, and the next counterpart opens with a
+    # secondary action that saves this one first.
+    changed = sum(1 for idx in range(len(df)) if (edited.at[idx, col_cat] or "") != (df.at[idx, col_cat] or ""))
+    flow_nav.offer_save(changed, _save)
+    if next_desc and st.button(t("mixed.next_open"), key=f"mx_next_{desc}"):
+        _save()
+        st.session_state[_OPEN] = next_desc
         st.rerun()
 
 
@@ -166,4 +193,7 @@ def render_mixed_page(engine) -> None:
                 st.rerun()
 
             if st.session_state.get(_OPEN) == desc:
-                _render_movements(desc, flow_svc, tx_svc, cat_options, date_fmt, fmt)
+                askable = [x["description"] for x in items if not x.get("is_multi_category")]
+                pos = askable.index(desc)
+                next_desc = askable[pos + 1] if pos + 1 < len(askable) else None
+                _render_movements(desc, flow_svc, tx_svc, cat_options, date_fmt, fmt, next_desc)

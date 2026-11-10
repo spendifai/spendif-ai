@@ -9,12 +9,12 @@
 | Page | Purpose |
 |---|---|
 | **Import** | Upload CSV/XLSX files, start the processing pipeline |
-| **Ledger** | Table view of all imported transactions |
+| **Transaction register** | Table view of all imported transactions |
 | **Edit several movements** | Bulk operations: category, context, internal transfer, **deletion by filter** |
 | **Analytics** | Aggregated charts and reports by period/account/category |
 | **Review** | Transactions with uncertain classification or requiring review |
 | **Rules** | Management of deterministic categorization rules |
-| **Taxonomy** | Customizable category/subcategory structure |
+| **Category scheme** | Customizable category/subcategory structure |
 | **Settings** | LLM backend, API keys, date/amount formats, language |
 | **Checklist** | Month × account pivot table: presence and quantity of transactions; what to load for the last 4 months, files prepared per account, closed accounts |
 | **Load your bank statement** | Guided path in steps, where every session starts: Checklist, Import, Spending, Mixed categories, Transfers, Income, Report. Picks up from the step left |
@@ -91,7 +91,7 @@ The category is assigned in the following order; the first match wins:
 3. **LLM** — the model configured in Settings; receives the sanitized description
 4. **Fallback** — category "Altro" if all previous steps fail
 
-The **subcategory is the source of truth**: if the LLM or a rule assigns a subcategory present in the taxonomy, the parent category is derived automatically.
+The **subcategory is the source of truth**: if the LLM or a rule assigns a subcategory present in the category scheme, the parent category is derived automatically.
 
 ---
 
@@ -109,7 +109,7 @@ The **subcategory is the source of truth**: if the LLM or a rule assigns a subca
 When you save a new rule, it is applied immediately to **all** transactions already present in the database, not just to future imports.
 
 ### Run All Rules
-The **▶️ Esegui tutte le regole** button applies all active rules to every transaction in the ledger at once. Useful after creating multiple rules in different sessions or after importing historical data. The operation requires confirmation via checkbox; upon completion it shows how many transactions were updated.
+The **▶️ Esegui tutte le regole** button applies all active rules to every transaction in the transaction register at once. Useful after creating multiple rules in different sessions or after importing historical data. The operation requires confirmation via checkbox; upon completion it shows how many transactions were updated.
 
 ### Priority
 Rules are evaluated in descending priority order (`priority` field, default 10). In case of equal priority, the order is stable but not guaranteed. The **first matching rule wins** — processing stops at the first match found.
@@ -120,7 +120,7 @@ Rules are evaluated in descending priority order (`priority` field, default 10).
 
 When the bank charges the monthly credit card total to the current account, the individual card expenses and the cumulative debit on the account would be counted twice. Spendif.ai resolves this automatically:
 
-- Card transactions remain visible in the Ledger
+- Card transactions remain visible in the Transaction register
 - The aggregated debit on the account is marked as an internal transfer (🔄) and excluded from totals
 
 No configuration required. If you still see a duplicate, check in Review.
@@ -143,7 +143,7 @@ An internal transfer is a transfer between two of your own accounts (e.g., "Tran
 
 **Transfers step of Load your bank statement:** shows the pairs of the last 4 months, where the user answers yes (a transfer) or no (kept apart, never proposed again), and the one-sided transfers, where the user says once per beneficiary where the money went: *an account of mine not loaded yet*, *an account of mine I do not follow* (stays a transfer) or *another person* (becomes spending or income, also in later imports). The beneficiary is recognised by the IBAN in the description, otherwise by the cleaned description.
 
-**How it is marked:** 🔄 icon in the Ledger, excluded from Analytics totals.
+**How it is marked:** 🔄 icon in the Transaction register, excluded from Analytics totals.
 
 **"Re-run internal transfer detection" button** in Review: re-runs detection and cross-account pairing on the whole history. Useful if you imported both sides of the transfer in separate sessions.
 
@@ -191,11 +191,11 @@ Sanitization occurs in memory; the original data is never modified in the databa
 
 ---
 
-## Taxonomy
+## Category scheme
 
 2-level structure: **Category → Subcategory**.
 
-- Editable from the Taxonomy page without restarting the app
+- Editable from the Category scheme page without restarting the app
 - Default categories: Alimentari, Casa, Trasporti, Salute, Svago, Abbonamenti, Utenze, Istruzione, Lavoro, Finanza, Viaggi, Regali, Tasse, Altro + income categories
 - You can add custom subcategories without touching the code
 
@@ -275,7 +275,7 @@ The **✅ Checklist** page shows a **month × account** pivot table with the num
 - **Files per account:** the file to import is prepared under each account; the import button hands them all to the Import page, which already knows the account of each one.
 - **Closed accounts:** *I no longer use it* records the closing date (`account.closed_on`); from then on the account is not asked for, the movements already loaded stay and *Reopen* brings it back.
 - **Estimated time:** Import estimates the duration from the number of rows and the pace of the previous imports on this computer (`import_job.n_rows`), then follows the pace observed during the run.
-- **Dates in the future:** a movement dated after the day of the import does not enter the ledger: it is set aside whole (`held_movement`), and here the date is corrected (proposed with day and month swapped when that gives a past date) to import it, or it is discarded. Months after the current one never count as loaded.
+- **Dates in the future:** a movement dated after the day of the import does not enter the transaction register: it is set aside whole (`held_movement`), and here the date is corrected (proposed with day and month swapped when that gives a past date) to import it, or it is discarded. Months after the current one never count as loaded.
 
 ### Layout
 
@@ -329,8 +329,8 @@ Main tables:
 | `account` | The user's accounts, with optional closing date (`closed_on`) |
 | `category_rule` | User categorization rules |
 | `description_rule` | Bulk description cleaning rules |
-| `taxonomy_category` | Taxonomy categories |
-| `taxonomy_subcategory` | Taxonomy subcategories |
+| `taxonomy_category` | Categories of the scheme |
+| `taxonomy_subcategory` | Subcategories of the scheme |
 | `import_job` | Current state of the import job, with total rows (`n_rows`) for the time estimate |
 | `user_settings` | User preferences (date format, separators, LLM, contexts) |
 
@@ -340,7 +340,7 @@ Schema migrations are idempotent: they run automatically at every startup withou
 
 ## REST API
 
-The FastAPI layer (`api/`) exposes the same ledger features over HTTP/JSON — independent of the Streamlit UI, usable from scripts, automation, or future mobile/desktop apps.
+The FastAPI layer (`api/`) exposes the same transaction register features over HTTP/JSON, independent of the Streamlit UI, usable from scripts, automation, or future mobile/desktop apps.
 
 **Port:** `8000` · **Interactive docs:** `http://localhost:8000/docs`
 
@@ -359,7 +359,7 @@ The FastAPI layer (`api/`) exposes the same ledger features over HTTP/JSON — i
 | PATCH | `/rules/category/{id}` | Update rule |
 | DELETE | `/rules/category/{id}` | Delete rule |
 | POST | `/rules/category/apply-to-review` | Apply rules to pending transactions |
-| POST | `/rules/category/apply-to-all` | Apply rules to entire ledger |
+| POST | `/rules/category/apply-to-all` | Apply rules to entire transaction register |
 | GET/POST/DELETE | `/rules/description` | Description rule CRUD |
 | GET | `/settings` | All settings (API keys redacted) |
 | GET/PUT | `/settings/{key}` | Read/write setting |

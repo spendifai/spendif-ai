@@ -31,7 +31,7 @@ Al primo avvio l'app mostra automaticamente il **wizard di onboarding** (4 step)
 
 | Step | Cosa si configura |
 |---|---|
-| **1 — Lingua** | Lingua della tassonomia di default (italiano, inglese, francese, tedesco, spagnolo). Pre-selezionata dalla lingua del browser. Influenza anche il formato data e i separatori numerici. |
+| **1. Lingua** | Lingua delle categorie di partenza (italiano, inglese, francese, tedesco, spagnolo). Pre-selezionata dalla lingua del browser. Influenza anche il formato data e i separatori numerici. |
 | **2 — Titolari** | Nomi dei titolari del conto (obbligatori). Usati per PII redaction e rilevamento giroconti. |
 | **3 — Conti** | Conti bancari (nome + banca + tipo conto obbligatorio). Facoltativi: si può saltare con avviso e aggiungere in seguito dalle Impostazioni. |
 | **4 — Conferma** | Riepilogo e pulsante "Inizia!" — solo qui i dati vengono scritti nel DB. |
@@ -119,7 +119,7 @@ Mario Rossi, Anna Bianchi
 
 **Percorso:** Impostazioni → Formato visualizzazione
 
-Controlla come date e importi vengono mostrati nel Ledger, Analisi e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
+Controlla come date e importi vengono mostrati nel Registro dei movimenti, Analisi e Review. Non influenza il database (che usa sempre ISO 8601 e Numeric).
 
 ### Formato data
 
@@ -161,16 +161,16 @@ Viene passata al prompt del categorizzatore LLM per aiutarlo a interpretare corr
 
 **Percorso:** Impostazioni → 🔄 Modalità Giroconti
 
-I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Ledger, Analisi, Report).
+I giroconti (trasferimenti interni tra tuoi conti) vengono **sempre rilevati e sempre salvati** nel database, indipendentemente dalla modalità scelta. Questo garantisce la riconciliazione e l'integrità dei dati. La modalità controlla **solo la visibilità** nelle viste (Registro dei movimenti, Analisi, Report).
 
-| Modalità | Comportamento nelle viste (Ledger, Analisi, Report) |
+| Modalità | Comportamento nelle viste (Registro dei movimenti, Analisi, Report) |
 |---|---|
 | **Mostra (neutral)** | Le righe 🔄 sono visibili (grigie/neutre), escluse dai totali entrate/uscite |
 | **Escludi dalle viste** | Le righe 🔄 non compaiono nelle schermate (ma restano nel database) |
 
-La modalità si applica globalmente. Puoi sovrascriverla per singola vista usando il checkbox *Nascondi giroconti* nel Ledger.
+La modalità si applica globalmente. Puoi sovrascriverla per singola vista usando il checkbox *Nascondi giroconti* nel Registro dei movimenti.
 
-> **Nota tecnica:** i giroconti sono marcati come `internal_in`/`internal_out` nel ledger. Anche con modalità "Escludi", restano disponibili per riconciliazione e audit.
+> **Nota tecnica:** i giroconti sono marcati come `internal_in`/`internal_out` nel Registro dei movimenti. Anche con modalità "Escludi", restano disponibili per riconciliazione e audit.
 
 ---
 
@@ -181,7 +181,7 @@ La modalità si applica globalmente. Puoi sovrascriverla per singola vista usand
 Lista libera di etichette per segmentare le spese per contesto (es. `Quotidianità`, `Lavoro`, `Vacanza`).
 
 - Aggiungi/rimuovi contesti liberamente
-- Assegna un contesto a ogni transazione dal **Ledger** (colonna Contesto)
+- Assegna un contesto a ogni transazione dal **Registro dei movimenti** (colonna Contesto)
 - Usa il filtro Contesto in Analisi per confrontare i periodi (es. "quanto ho speso in vacanza vs quotidianità?")
 
 **Default:** `Quotidianità`, `Lavoro`, `Vacanza`
@@ -581,7 +581,7 @@ Alla prima installazione il database viene inizializzato con questi valori:
 
 ```
 [ ] 1. Avvia l'app → il wizard di onboarding appare automaticamente
-[ ] 2. Step 1: scegli la lingua della tassonomia
+[ ] 2. Step 1: scegli la lingua dello schema categorie
 [ ] 3. Step 2: inserisci il tuo nome (e varianti usate dalla banca)
 [ ] 4. Step 3: aggiungi i tuoi conti bancari (o salta e aggiungili dopo)
 [ ] 5. Step 4: clicca "Inizia!" per completare la configurazione

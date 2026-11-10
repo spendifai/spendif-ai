@@ -91,7 +91,7 @@
   },
   {
     "q": "Can I correct a wrongly assigned category?",
-    "a": "Yes. Go to Review or the Ledger, find the transaction, select the correct category from the dropdown and save. You can also choose to propagate the correction to all similar transactions.",
+    "a": "Yes. Go to Review or the Transaction register, find the transaction, select the correct category from the dropdown and save. You can also choose to propagate the correction to all similar transactions.",
     "page": "review"
   },
   {
@@ -111,7 +111,7 @@
   },
   {
     "q": "How do I validate multiple transactions at once?",
-    "a": "On the Review page (or in the Ledger), select the transactions you are sure about and click Validate selected. They are all confirmed at once and the ⚠️ flag is removed.",
+    "a": "On the Review page (or in the Transaction register), select the transactions you are sure about and click Validate selected. They are all confirmed at once and the ⚠️ flag is removed.",
     "page": "review"
   },
   {
@@ -135,28 +135,28 @@
     "page": "review"
   },
   {
-    "q": "How do I filter transactions in the Ledger?",
-    "a": "The Ledger has filters for: period (with quick buttons Current month, Previous month, Last 3 months, Current year, All), bank account, category and type (income/expense). Filters are applied immediately.",
+    "q": "How do I filter transactions in the Transaction register?",
+    "a": "The Transaction register has filters for: period (with quick buttons Current month, Previous month, Last 3 months, Current year, All), bank account, category and type (income/expense). Filters are applied immediately.",
     "page": "ledger"
   },
   {
-    "q": "How do I validate a transaction in the Ledger?",
+    "q": "How do I validate a transaction in the Transaction register?",
     "a": "In the Validated column, click the transaction's checkbox. The save is immediate — no need to press Save. The ⚠️ flag is removed automatically.",
     "page": "ledger"
   },
   {
-    "q": "How do I create a rule directly from a transaction in the Ledger?",
+    "q": "How do I create a rule directly from a transaction in the Transaction register?",
     "a": "Select the row in the selection column (📏) and click Create rule and apply. A pre-filled form appears with the pattern, category and context. After confirmation the rule is applied retroactively to all matching transactions.",
     "page": "ledger"
   },
   {
     "q": "How do I mark a transaction as an internal transfer?",
-    "a": "In the Ledger, in the 🔄 Internal transfer column, select the checkbox and save. You can also use the Edit several movements page to propagate the flag to all transactions with the same description.",
+    "a": "In the Transaction register, in the 🔄 Internal transfer column, select the checkbox and save. You can also use the Edit several movements page to propagate the flag to all transactions with the same description.",
     "page": "ledger"
   },
   {
     "q": "Can I see the original bank text for a transaction?",
-    "a": "Yes. In the Ledger enable the Show raw option in the second filter row. A Raw description column is added with the original bank description, useful for comparing it with the processed one.",
+    "a": "Yes. In the Transaction register enable the Show raw option in the second filter row. A Raw description column is added with the original bank description, useful for comparing it with the processed one.",
     "page": "ledger"
   },
   {
@@ -171,7 +171,7 @@
   },
   {
     "q": "Can I apply all rules to all transactions at once?",
-    "a": "Yes. On the Rules page, use the Run all rules button. Check the confirmation checkbox and click: all rules are applied to every transaction in the ledger. At the end it shows how many transactions were updated.",
+    "a": "Yes. On the Rules page, use the Run all rules button. Check the confirmation checkbox and click: all rules are applied to every transaction in the transaction register. At the end it shows how many transactions were updated.",
     "page": "rules"
   },
   {
@@ -322,7 +322,7 @@
   },
   {
     "q": "What happens when Spendif.AI starts for the first time?",
-    "a": "The initial setup wizard automatically appears in 4 steps: 1) Taxonomy language, 2) Account holders (name and variants), 3) Bank accounts, 4) Confirm and start. You do not need to look for any menu.",
+    "a": "The initial setup wizard automatically appears in 4 steps: 1) Category scheme language, 2) Account holders (name and variants), 3) Bank accounts, 4) Confirm and start. You do not need to look for any menu.",
     "page": "settings"
   },
   {
@@ -331,9 +331,9 @@
     "page": "settings"
   },
   {
-    "q": "Can I change the taxonomy language after installation?",
-    "a": "Yes. Go to Settings → Reset taxonomy, choose the new language and confirm. Existing categories are replaced with those from the chosen template. Note: transactions already categorised will keep the old categories.",
-    "page": "taxonomy"
+    "q": "Can I change the category scheme language after installation?",
+    "a": "Yes. Go to Settings → Reset category scheme, choose the new language and confirm. Existing categories are replaced with those from the chosen template. Note: transactions already categorised will keep the old categories.",
+    "page": "category scheme"
   },
   {
     "q": "How do I reset a file schema if it was recognised incorrectly?",
@@ -362,7 +362,7 @@
   },
   {
     "q": "Does Spendif.AI handle income too (salary, reimbursements)?",
-    "a": "Yes. Spendif.AI imports and categorises both expenses and income. The taxonomy categories include income types (salary, rental income, reimbursements, etc.). Reports show both income and expenses."
+    "a": "Yes. Spendif.AI imports and categorises both expenses and income. The category scheme categories include income types (salary, rental income, reimbursements, etc.). Reports show both income and expenses."
   },
   {
     "q": "Does Spendif.AI handle transactions in foreign currencies?",
@@ -469,7 +469,7 @@
   },
   {
     "q": "If I make a bank transfer to my child, is it counted as an expense or recognised as an internal transfer?",
-    "a": "It depends. If the recipient is one of your own accounts (e.g. a savings account), Spendif.AI detects it as an internal transfer and excludes it from expense totals. If it is a transfer to another person, it is counted as an outgoing expense. You can always manually mark it as an internal transfer in the Ledger.",
+    "a": "It depends. If the recipient is one of your own accounts (e.g. a savings account), Spendif.AI detects it as an internal transfer and excludes it from expense totals. If it is a transfer to another person, it is counted as an outgoing expense. You can always manually mark it as an internal transfer in the Transaction register.",
     "page": "ledger"
   },
   {
@@ -487,7 +487,7 @@
   },
   {
     "q": "How many banks or cards can I connect at the same time?",
-    "a": "There is no limit. You can add as many accounts as you want: current account, credit card, debit card, prepaid card, savings account and cash. Each account is independent and data is unified in the Ledger.",
+    "a": "There is no limit. You can add as many accounts as you want: current account, credit card, debit card, prepaid card, savings account and cash. Each account is independent and data is unified in the Transaction register.",
     "page": "settings"
   },
   {
@@ -601,7 +601,7 @@
   },
   {
     "q": "Does Spendif.AI alert me when a bill, subscription or instalment is about to be due?",
-    "a": "No. Spendif.AI does not have a reminder or automatic alert system for upcoming deadlines. You can see recurring expenses in the Ledger and Reports, but you will not receive proactive alerts."
+    "a": "No. Spendif.AI does not have a reminder or automatic alert system for upcoming deadlines. You can see recurring expenses in the Transaction register and Reports, but you will not receive proactive alerts."
   },
   {
     "q": "Does Spendif.AI send me a weekly or monthly summary by email?",
@@ -631,7 +631,7 @@
   },
   {
     "q": "Is Spendif.AI available in languages other than Italian?",
-    "a": "The taxonomy is currently available in Italian. Support for other European languages (English, Spanish, French, German) is on the roadmap but not yet available.",
+    "a": "The category scheme is currently available in Italian. Support for other European languages (English, Spanish, French, German) is on the roadmap but not yet available.",
     "page": "settings"
   },
   {
@@ -687,7 +687,7 @@
   },
   {
     "q": "Does it alert me when a bill, subscription or instalment is coming up?",
-    "a": "No. Spendif.AI does not have a reminder system for upcoming deadlines. You can see past recurring expenses in the Ledger and Reports, but you will not receive proactive alerts for upcoming bills or instalments."
+    "a": "No. Spendif.AI does not have a reminder system for upcoming deadlines. You can see past recurring expenses in the Transaction register and Reports, but you will not receive proactive alerts for upcoming bills or instalments."
   },
   {
     "q": "Does it send a weekly or monthly summary without me having to open the app?",
@@ -695,7 +695,7 @@
   },
   {
     "q": "If I receive an unusual or very large payment, does it flag it?",
-    "a": "No. Spendif.AI does not have a real-time anomaly detection system or alerts for suspicious or unusual transactions. You can spot any anomalous transactions by manually checking the Ledger."
+    "a": "No. Spendif.AI does not have a real-time anomaly detection system or alerts for suspicious or unusual transactions. You can spot any anomalous transactions by manually checking the Transaction register."
   },
   {
     "q": "Can I plan a large future expense (e.g. holiday, car, renovation) and see how long it will take to reach the target amount?",
