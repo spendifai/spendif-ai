@@ -23,6 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from core.llm_backends import LLMBackend, call_with_fallback
+from core.rule_key import exact_key, words
 from core.sanitizer import SanitizationConfig, redact_pii, restore_owner_placeholders
 from support.logging import setup_logging
 
@@ -64,6 +65,23 @@ _SYSTEM_INCOME = _PROMPTS["system_income"]
 _USER_TEMPLATE = _PROMPTS["user_template"]
 _RESPONSE_SCHEMA = _PROMPTS["response_schema"]
 
+# An answer that fails the seal goes back to the model up to three times
+# (spec 35, 4). Every retry must differ from the request before it: the
+# backends answer at temperature 0, so the same request gets the same answer.
+# The first retry sends the description alone with the rule below, the next
+# two also raise the temperature.
+_RETRY_TEMPERATURES = (0.0, 0.3, 0.6)
+_RETRY_RULE = (
+    "Use only words that appear in the description. "
+    "If the description names no recognisable counterpart, answer with an empty name."
+)
+
+# What the seal counted, for the log and the Diagnostics report (spec 35, 6).
+SEAL_STAT_KEYS = ("sent", "accepted_first", "accepted_retry", "rejected", "retry_calls")
+_SHORTEST_WORD_PIECE = 4
+
+_NULLISH_ANSWERS = {"null", "none", "n/a", "na", "nan", "-", "—"}
+
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -75,6 +93,7 @@ def clean_descriptions_batch(
     source_name: str = "unknown",
     sanitize_config: SanitizationConfig | None = None,
     progress_callback=None,  # Callable[[float], None] — overall progress 0..1 across both directional passes
+    seal_stats: dict[str, int] | None = None,
 ) -> list[dict]:
     """Extract counterpart names from transaction descriptions using two directional passes.
 
@@ -99,6 +118,14 @@ def clean_descriptions_batch(
         source_name: used in log messages only.
         sanitize_config: if provided, owner names are redacted before the LLM call
             and restored afterwards.
+        progress_callback: called with the overall progress, 0..1, across both
+            directional passes; None for no progress reporting.
+        seal_stats: counts of the seal (keys in SEAL_STAT_KEYS), incremented in
+            place so the caller can carry them to the import job; None when
+            the caller does not need them (they are still logged).
+
+    Answers that are not made of words of the original description are
+    refused and retried (spec 35): the model may only remove words.
 
     Returns:
         The same list with updated "description" fields.
@@ -107,6 +134,9 @@ def clean_descriptions_batch(
         return transactions
 
     txs = list(transactions)
+    stats = seal_stats if seal_stats is not None else {}
+    for key in SEAL_STAT_KEYS:
+        stats.setdefault(key, 0)
 
     # Split by direction — keep original index for reassembly
     expense_indices: list[int] = []
@@ -154,6 +184,7 @@ def clean_descriptions_batch(
             llm_backend, fallback_backend, batch_size, source_name, "expense",
             sanitize_config=sanitize_config,
             progress_callback=_make_pass_cb(0.0, _w_exp),
+            seal_stats=stats,
         )
 
     # ── Pass 2: income → find sender ─────────────────────────────────────────
@@ -163,6 +194,7 @@ def clean_descriptions_batch(
             llm_backend, fallback_backend, batch_size, source_name, "income",
             sanitize_config=sanitize_config,
             progress_callback=_make_pass_cb(_w_exp, _w_inc),
+            seal_stats=stats,
         )
 
     if progress_callback is not None:
@@ -172,6 +204,11 @@ def clean_descriptions_batch(
         f"clean_descriptions_batch [{source_name}]: "
         f"expenses={expense_cleaned}/{len(expense_indices)} cleaned, "
         f"income={income_cleaned}/{len(income_indices)} cleaned"
+    )
+    # Counts only: never a description or an answer of the model (spec 35, 6).
+    logger.info(
+        f"clean_descriptions_batch [{source_name}] seal: "
+        + ", ".join(f"{key}={stats[key]}" for key in SEAL_STAT_KEYS)
     )
     return txs
 
@@ -189,9 +226,17 @@ def _process_group(
     label: str,
     sanitize_config: SanitizationConfig | None = None,
     progress_callback=None,  # Callable[[float], None] — 0..1 within this directional pass
+    seal_stats: dict[str, int] | None = None,
 ) -> int:
     """Process a group of transactions (expense or income) in batches.
     Updates txs[i]["description"] in place. Returns count of cleaned descriptions.
+
+    seal_stats: counts of the seal (keys in SEAL_STAT_KEYS), incremented in
+    place; None when nobody reads them.
+
+    Every answer passes the seal against the raw description (spec 35, 3);
+    one that does not is asked again (_retry_answer) and, if no retry passes,
+    the description stays as it was.
 
     Optimization: deduplicates descriptions before sending to LLM.
     300 transactions with 40 unique descriptions → only 40 LLM calls.
@@ -203,6 +248,9 @@ def _process_group(
         3. LLM result      → restore_owner_placeholders() → real name reinstated
     """
     cleaned_count = 0
+    stats = seal_stats if seal_stats is not None else {}
+    for key in SEAL_STAT_KEYS:
+        stats.setdefault(key, 0)
 
     # ── Step 1: Dedup descriptions ────────────────────────────────────────
     # Group indices by unique raw_description → send each unique desc once
@@ -230,14 +278,19 @@ def _process_group(
         progress_callback=progress_callback,
     )
 
-    # ── Step 3: Remap results to all transactions ────────────────────────
+    # ── Step 3: Seal, retry, remap results to all transactions ───────────
+    stats["sent"] += n_unique
     for j, raw_desc in enumerate(unique_descs):
-        result = cleaned[j] if j < len(cleaned) else None
+        result = _restored_answer(cleaned[j] if j < len(cleaned) else None, sanitize_config)
         if result:
-            result = restore_owner_placeholders(result, sanitize_config)
-            result = result.strip()
-            if result.lower() in {"null", "none", "n/a", "na", "nan", "-", "—"}:
-                result = None
+            if sealed(result, raw_desc):
+                stats["accepted_first"] += 1
+            else:
+                result = _retry_answer(
+                    llm_descs[j], raw_desc, system_prompt, llm_backend, fallback_backend,
+                    source_name, label, sanitize_config, stats,
+                )
+                stats["accepted_retry" if result else "rejected"] += 1
         if result and len(result) >= 2 and result != raw_desc:
             # Apply to ALL transactions with this raw_description
             for idx in desc_to_indices[raw_desc]:
@@ -245,6 +298,131 @@ def _process_group(
                 cleaned_count += 1
 
     return cleaned_count
+
+
+def sealed(answer: str, raw_description: str) -> bool:
+    """Whether the model's counterpart is made of words of the description (spec 35, 3).
+
+    The model may only remove words: an added or rewritten word is a name it
+    invented, and an invented counterpart ends up in the ledger and in the
+    rules. Compared on words() (case, accents, punctuation do not count),
+    order free. A word of 4 letters or more may be a piece of a description
+    word, for the words banks glue together (NETFLIXCOM -> Netflix); a
+    shorter one must be there whole (Bar is not born from BARCLAYS).
+
+    Args:
+        answer: the counterpart returned by the model, owner names already
+            restored.
+        raw_description: the description as read from the file.
+
+    Returns:
+        True when the answer may become the counterpart. A description with
+        no Latin words (words() is empty, e.g. Japanese) is compared on
+        exact_key(): the answer must be a contiguous piece of it.
+    """
+    raw_words = words(raw_description)
+    if not raw_words:
+        answer_key = exact_key(answer)
+        return bool(answer_key) and answer_key in exact_key(raw_description)
+    answer_words = words(answer)
+    if not answer_words:
+        return False
+    whole_words = set(raw_words)
+    for word in answer_words:
+        if word in whole_words:
+            continue
+        if len(word) >= _SHORTEST_WORD_PIECE and any(word in raw_word for raw_word in raw_words):
+            continue
+        return False
+    return True
+
+
+def _restored_answer(answer: str | None, sanitize_config: SanitizationConfig | None) -> str | None:
+    """The model's answer as a counterpart candidate, or None when there is none.
+
+    Args:
+        answer: the name returned by the model for one description, possibly
+            with <OWNER_N> placeholders; None when the model gave nothing.
+        sanitize_config: the redaction used for the request, to put the owner
+            names back; None when nothing was redacted.
+
+    Returns:
+        The answer with owner names restored and spaces trimmed; None for an
+        empty answer or one of the placeholders models write for "nothing".
+    """
+    if not answer:
+        return None
+    restored = restore_owner_placeholders(answer, sanitize_config).strip()
+    if not restored or restored.lower() in _NULLISH_ANSWERS:
+        return None
+    return restored
+
+
+def _retry_answer(
+    llm_description: str,
+    raw_description: str,
+    system_prompt: str,
+    llm_backend: LLMBackend,
+    fallback_backend: LLMBackend | None,
+    source_name: str,
+    label: str,
+    sanitize_config: SanitizationConfig | None,
+    seal_stats: dict[str, int],
+) -> str | None:
+    """Ask again for one description whose answer failed the seal (spec 35, 4).
+
+    Exists because a refused answer is often a slip of the batch: alone, and
+    told to use only words of the text, the model usually gets it right.
+    Each attempt differs from the previous one (_RETRY_TEMPERATURES).
+
+    Args:
+        llm_description: the description as sent to the model (redacted,
+            non-text stripped).
+        raw_description: the description as read from the file, the seal's
+            reference.
+        system_prompt: the directional prompt (expense or income) of the pass.
+        llm_backend: primary backend.
+        fallback_backend: optional fallback backend; None for none.
+        source_name: file name, for the usage log only.
+        label: "expense" or "income", for the usage log only.
+        sanitize_config: the redaction used for the request; None when none.
+        seal_stats: counts of the seal; "retry_calls" is incremented per call.
+
+    Returns:
+        The first answer that passes the seal, or None when the model answers
+        empty (no counterpart), the call fails, or every retry is refused.
+    """
+    retry_prompt = f"{system_prompt}\n\n{_RETRY_RULE}"
+    user_prompt = _INDEXED_USER_TEMPLATE.format(
+        n=1,
+        descriptions_json=json.dumps([{"idx": 0, "name": llm_description}], ensure_ascii=False, indent=2),
+    )
+    for attempt, temperature in enumerate(_RETRY_TEMPERATURES, start=1):
+        seal_stats["retry_calls"] += 1
+        result, _backend_used = call_with_fallback(
+            primary=llm_backend,
+            system_prompt=retry_prompt,
+            user_prompt=user_prompt,
+            json_schema=_INDEXED_RESPONSE_SCHEMA,
+            temperature=temperature,
+            fallback=fallback_backend,
+            caller="description_cleaner",
+            step=f"retry_{label}_{attempt}",
+            source_name=source_name,
+            batch_size=1,
+        )
+        # A failed call stops the retries: the backend is not answering, and
+        # two more calls would only lengthen the import.
+        if result is None:
+            return None
+        items = result.get("results") if isinstance(result, dict) else None
+        names = [str(item["name"]) for item in items or [] if isinstance(item, dict) and "name" in item]
+        answer = _restored_answer(names[0] if names else None, sanitize_config)
+        if answer is None:
+            return None
+        if sealed(answer, raw_description):
+            return answer
+    return None
 
 
 # ── Indexed LLM schema ────────────────────────────────────────────────────

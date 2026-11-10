@@ -96,3 +96,10 @@ def test_the_settings_no_longer_choose_the_menu(tmp_path):
     app.run()
     assert not app.exception, app.exception
     assert "settings_menu_level" not in [s.key for s in app.selectbox]
+
+
+def test_the_workflow_entry_has_no_tooltip_left_alone_by_the_full_screen_flow():
+    app = AppTest.from_function(_sidebar, args=("home",), default_timeout=60)
+    app.run()
+    guided = next(b for b in app.sidebar.button if b.key == "nav_guided")
+    assert not guided.help

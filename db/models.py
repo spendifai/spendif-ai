@@ -272,6 +272,7 @@ def create_tables(engine=None):
     _migrate_add_account_closed_on(engine)
     _migrate_add_account_usage(engine)
     _migrate_add_import_job_n_rows(engine)
+    _migrate_add_import_job_cleaner_seal(engine)
     _migrate_add_import_job_last_ping(engine)
     _migrate_add_transaction_model_proposal(engine)
     _migrate_add_transaction_model_source(engine)
@@ -732,6 +733,14 @@ class ImportJob(Base):
     # Rows read from the job's files, duplicates included: what the time is
     # spent on, so seconds per row are computed on it. Null on older jobs.
     n_rows = Column(Integer, nullable=True)
+    # What the seal on the description cleaner counted (spec 35, 6): the
+    # descriptions sent, accepted at once or after a retry, refused at every
+    # attempt, and the retry calls. Null on jobs older than the seal.
+    cleaner_sent = Column(Integer, nullable=True)
+    cleaner_accepted_first = Column(Integer, nullable=True)
+    cleaner_accepted_retry = Column(Integer, nullable=True)
+    cleaner_rejected = Column(Integer, nullable=True)
+    cleaner_retry_calls = Column(Integer, nullable=True)
     started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime)
     # When the job last moved. A job still running whose last move is old has
@@ -1926,6 +1935,20 @@ def _migrate_add_import_job_n_rows(engine) -> None:
             conn.commit()
         except Exception:
             pass  # column already exists
+
+
+def _migrate_add_import_job_cleaner_seal(engine) -> None:
+    """Add the cleaner seal counts (spec 35, 6) to import_job when missing."""
+    from sqlalchemy import inspect as _inspect
+    from sqlalchemy import text as _text
+    existing_cols = {c["name"] for c in _inspect(engine).get_columns("import_job")}
+    seal_cols = ("cleaner_sent", "cleaner_accepted_first", "cleaner_accepted_retry", "cleaner_rejected", "cleaner_retry_calls")
+    missing = [c for c in seal_cols if c not in existing_cols]
+    if missing:
+        with engine.connect() as conn:
+            for col in missing:
+                conn.execute(_text(f"ALTER TABLE import_job ADD COLUMN {col} INTEGER"))
+            conn.commit()
 
 
 def _migrate_add_transfer_link_decision(engine) -> None:

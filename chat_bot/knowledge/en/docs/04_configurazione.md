@@ -30,7 +30,7 @@ On first launch the app automatically shows the **onboarding wizard** (4 steps).
 
 | Step | What is configured |
 |---|---|
-| **1 — Language** | Taxonomy language (Italian, English, French, German, Spanish). Pre-selected from the browser language. Also sets date format and number separators. |
+| **1. Language** | Category scheme language (Italian, English, French, German, Spanish). Pre-selected from the browser language. Also sets date format and number separators. |
 | **2 — Holders** | Account holder names (required). Used for PII redaction and internal transfer detection. |
 | **3 — Accounts** | Bank accounts (name + bank + mandatory account type). Optional: can be skipped and added later from Settings. |
 | **4 — Confirm** | Summary and "Start!" button — only here is data written to the DB. |
@@ -118,7 +118,7 @@ Mario Rossi, Anna Bianchi
 
 **Path:** Settings → Display Format
 
-Controls how dates and amounts are shown in Ledger, Analytics, and Review. Does not affect the database (which always uses ISO 8601 and Numeric).
+Controls how dates and amounts are shown in Transaction register, Analytics, and Review. Does not affect the database (which always uses ISO 8601 and Numeric).
 
 ### Date format
 
@@ -160,16 +160,16 @@ This is passed to the LLM categoriser prompt to help it correctly interpret tran
 
 **Path:** Settings → 🔄 Internal Transfer Mode
 
-Internal transfers (giroconti) between your own accounts are **always detected and always saved** to the database, regardless of the selected mode. This ensures reconciliation and data integrity. The mode controls **only the visibility** in views (Ledger, Analytics, Reports).
+Internal transfers (giroconti) between your own accounts are **always detected and always saved** to the database, regardless of the selected mode. This ensures reconciliation and data integrity. The mode controls **only the visibility** in views (Transaction register, Analytics, Reports).
 
-| Mode | Behaviour in views (Ledger, Analytics, Reports) |
+| Mode | Behaviour in views (Transaction register, Analytics, Reports) |
 |---|---|
 | **Show (neutral)** | 🔄 rows are visible (grey/neutral), excluded from income/expense totals |
 | **Exclude from views** | 🔄 rows do not appear in the UI (but remain in the database) |
 
-The mode applies globally. You can override it for a single view using the *Nascondi giroconti* checkbox in Ledger.
+The mode applies globally. You can override it for a single view using the *Nascondi giroconti* checkbox in Transaction register.
 
-> **Technical note:** internal transfers are marked as `internal_in`/`internal_out` in the ledger. Even in "Exclude" mode, they remain available for reconciliation and audit.
+> **Technical note:** internal transfers are marked as `internal_in`/`internal_out` in the transaction register. Even in "Exclude" mode, they remain available for reconciliation and audit.
 
 ---
 
@@ -180,7 +180,7 @@ The mode applies globally. You can override it for a single view using the *Nasc
 Free list of labels to segment expenses by context (e.g. `Quotidianità`, `Lavoro`, `Vacanza`).
 
 - Add/remove contexts freely
-- Assign a context to each transaction from the **Ledger** (Context column)
+- Assign a context to each transaction from the **Transaction register** (Context column)
 - Use the Context filter in Analytics to compare periods (e.g. "how much did I spend on holiday vs daily life?")
 
 **Default:** `Quotidianità`, `Lavoro`, `Vacanza`
@@ -540,7 +540,7 @@ On first installation the database is initialised with these values:
 
 ```
 [ ] 1. Launch the app → the onboarding wizard appears automatically
-[ ] 2. Step 1: choose the taxonomy language
+[ ] 2. Step 1: choose the category scheme language
 [ ] 3. Step 2: enter your name (and variants used by the bank)
 [ ] 4. Step 3: add your bank accounts (or skip and add later)
 [ ] 5. Step 4: click "Start!" to complete the setup

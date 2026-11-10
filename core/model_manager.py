@@ -20,7 +20,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
-from config import ModelInfo, get_fallback_chain, get_recommended_model
+from config import ModelInfo, get_all_models, get_fallback_chain, get_recommended_model
 
 
 def _build_fallback_chain(effective_gb: int) -> list[ModelInfo]:
@@ -253,27 +253,120 @@ def list_local_models() -> list[Path]:
     return sorted(MODELS_DIR.glob("*.gguf"))
 
 
+# ── Which local model is in use (spec 36) ────────────────────────────────────
+
+_cached_hw: dict[str, Any] | None = None
+
+
+def cached_hw() -> dict[str, Any]:
+    """detect_hw() once per process.
+
+    The automatic choice of the model runs every time a backend is built, and
+    detecting the card spawns system tools that take up to a second.
+    """
+    global _cached_hw
+    if _cached_hw is None:
+        _cached_hw = detect_hw()
+    return _cached_hw
+
+
+def in_catalog(model_path: str | Path | None) -> bool:
+    """Whether a model file is one of the tested models of the registry (spec 36, 4).
+
+    Args:
+        model_path: path or bare file name of a .gguf file; None or empty is
+            not in the catalog.
+    """
+    if not model_path:
+        return False
+    catalog_names = {m.filename.lower() for m in get_all_models()}
+    return Path(str(model_path)).name.lower() in catalog_names
+
+
+def local_catalog_model(model: ModelInfo, local_files: list[Path] | None = None) -> Path | None:
+    """The file of a registry model on disk, or None when it is not downloaded.
+
+    Args:
+        model: a registry entry.
+        local_files: the .gguf files on disk; None reads MODELS_DIR.
+    """
+    files = list_local_models() if local_files is None else local_files
+    wanted = model.filename.lower()
+    return next((f for f in files if f.name.lower() == wanted), None)
+
+
+def resolve_local_model(hw: dict[str, Any] | None = None, local_files: list[Path] | None = None) -> Path | None:
+    """The model used when the settings name none (spec 36, 3).
+
+    Replaces "the first .gguf in alphabetical order", which let any file in
+    the folder (DeepSeek-R1... sorts before Qwen... and google_gemma...) take
+    over every phase without anybody deciding it. In order: the recommended
+    model for this hardware, the largest registry model that fits, any
+    registry model (the smallest), and only when no registry model is on disk
+    a file outside the catalog, the smallest.
+
+    Args:
+        hw: the hardware as returned by detect_hw(); None uses cached_hw().
+        local_files: the .gguf files on disk; None reads MODELS_DIR.
+
+    Returns:
+        The model file, or None when the folder holds no .gguf file.
+    """
+    files = list_local_models() if local_files is None else local_files
+    if not files:
+        return None
+    for model in recommended_chain(hw if hw is not None else cached_hw()):
+        found = local_catalog_model(model, files)
+        if found:
+            return found
+    by_size = sorted(files, key=lambda f: (f.stat().st_size if f.exists() else 0, f.name.lower()))
+    in_registry = [f for f in by_size if in_catalog(f)]
+    return (in_registry or by_size)[0]
+
+
 def ensure_model_available(
     progress_callback: ProgressCallback | None = None,
+    allow_download: bool = True,
 ) -> str | None:
-    """Ensure at least one GGUF model is available. Download if needed.
+    """Make sure the recommended model is on disk, downloading it when allowed.
 
-    Returns the path to the best available model, or None if download failed.
+    Only registry models count (spec 36, 3.1): a file outside the catalog in
+    the folder no longer stops the recommended model from being downloaded.
+
+    Args:
+        progress_callback: called with (fraction 0..1, message); None for no
+            progress reporting.
+        allow_download: False when onboarding is already completed: then a
+            download of several GB never starts on its own, and the function
+            only reports the registry model chosen by resolve_local_model().
+
+    Returns:
+        The path of the model to use, or None when no registry model is on
+        disk and the download was not allowed or failed.
     """
     def _progress(pct: float, msg: str) -> None:
         if progress_callback:
             progress_callback(pct, msg)
 
-    # 1. Check existing models
+    # 1. The recommended model, or (without download) the best registry model on disk
     existing = list_local_models()
-    if existing:
-        logger.info(f"ensure_model_available: found {len(existing)} models, using {existing[0].name}")
-        _progress(1.0, f"Modello disponibile: {existing[0].name}")
-        return str(existing[0])
-
-    # 2. Detect HW and pick model
-    _progress(0.05, "Rilevamento hardware...")
     hw = detect_hw()
+    recommended = recommended_chain(hw)
+    on_disk = local_catalog_model(recommended[0], existing) if recommended else None
+    if on_disk is None and not allow_download:
+        chosen = resolve_local_model(hw, existing)
+        on_disk = chosen if chosen is not None and in_catalog(chosen) else None
+        if on_disk is None:
+            logger.info("ensure_model_available: no registry model on disk, download not allowed")
+            _progress(1.0, "Nessun modello consigliato sul disco")
+            return None
+    if on_disk is not None:
+        logger.info(f"ensure_model_available: using {on_disk.name}")
+        _progress(1.0, f"Modello disponibile: {on_disk.name}")
+        return str(on_disk)
+
+    # 2. Download the recommended model, with its fallbacks
+    _progress(0.05, "Rilevamento hardware...")
     ram_gb = hw["ram_gb"]
     vram_gb = hw["vram_gb"]
 

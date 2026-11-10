@@ -29,6 +29,7 @@ from services.guided_flow_service import GuidedFlowService
 from services.settings_service import SettingsService
 from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
 from support.formatting import format_amount_display
+from ui.components.model_notice import render_model_notice
 from ui.i18n import t
 
 
@@ -575,6 +576,8 @@ def _render_sankey(data: dict, palette, amount=None, percent: bool = False) -> N
 
 def render_home_page(engine) -> None:
     st.title(_t("home.title"))
+    # An untested local model is said here, before anything else (spec 36, 5).
+    render_model_notice(engine, key_prefix="home")
 
     if not TransactionService(engine).has_transactions():
         _render_empty_state()

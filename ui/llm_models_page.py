@@ -168,20 +168,31 @@ def _model_picker(
     from pathlib import Path
 
     if backend == "local_llama_cpp":
-        from services.llm_service import get_gguf_catalog
+        from services.llm_service import get_gguf_catalog, local_models_outside_picker_list, model_badge
         catalog = get_gguf_catalog()
         # Picker: all catalog models, downloaded ones selectable, others labelled ⬇
         options_paths: list[str] = []
         labels: dict[str, str] = {}
+
+        def badge(model_file: str) -> str:
+            # Tested or not, said next to the name (spec 36, 6).
+            kind = model_badge(model_file)
+            return f" · {t('llm_models.model_picker.' + kind)}" if kind else ""
+
         for m in catalog:
             # Use local path for downloaded models; catalog name as placeholder otherwise
             key = m.local_path if m.downloaded else m.name
             options_paths.append(key)
             size = m.local_size_gb if m.local_size_gb is not None else m.size_gb
             if m.downloaded:
-                labels[key] = f"✓ {m.name} ({size} GB)"
+                labels[key] = f"✓ {m.name} ({size} GB){badge(key)}"
             else:
-                labels[key] = f"⬇ {m.name} ({size} GB) — da scaricare"
+                labels[key] = f"⬇ {m.name} ({size} GB) · da scaricare{badge(m.name)}"
+        # Files on disk the list above does not know: what is really in the folder.
+        for local_file in local_models_outside_picker_list():
+            key = str(local_file)
+            options_paths.append(key)
+            labels[key] = f"✓ {local_file.stem} ({round(local_file.stat().st_size / (1024 ** 3), 2)} GB){badge(key)}"
         return _selectbox_or_custom(
             options=options_paths,
             current=current_value,

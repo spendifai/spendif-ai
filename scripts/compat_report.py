@@ -55,7 +55,7 @@ MAX_XML_BYTES = 64 * 1024
 # A saved email carries headers and, sometimes, a second encoding of the body.
 MAX_MAIL_BYTES = 1024 * 1024
 MAX_FIELD = 80
-KNOWN_SCHEMAS = {"1", "2", "3"}
+KNOWN_SCHEMAS = {"1", "2", "3", "4"}
 
 # Checkbox labels in .github/ISSUE_TEMPLATE/test_report.yml, in order.
 OUTCOMES = (

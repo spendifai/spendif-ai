@@ -69,7 +69,7 @@ Con l'app **Spendif.ai per iPhone** (per i tester, tramite TestFlight) dici a Si
 
 L'app ti mostra automaticamente il **wizard di configurazione iniziale** (4 step). Non devi cercare nessun menu. *In parallelo* parte il download del modello LLM più adatto al tuo hardware: un banner in cima a ogni step mostra il progresso ("📚 78% · ~3 min").
 
-1. **Step 1 (Lingua):** scegli la lingua della tassonomia. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
+1. **Step 1 (Lingua):** scegli la lingua dello schema categorie. Il wizard suggerisce la lingua del tuo browser. Questa scelta imposta anche il formato delle date e i separatori numerici (es. `31/12/2025` con separatore `,` per l'italiano).
 2. **Step 2 (Titolari):** inserisci il tuo nome (e le varianti usate dalla banca, es. `Mario Rossi, ROSSI MARIO`). Questi nomi vengono usati per proteggere la tua privacy nei prompt LLM e per riconoscere i tuoi bonifici interni.
 3. **Step 3 (Conti):** aggiungi i tuoi conti bancari (nome + banca + tipo conto). Il tipo conto è obbligatorio e indica lo strumento finanziario: *Conto corrente*, *Carta di credito*, *Carta di debito*, *Carta prepagata*, *Conto risparmio* o *Contanti*. Almeno un conto è obbligatorio.
 4. **Step 4 (Riepilogo e Avvia):** controlla il riepilogo e clicca **Avvia**. Il bottone è disabilitato finché il modello AI non è scaricato al 100% (indicatore live "⏳ Attendi modello AI - 78% · ~3 min"): garantisce che la pagina Import sia subito utilizzabile dopo il wizard. Solo a questo punto i dati vengono salvati.
@@ -145,11 +145,11 @@ Puoi espandere il dettaglio per vedere i dati originali di ogni riga scartata, u
 
 ---
 
-## 3. Il Ledger: vedere tutte le transazioni
+## 3. Il Registro dei movimenti: vedere tutte le transazioni
 
 **Situazione:** Vuoi controllare cosa è stato importato.
 
-Vai su **Ledger**. Trovi la lista completa in ordine cronologico, con filtri per data, conto, categoria e tipo (entrata/uscita).
+Vai su **Registro dei movimenti**. Trovi la lista completa in ordine cronologico, con filtri per data, conto, categoria e tipo (entrata/uscita).
 
 > **Esempio:** Vuoi vedere solo le spese di gennaio 2025 sul conto corrente. Imposti il filtro data e selezioni il conto. La tabella si aggiorna subito.
 
@@ -180,14 +180,14 @@ Vai su **Ledger**. Trovi la lista completa in ordine cronologico, con filtri per
 
 ### Fan-out comportamentale (propagazione categoria)
 
-Quando validi una transazione nel Ledger (o nella Review), Spendif.ai cerca automaticamente altre transazioni con la stessa descrizione che non sono ancora state categorizzate. Se ne trova, compare un suggerimento: **"Applica a N transazioni simili?"**
+Quando validi una transazione nel Registro dei movimenti (o nella Review), Spendif.ai cerca automaticamente altre transazioni con la stessa descrizione che non sono ancora state categorizzate. Se ne trova, compare un suggerimento: **"Applica a N transazioni simili?"**
 
 - Clicca **Applica a tutte** per copiare la stessa categoria/sottocategoria a tutte le transazioni corrispondenti (con fonte "Storico").
 - Clicca **No grazie** per ignorare il suggerimento.
 
 Il suggerimento non è intrusivo: appare solo quando ci sono effettivamente transazioni simili non categorizzate. Piu usi il sistema e validi le transazioni, meno lavoro manuale dovrai fare in futuro.
 
-### Creare regole dal Ledger
+### Creare regole dal Registro dei movimenti
 
 Seleziona una riga nella colonna di selezione (📏) e clicca **Crea regola e applica**: compare un form pre-compilato con il pattern estratto dalla controparte, la categoria e il contesto della transazione. Un'anteprima mostra quante transazioni verranno matchate. Se la regola esiste gia, viene mostrato un avviso giallo e il pulsante diventa **Modifica regola e applica**. Dopo la conferma, la regola si applica retroattivamente a tutte le transazioni corrispondenti. Un toast conferma "Regola creata" o "Regola aggiornata".
 
@@ -217,7 +217,7 @@ Vai su **Review**. Trovi le transazioni con il ⚠️. Per ognuna puoi:
 
 **Validazione in blocco:** seleziona le transazioni di cui sei sicuro e clicca **Valida selezionate** per confermarle tutte in una volta. Quando validi una transazione stai dicendo a Spendif.ai: "ho visto questa spesa e confermo che va bene". La validazione non cambia la categoria e non viene rimossa se la categoria cambia in seguito (per regola o AI). Solo un click esplicito sulla checkbox la rimuove.
 
-**Fan-out comportamentale:** anche nella Review, dopo la validazione di una transazione, Spendif.ai propone di applicare la stessa categoria alle transazioni simili non ancora categorizzate. Vedi la sezione "Fan-out comportamentale" nel capitolo Ledger per i dettagli.
+**Fan-out comportamentale:** anche nella Review, dopo la validazione di una transazione, Spendif.ai propone di applicare la stessa categoria alle transazioni simili non ancora categorizzate. Vedi la sezione "Fan-out comportamentale" nel capitolo Registro dei movimenti per i dettagli.
 
 > **Esempio:** "PAGAMENTO POS 00112 FARMACIA CENTRALE" è stato classificato come *Casa* ma tu sai che è *Salute*. Lo correggi una volta, e se hai salvato una regola quella correzione si applicherà automaticamente alle prossime importazioni.
 
@@ -240,7 +240,7 @@ Da quel momento in poi, ogni transazione che contiene quelle parole viene classi
 
 **Riesegui tutte le regole in blocco**
 
-Se hai creato molte regole in sessioni diverse e vuoi applicarle tutte in una volta a tutto il tuo storico, usa il pulsante **▶️ Esegui tutte le regole** in fondo alla sezione. Spunta la casella di conferma e clicca il pulsante: tutte le regole vengono applicate a ogni transazione del ledger, non solo a quelle in attesa di revisione. Al termine ti dirà quante transazioni sono state aggiornate.
+Se hai creato molte regole in sessioni diverse e vuoi applicarle tutte in una volta a tutto il tuo storico, usa il pulsante **▶️ Esegui tutte le regole** in fondo alla sezione. Spunta la casella di conferma e clicca il pulsante: tutte le regole vengono applicate a ogni transazione del Registro dei movimenti, non solo a quelle in attesa di revisione. Al termine ti dirà quante transazioni sono state aggiornate.
 
 > **Esempio pratico con tre tipi di regola:**
 > - *Uguale esatto:* `NETFLIX.COM` → Abbonamenti → Streaming (corrisponde solo se la descrizione è esattamente quella)
@@ -312,15 +312,15 @@ Usa i filtri in alto per restringere a un periodo o a un conto specifico.
 - Un **rimborso** (un reso, soldi restituiti su un acquisto: un'entrata con una categoria di spesa) abbassa quella spesa nel suo mese invece di contare come entrata. Lo stesso vale per il diagramma di flusso sotto.
 - Se un mese sembra strano, per esempio un'entrata molto grossa, controlla la sua categoria nel **Registro**: il grafico mostra i movimenti per come sono categorizzati.
 
-### Filtro ad albero tassonomico
+### Filtro ad albero delle categorie
 
-Nella pagina Analisi (e nella pagina Tassonomia) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
+Nella pagina Analisi (e nella pagina Schema categorie) è disponibile un **filtro ad albero** che mostra la gerarchia completa contesto / categoria / sottocategoria con checkbox collassabili. Puoi:
 - Espandere e collassare i nodi dell'albero
 - Selezionare un nodo padre per selezionare automaticamente tutti i figli
 - Usare i pulsanti **Seleziona tutto** / **Deseleziona tutto** per operazioni rapide
 - Gli indicatori tri-state mostrano se un nodo è completamente selezionato, parzialmente selezionato o deselezionato
 
-> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analisi, Tassonomia). Non è presente nel Registro e nella Revisione, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
+> **Nota:** Il filtro ad albero è disponibile solo nelle pagine di analisi (Analisi, Schema categorie). Non è presente nel Registro e nella Revisione, dove i filtri piatti sono più rapidi per il lavoro quotidiano sulle singole transazioni.
 
 ### Associazioni controparte (auto-apprendimento)
 
@@ -334,7 +334,7 @@ Per ogni controparte vengono mostrati:
   - 🟡 **0.50-0.89**: mista (es. AUTOGRILL: quasi sempre Vitto e alloggio, a volte Trasporti)
   - 🔴 **< 0.50** — eterogenea (es. AMAZON: Tecnologia, Alimentari, Abbigliamento...)
 
-> **Come funziona:** Spendif.ai conta solo le transazioni che hai **validato** (checkbox ✅ nel Ledger o nella Review). Più transazioni validi, più il sistema impara. Quando importi nuovi file, le controparti con alta omogenità vengono classificate automaticamente dallo storico — senza chiamare l'AI.
+> **Come funziona:** Spendif.ai conta solo le transazioni che hai **validato** (checkbox ✅ nel Registro dei movimenti o nella Review). Più transazioni validi, più il sistema impara. Quando importi nuovi file, le controparti con alta omogenità vengono classificate automaticamente dallo storico, senza chiamare l'AI.
 
 ---
 
@@ -618,7 +618,7 @@ Spendif.ai memorizza la struttura di ogni file importato (colonne, formato date,
 
 > **Auto-invalidazione:** Spendif.ai rileva automaticamente gli schema corrotti. Se un file importato con uno schema salvato produce meno del 10% di transazioni parsabili, lo schema viene eliminato e il file viene rianalizzato da zero con l'LLM, senza intervento manuale.
 
-**Reset tassonomia:** se vuoi cambiare la lingua della tassonomia dopo l'onboarding, vai in **⚙️ Impostazioni → 🔄 Reset tassonomia**, scegli la lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto.
+**Reset schema categorie:** se vuoi cambiare la lingua dello schema categorie dopo l'onboarding, vai in **⚙️ Impostazioni → 🔄 Reset schema categorie**, scegli la lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto.
 
 ---
 
@@ -704,7 +704,7 @@ Spendif.ai gestisce questa cosa automaticamente (si chiama "riconciliazione cart
 **Voglio esportare i dati.**
 In Analisi trovi il pulsante **Esporta** che genera HTML, CSV o XLSX.
 
-**Ho cambiato la tassonomia ma le transazioni vecchie non si sono aggiornate.**
+**Ho cambiato lo schema categorie ma le transazioni vecchie non si sono aggiornate.**
 Le categorie vecchie rimangono come sono. Puoi rielaborarle manualmente dalla pagina Review o ri-applicando le regole.
 
 ---

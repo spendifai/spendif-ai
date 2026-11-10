@@ -104,7 +104,8 @@ def render_sidebar() -> str:
     if st.sidebar.button(
         t("nav.guided"), key="nav_guided", width="stretch",
         type="primary" if st.session_state["page"] == GUIDED_PAGE else "secondary",
-        help=t("nav.guided.desc"),
+        # No tooltip: the click hides the menu for the full-screen flow, and
+        # the tooltip, drawn outside the menu, stayed alone top left.
     ):
         if llm_running:
             st.session_state["_pending_nav_target"] = GUIDED_PAGE

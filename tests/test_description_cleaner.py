@@ -155,7 +155,7 @@ class TestProcessGroup:
             n = kwargs["user_prompt"].count('"desc')
             # Return indexed format
             batch_start = call_count - 1  # approximate
-            return {"results": [{"idx": i, "name": f"clean{i}"} for i in range(n)]}, "mock"
+            return {"results": [{"idx": i, "name": f"desc{i}"} for i in range(n)]}, "mock"
 
         with patch("core.description_cleaner.call_with_fallback", side_effect=fake_call):
             _process_group(txs, indices, "sys", backend, None, 2, "test", "expense")
@@ -194,8 +194,8 @@ class TestCleanDescriptionsBatch:
     def test_expense_and_income_split(self):
         """Expenses and income are processed in separate LLM passes."""
         txs = [
-            {"description": "Spesa supermercato", "raw_description": "Spesa supermercato", "amount": "-20.00"},
-            {"description": "Stipendio ACME", "raw_description": "Stipendio ACME", "amount": "1500.00"},
+            {"description": "Spesa supermercato Cleaned", "raw_description": "Spesa supermercato Cleaned", "amount": "-20.00"},
+            {"description": "Stipendio ACME Cleaned", "raw_description": "Stipendio ACME Cleaned", "amount": "1500.00"},
         ]
         backend = MagicMock()
         call_count = 0
@@ -212,7 +212,7 @@ class TestCleanDescriptionsBatch:
 
     def test_invalid_amount_treated_as_income(self):
         """Transactions with unparseable amount go to income group."""
-        txs = [{"description": "desc", "raw_description": "desc", "amount": "invalid"}]
+        txs = [{"description": "desc Cleaned", "raw_description": "desc Cleaned", "amount": "invalid"}]
         backend = MagicMock()
         with patch("core.description_cleaner.call_with_fallback",
                    return_value=({"results": [{"idx": 0, "name": "Cleaned"}]}, "mock")):
@@ -221,7 +221,7 @@ class TestCleanDescriptionsBatch:
 
     def test_all_expenses(self):
         txs = [
-            {"description": f"Spesa {i}", "raw_description": f"Spesa {i}", "amount": f"-{i+1}.00"}
+            {"description": f"Spesa Clean{i}", "raw_description": f"Spesa Clean{i}", "amount": f"-{i+1}.00"}
             for i in range(3)
         ]
         backend = MagicMock()
@@ -232,7 +232,7 @@ class TestCleanDescriptionsBatch:
 
     def test_all_income(self):
         txs = [
-            {"description": "Stipendio", "raw_description": "Stipendio", "amount": "2000.00"},
+            {"description": "Stipendio ACME SRL", "raw_description": "Stipendio ACME SRL", "amount": "2000.00"},
         ]
         backend = MagicMock()
         with patch("core.description_cleaner.call_with_fallback",

@@ -12,7 +12,6 @@ from __future__ import annotations
 from datetime import date
 
 import json
-import os
 import time
 from pathlib import Path
 
@@ -749,17 +748,19 @@ def _step5_confirm(cfg_svc: SettingsService, lang_options: list[tuple[str, str]]
     # ── LLM Model status ───────────────────────────────────────────────
     st.write("")
     st.markdown(t("onboarding.step3.llm_title"))
-    from services.llm_service import detect_system_hardware, list_available_models, get_recommended_model
+    from services.llm_service import catalog_model_on_disk, detect_system_hardware, get_recommended_model
 
     _hw = detect_system_hardware()
-    _local = list_available_models()
+    # Only a tested model is announced (spec 36, 3.1): the first file in the
+    # folder was how a leftover DeepSeek reached a new installation.
+    _local = catalog_model_on_disk()
     _rec = get_recommended_model(_hw)
 
     if _local:
         st.success(
             t("onboarding.step3.llm_available",
-              name=_local[0].name,
-              size=f"{_local[0].stat().st_size / 1e9:.1f}")
+              name=_local.name,
+              size=f"{_local.stat().st_size / 1e9:.1f}")
         )
     elif _rec:
         st.info(
@@ -934,13 +935,18 @@ def _persist_choices(
         # works end-to-end on first run with no further user intervention.
         _ui_lang = st.session_state.get("_ob_ui_lang", lang)
 
+        # The model the onboarding saves: a tested one, never the first file
+        # in the folder (spec 36, 3.1).
+        from services.llm_service import catalog_model_on_disk
+
+        _model_on_disk = catalog_model_on_disk()
+        _model_path = str(_model_on_disk) if _model_on_disk else ""
+
         # Vedi il commento su llama_cpp_n_ctx piu' sotto.
         try:
             from services.llm_service import recommended_llama_cpp_context
 
-            _detected_ctx = recommended_llama_cpp_context(
-                os.environ.get("LLAMA_CPP_MODEL_PATH", "")
-            )
+            _detected_ctx = recommended_llama_cpp_context(_model_path)
         except Exception:
             _detected_ctx = None
 
@@ -976,7 +982,7 @@ def _persist_choices(
             # Se la rilevazione non riesce si scrive 0, che in tutto il codice
             # significa "decidi tu al momento di caricare il modello".
             "llama_cpp_n_ctx":         str(_detected_ctx or 0),
-            "llama_cpp_model_path":    os.environ.get("LLAMA_CPP_MODEL_PATH", ""),
+            "llama_cpp_model_path":    _model_path,
         })
 
         # 3. Accounts
