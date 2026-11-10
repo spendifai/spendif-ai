@@ -38,6 +38,9 @@ def _app():
         pending = st.session_state.get("_test_pending", 0)
         if pending:
             flow_nav.offer_save(pending, lambda: st.session_state["_saved"].append(step))
+        unsavable = st.session_state.get("_test_unsavable", 0)
+        if unsavable:
+            flow_nav.offer_save(unsavable, None)
 
     if st.session_state["page"] == "guided":
         render_guided_page(st.session_state["_engine"], _step)
@@ -141,3 +144,60 @@ def test_the_page_height_comes_from_the_window_or_falls_back(tmp_path, monkeypat
     assert flow_nav.grid_height(990) == flow_nav.MIN_GRID_PX
     viewport.write_text("garbage")
     assert flow_nav.viewport_height() == flow_nav.FALLBACK_VIEWPORT_PX
+
+
+def test_choices_only_the_step_can_save_are_counted_but_not_saved_by_next():
+    at = _start(_test_unsavable=2)
+    assert any("Save them with the button of the step" in c.value for c in at.caption)
+    assert _button(at, "flow_next").label == "Next"
+
+
+def test_back_with_choices_only_the_step_can_save_asks_without_a_save_button():
+    at = _start()
+    _button(at, "flow_next").click().run(timeout=30)
+    at.session_state["_test_unsavable"] = 1
+    at.run(timeout=30)
+    _button(at, "flow_back").click().run(timeout=30)
+    keys = {b.key for b in at.button}
+    assert "flow_leave_drop" in keys and "flow_leave_save" not in keys
+    _button(at, "flow_leave_drop").click().run(timeout=30)
+    assert "STEP:checklist" in _texts(at)
+
+
+def test_cancel_keeps_the_user_in_the_step():
+    at = _start(_test_pending=1)
+    _button(at, "flow_leave").click().run(timeout=30)
+    _button(at, "flow_leave_stay").click().run(timeout=30)
+    assert "STEP:checklist" in _texts(at)
+    assert not any(b.key == "flow_leave_stay" for b in at.button)
+    assert at.session_state["_saved"] == []
+
+
+def _bar_only(next_label, reason):
+    import streamlit as st
+
+    from ui.i18n import set_language
+    from ui.widgets import flow_nav
+
+    set_language("en")
+    st.session_state.setdefault("page", "check")
+    flow_nav.begin_step()
+    if st.session_state.get("_test_pending"):
+        flow_nav.offer_save(1, lambda: None)
+    flow_nav.render_bar(back_label="Back", on_back=None, leave_label="Leave", on_leave=lambda: None,
+                        next_label=next_label, on_next=(lambda: None) if next_label else None,
+                        next_disabled_reason=reason)
+
+
+def test_without_a_next_of_its_own_the_bar_only_counts_the_choices():
+    at = AppTest.from_function(_bar_only, args=(None, ""))
+    at.session_state["_test_pending"] = True
+    at.run(timeout=30)
+    assert not any(b.key == "flow_next" for b in at.button)
+    assert any("Choices to save: 1" in c.value for c in at.caption)
+
+
+def test_next_disabled_says_why():
+    at = AppTest.from_function(_bar_only, args=("Next", "Nothing to check from this date.")).run(timeout=30)
+    assert _button(at, "flow_next").disabled
+    assert any("Nothing to check" in c.value for c in at.caption)

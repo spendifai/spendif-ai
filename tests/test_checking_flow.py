@@ -156,3 +156,23 @@ def test_the_check_is_a_flow_of_its_own(tmp_path):
     _button(app, "flow_leave").click().run()
     assert not app.exception, app.exception
     assert app.session_state["page"] == "ledger"
+
+
+def test_back_to_the_list_from_the_grid(tmp_path):
+    db, _ = _ledger(tmp_path)
+    app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
+    app.run()
+    _button(app, "flow_next").click().run()
+    assert app.session_state["_check_phase"] == "grid"
+    _button(app, "flow_back").click().run()
+    assert not app.exception, app.exception
+    assert app.session_state["_check_phase"] == "list"
+
+
+def test_without_accounts_next_is_disabled_with_its_reason(tmp_path):
+    db = tmp_path / "ledger.db"
+    Base.metadata.create_all(create_engine(f"sqlite:///{db}"))
+    app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
+    app.run()
+    assert not app.exception, app.exception
+    assert _button(app, "flow_next").disabled
