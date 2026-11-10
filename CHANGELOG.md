@@ -6,6 +6,19 @@ Versioning follows [Calendar Versioning](https://calver.org/) as YYYY.M.N from 2
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-10
+
+### Changed
+- The guided flows have one bar at the bottom of the window: Back and Leave on the left, one main button on the right. With choices not saved yet the main button is "Save and go on"; Back saves them; Leave asks whether to save them. While a step has something of its own to do, such as importing the files waiting, that stays the main button
+- The tables of the flows fit the window and scroll inside, so the buttons are always in view
+- The counterparts step explains what a counterpart is in a few lines; the details are under "How it works"
+- "Taxonomy" is now "Category scheme" and "Ledger" is now "Transaction register", in the app, in the guides and in the assistant's answers
+- The local model in use is the one recommended for your computer, never the first file found in the models folder; if you use one that was not tested, Home and Import say so and offer the recommended one
+
+### Fixed
+- The description cleanup can only remove words: a counterpart name with words that are not in the bank's description is asked again, and after three tries the bank's text stays as it is
+- A dependency with a known security flaw (oauthlib) updated
+
 ## [2026.10.5] - 2026-10-27
 
 ### Added

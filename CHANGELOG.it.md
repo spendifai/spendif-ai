@@ -8,6 +8,19 @@ Il versioning segue [Calendar Versioning](https://calver.org/) nella forma AAAA.
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-10
+
+### Cambiato
+- I flussi guidati hanno una sola barra in fondo alla finestra: Indietro ed Esci a sinistra, un solo pulsante principale a destra. Con scelte non ancora salvate il pulsante principale è "Salva e vai avanti"; Indietro le salva; Esci chiede se salvarle. Finché un passo ha qualcosa di suo da fare, come importare i file in attesa, il pulsante principale resta quello
+- Le tabelle dei flussi stanno nella finestra e scorrono al loro interno, così i pulsanti si vedono sempre
+- Il passo delle controparti spiega in poche righe cos'è una controparte; i dettagli sono in "Come funziona"
+- "Tassonomia" ora si chiama "Schema categorie" e "Ledger" si chiama "Registro dei movimenti", nell'app, nelle guide e nelle risposte dell'assistente
+- Il modello locale in uso è quello consigliato per il tuo computer, mai il primo file trovato nella cartella dei modelli; se ne usi uno non provato, Home e Importa lo dicono e propongono quello consigliato
+
+### Corretto
+- La pulizia delle descrizioni può solo togliere parole: un nome di controparte con parole che non sono nella descrizione della banca viene richiesto, e dopo tre tentativi resta il testo della banca
+- Aggiornata una dipendenza con un difetto di sicurezza noto (oauthlib)
+
 ## [2026.10.5] - 2026-10-27
 
 ### Aggiunto
