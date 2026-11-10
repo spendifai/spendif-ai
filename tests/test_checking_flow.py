@@ -109,7 +109,7 @@ def test_the_flow_from_the_list_to_an_account_all_checked(tmp_path):
     assert not app.exception, app.exception
     # Amex's oldest unchecked movement (1 February) is the furthest back
     assert app.selectbox(key="check_pick_account").value == "Amex"
-    _button(app, "check_next").click().run()
+    _button(app, "flow_next").click().run()
     assert not app.exception, app.exception
     assert app.session_state["_check_phase"] == "grid"
     assert any("**2**" in m.value for m in app.markdown)
@@ -138,7 +138,7 @@ def test_the_raw_text_toggle_sits_in_the_grid_header(tmp_path):
     db, _ = _ledger(tmp_path)
     app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
     app.run()
-    _button(app, "check_next").click().run()
+    _button(app, "flow_next").click().run()
     raw = next(t for t in app.toggle if t.key == "check_show_raw")
     raw.set_value(True).run()
     assert not app.exception, app.exception
@@ -153,6 +153,6 @@ def test_the_check_is_a_flow_of_its_own(tmp_path):
     app = AppTest.from_function(_page, args=(str(db),), default_timeout=60)
     app.session_state["_check_return"] = "ledger"
     app.run()
-    _button(app, "check_exit").click().run()
+    _button(app, "flow_leave").click().run()
     assert not app.exception, app.exception
     assert app.session_state["page"] == "ledger"

@@ -171,7 +171,7 @@
   },
   {
     "q": "Posso applicare tutte le regole a tutte le transazioni in una volta?",
-    "a": "Sì. Nella pagina Regole, usa il pulsante Esegui tutte le regole. Spunta la casella di conferma e clicca: tutte le regole vengono applicate a ogni transazione del ledger. Al termine viene mostrato quante transazioni sono state aggiornate.",
+    "a": "Sì. Nella pagina Regole, usa il pulsante Esegui tutte le regole. Spunta la casella di conferma e clicca: tutte le regole vengono applicate a ogni transazione del Registro dei movimenti. Al termine viene mostrato quante transazioni sono state aggiornate.",
     "page": "rules"
   },
   {
@@ -322,7 +322,7 @@
   },
   {
     "q": "Cosa succede al primo avvio di Spendif.AI?",
-    "a": "Appare automaticamente il wizard di configurazione iniziale in 4 step: 1) Lingua della tassonomia, 2) Titolari del conto (nome e varianti), 3) Conti bancari, 4) Conferma e avvio. Non devi cercare nessun menu.",
+    "a": "Appare automaticamente il wizard di configurazione iniziale in 4 step: 1) Lingua dello schema categorie, 2) Titolari del conto (nome e varianti), 3) Conti bancari, 4) Conferma e avvio. Non devi cercare nessun menu.",
     "page": "settings"
   },
   {
@@ -331,8 +331,8 @@
     "page": "settings"
   },
   {
-    "q": "Posso cambiare la lingua della tassonomia dopo l'installazione?",
-    "a": "Sì. Vai su Impostazioni → Reset tassonomia, scegli la nuova lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto. Attenzione: le transazioni già categorizzate mantengono le categorie vecchie.",
+    "q": "Posso cambiare la lingua dello schema categorie dopo l'installazione?",
+    "a": "Sì. Vai su Impostazioni → Reset schema categorie, scegli la nuova lingua e conferma. Le categorie esistenti vengono sostituite con quelle del template scelto. Attenzione: le transazioni già categorizzate mantengono le categorie vecchie.",
     "page": "taxonomy"
   },
   {
@@ -362,7 +362,7 @@
   },
   {
     "q": "Spendif.AI gestisce anche le entrate (stipendio, rimborsi)?",
-    "a": "Sì. Spendif.AI importa e categorizza sia le spese che le entrate. Nelle categorie di tassonomia ci sono categorie di reddito (stipendio, affitto incassato, rimborsi, ecc.). I report mostrano sia entrate che uscite."
+    "a": "Sì. Spendif.AI importa e categorizza sia le spese che le entrate. Nelle categorie di schema categorie ci sono categorie di reddito (stipendio, affitto incassato, rimborsi, ecc.). I report mostrano sia entrate che uscite."
   },
   {
     "q": "Spendif.AI gestisce transazioni in valuta straniera?",
@@ -631,7 +631,7 @@
   },
   {
     "q": "Spendif.AI è disponibile in lingue diverse dall'italiano?",
-    "a": "Al momento la tassonomia è disponibile in italiano. Il supporto per altre lingue europee (inglese, spagnolo, francese, tedesco) è in roadmap ma non ancora disponibile.",
+    "a": "Al momento lo schema categorie è disponibile in italiano. Il supporto per altre lingue europee (inglese, spagnolo, francese, tedesco) è in roadmap ma non ancora disponibile.",
     "page": "settings"
   },
   {

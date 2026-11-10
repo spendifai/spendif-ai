@@ -24,6 +24,7 @@ from services.transaction_service import TransactionService
 from support.formatting import format_amount_display
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets import flow_nav
 from ui.widgets.file_handoff import offer_file
 from ui.widgets.immersive import go_to
 from ui.widgets.staged_import import (
@@ -179,6 +180,9 @@ def _render_guidance(flow_svc: GuidedFlowService) -> bool:
         for err in st.session_state.pop("_stage_errors", []):
             st.warning(err)
         staged = staged_files()
+        if staged:
+            # "Import N files" is the step's own primary action (UX spec 1).
+            flow_nav.own_action()
         if staged and st.button(
             t("guided.checklist.import_n", what=files_and_rows(
                 len(staged), staged_rows(flow_svc.count_rows))),

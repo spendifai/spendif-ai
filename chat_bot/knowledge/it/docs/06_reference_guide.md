@@ -9,12 +9,12 @@
 | Pagina | Scopo |
 |---|---|
 | **Import** | Carica file CSV/XLSX, avvia la pipeline di elaborazione |
-| **Ledger** | Vista tabellare di tutte le transazioni importate |
+| **Registro dei movimenti** | Vista tabellare di tutte le transazioni importate |
 | **Modifica più movimenti** | Operazioni in blocco: categoria, contesto, giroconto, **eliminazione da filtro** |
 | **Analisi** | Grafici e report aggregati per periodo/conto/categoria |
 | **Review** | Transazioni con classificazione incerta o da rivedere |
 | **Regole** | Gestione regole deterministiche di categorizzazione |
-| **Tassonomia** | Struttura categorie/sottocategorie personalizzabile |
+| **Schema categorie** | Struttura categorie/sottocategorie personalizzabile |
 | **Impostazioni** | Backend LLM, API key, formati data/importo, lingua |
 | **Lista di controllo** | Tabella pivot mese × conto: presenza e quantità delle transazioni; cosa caricare negli ultimi 4 mesi, file preparati per conto, conti chiusi |
 | **Carica l'estratto conto** | Percorso guidato a passi, da cui si riparte ogni volta: Lista di controllo, Import, Uscite, Categorie miste, Giroconti, Entrate, Resoconti. Riprende dal passo lasciato |
@@ -87,7 +87,7 @@ La categoria viene assegnata nell'ordine seguente; il primo match vince:
 3. **LLM** — il modello configurato in Impostazioni; riceve la descrizione sanitizzata
 4. **Fallback** — categoria "Altro" se tutti i passi precedenti falliscono
 
-La **sottocategoria è la fonte di verità**: se LLM o regola assegna una sottocategoria presente in tassonomia, la categoria genitore viene derivata automaticamente.
+La **sottocategoria è la fonte di verità**: se LLM o regola assegna una sottocategoria presente in schema categorie, la categoria genitore viene derivata automaticamente.
 
 ---
 
@@ -105,7 +105,7 @@ La **sottocategoria è la fonte di verità**: se LLM o regola assegna una sottoc
 Quando salvi una nuova regola, viene applicata immediatamente a **tutte** le transazioni già presenti nel database, non solo alle future importazioni.
 
 ### Esegui tutte le regole
-Il pulsante **▶️ Esegui tutte le regole** applica tutte le regole attive a ogni transazione del ledger in un colpo solo. Utile dopo aver creato più regole in sessioni diverse o dopo l'importazione di dati storici. L'operazione richiede conferma tramite checkbox; al termine mostra quante transazioni sono state aggiornate.
+Il pulsante **▶️ Esegui tutte le regole** applica tutte le regole attive a ogni transazione del Registro dei movimenti in un colpo solo. Utile dopo aver creato più regole in sessioni diverse o dopo l'importazione di dati storici. L'operazione richiede conferma tramite checkbox; al termine mostra quante transazioni sono state aggiornate.
 
 ### Priorità
 Le regole vengono valutate in ordine di priorità decrescente (campo `priorità`, default 10). In caso di parità di priorità, l'ordine è stabile ma non garantito. La **prima regola che fa match vince** — l'elaborazione si ferma al primo match trovato.
@@ -116,7 +116,7 @@ Le regole vengono valutate in ordine di priorità decrescente (campo `priorità`
 
 Quando la banca addebita sul conto corrente il totale mensile della carta di credito, le singole spese della carta e l'addebito cumulativo sul conto sarebbero contate due volte. Spendif.ai risolve questo automaticamente:
 
-- Le transazioni della carta rimangono visibili nel Ledger
+- Le transazioni della carta rimangono visibili nel Registro dei movimenti
 - L'addebito aggregato sul conto viene marcato come giroconto (🔄) ed escluso dai totali
 
 Non richiede configurazione. Se vedi comunque un duplicato, controlla in Review.
@@ -139,7 +139,7 @@ Un giroconto è un trasferimento tra due conti tuoi (es. "Bonifico a Conto Depos
 
 **Passo Giroconti di Carica l'estratto conto:** mostra le coppie degli ultimi 4 mesi, dove l'utente risponde sì (giroconto) o no (tenuti separati, mai più proposti), e i giroconti con un lato solo, dove indica una volta per beneficiario dove sono andati i soldi: *mio conto non ancora caricato*, *mio conto che non seguo* (resta giroconto) o *un'altra persona* (diventa spesa o entrata, anche negli import successivi). Il beneficiario è riconosciuto dall'IBAN nella descrizione, altrimenti dalla descrizione pulita.
 
-**Come viene marcato:** icona 🔄 nel Ledger, escluso dai totali di Analisi.
+**Come viene marcato:** icona 🔄 nel Registro dei movimenti, escluso dai totali di Analisi.
 
 **Pulsante "Riesegui rilevamento giroconti"** in Revisione: riesegue la detection e l'accoppiamento fra conti su tutto lo storico. Utile se hai importato i due lati del giroconto in sessioni separate.
 
@@ -187,11 +187,11 @@ La sanitizzazione avviene in memoria; il dato originale non viene mai modificato
 
 ---
 
-## Tassonomia
+## Schema categorie
 
 Struttura a 2 livelli: **Categoria → Sottocategoria**.
 
-- Modificabile dalla pagina Tassonomia senza riavviare l'app
+- Modificabile dalla pagina Schema categorie senza riavviare l'app
 - Categorie predefinite: Alimentari, Casa, Trasporti, Salute, Svago, Abbonamenti, Utenze, Istruzione, Lavoro, Finanza, Viaggi, Regali, Tasse, Altro + categorie entrata
 - Puoi aggiungere sottocategorie custom senza toccare il codice
 
@@ -325,8 +325,8 @@ Tabelle principali:
 | `account` | Conti dell'utente, con data di chiusura opzionale (`closed_on`) |
 | `category_rule` | Regole di categorizzazione utente |
 | `description_rule` | Regole di pulizia descrizione in blocco |
-| `taxonomy_category` | Categorie tassonomia |
-| `taxonomy_subcategory` | Sottocategorie tassonomia |
+| `taxonomy_category` | Categorie dello schema |
+| `taxonomy_subcategory` | Sottocategorie dello schema |
 | `import_job` | Stato corrente del job di importazione, con righe totali (`n_rows`) per la stima dei tempi |
 | `user_settings` | Preferenze utente (formato date, separatori, LLM, contesti) |
 
@@ -336,7 +336,7 @@ Le migrazioni dello schema sono idempotenti: vengono eseguite automaticamente ad
 
 ## REST API
 
-Il layer FastAPI (`api/`) espone le stesse funzionalità del ledger via HTTP/JSON — indipendente dalla UI Streamlit, usabile da script, automazioni o future app mobile/desktop.
+Il layer FastAPI (`api/`) espone le stesse funzionalità del Registro dei movimenti via HTTP/JSON, indipendente dalla UI Streamlit, usabile da script, automazioni o future app mobile/desktop.
 
 **Porta:** `8000` · **Docs interattive:** `http://localhost:8000/docs`
 
@@ -355,7 +355,7 @@ Il layer FastAPI (`api/`) espone le stesse funzionalità del ledger via HTTP/JSO
 | PATCH | `/rules/category/{id}` | Modifica regola |
 | DELETE | `/rules/category/{id}` | Elimina regola |
 | POST | `/rules/category/apply-to-review` | Applica regole ai pending |
-| POST | `/rules/category/apply-to-all` | Applica regole a tutto il ledger |
+| POST | `/rules/category/apply-to-all` | Applica regole a tutto il Registro dei movimenti |
 | GET/POST/DELETE | `/rules/description` | CRUD regole descrizione |
 | GET | `/settings` | Tutte le impostazioni (API key oscurate) |
 | GET/PUT | `/settings/{key}` | Lettura/scrittura impostazione |

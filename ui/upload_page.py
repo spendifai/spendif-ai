@@ -50,7 +50,7 @@ from services.update_service import UpdateService
 from support.logging import setup_logging
 from ui.components.model_notice import render_model_notice
 from ui.i18n import t as t_fn
-from ui.widgets.immersive import GUIDED_PAGE, go_to
+from ui.widgets import flow_nav
 from ui.widgets.staged_import import files_and_rows, staged_files, take_staged_files
 from ui.widgets.written_rules import rewrite_pending
 
@@ -201,26 +201,6 @@ def _render_stall_warning(import_svc: ImportService, job) -> None:
         st.rerun()
 
 
-def _render_guided_continue(import_svc: ImportService) -> None:
-    """Inside the workflow, once the import is done: one button to the next step.
-
-    Shown only when nothing waits for the user here (no import running, no
-    direction of the amounts to confirm), so the button never skips a
-    question the import still has.
-    """
-    if st.session_state.get("page") != GUIDED_PAGE:
-        return
-    if st.session_state.get("_pending_sign_confirmations"):
-        return
-    job = import_svc.get_latest_job()
-    if job is None or job.status != "completed":
-        return
-    st.divider()
-    st.markdown(t_fn("upload.guided.next_hint"))
-    if st.button(t_fn("upload.guided.next_btn"), type="primary", key="guided_import_continue"):
-        go_to("counterparts")
-
-
 def _skip_reason_labels() -> dict[str, str]:
     return {
         "date_nan": t_fn("upload.skip.date_nan"),
@@ -365,6 +345,8 @@ def _render_sign_confirmation(import_svc: ImportService) -> None:
     pending = st.session_state.get("_pending_sign_confirmations") or []
     if not pending:
         return
+    # The answer on the direction of the amounts comes before Next (UX spec 1).
+    flow_nav.own_action()
 
     for entry in pending:
         key = entry["batch_sha256"]
@@ -1057,6 +1039,8 @@ def render_upload_page(engine):
     active_job = import_svc.get_latest_job()
     if active_job and active_job.status == "running":
         st.info(t_fn("upload.job_running"))
+        # During the import the flow has no primary action (UX spec 1).
+        flow_nav.own_action()
         _render_job_status_poll(import_svc)
         return
 
@@ -1064,6 +1048,8 @@ def render_upload_page(engine):
     # fixed, this page only adjusts header and footer, runs and reports.
     staged = staged_files()
     if staged:
+        # Starting the import is the step's own primary action (UX spec 1).
+        flow_nav.own_action()
         _render_staged(import_svc, staged)
         return
     if st.session_state.pop(_STAGED_DONE, False):
@@ -1076,6 +1062,8 @@ def render_upload_page(engine):
         accept_multiple_files=True,
     )
 
+    if uploaded_files:
+        flow_nav.own_action()
     if not uploaded_files:
         # Empty-state amichevole quando il DB non ha ancora transazioni:
         # è il caso classico del post-onboarding "Lo faccio dopo". Una volta
@@ -1171,4 +1159,3 @@ def _render_after_import(import_svc: ImportService) -> None:
 
     _render_job_status_poll(import_svc)
     _render_last_import_summary()
-    _render_guided_continue(import_svc)

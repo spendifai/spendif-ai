@@ -31,8 +31,34 @@ from services.transfer_service import (
 from support.formatting import format_amount_display, format_date_display
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets import flow_nav
 
 logger = setup_logging()
+
+# Height a transfers grid leaves to the rest of its step, in CSS pixels: header,
+# text, the other grid's title and the bar (UX spec 0.1).
+_FLOW_RESERVED_PX = 420
+
+
+def _flow_height() -> dict:
+    """In a flow the grid has a fixed height and scrolls inside; outside, its own."""
+    return {"height": flow_nav.grid_height(_FLOW_RESERVED_PX)} if flow_nav.in_flow() else {}
+
+
+def _save_button(count: int, save, key: str) -> None:
+    """The page's own save button, or in a flow the bar saves (UX spec 0.2).
+
+    Args:
+        count: answers given and not saved yet.
+        save: writes them, without rerunning.
+        key: widget key of the page's own button.
+    """
+    if flow_nav.in_flow():
+        flow_nav.offer_save(count, save)
+    elif st.button(t("transfers.save_btn"), type="primary", key=key):
+        save()
+        st.rerun()
+
 
 def _days(n: int) -> str:
     if n == 0:
@@ -80,18 +106,17 @@ def _render_pairs(svc: TransferService, pairs: list[PairRow], date_fmt: str, fmt
             c["pair_answer"]: st.column_config.SelectboxColumn(c["pair_answer"], options=["", yes, no]),
         },
         hide_index=True, num_rows="fixed", width="stretch", key="tr_pairs",
+        **_flow_height(),
     )
-    if st.button(t("transfers.save_btn"), type="primary", key="tr_pairs_save"):
-        n = 0
-        for idx, p in enumerate(pairs):
-            value = edited.at[idx, c["pair_answer"]] or ""
-            if not value:
-                continue
+    answered = [(p, edited.at[idx, c["pair_answer"]]) for idx, p in enumerate(pairs) if edited.at[idx, c["pair_answer"]]]
+
+    def _save() -> None:
+        for p, value in answered:
             svc.decide(p.out_id, p.in_id, "yes" if value == yes else "no")
-            n += 1
-        logger.info(f"transfers_page: {n} pair decisions saved")
-        st.session_state["_tr_saved"] = n
-        st.rerun()
+        logger.info(f"transfers_page: {len(answered)} pair decisions saved")
+        st.session_state["_tr_saved"] = len(answered)
+
+    _save_button(len(answered), _save, "tr_pairs_save")
 
 
 def render_singles(svc: TransferService, singles: list[SingleRow], date_fmt: str, fmt) -> None:
@@ -125,18 +150,21 @@ def render_singles(svc: TransferService, singles: list[SingleRow], date_fmt: str
                 c["single_answer"], options=["", *labels.values()], width="medium"),
         },
         hide_index=True, num_rows="fixed", width="stretch", key="tr_singles",
+        **_flow_height(),
     )
-    if st.button(t("transfers.save_btn"), type="primary", key="tr_singles_save"):
-        answers: dict[str, str] = {}
-        for idx, x in enumerate(singles):
-            value = by_label.get(edited.at[idx, c["single_answer"]] or "")
-            if value:
-                answers[x.key] = value      # one answer per beneficiary
+    answers: dict[str, str] = {}
+    for idx, x in enumerate(singles):
+        value = by_label.get(edited.at[idx, c["single_answer"]] or "")
+        if value:
+            answers[x.key] = value      # one answer per beneficiary
+
+    def _save() -> None:
         for key, value in answers.items():
             svc.answer(key, value)
         logger.info(f"transfers_page: {len(answers)} destination answers saved")
         st.session_state["_tr_saved"] = len(answers)
-        st.rerun()
+
+    _save_button(len(answers), _save, "tr_singles_save")
 
 
 def render_transfers_page(engine) -> None:

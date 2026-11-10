@@ -14,6 +14,7 @@ from services.transaction_service import NOT_COUNTED_TYPES, TransactionService
 from support.formatting import format_amount_display, format_date_display, strftime_to_momentjs
 from support.logging import setup_logging
 from ui.i18n import t
+from ui.widgets import flow_nav
 from ui.widgets.file_handoff import offer_file
 from ui.widgets.written_rules import remember, show_written_rules, write_and_apply
 from ui.widgets.cat_select import (
@@ -452,6 +453,17 @@ def _render_grid(tx_svc, rule_svc, taxonomy, page_txs, *, show_raw: bool, _conte
         # change, and an unsaved edit must never slide onto another movement.
         key=f"check_editor_{st.session_state.get(CHECK_GRID_VERSION, 0)}" if check else "ledger_editor",
     )
+
+    # In the checking flow the edits not saved are the step's pending choices
+    # (UX spec 2). The grid saves them itself: its save may ask follow-up
+    # questions (the rename, the spread), so leaving with them asks first.
+    if check is not None:
+        _edit_cols = [c for c in (COL_CAT_SUB, COL_CONTEXT, COL_TRANSFER, COL_VALIDATED, COL_DESC) if c in orig_df.columns]
+        _n_pending = sum(
+            1 for i in range(len(orig_df))
+            if any(str(edited_df.iloc[i][c] or "") != str(orig_df.iloc[i][c] or "") for c in _edit_cols)
+        )
+        flow_nav.offer_save(_n_pending, None)
 
     # ── Enforce single selection for rule creation ──────────────────────────
     _sel_indices = [i for i in range(len(edited_df)) if edited_df.iloc[i].get("_sel", False)]

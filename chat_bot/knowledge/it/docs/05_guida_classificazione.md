@@ -21,11 +21,11 @@ Le transazioni su cui l'AI non era sicura vengono marcate con il flag di warning
 - Le transazioni incerte sono marcate con **warning** (da rivedere)
 - Per ciascuna puoi correggere **categoria**, **sottocategoria** e **contesto** dai menu a tendina
 - Per dire a Spendif.ai "questa categoria e giusta" basta lasciarla o sceglierne un'altra: la scelta resta tua. La spunta **Validato** dice un'altra cosa: che il movimento e vero (vedi "Controllato e categorizzato" in fondo)
-- Puoi anche creare una regola direttamente dalla Review, come nel Ledger
+- Puoi anche creare una regola direttamente dalla Review, come nel Registro dei movimenti
 
 ---
 
-## 3. Ledger — Il centro di comando
+## 3. Registro dei movimenti: il centro di comando
 
 Vista completa di tutte le transazioni importate, con filtri per data, conto, categoria e tipo.
 
@@ -35,7 +35,7 @@ Vista completa di tutte le transazioni importate, con filtri per data, conto, ca
 
 **Crea regola da una transazione:**
 
-1. Seleziona **1 riga** nella colonna di selezione (📏) della griglia del ledger. Se ne selezioni piu di una, l'app mostra un errore rosso: *"Si puo creare ed applicare una regola alla volta"*.
+1. Seleziona **1 riga** nella colonna di selezione (📏) della griglia del Registro dei movimenti. Se ne selezioni piu di una, l'app mostra un errore rosso: *"Si puo creare ed applicare una regola alla volta"*.
 2. Compare il form **"Crea regola"**, pre-compilato con:
    - **Pattern**: estratto dalla controparte della transazione (es. `ESSELUNGA`)
    - **Tipo**: *Contiene il testo* (default). Le opzioni disponibili sono: *Contiene il testo*, *Uguale esatto*, *Espressione avanzata*
@@ -51,7 +51,7 @@ Vista completa di tutte le transazioni importate, con filtri per data, conto, ca
 
 ## 4. Regole automatiche
 
-Le regole create (dal Ledger, dalla Review o dalla pagina Regole) si applicano automaticamente ai prossimi import.
+Le regole create (dal Registro dei movimenti, dalla Review o dalla pagina Regole) si applicano automaticamente ai prossimi import.
 
 - **Priorita**: le regole piu specifiche hanno priorita piu alta. Il primo match vince.
 - **Tipi di match**: *Uguale esatto*, *Contiene il testo*, *Espressione avanzata* (colonna "Tipo" nella griglia regole).

@@ -15,6 +15,7 @@ from support.logging import setup_logging
 from ui.checklist_page import _fmt_date
 from ui.i18n import t
 from ui.widgets.cat_select import build_cat_options, join_cat_sub, split_cat_sub, wrong_direction
+from ui.widgets import flow_nav
 from ui.widgets.immersive import GUIDED_PAGE
 from ui.widgets.written_rules import remember, rewrite_pending, show_written_rules, write_and_apply
 
@@ -31,6 +32,10 @@ _SOURCE_LABEL_KEY = {
 
 _VARIABILITY_WARN = 80.0
 
+
+# Height the counterparts step takes besides its grid, in CSS pixels: header,
+# text, progress, toggle, search and the bar (UX spec 0.1).
+_GUIDED_RESERVED_PX = 460
 
 def _build_df(stats: list[dict], cat_options: list[str]) -> pd.DataFrame:
     rows = []
@@ -104,9 +109,10 @@ def _apply_to_income(tx_svc: TransactionService, r: dict) -> int:
 
 
 def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
-    """Criterion and progress of the workflow step, in movements and in words.
+    """What the step asks and how far it got, in a few plain words; the rest
+    in a closed "How it works" (UX spec 1.1: at most 80 words before the grid).
 
-    The goal is a suggestion: Next works at any point, and the sentence
+    The goal is a suggestion: Next works at any point, and "How it works"
     says so, also before the goal is reached.
     """
     period = flow_svc.workflow_period()
@@ -114,28 +120,30 @@ def _render_guided_intro(flow_svc: GuidedFlowService, fmt) -> None:
     if period is None or progress.total <= 0:
         st.info(t("counterparts.guided.no_spending"))
         return
-    st.markdown(t(
-        "counterparts.guided.criterion",
-        date_from=_fmt_date(period[0]), date_to=_fmt_date(period[1]),
-    ))
-    # What earlier ticks already spared: movements the rules categorized alone.
-    n_saved, saved = flow_svc.rule_categorized_spending()
-    if n_saved:
-        st.caption(t("counterparts.guided.saved", n=n_saved, amount=fmt(saved)))
-    # What the step does not ask, and why: never a silent filter.
-    small = flow_svc.small_singles()
-    if small.count:
-        st.caption(t("counterparts.guided.small_singles", n=small.count, amount=fmt(small.total),
-                     limit=fmt(small.limit), cap=f"{flow_svc.small_singles_share * 100:g}",
-                     years=flow_svc.small_singles_years))
+    st.markdown(t("counterparts.guided.intro"))
+    with st.expander(t("counterparts.guided.how_it_works"), expanded=False):
+        st.markdown(t(
+            "counterparts.guided.criterion",
+            date_from=_fmt_date(period[0]), date_to=_fmt_date(period[1]),
+        ))
+        st.caption(t("counterparts.guided.optional"))
+        # What earlier ticks already spared: movements the rules categorized alone.
+        n_saved, saved = flow_svc.rule_categorized_spending()
+        if n_saved:
+            st.caption(t("counterparts.guided.saved", n=n_saved, amount=fmt(saved)))
+        # What the step does not ask, and why: never a silent filter.
+        small = flow_svc.small_singles()
+        if small.count:
+            st.caption(t("counterparts.guided.small_singles", n=small.count, amount=fmt(small.total),
+                         limit=fmt(small.limit), cap=f"{flow_svc.small_singles_share * 100:g}",
+                         years=flow_svc.small_singles_years))
     # Counted in movements, as the list is ordered (most movements first).
     counts = {"checked": int(progress.checked), "total": int(progress.total)}
     if progress.reached:
         st.success(t("counterparts.guided.reached", **counts))
         return
-    key = "counterparts.guided.progress_one" if progress.needed == 1 else "counterparts.guided.progress"
-    st.info(t(key, missing=math.ceil(progress.missing), needed=progress.needed, **counts))
-    st.caption(t("counterparts.guided.optional"))
+    key = "counterparts.guided.progress_short_one" if progress.needed == 1 else "counterparts.guided.progress_short"
+    st.info(t(key, needed=progress.needed, **counts))
 
 
 def _render_income_intro(flow_svc: GuidedFlowService) -> None:
@@ -207,8 +215,9 @@ def render_counterparts_page(engine) -> None:
         if small.count:
             pct = f"{small.share * 100:.1f}".replace(".", dec)
             show_small = st.toggle(
-                t("counterparts.guided.show_small", n=small.count, share=pct,
-                  limit=format_amount_display(small.limit, decimal_sep=dec, thousands_sep=thou)),
+                t("counterparts.guided.show_small_short"),
+                help=t("counterparts.guided.show_small", n=small.count, share=pct,
+                       limit=format_amount_display(small.limit, decimal_sep=dec, thousands_sep=thou)),
                 value=False, key="cp_show_small",
             )
         filtered = [s for s in flow_svc.expense_counterparts(include_small=show_small)
@@ -393,6 +402,8 @@ def _render_grid(
         hide_index=True,
         key="cp_editor",
         num_rows="fixed",
+        # In the flow the step fits the window and the grid scrolls inside.
+        **({"height": flow_nav.grid_height(_GUIDED_RESERVED_PX)} if flow_nav.in_flow() else {}),
     )
 
     # ── Detect changes ────────────────────────────────────────────────────────
@@ -443,7 +454,8 @@ def _render_grid(
         )
 
     if changed_rows:
-        st.info(t("counterparts.changes_pending", n=len(changed_rows)))
+        if not flow_nav.in_flow():
+            st.info(t("counterparts.changes_pending", n=len(changed_rows)))
 
         n_affected = sum(
             len(tx_svc.get_by_rule_pattern(r["description"], "exact"))
@@ -457,7 +469,9 @@ def _render_grid(
             disabled=n_affected == 0,
         )
 
-        if st.button(t("counterparts.save_btn"), type="primary", key="cp_save"):
+        def _save() -> None:
+            """Write the changed rows as rules and apply them; draws only the
+            spinner and the note shown after the rerun."""
             saved = 0
             applied = 0
             # The product writes the category rules (spec 18): merchant name
@@ -541,8 +555,14 @@ def _render_grid(
                 msg += " " + t("counterparts.retroapplied", n=applied)
             # Shown after the rerun: a message written here would vanish with it.
             remember(notes, msg)
+
+        # In a flow the bar saves (UX spec 0.2): no button of the page.
+        if flow_nav.in_flow():
+            flow_nav.offer_save(len(changed_rows), _save)
+        elif st.button(t("counterparts.save_btn"), type="primary", key="cp_save"):
+            _save()
             st.rerun()
-    else:
+    elif not flow_nav.in_flow():
         st.caption(t("counterparts.no_changes"))
     # What the last save wrote, under the button and its progress message,
     # where the eye is after the click (founder, 2026-10-21).

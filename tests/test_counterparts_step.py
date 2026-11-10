@@ -264,8 +264,7 @@ def test_guided_view_explains_the_criterion_and_what_is_missing(ledger):
     assert "8 spending movements out of 10" in text
     info = " ".join(i.value for i in app.info)
     assert "1 spending movements out of 3" in info        # categorized, total
-    assert "2 are missing" in info                         # to 8 out of 10 of 3
-    assert "the first counterpart in the list" in info
+    assert "the first counterpart is enough" in info       # to 8 out of 10 of 3
     assert any("move on whenever you want" in c.value for c in app.caption)
     assert list(app.dataframe[0].value.iloc[:, 0]) == ["Affitto"]   # categorized ones hidden
 

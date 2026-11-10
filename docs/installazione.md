@@ -14,7 +14,7 @@
 
 > **Il backend LLM, l'URL del server, le API key e il modello si configurano dall'app stessa** nella pagina ⚙️ **Impostazioni** — non nel file `.env`.
 >
-> Il file `.env` contiene solo il percorso del database e della tassonomia.
+> Il file `.env` contiene solo il percorso del database e dello schema categorie.
 
 La configurazione viene salvata nel database (`user_settings`) e persiste tra i riavvii. Al primo avvio l'app usa **llama.cpp** come backend di default — nessun servizio esterno necessario.
 
@@ -33,7 +33,7 @@ La configurazione viene salvata nel database (`user_settings`) e persiste tra i 
 
 > **Come viene scelta la memoria effettiva?** Su Mac (Apple Silicon) la memoria è unificata, quindi coincide con la RAM. Su Linux/Windows con GPU dedicata (NVIDIA o AMD ROCm), il vincolo è la VRAM: l'app rileva la VRAM via `nvidia-smi` o `rocm-smi` e usa `min(RAM, VRAM)`, con la VRAM arrotondata al GB piu' vicino: una scheda da 12 GB ne dichiara 11,9 e deve contare come 12. Se non viene rilevata nessuna GPU, usa la RAM di sistema.
 
-> **Nota:** l'app funziona anche senza LLM attivo. Import, ledger, regole, analisi e report sono sempre disponibili. Se il LLM non è raggiungibile, le transazioni ricevono categoria "Altro" e `to_review=True`.
+> **Nota:** l'app funziona anche senza LLM attivo. Import, Registro dei movimenti, regole, analisi e report sono sempre disponibili. Se il LLM non è raggiungibile, le transazioni ricevono categoria "Altro" e `to_review=True`.
 
 ---
 

@@ -1,4 +1,4 @@
-"""The guided workflow shell: header navigation, leaving and resuming.
+"""The guided workflow shell: navigation bar under the step, leaving and resuming.
 
 Rendered with AppTest; the step pages are replaced by a stub router so the
 test exercises only the shell.
@@ -47,21 +47,21 @@ def test_starts_from_first_open_step_with_header():
     at = AppTest.from_function(_app).run(timeout=30)
     assert "STEP:checklist" in _texts(at)
     assert at.caption[0].value == "Step 1 of 7: What to load"
-    assert _button(at, "guided_back").disabled
+    assert _button(at, "flow_back").disabled
 
 
 def test_next_and_back_move_between_steps():
     at = AppTest.from_function(_app).run(timeout=30)
-    _button(at, "guided_next").click().run(timeout=30)
+    _button(at, "flow_next").click().run(timeout=30)
     assert "STEP:import" in _texts(at)
-    _button(at, "guided_back").click().run(timeout=30)
+    _button(at, "flow_back").click().run(timeout=30)
     assert "STEP:checklist" in _texts(at)
 
 
 def test_leave_returns_home_and_resumes_on_same_step():
     at = AppTest.from_function(_app).run(timeout=30)
-    _button(at, "guided_next").click().run(timeout=30)
-    _button(at, "guided_exit").click().run(timeout=30)
+    _button(at, "flow_next").click().run(timeout=30)
+    _button(at, "flow_leave").click().run(timeout=30)
     assert "PAGE:home" in _texts(at)
     at.session_state["page"] = "guided"
     at.run(timeout=30)
@@ -71,10 +71,10 @@ def test_leave_returns_home_and_resumes_on_same_step():
 def test_done_on_last_step_lands_on_report_and_restarts_cycle():
     at = AppTest.from_function(_app).run(timeout=30)
     for _ in range(len(STEPS) - 1):
-        _button(at, "guided_next").click().run(timeout=30)
+        _button(at, "flow_next").click().run(timeout=30)
     assert "STEP:report" in _texts(at)
-    assert _button(at, "guided_next").label == "Done"
-    _button(at, "guided_next").click().run(timeout=30)
+    assert _button(at, "flow_next").label == "Done"
+    _button(at, "flow_next").click().run(timeout=30)
     assert "PAGE:report" in _texts(at)
     at.session_state["page"] = "guided"
     at.run(timeout=30)
