@@ -116,11 +116,65 @@ def _can_save_all(state: StepState) -> bool:
 
 
 def _save_all(state: StepState) -> None:
-    for part in state.pending:
-        if part.save is not None:
-            part.save()
+    """Save every part of the step under the saving layer (UX spec, section 0.3).
+
+    The layer reaches the window before the writes start and stays until the
+    next step replaces the page; a save that fails takes it away, so the error
+    is not hidden under it.
+
+    Args:
+        state: what the step drawn in this run handed to the bar.
+    """
+    if not state.pending:
+        return
+    layer = st.empty()
+    layer.markdown(_saving_layer(getattr(st.context.theme, "type", None) == "dark"), unsafe_allow_html=True)
+    try:
+        for part in state.pending:
+            if part.save is not None:
+                part.save()
+    except Exception:
+        layer.empty()
+        raise
     logger.info("flow_nav: saved %d pending choices", sum(p.count for p in state.pending))
     state.pending.clear()
+
+
+# Class of the layer that covers the window while the bar saves.
+SAVING_CLASS = "flow-saving-layer"
+
+
+def _saving_layer(dark: bool) -> str:
+    """The layer with the spinner, drawn while the bar saves.
+
+    A message inside the bar escapes the eye, and the writes may take seconds:
+    the layer covers the whole window, bar included, so the user sees the wait
+    and cannot click again in the meantime.
+
+    Args:
+        dark: True for the dark theme, False for the light one.
+    """
+    colors = _BAR_COLORS[dark]
+    veil = "rgba(0, 0, 0, 0.55)" if dark else "rgba(255, 255, 255, 0.7)"
+    return f"""
+        <style>
+        .{SAVING_CLASS} {{
+            position: fixed; inset: 0; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+            background: {veil}; color: {colors["secondary_text"]}; font-size: 1.1rem;
+        }}
+        .{SAVING_CLASS} .flow-saving-wheel {{
+            width: 3rem; height: 3rem; border-radius: 50%;
+            border: 0.35rem solid {colors["bar_border"]}; border-top-color: {colors["primary_bg"]};
+            animation: flow-saving-turn 0.9s linear infinite;
+        }}
+        @keyframes flow-saving-turn {{ to {{ transform: rotate(360deg); }} }}
+        </style>
+        <div class="{SAVING_CLASS}" role="status" aria-live="polite">
+            <div class="flow-saving-wheel"></div>
+            <div>{t("flow.saving")}</div>
+        </div>
+    """
 
 
 # Colors of the bar and its buttons, per theme (UX spec, section 0.1), from the

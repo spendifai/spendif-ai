@@ -1672,6 +1672,7 @@
   "llm_models.model_picker.untested": "von uns nicht getestet",
   "flow.save_and_next": "Speichern und weiter",
   "flow.pending": "Zu speichernde Auswahl: {n}",
+  "flow.saving": "Auswahl wird gespeichert...",
   "flow.pending_own_save": "Zu speichernde Auswahl: {n}. Speichere sie mit der Schaltfläche des Schritts.",
   "flow.leave_title": "Nicht gespeicherte Auswahl: {n}.",
   "flow.leave_cannot_save": "Von hier aus lässt sie sich nicht speichern: Um sie zu behalten, kehre zum Schritt zurück und nutze dort Speichern.",

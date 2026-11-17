@@ -1672,6 +1672,7 @@
   "llm_models.model_picker.untested": "no probado por nosotros",
   "flow.save_and_next": "Guardar y seguir",
   "flow.pending": "Elecciones por guardar: {n}",
+  "flow.saving": "Guardando las elecciones...",
   "flow.pending_own_save": "Elecciones por guardar: {n}. Guárdalas con el botón del paso.",
   "flow.leave_title": "Elecciones sin guardar: {n}.",
   "flow.leave_cannot_save": "No se pueden guardar desde aquí: para conservarlas, vuelve al paso y usa su botón Guardar.",

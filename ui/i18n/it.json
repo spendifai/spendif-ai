@@ -1672,6 +1672,7 @@
   "llm_models.model_picker.untested": "non provato da noi",
   "flow.save_and_next": "Salva e vai avanti",
   "flow.pending": "Scelte da salvare: {n}",
+  "flow.saving": "Salvo le scelte...",
   "flow.pending_own_save": "Scelte da salvare: {n}. Salvale con il pulsante del passo.",
   "flow.leave_title": "Scelte non salvate: {n}.",
   "flow.leave_cannot_save": "Da qui non si possono salvare: per tenerle torna al passo e usa il suo pulsante Salva.",

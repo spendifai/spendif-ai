@@ -244,3 +244,72 @@ def test_the_button_colors_stay_inside_the_bar():
             selector = block.split("{")[0].strip()
             if "stBaseButton" in selector:
                 assert selector.startswith(f".st-key-{flow_nav.BAR_KEY} "), selector
+
+
+def _bar_app():
+    """A step drawn straight under the bar, with a Next that does not rerun:
+    the run ends with what the save drew still on the page."""
+    import streamlit as st
+
+    from ui.i18n import set_language
+    from ui.widgets import flow_nav
+    from ui.widgets.written_rules import remember, show_written_rules
+
+    set_language("en")
+    st.session_state["page"] = "guided"
+    flow_nav.begin_step()
+    show_written_rules()
+
+    def _save() -> None:
+        if st.session_state.get("_test_fail"):
+            raise RuntimeError("save failed")
+        remember(["NOTE OF THE RULE"], "SUMMARY OF THE SAVE")
+
+    flow_nav.offer_save(1, _save)
+    flow_nav.render_bar(back_label="Back", on_back=None, leave_label="Leave", on_leave=lambda: None,
+                        next_label="Next", on_next=lambda: None)
+
+
+def test_saving_from_the_bar_covers_the_window_with_a_spinner():
+    """Founder, 2026-11-17: the progress message inside the bar escaped the eye."""
+    from ui.widgets import flow_nav
+
+    at = AppTest.from_function(_bar_app)
+    at.run(timeout=30)
+    assert not any(flow_nav.SAVING_CLASS in text for text in _texts(at))
+    _button(at, "flow_next").click().run(timeout=30)
+    assert not at.exception, at.exception
+    assert any(flow_nav.SAVING_CLASS in text and "Saving your choices..." in text for text in _texts(at))
+
+
+def test_a_failed_save_does_not_hide_the_error_under_the_layer():
+    from ui.widgets import flow_nav
+
+    at = AppTest.from_function(_bar_app)
+    at.run(timeout=30)
+    at.session_state["_test_fail"] = True
+    _button(at, "flow_next").click().run(timeout=30)
+    assert at.exception
+    assert not any(flow_nav.SAVING_CLASS in text for text in _texts(at))
+
+
+def test_the_saving_layer_lies_over_the_bar_in_both_themes():
+    from ui.widgets import flow_nav
+
+    for dark in (False, True):
+        layer = _rule(flow_nav._saving_layer(dark=dark), f".{flow_nav.SAVING_CLASS}")
+        assert "position: fixed" in layer and "inset: 0" in layer
+        assert "z-index: 1000" in layer        # the bar is at 999
+
+
+def test_inside_a_flow_the_next_step_shows_nothing_of_the_save():
+    """Founder, 2026-11-17: the notes of the rules written landed on the next
+    step and pushed its grid down, the toast said nothing there."""
+    at = AppTest.from_function(_bar_app)
+    at.run(timeout=30)
+    _button(at, "flow_next").click().run(timeout=30)
+    at.run(timeout=30)
+    assert not at.exception, at.exception
+    assert not at.info and not at.toast
+    assert "_written_rules_note" not in at.session_state
+    assert "_written_rules_summary" not in at.session_state

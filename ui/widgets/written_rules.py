@@ -10,6 +10,7 @@ import streamlit as st
 
 from services.rule_service import KEY_KNOWN, STARTS_WITH
 from ui.i18n import t
+from ui.widgets import flow_nav
 
 _KEY = "_written_rules_note"
 _SUMMARY = "_written_rules_summary"
@@ -77,8 +78,15 @@ def rewrite_pending(rule_svc, tx_svc) -> None:
 def show_written_rules() -> None:
     """What the last save did, once: a toast the user sees wherever the page
     is scrolled to, and one line per rule written where it is called (under
-    the save button in Controparti)."""
+    the save button in Controparti).
+
+    Inside a flow nothing is drawn: the save happened on the step before, and
+    its notes would only push this step's content down (UX spec, section 0.3).
+    """
     summary = st.session_state.pop(_SUMMARY, None)
+    if flow_nav.in_flow():
+        st.session_state.pop(_KEY, None)
+        return
     if summary:
         st.toast(summary, icon="✅")
     for note in st.session_state.pop(_KEY, []):
