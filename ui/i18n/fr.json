@@ -1672,6 +1672,7 @@
   "llm_models.model_picker.untested": "pas testé par nous",
   "flow.save_and_next": "Enregistrer et continuer",
   "flow.pending": "Choix à enregistrer : {n}",
+  "flow.saving": "Enregistrement des choix...",
   "flow.pending_own_save": "Choix à enregistrer : {n}. Enregistrez-les avec le bouton de l'étape.",
   "flow.leave_title": "Choix non enregistrés : {n}.",
   "flow.leave_cannot_save": "Ils ne peuvent pas être enregistrés d'ici : pour les garder, revenez à l'étape et utilisez son bouton Enregistrer.",

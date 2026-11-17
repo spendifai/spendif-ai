@@ -1672,6 +1672,7 @@
   "llm_models.model_picker.untested": "not tested by us",
   "flow.save_and_next": "Save and go on",
   "flow.pending": "Choices to save: {n}",
+  "flow.saving": "Saving your choices...",
   "flow.pending_own_save": "Choices to save: {n}. Save them with the button of the step.",
   "flow.leave_title": "Choices not saved: {n}.",
   "flow.leave_cannot_save": "They cannot be saved from here: to keep them, go back to the step and use its Save button.",
