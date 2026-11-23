@@ -12,7 +12,9 @@
 
 > 🇬🇧 [Read in English](README.md)
 
-Registro finanziario personale unificato con pipeline ibrida deterministica + LLM. Aggrega esportazioni bancarie eterogenee (conti correnti, carte di credito/debito/prepagate, conti deposito) in un unico ledger cronologico, eliminando i doppi conteggi causati da addebiti carta ricorrenti e da giroconti interni. Offline-first; backend LLM remoti opt-in, con sanitizzazione PII obbligatoria.
+Ogni banca consegna il suo file di esportazione, e nessuno combacia con gli altri. Spendif.ai legge sul tuo computer i file di tutti i conti e le carte e li riunisce in un unico elenco di movimenti, senza contare due volte l'addebito della carta e senza scambiare per una spesa un giroconto fra i tuoi conti.
+
+Sotto il cofano: una pipeline ibrida deterministica + LLM che aggrega esportazioni bancarie eterogenee (conti correnti, carte di credito/debito/prepagate, conti deposito) in un unico registro cronologico. Offline-first; backend LLM remoti opt-in, con sanitizzazione PII obbligatoria.
 
 ---
 
