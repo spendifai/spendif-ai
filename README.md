@@ -12,7 +12,9 @@
 
 > 🇮🇹 [Leggi in italiano](README.it.md)
 
-Unified personal finance ledger with a hybrid deterministic + LLM pipeline. Aggregates heterogeneous bank exports (current accounts, credit/debit/prepaid cards, savings accounts) into a single chronological ledger, eliminating double-counting from periodic card settlements and internal transfers. Offline-first; remote LLM backends opt-in with mandatory PII sanitization.
+Every bank hands you its own export file, and none of them fit together. Spendif.ai reads the files of all your accounts and cards on your own computer and turns them into a single list of transactions, without counting a card statement twice or mistaking a transfer between your own accounts for spending.
+
+Under the hood: a hybrid deterministic + LLM pipeline that aggregates heterogeneous bank exports (current accounts, credit/debit/prepaid cards, savings accounts) into one chronological ledger. Offline-first; remote LLM backends opt-in with mandatory PII sanitization.
 
 ---
 
