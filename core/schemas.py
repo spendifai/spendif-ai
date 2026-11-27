@@ -3,11 +3,19 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 from core.models import DocumentType, SignConvention, Confidence
 
+# Column roles the model must always write, null when the file has no such column.
+# Required, not optional: llama.cpp turns the JSON schema into a grammar and a grammar lets the
+# model skip optional properties. Gemma 3 12B skipped debit_col/credit_col on every debit/credit
+# file, so the direction was decided by row density alone (documents/04_software_engineering/
+# 07_deterministic_pipeline.md, Step 0.6).
+LLM_COLUMN_ROLE_FIELDS = ["amount_col", "debit_col", "credit_col", "date_accounting_col", "currency_col"]
+
 # Fields the LLM must always produce (no sensible default)
 LLM_REQUIRED_FIELDS = [
     "doc_type", "date_col", "date_format", "sign_convention",
     "description_col", "description_cols", "account_label",
     "invert_sign", "positive_ratio", "semantic_evidence",
+    *LLM_COLUMN_ROLE_FIELDS,
 ]
 
 # Defaults for fields the LLM may omit
@@ -158,7 +166,7 @@ class DocumentSchema(BaseModel):
 # ── Multi-step classifier sub-schemas ─────────────────────────────────────
 
 STEP1_REQUIRED = ["doc_type"]
-STEP2_REQUIRED = ["date_col", "description_col", "description_cols"]
+STEP2_REQUIRED = ["date_col", "description_col", "description_cols", *LLM_COLUMN_ROLE_FIELDS]
 STEP3_REQUIRED = [
     "sign_convention", "date_format", "account_label",
     "invert_sign", "positive_ratio", "semantic_evidence",
